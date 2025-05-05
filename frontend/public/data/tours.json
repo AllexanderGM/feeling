@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "placeType": "Playa",
+    "imageUrl": "buzo_md.webp",
+    "place": "Playa Paraíso",
+    "location": "Cancún, México",
+    "description": "Disfruta de aguas cristalinas y arena blanca en Playa Paraíso, uno de los destinos más emblemáticos de Cancún. Ideal para relajarse bajo el sol, practicar snorkel o simplemente disfrutar de la brisa del mar Caribe.",
+    "disponibilidad": "Disponible",
+    "cupos": 5
+  },
+  {
+    "id": 2,
+    "placeType": "Montaña",
+    "imageUrl": "easter_islands-1_md.webp",
+    "place": "Cerro Aconcagua",
+    "location": "Mendoza, Argentina",
+    "description": "Conoce el Cerro Aconcagua, la montaña más alta de América, ubicada en la impresionante cordillera de los Andes. Un destino perfecto para los amantes del alpinismo y las vistas panorámicas.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  },
+  {
+    "id": 3,
+    "placeType": "Museo",
+    "imageUrl": "melilla_la_vieja_calle_alta_melilla_españa_md.webp",
+    "place": "Museo del Prado",
+    "location": "Madrid, España",
+    "description": "Sumérgete en el arte clásico en el Museo del Prado, hogar de obras maestras de artistas como Velázquez, Goya y El Bosco. Un recorrido imperdible para los amantes de la cultura y la historia.",
+    "disponibilidad": "Disponible",
+    "cupos": 8
+  },
+  {
+    "id": 4,
+    "placeType": "Playa",
+    "imageUrl": "bora_bora_island_french_polynesia_md.webp",
+    "place": "Isla Bora Bora",
+    "location": "Polinesia Francesa",
+    "description": "Vive el paraíso en la Isla Bora Bora, famosa por sus aguas turquesas, bungalows sobre el agua y paisajes de ensueño. El destino ideal para una escapada romántica o unas vacaciones relajantes.",
+    "disponibilidad": "Disponible",
+    "cupos": 2
+  },
+  {
+    "id": 5,
+    "placeType": "Montaña",
+    "imageUrl": "mountain1_md.webp",
+    "place": "Monte Everest",
+    "location": "Nepal",
+    "description": "El Monte Everest, conocido como el techo del mundo, es el pico más alto del planeta. Un desafío para los escaladores más experimentados y un símbolo de la majestuosidad de la naturaleza.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  },
+  {
+    "id": 6,
+    "placeType": "Museo",
+    "imageUrl": "taj_mahal_uttar_pradesh_india_md.webp",
+    "place": "Museo del Louvre",
+    "location": "París, Francia",
+    "description": "Explora el Museo del Louvre, uno de los museos más grandes y visitados del mundo. Hogar de la Mona Lisa y otras obras icónicas, es un viaje a través de la historia del arte y la humanidad.",
+    "disponibilidad": "Disponible",
+    "cupos": 10
+  },
+  {
+    "id": 7,
+    "placeType": "Playa",
+    "imageUrl": "buzo_md.webp",
+    "place": "Maldivas",
+    "location": "Océano Índico",
+    "description": "Descubre las Maldivas, un archipiélago de islas paradisíacas con aguas cristalinas, arrecifes de coral y lujosos resorts. Perfecto para bucear, relajarse y disfrutar de la vida marina.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  },
+  {
+    "id": 8,
+    "placeType": "Montaña",
+    "imageUrl": "easter_islands-1_md.webp",
+    "place": "Monte Fuji",
+    "location": "Japón",
+    "description": "El Monte Fuji, un volcán icónico y símbolo de Japón, ofrece impresionantes vistas y rutas de senderismo. Un lugar espiritual y natural que atrae a visitantes de todo el mundo.",
+    "disponibilidad": "Disponible",
+    "cupos": 6
+  },
+  {
+    "id": 9,
+    "placeType": "Museo",
+    "imageUrl": "melilla_la_vieja_calle_alta_melilla_españa_md.webp",
+    "place": "British Museum",
+    "location": "Londres, Reino Unido",
+    "description": "El British Museum alberga una de las colecciones más grandes del mundo, con artefactos que abarcan desde la antigüedad hasta la era moderna. Una ventana a la historia global.",
+    "disponibilidad": "Disponible",
+    "cupos": 9
+  },
+  {
+    "id": 10,
+    "placeType": "Playa",
+    "imageUrl": "buzo_md.webp",
+    "place": "Bahía de Ha Long",
+    "location": "Vietnam",
+    "description": "Maravíllate con la Bahía de Ha Long, un paisaje único de formaciones rocosas kársticas que emergen del mar. Un destino ideal para cruceros y exploración de cuevas.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  },
+  {
+    "id": 11,
+    "placeType": "Montaña",
+    "imageUrl": "easter_islands-1_md.webp",
+    "place": "Montañas Rocosas",
+    "location": "Canadá",
+    "description": "Las Montañas Rocosas ofrecen paisajes naturales espectaculares, con lagos cristalinos, bosques densos y picos nevados. Perfecto para el senderismo, el esquí y la observación de vida silvestre.",
+    "disponibilidad": "Disponible",
+    "cupos": 5
+  },
+  {
+    "id": 12,
+    "placeType": "Museo",
+    "imageUrl": "melilla_la_vieja_calle_alta_melilla_españa_md.webp",
+    "place": "Metropolitan Museum of Art",
+    "location": "Nueva York, EE.UU.",
+    "description": "El Metropolitan Museum of Art, uno de los museos más importantes del mundo, cuenta con una vasta colección que abarca más de 5,000 años de historia del arte. Una visita obligada en Nueva York.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  },
+  {
+    "id": 13,
+    "placeType": "Playa",
+    "imageUrl": "buzo_md.webp",
+    "place": "Copacabana",
+    "location": "Río de Janeiro, Brasil",
+    "description": "Copacabana es una de las playas más famosas del mundo, conocida por su arena dorada, ambiente vibrante y vistas al Pan de Azúcar. Un ícono de la cultura brasileña.",
+    "disponibilidad": "Disponible",
+    "cupos": 7
+  },
+  {
+    "id": 14,
+    "placeType": "Montaña",
+    "imageUrl": "easter_islands-1_md.webp",
+    "place": "Los Alpes",
+    "location": "Europa",
+    "description": "Los Alpes son el destino perfecto para los amantes de la naturaleza y los deportes de invierno. Con picos imponentes, lagos alpinos y pueblos pintorescos, es un paraíso para el esquí y el senderismo.",
+    "disponibilidad": "No Disponible",
+    "cupos": 0
+  }
+]

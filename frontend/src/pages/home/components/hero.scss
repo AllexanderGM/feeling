@@ -1,0 +1,29 @@
+.hero-container {
+  position: relative;
+  background: linear-gradient(180deg, #f2f3f5, #f2f3f5);
+
+  @apply flex flex-col justify-center items-center h-80 text-center mb-14;
+
+  .pattern_overlay {
+    position: absolute;
+    inset: 0;
+    background-size: 340px;
+    mix-blend-mode: multiply;
+  }
+
+  .title {
+    @apply text-4xl md:text-6xl font-bold tracking-tight p-6;
+
+    .lurid {
+      @apply bg-gradient-to-r from-[#E86C6E] to-primary/70 text-transparent bg-clip-text;
+    }
+  }
+
+  .browser-container {
+    @apply w-full max-w-6xl px-[50px] md:px-[150px] rounded-2xl flex justify-center items-center text-white;
+
+    .material-symbols-outlined {
+      @apply text-black/50 dark:text-white/90 text-slate-500 pointer-events-none text-lg/none;
+    }
+  }
+}

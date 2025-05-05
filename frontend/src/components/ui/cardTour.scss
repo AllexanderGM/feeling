@@ -1,0 +1,166 @@
+.card_tour {
+  @apply py-3 px-4 h-full;
+
+  .icon {
+    @apply text-primary text-medium mr-1;
+  }
+
+  &-header {
+    @apply flex flex-col items-start justify-start pb-0 !important;
+  }
+
+  &-tags-wrapper {
+    @apply flex justify-start w-full;
+  }
+
+  &-tags-container {
+    @apply flex flex-wrap gap-2 mb-1;
+  }
+
+  &-tag {
+    @apply mb-1 transition-all duration-200 hover:shadow-sm;
+
+    &:hover {
+      @apply bg-primary-100 border-primary-300;
+    }
+  }
+
+  &-tag-more {
+    @apply mb-1 text-gray-600 font-medium;
+  }
+
+  &-title {
+    @apply font-bold text-lg text-gray-800 hover:text-primary text-left;
+  }
+
+  &-body {
+    @apply p-1;
+  }
+
+  &-image_container {
+    @apply w-full max-h-40 md:max-h-48 overflow-hidden flex justify-center items-center h-56 rounded-md object-cover;
+
+    img {
+      @apply w-full h-full object-cover;
+    }
+  }
+
+  &-locations {
+    @apply flex items-center gap-2 flex-wrap text-sm text-gray-500 mt-4 mb-1;
+  }
+
+  &-location {
+    @apply text-primary text-medium;
+
+    .location-content {
+      @apply flex items-center justify-center gap-1;
+    }
+
+    .location-text {
+      @apply flex items-center leading-tight pt-0.5;
+    }
+
+    .icon {
+      @apply flex-shrink-0;
+    }
+  }
+
+  &-includes {
+    @apply mt-2 grid items-start grid-cols-3 gap-1 text-xs;
+  }
+
+  &-include {
+    @apply flex items-start gap-2;
+    height: 100%;
+
+    &_icon-wrapper {
+      @apply flex-shrink-0 mt-1;
+    }
+
+    &_icon {
+      @apply text-primary;
+    }
+
+    &_text {
+      @apply text-gray-500 flex flex-col;
+
+      p:first-child {
+        @apply font-semibold;
+      }
+    }
+  }
+
+  &-include-more {
+    @apply flex items-center justify-start;
+  }
+
+  &-more {
+    @apply flex items-center gap-1;
+
+    &_count {
+      @apply text-primary font-medium;
+    }
+
+    &_text {
+      @apply text-gray-500 text-sm;
+    }
+  }
+
+  &-divider {
+    @apply my-4;
+  }
+
+  &-description {
+    @apply text-sm text-gray-600 mb-2;
+  }
+
+  &-footer {
+    @apply flex justify-between items-center p-1;
+  }
+
+  &-price {
+    @apply flex flex-col items-start;
+
+    &_type {
+      @apply flex items-center gap-1 text-sm text-neutral-600;
+
+      .icon {
+        @apply text-lg text-primary-400;
+      }
+
+      .price {
+        @apply font-semibold text-medium text-cyan-600;
+      }
+    }
+  }
+
+  &-favorite-btn {
+    @apply p-1.5 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center flex-shrink-0 ml-2;
+
+    .icon {
+      @apply text-2xl text-gray-400;
+      transition: all 0.2s ease;
+
+      /* Default state - outlined heart */
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+
+      /* Active state - filled heart */
+      &.favorite-active {
+        @apply text-primary-400;
+        font-variation-settings:
+          'FILL' 1,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+      }
+    }
+
+    &:hover .icon {
+      @apply text-red-500;
+    }
+  }
+}

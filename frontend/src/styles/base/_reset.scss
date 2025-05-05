@@ -1,0 +1,57 @@
+// ==========================================
+// RESET Y NORMALIZACIÓN
+// ==========================================
+
+// Reset básico para consistencia entre navegadores
+* {
+  margin: revert-layer;
+  padding: revert-layer;
+  box-sizing: border-box;
+  font-weight: 500;
+}
+
+// Fuentes para código
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+// Eliminar estilos de lista
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+// Links sin decoración por defecto
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+// Imágenes responsivas por defecto
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// Eliminar outline por defecto (mantener accesibilidad)
+:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+// Accesibilidad: elementos ocultos pero accesibles para lectores de pantalla
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

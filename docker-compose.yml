@@ -1,0 +1,166 @@
+name: ${NAME}
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  minio_data:
+  wordpress_data:
+  wordpress_content:
+
+services:
+  minio:
+    container_name: "${NAME}-minio"
+    image: quay.io/minio/minio
+    profiles:
+      - back
+      - front
+      - local
+      - wordpress
+    restart: always
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_PORT_WEB}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+
+  mysql:
+    container_name: "${NAME}-mysql_db"
+    image: mysql:8.0
+    profiles:
+      - back
+      - front
+      - local
+      - wordpress
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_USER: "${DB_USER}"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_TCP_PORT: ${DB_PORT}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+
+  wordpress:
+    container_name: "${NAME}-wordpress"
+    image: wordpress:latest
+    profiles:
+      - wordpress
+      - local
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: mysql:${DB_PORT}
+      WORDPRESS_DB_USER: "${DB_USER}"
+      WORDPRESS_DB_PASSWORD: "${DB_PASSWORD}"
+      WORDPRESS_DB_NAME: "wordpress" # Base de datos específica para WordPress
+      WORDPRESS_TABLE_PREFIX: "wp_"
+      WORDPRESS_DEBUG: 1
+    volumes:
+      - wordpress_data:/var/www/html # WordPress core files
+      - ./wp-content:/var/www/html/wp-content # Theme and plugin files for Git tracking
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  phpmyadmin:
+    container_name: "${NAME}-phpmyadmin"
+    image: phpmyadmin/phpmyadmin
+    profiles:
+      - wordpress
+      - local
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: ${DB_PORT}
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  backend:
+    container_name: "${NAME}-backend_spring_boot"
+    profiles:
+      - back
+      - local
+    restart: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    ports:
+      - "${PORT_BACK}:${PORT_BACK}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - app-network
+
+  frontend:
+    container_name: "${NAME}-frontend_react"
+    profiles:
+      - front
+      - local
+    restart: always
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ./frontend/.env
+    networks:
+      - app-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  nginx:
+    container_name: "${NAME}-nginx"
+    image: nginx:latest
+    profiles:
+      - front
+      - wordpress
+      - local
+    restart: always
+    ports:
+      - "${PORT_FRONT}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - wordpress_data:/var/www/html:ro # Read-only mount of WordPress files
+    depends_on:
+      - wordpress
+      - frontend
+      - backend
+    networks:
+      - app-network

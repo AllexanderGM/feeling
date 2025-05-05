@@ -1,0 +1,24 @@
+.card-categories {
+  @apply relative bg-white text-gray-600 hover:text-primary rounded-2xl p-1 text-center shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-1;
+
+  // .card-categories-body {
+  //   @apply overflow-visible p-4 text-center;
+  //
+  //   .material-symbols-outlined {
+  //     @apply flex items-center justify-center text-3xl object-cover h-11 w-full;
+  //   }
+  .card-categories-body {
+    @apply overflow-visible p-0 m-0 text-center;
+
+    .material-symbols-outlined {
+      @apply flex items-center justify-center  text-3xl object-cover h-11 lg:h-16 w-full;
+    }
+  }
+
+  // .card-categories-footer {
+  //   @apply text-xs justify-center;
+  // }
+  .card-categories-footer {
+    @apply text-xs justify-center p-2 px-0 font-medium;
+  }
+}

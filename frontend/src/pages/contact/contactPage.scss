@@ -1,0 +1,27 @@
+.contact-container {
+  @apply min-h-screen py-12 px-4 sm:px-6 lg:px-8 mb-12;
+}
+
+.contact-hero {
+  @apply max-w-7xl mx-auto text-center mb-16;
+}
+
+.contact-content {
+  @apply max-w-7xl mx-auto;
+}
+
+.contact-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12;
+}
+
+.contact-form-container {
+  @apply w-full;
+}
+
+.contact-info-container {
+  @apply w-full space-y-8;
+}
+
+.contact-hours {
+  @apply w-full;
+}

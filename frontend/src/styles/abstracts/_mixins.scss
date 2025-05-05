@@ -1,0 +1,95 @@
+// ==========================================
+// MIXINS
+// ==========================================
+@use 'sass:meta';
+@use 'sass:map';
+@use 'variables' as *;
+
+// RESPONSIVE
+// ------------------------------------------
+// Mixin para aplicar estilos responsivos
+@mixin responsive {
+  @media (min-width: $break_point) {
+    @content;
+  }
+}
+
+// DARK THEME
+// ------------------------------------------
+// Mixin para aplicar estilos específicos del tema oscuro
+@mixin dark-theme {
+  [data-theme*='dark'] & {
+    @content;
+  }
+}
+
+// TRANSICIONES
+// ------------------------------------------
+// Mixin para aplicar transiciones suaves
+@mixin hover-transition {
+  transition: $transition ease;
+
+  &:hover {
+    transition: $transition ease;
+  }
+}
+
+// GENERAR VARIABLES
+// ------------------------------------------
+// Mixin para generar variables de color
+@mixin generate-vars($name, $colors) {
+  :root {
+    --theme: 'light';
+
+    @each $color-value, $value in $colors {
+      @if $color-value != '' {
+        --#{$name}-#{$color-value}: #{$value};
+      } @else {
+        --#{$name}: #{$value};
+      }
+    }
+  }
+}
+
+// GENERAR TEMAS
+// ------------------------------------------
+// Mixin para generar variables de color para temas
+// GENERAR TEMAS (completando colores faltantes con los del tema base)
+@mixin generate-theme($name, $colors) {
+  :root[data-theme='#{$name}'] {
+    --theme: '#{$name}';
+
+    @each $color-name, $color-value in $colors {
+      @each $variant, $val in $color-value {
+        @if $variant != '' {
+          --#{$color-name}-#{$variant}: #{$val};
+        } @else {
+          --#{$color-name}: #{$val};
+        }
+      }
+    }
+  }
+}
+
+// APLICAR VARIANTES DE COMPONENTES POR TEMA
+// ------------------------------------------
+// Mixin para aplicar variantes de componentes basadas en temas
+@mixin theme-variants-component($base-class, $mixin-ref) {
+  // Estilos por defecto (sin tema explícito)
+  @each $color-name, $color-values in $colors-map {
+    .#{$base-class}-#{$color-name} {
+      @include meta.apply($mixin-ref, ($color-values));
+    }
+  }
+
+  // Estilos para cada tema con [data-theme="..."]
+  @each $theme-name, $theme-values in $colors-theme {
+    [data-theme='#{$theme-name}'] {
+      @each $color-name, $color-values in $theme-values {
+        .#{$base-class}-#{$color-name} {
+          @include meta.apply($mixin-ref, ($color-values));
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "eslint.workingDirectories": [{ "directory": ".", "changeProcessCWD": true }],
+  "scss.lint.unknownAtRules": "ignore",
+  "css.lint.unknownAtRules": "ignore",
+  "cSpell.words": ["heroui"]
+}

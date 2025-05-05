@@ -1,0 +1,77 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' Enumeraciones
+enum Categoria {
+    Aventura
+    Cultural
+    Playa
+    Montania
+    Ciudad
+}
+
+enum UsuarioRole {
+    ROLE_USER
+    ROLE_ADMIN
+}
+
+' Clases principales
+class Usuario {
+    - Long idUsuario
+    - String nombre
+    - String apellido
+    - String documento
+    - String email
+    - String password
+    - UsuarioRole usuarioRole
+}
+
+class Paquete {
+    - Long idPaquete
+    - String nombre
+    - String descripcion
+    - Integer duracion
+    - String destino
+    - Double precio
+    - LocalDate fechaProgramacion
+    - Categoria categoria
+    - List<String> proveedores
+    - List<String> imagenes
+}
+
+class Reserva {
+    - Long idReserva
+    - LocalDateTime fechaReserva
+    - Double precio
+    - LocalDate fecha
+}
+
+' Relaciones
+Usuario "1" -- "0..*" Reserva : realiza
+Paquete "1" -- "0..*" Reserva : pertenece
+Paquete "1" -- "1" Categoria : tiene
+Usuario "1" -- "1" UsuarioRole : tiene rol
+
+' Servicios
+class PaqueteService {
+    + List<Paquete> obtenerPaquetesAleatorios(int limite)
+    + Optional<Paquete> obtenerPaquete(Long id)
+    + Page<Paquete> listarPaquetesPaginados(Pageable pageable)
+    + Paquete agregarPaquete(Paquete paquete)
+    + Paquete actualizarPaquete(Long id, Paquete paquete)
+    + void eliminarPaquete(Long id)
+}
+
+' Controladores
+class PaqueteController {
+    + List<Paquete> obtenerPaquetesAleatorios(int limite)
+    + Optional<Paquete> obtenerDetallePaquete(Long id)
+    + Page<Paquete> listarPaquetesPaginados(Pageable pageable)
+    + Paquete agregarPaquete(Paquete paquete)
+    + Paquete actualizarPaquete(Long id, Paquete paquete)
+    + void eliminarPaquete(Long id)
+}
+
+' Relación entre servicios y controladores
+PaqueteController --> PaqueteService : usa
+@enduml

@@ -1,0 +1,236 @@
+name: Deploy Backend to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          
+      - name: Validate backend
+        working-directory: ./backend
+        run: |
+          chmod +x mvnw
+          ./mvnw validate compile
+          
+  build-and-push:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Image Tag
+        id: image-tag
+        run: |
+          # Usar hash del commit como tag para mejor trazabilidad
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "tag=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "repository=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ steps.image-tag.outputs.repository }}/backend:latest
+            ghcr.io/${{ steps.image-tag.outputs.repository }}/backend:${{ steps.image-tag.outputs.tag }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Create terraform.tfvars
+        run: |
+          cat > infra/terraform.tfvars << EOF
+          aws_access_key = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          region         = "${{ secrets.AWS_REGION }}"
+          prefix         = "${{ secrets.RESOURCE_PREFIX }}"
+          db_name        = "${{ secrets.DB_NAME }}"
+          db_user        = "${{ secrets.DB_USER }}"
+          db_password    = "${{ secrets.DB_PASSWORD }}"
+          db_port        = ${{ secrets.DB_PORT }}
+          key_name       = "${{ secrets.RESOURCE_PREFIX }}-key"
+          EOF
+
+      - name: Terraform Init
+        working-directory: ./infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./infra
+        run: terraform apply -auto-approve
+
+      - name: Get deployment info
+        id: get-info
+        working-directory: ./infra
+        run: |
+          BACKEND_IP=$(terraform output -raw backend_instance_ip)
+          DB_ENDPOINT=$(terraform output -raw db_endpoint)
+          FRONTEND_URL=$(terraform output -raw frontend_url)
+          IMAGES_BUCKET=$(terraform output -raw images_bucket_name)
+          
+          echo "backend_ip=$BACKEND_IP" >> $GITHUB_OUTPUT
+          echo "db_endpoint=$DB_ENDPOINT" >> $GITHUB_OUTPUT
+          echo "frontend_url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "images_bucket=$IMAGES_BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Get repository name
+        id: get-repo
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+
+      - name: Create .env file for backend
+        run: |
+          DB_HOST=$(echo ${{ steps.get-info.outputs.db_endpoint }} | cut -d':' -f1)
+          
+          cat > backend.env << EOF
+          NAME=${{ secrets.RESOURCE_PREFIX }}
+          ENV=production
+          PORT_FRONT=80
+          PORT_BACK=${{ secrets.PORT_BACK }}
+          URL_FRONT=https://${{ steps.get-info.outputs.frontend_url }}
+          URL_BACK=http://${{ steps.get-info.outputs.backend_ip }}:${{ secrets.PORT_BACK }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_HOST=$DB_HOST
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION }}
+          S3_BUCKET=${{ steps.get-info.outputs.images_bucket }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}
+          EOF
+
+      - name: Copy key from Terraform
+        working-directory: ./infra
+        run: |
+          chmod 600 .ec2-key.pem
+          cp .ec2-key.pem ../.ec2-key.pem
+
+      - name: Deploy to EC2
+        run: |
+          chmod 600 .ec2-key.pem
+          
+          # Crear script de despliegue
+          cat > deploy-script.sh << 'EOF'
+          #!/bin/bash
+          # Configurar Docker
+          echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Guardar imagen anterior por si se necesita rollback
+          if sudo docker ps -q --filter "name=backend" | grep -q .; then
+            sudo docker tag $(sudo docker ps --filter "name=backend" --format "{{.Image}}") ghcr.io/${{ steps.get-repo.outputs.repo }}/backend:previous || true
+          fi
+          
+          # Detener contenedor existente
+          sudo docker stop backend 2>/dev/null || true
+          sudo docker rm backend 2>/dev/null || true
+          
+          # Guardar env file
+          cat > /home/ubuntu/.env << 'ENVFILE'
+          $(cat backend.env)
+          ENVFILE
+          
+          # Descargar nueva imagen
+          sudo docker pull ghcr.io/${{ steps.get-repo.outputs.repo }}/backend:latest
+          
+          # Ejecutar nuevo contenedor
+          sudo docker run -d --name backend \
+            -p ${{ secrets.PORT_BACK }}:${{ secrets.PORT_BACK }} \
+            --restart unless-stopped \
+            --env-file /home/ubuntu/.env \
+            ghcr.io/${{ steps.get-repo.outputs.repo }}/backend:latest
+          
+          # Verificar estado
+          sleep 10
+          if ! sudo docker ps -q --filter "name=backend" | grep -q .; then
+            echo "Deployment failed, rolling back..."
+            sudo docker run -d --name backend \
+              -p ${{ secrets.PORT_BACK }}:${{ secrets.PORT_BACK }} \
+              --restart unless-stopped \
+              --env-file /home/ubuntu/.env \
+              ghcr.io/${{ steps.get-repo.outputs.repo }}/backend:previous
+            exit 1
+          fi
+          
+          # Limpieza
+          sudo docker system prune -af --volumes
+          EOF
+          
+          # Copiar script a EC2
+          scp -i .ec2-key.pem -o StrictHostKeyChecking=no backend.env deploy-script.sh ubuntu@${{ steps.get-info.outputs.backend_ip }}:/home/ubuntu/
+          
+          # Ejecutar script en EC2
+          ssh -i .ec2-key.pem -o StrictHostKeyChecking=no ubuntu@${{ steps.get-info.outputs.backend_ip }} "chmod +x /home/ubuntu/deploy-script.sh && /home/ubuntu/deploy-script.sh"
+
+      - name: Verify deployment
+        run: |
+          HEALTH_CHECK_URL="http://${{ steps.get-info.outputs.backend_ip }}:${{ secrets.PORT_BACK }}/health"
+          MAX_ATTEMPTS=10
+          ATTEMPT=1
+          
+          echo "Verificando despliegue en $HEALTH_CHECK_URL"
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Intento $ATTEMPT de $MAX_ATTEMPTS"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL || echo "Error")
+            
+            if [[ "$STATUS" == "200" ]]; then
+              echo "✅ Despliegue verificado exitosamente"
+              exit 0
+            else
+              echo "⏳ Servicio aún no disponible (código: $STATUS). Esperando..."
+              sleep 15
+              ATTEMPT=$((ATTEMPT+1))
+            fi
+          done
+          
+          echo "⚠️ No se pudo verificar el despliegue después de $MAX_ATTEMPTS intentos, pero continuamos."
+          # No fallamos el workflow si no responde, ya que puede tardar en estar completamente disponible

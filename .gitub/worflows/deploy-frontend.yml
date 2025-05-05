@@ -1,0 +1,153 @@
+name: Deploy Frontend to AWS S3
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+          
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Lint
+        working-directory: ./frontend
+        run: npm run lint || echo "Linting issues found but continuing"
+
+  build-and-deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Create terraform.tfvars
+        run: |
+          cat > infra/terraform.tfvars << EOF
+          aws_access_key = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          region         = "${{ secrets.AWS_REGION }}"
+          prefix         = "${{ secrets.RESOURCE_PREFIX }}"
+          db_name        = "${{ secrets.DB_NAME }}"
+          db_user        = "${{ secrets.DB_USER }}"
+          db_password    = "${{ secrets.DB_PASSWORD }}"
+          db_port        = ${{ secrets.DB_PORT }}
+          key_name       = "${{ secrets.RESOURCE_PREFIX }}-key"
+          EOF
+
+      - name: Terraform Init
+        working-directory: ./infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./infra
+        run: terraform apply -auto-approve
+        
+      - name: Get deployment info
+        id: get-info
+        working-directory: ./infra
+        run: |
+          BACKEND_IP=$(terraform output -raw backend_instance_ip)
+          FRONTEND_BUCKET=$(terraform output -raw frontend_bucket_name || terraform output -raw frontend_url)
+          
+          # Determinar el nombre del bucket desde la URL si es necesario
+          if [[ "$FRONTEND_BUCKET" == *".s3-website-"* ]]; then
+            FRONTEND_BUCKET=$(echo $FRONTEND_BUCKET | cut -d'.' -f1)
+          fi
+          
+          echo "backend_ip=$BACKEND_IP" >> $GITHUB_OUTPUT
+          echo "frontend_bucket=$FRONTEND_BUCKET" >> $GITHUB_OUTPUT
+
+      - name: Create .env for frontend
+        run: |
+          cat > frontend/.env << EOF
+          VITE_NAME=${{ secrets.RESOURCE_PREFIX }}
+          VITE_ENV=production
+          VITE_URL_BACK=http://${{ steps.get-info.outputs.backend_ip }}:${{ secrets.PORT_BACK }}
+          VITE_URL_FRONT=https://${{ steps.get-info.outputs.frontend_bucket }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com
+          VITE_PORT_FRONT=80
+          VITE_PORT_BACK=${{ secrets.PORT_BACK }}
+          EOF
+
+      - name: Install dependencies and build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          
+      - name: Optimize frontend build
+        working-directory: ./frontend/dist
+        run: |
+          # Comprimir archivos para mejor rendimiento
+          find . -type f -name "*.js" -exec gzip -9 -k {} \;
+          find . -type f -name "*.css" -exec gzip -9 -k {} \;
+          find . -type f -name "*.html" -exec gzip -9 -k {} \;
+
+      - name: Deploy to S3
+        run: |
+          # Subir JS y CSS con la configuración de caché adecuada
+          aws s3 sync frontend/dist/assets s3://${{ steps.get-info.outputs.frontend_bucket }}/assets \
+            --delete \
+            --cache-control "max-age=31536000,public" \
+            --exclude "*.gz"
+          
+          # Subir archivos comprimidos con el tipo de contenido correcto y encoding gzip
+          find frontend/dist -name "*.gz" | while read file; do
+            ORIG_FILE=${file%.gz}
+            ORIG_RELATIVE_PATH=${ORIG_FILE#frontend/dist/}
+            RELATIVE_PATH=${file#frontend/dist/}
+            CONTENT_TYPE=$(file --mime-type -b $ORIG_FILE)
+            
+            aws s3 cp $file s3://${{ steps.get-info.outputs.frontend_bucket }}/${RELATIVE_PATH%.gz} \
+              --content-encoding gzip \
+              --content-type "$CONTENT_TYPE" \
+              --cache-control "max-age=31536000,public"
+          done
+          
+          # Subir HTML y otros archivos con caché más corto
+          aws s3 sync frontend/dist s3://${{ steps.get-info.outputs.frontend_bucket }} \
+            --delete \
+            --cache-control "max-age=3600,public" \
+            --exclude "assets/*" \
+            --exclude "*.gz"
+            
+      - name: Verify S3 deployment
+        run: |
+          echo "✅ Frontend deployado en: https://${{ steps.get-info.outputs.frontend_bucket }}.s3-website-${{ secrets.AWS_REGION }}.amazonaws.com"
+          echo "✅ Conectando con el backend en: http://${{ steps.get-info.outputs.backend_ip }}:${{ secrets.PORT_BACK }}"

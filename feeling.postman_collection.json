@@ -1,0 +1,515 @@
+{
+	"info": {
+		"_postman_id": "dd6c47f7-ed88-4450-9451-8da7b1907a7d",
+		"name": "DH-G2-Final",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "22246148"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Registro",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"image\": \"https://static.vecteezy.com/system/resources/previews/000/439/863/non_2x/vector-users-icon.jpg\",\r\n    \"name\": \"Kevin\",\r\n    \"lastName\": \"Paye\",\r\n    \"document\": \"0112\",\r\n    \"phone\": \"921111119\",\r\n    \"dateOfBirth\": \"2000-01-01\",\r\n    \"email\": \"aleasx@gmail.com\",\r\n    \"password\": \"123456\", \r\n    \"address\": \"Calle 111\",\r\n    \"city\": \"departamento 1\" \r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/auth/register",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json()\r",
+									"pm.environment.set(\"TOKEN\", jsonData.token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"aleasx@gmail.com\",\r\n    \"password\": \"123456\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/auth/login",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refrescar Token",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{URL_LOCAL}}/auth/refresh",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cerrar sesión",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{TOKEN}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{URL_LOCAL}}/auth/logout",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Listar Usuarios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL_LOCAL}}/usuarios",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"usuarios"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tours",
+			"item": [
+				{
+					"name": "Paquete por ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/1",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lista de paquetes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lista de paquetes paginada",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/paginated?page=0&size=10&sort=name",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"paginated"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sort",
+									"value": "name"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lista de 10 paquetes aleatorios",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/random",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"random"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Guardar paquete",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIxIiwibmFtZSI6IkFkbWluIiwic3ViIjoiYWRtaW5AYWRtaW4uY29tIiwiaWF0IjoxNzQyMTY1MjU2LCJleHAiOjE3NDIxNzI0NTZ9.lqIjuJgNidgR5SmJ8rYWKL-YLPcnlFvHojUlipt8oCs",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"New York222\",\r\n    \"description\": \"Viaje cultural, una aventura que incluye visitas a ruinas incas, caminatas por montañas y observación de animales y aves que habitan\",\r\n    \"adultPrice\": 6000.0,\r\n    \"childPrice\": 6000.0,\r\n    \"images\": [\r\n        \"https://i.pinimg.com/736x/72/af/ca/72afcae3b7f498fb166e831d78032e44.jpg\",\r\n        \"https://i.pinimg.com/736x/a0/e6/5e/a0e65e336fd8a72e84bc795c94fe81d8.jpg\"\r\n    ],\r\n    \"status\": \"Disponible\",\r\n    \"tags\": [\"CITY\"],\r\n    \"includes\": [\"Alojamiento\", \"Boletos\"],\r\n    \"destination\": {\r\n        \"country\": \"Afghanistan\",\r\n        \"city\":\"Herat\"\r\n    },\r\n    \"hotel\": 1,\r\n    \"availability\": [\r\n        {\r\n            \"availableDate\": \"2025-04-25T09:00:00\",\r\n            \"availableSlots\": 10,\r\n            \"departureTime\": \"2025-04-25T06:00:00\",\r\n            \"returnTime\": \"2025-05-25T18:00:00\"\r\n        }\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "booking",
+			"item": []
+		},
+		{
+			"name": "filtros",
+			"item": [
+				{
+					"name": "Por Categoria",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tags\": [\"BEACH\",\"LUXURY\"]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/filter/category",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"filter",
+								"category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Por nombre",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"tags\": [\"BEACH\",\"M\"]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/filter/name?name=niagara",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"filter",
+								"name"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "niagara"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Por Nombre y Fecha",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{URL_LOCAL}}/tours/filter/advanced?name=niagara&startDate=2025-03-21T00:00:00&endDate=2026-04-30T23:59:59",
+							"host": [
+								"{{URL_LOCAL}}"
+							],
+							"path": [
+								"tours",
+								"filter",
+								"advanced"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "niagara"
+								},
+								{
+									"key": "startDate",
+									"value": "2025-03-21T00:00:00"
+								},
+								{
+									"key": "endDate",
+									"value": "2026-04-30T23:59:59"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Info general",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL_LOCAL}}/",
+					"host": [
+						"{{URL_LOCAL}}"
+					],
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Info system",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{URL_LOCAL}}/system",
+					"host": [
+						"{{URL_LOCAL}}"
+					],
+					"path": [
+						"system"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "URL_LOCAL",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "TOKEN",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

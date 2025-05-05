@@ -1,0 +1,168 @@
+#!/bin/bash
+
+set -e # Detener ejecución si ocurre un error
+
+### VARIABLES Y VALIDACIONES ###
+
+PROFILE=${1:-local}                     # Si no se pasa parámetro, usar "local" por defecto
+VALID_PROFILES=("local" "back" "front") # Perfiles permitidos
+
+# Verificar si docker y docker-compose están instalados
+if ! command -v docker-compose &>/dev/null; then
+  echo "❌ Error: docker-compose no está instalado. Instálalo y vuelve a intentarlo."
+  exit 1
+fi
+
+# Validar que el perfil sea uno de los permitidos
+if [[ ! " ${VALID_PROFILES[@]} " =~ " $PROFILE " ]]; then
+  echo "❌ Error: Perfil inválido. Usa: ./setup.sh [local|back|front]"
+  exit 1
+fi
+
+# Verificar si el archivo .env base existe
+if [[ ! -f .env ]]; then
+  echo "❌ Error: El archivo .env no existe en la raíz del proyecto."
+  exit 1
+fi
+
+# Cargar variables de entorno del archivo .env
+set -a
+source .env
+set +a
+
+### CONFIGURACIÓN DE RUTAS ###
+FRONTEND_ENV_PATH="./frontend/.env"
+BACKEND_ENV_PATH="./backend/.env"
+
+# Concatenar las variables de entorno para las URLs
+if [[ $URL == "http://localhost" ]]; then
+  URL_FRONT="$URL:$PORT_FRONT"
+  URL_BACK="$URL:$PORT_BACK"
+else
+  URL_FRONT="$URL"
+  URL_BACK="$URL"
+fi
+
+### FUNCIONES ###
+
+# Función para crear el .env del frontend
+create_frontend_env() {
+  echo "📂 Creando archivo .env para el frontend en $FRONTEND_ENV_PATH..."
+  cat <<EOL >"$FRONTEND_ENV_PATH"
+# Variables de entorno Generales
+VITE_NAME=$NAME
+VITE_ENV=$ENV
+
+# Variables de archivos estáticos
+VITE_STATIC_FILE_PATH=$STATIC_FILE_PATH
+
+# Configuración de URLs
+VITE_URL=$URL
+VITE_PORT_FRONT=$PORT_FRONT
+VITE_PORT_BACK=$PORT_BACK
+VITE_URL_FRONT=$URL_FRONT
+VITE_URL_BACK=$URL_BACK
+
+# Variables de encriptación
+VITE_ALGORITHM=$ALGORITHM
+VITE_KEY=$KEY
+VITE_IV=$IV
+EOL
+}
+
+# Función para crear el .env del backend
+create_backend_env() {
+  # Definir DB_HOST para el perfil "front"
+  [[ "$PROFILE" == "front" ]] && DB_HOST="localhost"
+
+  echo "📂 Creando archivo .env para el backend en $BACKEND_ENV_PATH..."
+  cat <<EOL >"$BACKEND_ENV_PATH"
+# Variables de entorno Generales
+NAME=$NAME
+ENV=$ENV
+
+# Configuración de URLs
+PORT_FRONT=$PORT_FRONT
+PORT_BACK=$PORT_BACK
+URL_FRONT=$URL_FRONT
+URL_BACK=$URL_BACK
+
+# Configuración de Base de Datos
+DB_PORT=$DB_PORT
+DB_HOST=$DB_HOST
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+DB_ROOT_PASSWORD=$DB_ROOT_PASSWORD
+DB_NAME=$DB_NAME
+
+# Configuración de almacenamiento (MinIO)
+MINIO_PORT=$MINIO_PORT
+MINIO_PORT_WEB=$MINIO_PORT_WEB
+MINIO_WEB=$MINIO_HOST:$MINIO_PORT_WEB
+MINIO_ENDPOINT=$MINIO_HOST:$MINIO_PORT
+MINIO_ROOT_USER=$MINIO_ROOT_USER
+MINIO_ROOT_PASSWORD=$MINIO_ROOT_PASSWORD
+MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY
+MINIO_SECRET_KEY=$MINIO_SECRET_KEY
+MINIO_BUCKET=$MINIO_BUCKET
+
+# Variables de encriptación
+ALGORITHM=$ALGORITHM
+KEY=$KEY
+IV=$IV
+
+# Configuración de sesión y autenticación
+SESSION_SECRET=$SESSION_SECRET
+JWT_SECRET=$JWT_SECRET
+JWT_EXPIRATION=$JWT_EXPIRATION
+ADMIN_USERNAME=$ADMIN_USERNAME
+ADMIN_PASSWORD=$ADMIN_PASSWORD
+
+# Variables de correo electrónico
+MAIL=$MAIL
+MAILPASS=$MAILPASS
+EOL
+}
+
+### EJECUCIÓN ###
+create_frontend_env
+create_backend_env
+
+echo "✅ Archivos .env creados exitosamente"
+echo "🛑 Deteniendo contenedores antiguos..."
+docker-compose -p "$NAME" down
+echo "🚀 Iniciando Docker Compose con el perfil '$PROFILE'..."
+docker-compose --profile "$PROFILE" up -d
+docker-compose ps
+
+# Esperar backend esté listo
+if [[ "$PROFILE" == "back" || "$PROFILE" == "local" ]]; then
+  echo "⌛ Esperando a que el backend esté listo..."
+  MAX_WAIT=120 # Segundos
+  WAIT_TIME=0
+
+  while ! curl -s "$URL_BACK" >/dev/null; do
+    sleep 5
+    WAIT_TIME=$((WAIT_TIME + 5))
+    echo "🛠️ Backend aún creando recursos 💪 ... ($WAIT_TIME/$MAX_WAIT seg)"
+
+    if [[ $WAIT_TIME -ge $MAX_WAIT ]]; then
+      echo "❌ Error: El backend no respondió en $MAX_WAIT segundos."
+      exit 1
+    fi
+  done
+
+  echo "✅ Backend disponible!"
+fi
+
+### MENSAJE FINAL ###
+
+[[ "$PROFILE" == "front" || "$PROFILE" == "local" ]] && echo "🔗 Puedes acceder al frontend en: $URL_FRONT"
+[[ "$PROFILE" == "back" || "$PROFILE" == "local" ]] && echo "🔗 Puedes acceder al backend en: $URL_BACK"
+echo "🔗 Puedes acceder al MinIO WEB en: $MINIO_HOST:$MINIO_PORT_WEB"
+echo "🔗 Puedes acceder al MinIO CLI en: $MINIO_HOST:$MINIO_PORT"
+
+[[ "$PROFILE" == "front" ]] && echo "⚠️ Recuerda levantar el backend manualmente."
+[[ "$PROFILE" == "back" ]] && echo "⚠️ Recuerda levantar el frontend manualmente."
+
+echo "🎉 Proceso completado."

@@ -1,0 +1,35 @@
+@use '../abstracts/functions' as *;
+
+:root {
+  --icon-size-xs: #{rem(12px)};
+  --icon-size-sm: #{rem(16px)};
+  --icon-size-md: #{rem(24px)};
+  --icon-size-lg: #{rem(32px)};
+  --icon-size-xl: #{rem(48px)};
+  --icon-size-xxl: #{rem(64px)};
+  --icon-size-xxxl: #{rem(96px)};
+  --icon-logo-big: #{rem(160px)};
+
+  /* ### Tamaños de fuente ### */
+
+  /* 📌 Títulos */
+  --font-size-principal-title: #{rem(36px)};
+  --font-size-title: #{rem(28px)};
+  --font-size-subtitle: #{rem(22px)};
+  --font-size-caption: #{rem(18px)};
+
+  /* 📌 Texto de párrafo estándar */
+  --font-size-paragraph: #{rem(14px)};
+
+  /* 📌 Tamaños pequeños (notas, info secundaria) */
+  --font-size-small: #{rem(10px)};
+  --font-size-xs: #{rem(8px)};
+
+  /* ### Grosor ### */
+
+  /* 📌 Peso de la fuente */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+}

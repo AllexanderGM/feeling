@@ -1,0 +1,24 @@
+/* Personalización del focus en las miniaturas de LightGallery */
+.lg-outer {
+  .lg-thumb-item {
+    &.active,
+    &:hover {
+      @apply border-primary;
+      border-color: #e86c6e !important;
+    }
+
+    &:focus {
+      @apply border-blue-500;
+      @apply outline-none;
+      @apply shadow-lg;
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    &.active:focus,
+    &:hover:focus {
+      @apply border-primary;
+      border-color: #e86c6e !important;
+    }
+  }
+}

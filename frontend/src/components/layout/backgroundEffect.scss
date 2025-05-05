@@ -1,0 +1,159 @@
+@use '@styles/main' as *;
+
+// Variables para colores de marca
+$background: #171717;
+$spirit: #fcb87a;
+$rouse: #ff0062;
+$purple: #7d4eff;
+$gray: #808080;
+
+// Variables para animaciones
+$animation-duration-slow: 15s;
+$animation-duration-medium: 12s;
+$animation-duration-fast: 8s;
+$animation-timing: ease-in-out;
+$animation-iteration: infinite;
+$animation-direction: alternate;
+
+// Variables para efectos
+$blur-heavy: 120px;
+$blur-medium: 80px;
+$blur-light: 40px;
+$opacity-high: 0.4;
+$opacity-medium: 0.3;
+$opacity-low: 0.2;
+
+// Mixin para configuración común de elipses
+@mixin ellipse-base($width, $height, $blur: $blur-heavy, $opacity: $opacity-medium) {
+  position: absolute;
+  width: $width;
+  height: $height;
+  border-radius: 50%;
+  filter: blur($blur);
+  opacity: $opacity;
+  z-index: 1;
+  pointer-events: none;
+}
+
+// Mixin para gradientes circulares
+@mixin gradient-circle($start-color, $end-color, $start-percent: 0%, $end-percent: 80%) {
+  background: radial-gradient(circle at center, $start-color $start-percent, $end-color $end-percent);
+}
+
+// Versión animada del fondo
+.background-container {
+  position: relative;
+  width: 100%;
+  background-color: $background;
+  overflow: hidden;
+
+  // Contenido de la página que va encima del fondo
+  .content {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    z-index: 2;
+  }
+
+  // Elipse superior (naranja-púrpura) con animación
+  .top-ellipse {
+    top: -30%;
+    right: -30%;
+    animation: float-top $animation-duration-slow $animation-timing $animation-iteration $animation-direction;
+    @include ellipse-base(70vh, 70vh);
+    @include gradient-circle($spirit, $purple);
+  }
+
+  // Elipse inferior (rosa-púrpura) con animación
+  .bottom-ellipse {
+    bottom: -40%;
+    left: -20%;
+    animation: float-bottom $animation-duration-slow + 3s $animation-timing $animation-iteration $animation-direction;
+    @include ellipse-base(70vh, 70vh);
+    @include gradient-circle($rouse, $purple);
+  }
+}
+
+// Animación para la elipse superior
+@keyframes float-top {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: $opacity-low;
+  }
+  50% {
+    transform: translateY(5%) scale(1.05);
+    opacity: $opacity-high;
+  }
+  100% {
+    transform: translateY(-5%) scale(0.95);
+    opacity: $opacity-medium;
+  }
+}
+
+// Animación para la elipse inferior
+@keyframes float-bottom {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: $opacity-medium;
+  }
+  50% {
+    transform: translateY(-7%) scale(1.05);
+    opacity: $opacity-high;
+  }
+  100% {
+    transform: translateY(7%) scale(0.95);
+    opacity: $opacity-low + 0.05;
+  }
+}
+
+// Media queries para responsividad
+@media (max-width: 1200px) {
+  .background-container {
+    .top-ellipse {
+      width: 80vh;
+      height: 80vh;
+      right: -50%;
+    }
+
+    .bottom-ellipse {
+      width: 70vh;
+      height: 70vh;
+      left: -40%;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .background-container {
+    .top-ellipse {
+      width: 60vh;
+      height: 60vh;
+      right: -40%;
+    }
+
+    .bottom-ellipse {
+      width: 50vh;
+      height: 50vh;
+      left: -30%;
+    }
+  }
+}
+
+// Media queries para pantallas pequeñas
+@media (max-width: 480px) {
+  .background-container {
+    .top-ellipse {
+      width: 40vh;
+      height: 40vh;
+    }
+
+    .bottom-ellipse {
+      width: 35vh;
+      height: 35vh;
+    }
+  }
+}

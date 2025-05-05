@@ -1,0 +1,19 @@
+.home_body-container {
+  @apply text-center flex flex-col items-center;
+
+  .title {
+    @apply text-base text-gray-600 mt-12 mb-6;
+  }
+
+  .subtitle {
+    @apply text-sm text-gray-500 mb-6;
+  }
+
+  .home_body-content {
+    @apply w-full max-w-6xl mb-12;
+  }
+
+  .home_body-grid {
+    @apply grid items-stretch grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-5;
+  }
+}
