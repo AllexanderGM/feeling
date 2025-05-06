@@ -263,7 +263,7 @@ const FeelingRegister = () => {
             radius="full"
             color="primary"
             startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
-            className="w-full py-2 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
+            className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
             isLoading={isGoogleAuthenticating}
             isDisabled={isGoogleAuthenticating}
             onClick={handleGoogleSignIn}>

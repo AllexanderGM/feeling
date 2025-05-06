@@ -3,6 +3,7 @@ import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import useError from '@hooks/useError'
 import { validateEmail, validatePassword } from '@utils/validateInputs'
 import logo from '@assets/logo/logo-grey-dark.svg'
+import googleIcon from '@assets/icons/google-icon.svg'
 
 const FeelingLogin = () => {
   const { handleError, showErrorModal, showErrorAlert } = useError()
@@ -11,6 +12,7 @@ const FeelingLogin = () => {
   const [isVisible, setIsVisible] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [errors, setErrors] = useState({})
 
   const toggleVisibility = () => setIsVisible(!isVisible)
@@ -129,6 +131,24 @@ const FeelingLogin = () => {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsGoogleAuthenticating(true)
+
+      // Simular llamada al servicio de autenticación de Google
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      console.log('Inicio de sesión con Google exitoso')
+
+      // Aquí iría la redirección o lógica adicional
+    } catch (error) {
+      console.error('Error en el inicio de sesión con Google:', error)
+      handleError(error)
+    } finally {
+      setIsGoogleAuthenticating(false)
+    }
+  }
+
   return (
     <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
       <figure className="text-center pb-8">
@@ -188,17 +208,38 @@ const FeelingLogin = () => {
           </Link>
         </div>
 
-        <Button
-          type="submit"
-          radius="full"
-          color="default"
-          className="w-full py-3 transition-colors mt-6"
-          isLoading={isLoading}
-          isDisabled={isLoading}>
-          {isLoading ? 'Iniciando sesión...' : 'Acceder'}
-        </Button>
+        <div className="pt-6 space-y-6 w-full">
+          <Button
+            type="submit"
+            radius="full"
+            color="default"
+            className="w-full py-3 transition-colors"
+            isLoading={isLoading}
+            isDisabled={isLoading}>
+            {isLoading ? 'Iniciando sesión...' : 'Acceder'}
+          </Button>
 
-        <div className="w-full text-center text-xs text-gray-500">
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-gray-700"></div>
+            <span className="flex-shrink mx-4 text-xs text-gray-500">o</span>
+            <div className="flex-grow border-t border-gray-700"></div>
+          </div>
+
+          <Button
+            type="button"
+            variant="flat"
+            radius="full"
+            color="primary"
+            startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
+            className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
+            isLoading={isGoogleAuthenticating}
+            isDisabled={isGoogleAuthenticating}
+            onClick={handleGoogleSignIn}>
+            {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
+          </Button>
+        </div>
+
+        <div className="w-full text-center text-xs text-gray-500 mt-6">
           ¿No tienes una cuenta?
           <Button as={Link} href="/app/register" variant="bordered" color="default" radius="full" className="w-full mt-4 transition-colors">
             Regístrate
