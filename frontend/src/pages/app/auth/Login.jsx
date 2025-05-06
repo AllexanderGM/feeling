@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Form, Input, Button, Checkbox } from '@heroui/react'
+import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import useError from '@hooks/useError'
 import { validateEmail, validatePassword } from '@utils/validateInputs'
 import logo from '@assets/logo/logo-grey-dark.svg'
@@ -16,27 +15,22 @@ const FeelingLogin = () => {
 
   const toggleVisibility = () => setIsVisible(!isVisible)
 
-  // Validación en cambio de valores
   const handleEmailChange = e => {
     setEmail(e.target.value)
-    // Limpiar error específico cuando se edita
     if (errors.email) setErrors({ ...errors, email: null })
   }
 
   const handlePasswordChange = e => {
     setPassword(e.target.value)
-    // Limpiar error específico cuando se edita
     if (errors.password) setErrors({ ...errors, password: null })
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
 
-    // Validar todos los campos antes de enviar
     const emailError = validateEmail(email)
     const passwordError = validatePassword(password)
 
-    // Si hay errores, actualizar el estado y detener el envío
     if (emailError || passwordError) {
       setErrors({
         email: emailError,
@@ -45,7 +39,6 @@ const FeelingLogin = () => {
       return
     }
 
-    // Si no hay errores, proceder con la autenticación
     try {
       setIsLoading(true)
 
@@ -137,8 +130,8 @@ const FeelingLogin = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8">
-      <figure className="text-center">
+    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+      <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
 
@@ -190,7 +183,7 @@ const FeelingLogin = () => {
             <span className="text-xs text-gray-500 ml-2">Recordar sesión</span>
           </label>
 
-          <Link to="/recuperar-contrasena" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
+          <Link href="/recuperar-contrasena" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -207,11 +200,9 @@ const FeelingLogin = () => {
 
         <div className="w-full text-center text-xs text-gray-500">
           ¿No tienes una cuenta?
-          <Link to="/register">
-            <Button variant="bordered" color="default" radius="full" className="block w-full mt-4 transition-colors">
-              Regístrate
-            </Button>
-          </Link>
+          <Button as={Link} href="/app/register" variant="bordered" color="default" radius="full" className="w-full mt-4 transition-colors">
+            Regístrate
+          </Button>
         </div>
       </Form>
     </main>

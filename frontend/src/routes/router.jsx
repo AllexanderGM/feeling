@@ -2,7 +2,6 @@ import { createBrowserRouter } from 'react-router-dom'
 // Layouts
 import DynamicLayout from '@layouts/DynamicLayout.jsx'
 // Páginas
-import Login from '@pages/app/auth/Login.jsx'
 import HomePage from '@pages/home/Home.jsx'
 import DetalleTour from '@pages/tourDetail/DetalleTour.jsx'
 import NotFoundPage from '@pages/notFound/NotFoundPage.jsx'
@@ -22,11 +21,13 @@ import ContactPage from '@pages/contact/ContactPage.jsx'
 import AppLayout from '@layouts/AppLayout.jsx'
 // Páginas
 import App from '@pages/app/App.jsx'
+import Login from '@pages/app/auth/Login.jsx'
+import Register from '@pages/app/auth/Register.jsx'
 /* import Dashboard from '@pages/app/Dashboard.jsx'
 import MatchesPage from '@pages/app/MatchesPage.jsx'
 import EventsPage from '@pages/app/EventsPage.jsx'
 import AppLoginPage from '@pages/app/AppLoginPage.jsx'
-import AppRegisterPage from '@pages/app/AppRegisterPage.jsx'
+
 import UserSearchPage from '@pages/app/UserSearchPage.jsx'
 import UserProfileView from '@pages/app/UserProfileView.jsx' */
 
@@ -109,12 +110,11 @@ const router = createBrowserRouter([
       // Rutas para la aplicación de matches (fuera del DynamicLayout)
       {
         path: 'app',
-        // Aquí no usamos RequireAuth para las páginas de login y registro
         element: <AppLayout />,
         children: [
           // Páginas públicas dentro de app
           { path: 'login', element: <Login /> },
-          //{ path: 'register', element: <AppRegisterPage /> },
+          { path: 'register', element: <Register /> },
 
           // Páginas protegidas dentro de app
           {
