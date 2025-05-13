@@ -1,22 +1,13 @@
-import { ErrorProvider } from '@context/ErrorContext'
+import ErrorProvider from '@context/ErrorProvider'
+import AuthProvider from '@context/AuthProvider'
 import ErrorDisplay from '@components/layout/ErrorDisplay'
 import { ErrorBoundary } from '@utils/ErrorBoundary'
-import { AuthProvider } from '@context/AuthContext.jsx'
-import { FavoritesProvider } from '@context/FavoritesContext.jsx'
-import { SearchProvider } from '@context/SearchContext.jsx'
-import { CreateTourProvider } from '@context/CreateTourContext.jsx'
 
 const GeneralProvider = ({ children }) => {
   return (
     <ErrorProvider>
       <ErrorBoundary>
-        <AuthProvider>
-          {/*       <FavoritesProvider>
-        <SearchProvider> */}
-          <CreateTourProvider>{children}</CreateTourProvider>
-          {/*         </SearchProvider>
-      </FavoritesProvider> */}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </ErrorBoundary>
       <ErrorDisplay />
     </ErrorProvider>

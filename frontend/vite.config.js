@@ -24,7 +24,11 @@ export default defineConfig({
       '@services': path.resolve(__dirname, './src/services/'),
       '@utils': path.resolve(__dirname, './src/utils/'),
       '@pages': path.resolve(__dirname, './src/pages/'),
-      '@hooks': path.resolve(__dirname, './src/hooks/')
+      '@hooks': path.resolve(__dirname, './src/hooks/'),
+      '@config': path.resolve(__dirname, './src/config/')
     }
+  },
+  build: {
+    sourcemap: true
   }
 })

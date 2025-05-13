@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@heroui/react'
-import bgImg404 from '@assets/Backgrounds/desert-404.webp'
+import bgImg404 from '@assets/bg/desert-404.webp'
 
 const NotFoundPage = () => {
   return (

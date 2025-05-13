@@ -1,138 +1,293 @@
-import { Cookies } from 'react-cookie'
+import { API_URL, COOKIE_OPTIONS } from '@config/config'
 
-const cookies = new Cookies()
-const URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8080'
+class AuthService {
+  constructor() {
+    this.cookieHandler = null
+    this.apiUrl = API_URL
+  }
 
-// Simula generación de JWT
+  setCookieHandler(cookieHandler) {
+    this.cookieHandler = cookieHandler
+  }
 
-export const login = async (email, password) => {
-  const configFetch = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      email: email,
-      password: password
+  hasCookieHandler() {
+    return this.cookieHandler !== null
+  }
+
+  // Métodos principales de autenticación
+  async login(email, password) {
+    return this._request('/auth/login', {
+      method: 'POST',
+      body: { email, password }
     })
   }
 
-  const response = await fetch(`${URL}/auth/login`, configFetch)
+  async register(userData) {
+    return this._request('/auth/register', {
+      method: 'POST',
+      body: userData
+    })
+  }
 
-  if (!response.ok) {
-    let errorMessage = 'Error al iniciar sesión'
+  async loginWithGoogle(tokenResponse) {
+    try {
+      // Obtener datos del usuario de Google
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: `Bearer ${tokenResponse.access_token}`
+        }
+      })
 
-    switch (response.status) {
-      case 400:
-        errorMessage = 'No existe una cuenta con este correo electrónico'
-        break
-      case 401:
-        errorMessage = 'Correo electrónico o contraseña incorrectos'
-        break
-      case 403:
-        errorMessage = 'Tu cuenta ha sido bloqueada. Por favor, contacta al administrador'
-        break
-      case 404:
-        errorMessage = 'No existe una cuenta con este correo electrónico'
-        break
-      case 500:
-        errorMessage = 'Ha ocurrido un error en el servidor. Por favor, intenta más tarde'
-        break
-      default:
-        errorMessage = 'Ha ocurrido un error inesperado. Por favor, intenta nuevamente'
+      if (!userInfoResponse.ok) {
+        throw new Error('Error al obtener la información del usuario de Google')
+      }
+
+      const userData = await userInfoResponse.json()
+
+      // Enviar datos a nuestro backend
+      const data = await this._request('/auth/google', {
+        method: 'POST',
+        body: {
+          accessToken: tokenResponse.access_token,
+          userData
+        }
+      })
+
+      return data
+    } catch (error) {
+      console.error('Error en loginWithGoogle:', error)
+      throw error
+    }
+  }
+
+  logout() {
+    if (!this.cookieHandler) {
+      console.error('Cookie handler no inicializado')
+      return
     }
 
-    throw new Error(errorMessage)
+    this.cookieHandler.remove('access_token', { path: '/' })
+    this.cookieHandler.remove('refresh_token', { path: '/' })
+    this.cookieHandler.remove('user', { path: '/' })
+
+    if (typeof window !== 'undefined' && window.onLogout) {
+      window.onLogout()
+    }
   }
 
-  const result = await response.json()
-
-  const authenticatedUser = {
-    id: result.id,
-    email: result.email,
-    name: result.name,
-    lastName: result.lastName,
-    avatar: result.image,
-    role: result.role || 'user',
-    isAdmin: result.role === 'ADMIN',
-    isSuperAdmin: result.email === 'admin@admin.com'
+  async forgotPassword(email) {
+    return this._request('/auth/forgot-password', {
+      method: 'POST',
+      body: { email }
+    })
   }
 
-  const token = result.token
-  cookies.set('auth_token', token, { path: '/', maxAge: 86400 }) // 24 horas
-  localStorage.setItem('user', JSON.stringify(authenticatedUser))
-
-  return { user: authenticatedUser, token }
-}
-
-export const logout = () => {
-  cookies.remove('auth_token', { path: '/' })
-  localStorage.removeItem('user')
-}
-
-export const getCurrentUser = () => {
-  const userStr = localStorage.getItem('user')
-  if (!userStr) return null
-
-  // Comprueba si el token existe
-  const token = cookies.get('auth_token')
-  if (!token) {
-    localStorage.removeItem('user')
-    return null
+  async resetPassword(token, newPassword) {
+    return this._request('/auth/reset-password', {
+      method: 'POST',
+      body: {
+        token,
+        password: newPassword
+      }
+    })
   }
 
-  const user = JSON.parse(userStr)
-
-  user.isAuthenticated = true
-
-  return user
-}
-
-export const isAuthenticated = () => {
-  return cookies.get('auth_token') !== undefined
-}
-
-export const hasRole = requiredRole => {
-  const user = getCurrentUser()
-  if (!user) return false
-
-  if (requiredRole === 'admin') {
-    return user.isAdmin === true || user.role === 'admin'
+  async verifyEmail(token) {
+    return this._request('/auth/verify-email', {
+      method: 'POST',
+      body: { token }
+    })
   }
 
-  return true
-}
+  async updateProfile(userData) {
+    const data = await this._request('/users/profile', {
+      method: 'PUT',
+      body: userData
+    })
 
-export const register = async userData => {
-  const newUser = {
-    image: userData.avatar,
-    name: userData.name,
-    lastName: userData.lastName,
-    document: '123456789',
-    phone: '300123456',
-    dateOfBirth: '1990-05-15',
-    email: userData.email,
-    password: userData.password,
-    address: 'Calle 123 #45-67',
-    city: 'Bogotá'
+    // Actualizar usuario en cookies
+    this._updateUserInCookies(data)
+
+    return data
   }
 
-  const response = await fetch(`${URL}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(newUser)
-  })
+  // Métodos auxiliares
+  getCurrentUser() {
+    if (!this.cookieHandler) {
+      console.error('Cookie handler no inicializado')
+      return null
+    }
 
-  if (!response.ok) {
-    console.log(`API Error: ${response.status} ${response.statusText}`)
-    throw new Error(`Registration failed: ${response.status}`)
+    return this.cookieHandler.get('user') || null
   }
 
-  const result = await response.json()
+  isAuthenticated() {
+    if (!this.cookieHandler) {
+      console.error('Cookie handler no inicializado')
+      return false
+    }
 
-  return result.message
+    return !!this.cookieHandler.get('access_token')
+  }
+
+  // Métodos privados
+  async _request(endpoint, options = {}) {
+    this._validateCookieHandler()
+
+    const token = this.cookieHandler.get('access_token')
+    const defaultHeaders = { 'Content-Type': 'application/json' }
+
+    if (token) {
+      defaultHeaders.Authorization = `Bearer ${token}`
+    }
+
+    const config = {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers
+      }
+    }
+
+    if (config.body && typeof config.body === 'object') {
+      config.body = JSON.stringify(config.body)
+    }
+
+    try {
+      const response = await fetch(`${this.apiUrl}${endpoint}`, config)
+
+      if (!response.ok) {
+        // Manejar error 401 (token expirado)
+        if (response.status === 401 && token && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-token')) {
+          const refreshed = await this._refreshToken()
+          if (refreshed) return this._retryRequestWithNewToken(endpoint, options)
+        }
+
+        const errorData = await response.json().catch(() => ({}))
+        const error = new Error(errorData.message || response.statusText)
+        error.response = {
+          status: response.status,
+          data: errorData
+        }
+        throw error
+      }
+
+      if (response.status !== 204) {
+        const data = await response.json()
+
+        // Manejar tokens y usuario en respuestas de autenticación
+        if (data.accessToken || data.refreshToken || data.user) {
+          this._handleAuthResponse(data)
+        }
+
+        return data
+      }
+
+      return null
+    } catch (error) {
+      // Formatear errores de red
+      if (!error.response) {
+        const networkError = new Error('No se pudo establecer conexión con el servidor')
+        networkError.response = {
+          status: 0,
+          data: { message: 'Error de conexión' },
+          errorType: 'NETWORK_ERROR' // Añadir tipos estandarizados
+        }
+        throw networkError
+      }
+
+      // Añadir información útil al error
+      if (error.response) {
+        // Categorizar tipos de errores comunes
+        if (error.response.status === 401) {
+          error.errorType = 'AUTHENTICATION_ERROR'
+        } else if (error.response.status === 403) {
+          error.errorType = 'AUTHORIZATION_ERROR'
+        } else if (error.response.status === 400) {
+          error.errorType = 'VALIDATION_ERROR'
+        } else if (error.response.status === 404) {
+          error.errorType = 'NOT_FOUND_ERROR'
+        } else if (error.response.status >= 500) {
+          error.errorType = 'SERVER_ERROR'
+        }
+      }
+
+      throw error // Re-lanzar el error enriquecido
+    }
+  }
+
+  async _refreshToken() {
+    try {
+      const refreshToken = this.cookieHandler.get('refresh_token')
+      if (!refreshToken) return false
+
+      this.cookieHandler.remove('access_token', { path: '/' })
+
+      const response = await fetch(`${this.apiUrl}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken })
+      })
+
+      if (!response.ok) {
+        this.logout()
+        return false
+      }
+
+      const data = await response.json()
+      this.cookieHandler.set('access_token', data.accessToken, COOKIE_OPTIONS)
+      return true
+    } catch {
+      this.logout()
+      return false
+    }
+  }
+
+  async _retryRequestWithNewToken(endpoint, options) {
+    const newToken = this.cookieHandler.get('access_token')
+    const newHeaders = {
+      ...options.headers,
+      Authorization: `Bearer ${newToken}`
+    }
+
+    return this._request(endpoint, {
+      ...options,
+      headers: newHeaders
+    })
+  }
+
+  _handleAuthResponse(data) {
+    const { accessToken, refreshToken, user } = data
+
+    if (accessToken) {
+      this.cookieHandler.set('access_token', accessToken, COOKIE_OPTIONS)
+    }
+
+    if (refreshToken) {
+      this.cookieHandler.set('refresh_token', refreshToken, {
+        ...COOKIE_OPTIONS,
+        maxAge: 30 * 24 * 60 * 60 // 30 días
+      })
+    }
+
+    if (user) {
+      this.cookieHandler.set('user', user, COOKIE_OPTIONS)
+    }
+  }
+
+  _updateUserInCookies(userData) {
+    const currentUser = this.getCurrentUser()
+    if (currentUser) {
+      const updatedUser = { ...currentUser, ...userData }
+      this.cookieHandler.set('user', updatedUser, COOKIE_OPTIONS)
+    }
+  }
+
+  _validateCookieHandler() {
+    if (!this.cookieHandler) {
+      throw new Error('Cookie handler no inicializado. Asegúrate de llamar a setCookieHandler primero.')
+    }
+  }
 }
 
-export const getAuthToken = () => cookies.get('auth_token')
+export default new AuthService()

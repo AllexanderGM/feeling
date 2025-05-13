@@ -1,4 +1,4 @@
-import './BackgroundEffect.scss'
+import './backgroundEffect.scss'
 
 /**
  * Componente que crea un fondo oscuro con elipses difuminadas animadas

@@ -1,22 +1,29 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useGoogleLogin } from '@react-oauth/google'
 import useError from '@hooks/useError'
+import useAuth from '@hooks/useAuth'
 import { validateEmail, validatePassword, validateName, validatePasswordMatch } from '@utils/validateInputs'
+import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
-import googleIcon from '@assets/icons/google-icon.svg'
+import googleIcon from '@assets/icon/google-icon.svg'
 
 const FeelingRegister = () => {
-  const { handleError } = useError()
+  const navigate = useNavigate()
+  const { handleError, showErrorModal } = useError()
+  const { register, loginWithGoogle, loading } = useAuth()
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   })
+
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [errors, setErrors] = useState({})
 
@@ -56,79 +63,80 @@ const FeelingRegister = () => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async e => {
-    e.preventDefault()
+  const handleSubmit = async event => {
+    event.preventDefault()
 
-    if (!validateForm()) {
-      return
+    if (!validateForm()) return
+
+    // Preparar datos para el registro
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password
     }
 
-    try {
-      setIsSubmitting(true)
+    // Usar el servicio de autenticación
+    const result = await register(userData)
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
+    if (result.success) {
+      // Redirigir al usuario a verificar su correo o iniciar sesión
+      navigate('/verify-email', {
+        state: { email: formData.email },
+        replace: true
+      })
+    } else {
+      const error = result.error
+      const { errorInfo } = result
 
-      // Simulate different error scenarios based on email
+      // Manejar errores de campo específicos
+      const fieldErrors = getFieldErrors(error)
 
-      // 1. Email already exists error
-      if (formData.email.includes('existente')) {
-        const apiError = {
-          response: {
-            status: 409,
-            data: {
-              message: 'Este correo electrónico ya está registrado.',
-              code: 'EMAIL_EXISTS'
-            }
-          }
-        }
-        throw apiError
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors)
       }
 
-      // 2. Server error
-      if (formData.email.includes('error')) {
-        throw new Error('Error al conectar con el servidor. Por favor, intenta más tarde.')
+      // Mostrar modal de error para errores generales o del servidor
+      if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
+        const errorMessage = getErrorMessage(error)
+        showErrorModal(errorMessage, 'Error de registro')
       }
-
-      // If all goes well, show success message and redirect to verification
-      console.log('Registration successful, redirecting to verification')
-
-      // Here would be the redirection or additional logic after successful registration
-      // For example: navigate('/verify-email')
-    } catch (error) {
-      console.error('Registration error:', error)
-
-      // Use global error handler
-      handleError(error)
-
-      // Also update local state to show specific errors
-      if (error.response && error.response.status === 409) {
-        setErrors({
-          ...errors,
-          email: 'Este correo electrónico ya está registrado.'
-        })
-      }
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsGoogleAuthenticating(true)
+  // Implementación del login con Google
+  const googleLogin = useGoogleLogin({
+    onSuccess: async tokenResponse => {
+      try {
+        setIsGoogleAuthenticating(true)
+        const result = await loginWithGoogle(tokenResponse)
 
-      // Simulate Google auth service call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      console.log('Google sign-in successful')
-
-      // Here would be redirection or additional logic
-    } catch (error) {
-      console.error('Google sign-in error:', error)
-      handleError(error)
-    } finally {
+        if (result.success) {
+          navigate('/app/dashboard', { replace: true })
+        } else {
+          handleError(result.error)
+        }
+      } finally {
+        setIsGoogleAuthenticating(false)
+      }
+    },
+    onError: () => {
+      handleError(new Error('No se pudo completar la autenticación con Google'))
       setIsGoogleAuthenticating(false)
+    },
+    flow: 'implicit'
+  })
+
+  const handleGoogleSignIn = () => {
+    if (!termsAccepted) {
+      setErrors({
+        ...errors,
+        terms: 'Debes aceptar los términos y condiciones para registrarte con Google'
+      })
+      return
     }
+
+    setIsGoogleAuthenticating(true)
+    googleLogin()
   }
 
   return (
@@ -246,9 +254,9 @@ const FeelingRegister = () => {
             radius="full"
             color="default"
             className="w-full py-3 font-semibold shadow-md transition-all hover:shadow-lg"
-            isLoading={isSubmitting}
-            isDisabled={isSubmitting || !termsAccepted}>
-            {isSubmitting ? 'Registrando...' : 'Registrarse'}
+            isLoading={loading}
+            isDisabled={loading || !termsAccepted}>
+            {loading ? 'Registrando...' : 'Registrarse'}
           </Button>
 
           <div className="relative flex items-center py-2">
@@ -265,8 +273,8 @@ const FeelingRegister = () => {
             startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
             className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
             isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating}
-            onClick={handleGoogleSignIn}>
+            isDisabled={isGoogleAuthenticating || !termsAccepted}
+            onPress={handleGoogleSignIn}>
             {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
           </Button>
 

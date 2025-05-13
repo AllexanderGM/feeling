@@ -1,34 +1,42 @@
 import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useGoogleLogin } from '@react-oauth/google'
 import useError from '@hooks/useError'
+import useAuth from '@hooks/useAuth'
 import { validateEmail, validatePassword } from '@utils/validateInputs'
+import { getErrorMessage, getFieldErrors } from '@utils/errorUtils'
 import logo from '@assets/logo/logo-grey-dark.svg'
-import googleIcon from '@assets/icons/google-icon.svg'
+import googleIcon from '@assets/icon/google-icon.svg'
 
 const FeelingLogin = () => {
-  const { handleError, showErrorModal, showErrorAlert } = useError()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { handleError, showErrorModal } = useError()
+  const { login, loginWithGoogle, loading } = useAuth()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isVisible, setIsVisible] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [errors, setErrors] = useState({})
+  const fromPath = location.state?.from?.pathname || '/'
 
   const toggleVisibility = () => setIsVisible(!isVisible)
 
-  const handleEmailChange = e => {
-    setEmail(e.target.value)
+  const handleEmailChange = event => {
+    setEmail(event.target.value)
     if (errors.email) setErrors({ ...errors, email: null })
   }
 
-  const handlePasswordChange = e => {
-    setPassword(e.target.value)
+  const handlePasswordChange = event => {
+    setPassword(event.target.value)
     if (errors.password) setErrors({ ...errors, password: null })
   }
 
-  const handleSubmit = async e => {
-    e.preventDefault()
+  const handleSubmit = async event => {
+    event.preventDefault()
 
     const emailError = validateEmail(email)
     const passwordError = validatePassword(password)
@@ -41,112 +49,52 @@ const FeelingLogin = () => {
       return
     }
 
-    try {
-      setIsLoading(true)
+    const result = await login(email, password)
 
-      // Simular una llamada a la API
-      await new Promise(resolve => setTimeout(resolve, 1000))
+    if (result.success) {
+      navigate(fromPath, { replace: true })
+    } else {
+      const error = result.error
+      const { errorInfo } = result
 
-      // Simular diferentes escenarios de error basados en el email o contraseña
+      const fieldErrors = getFieldErrors(error)
 
-      // 1. Error de conexión
-      if (email.includes('error')) {
-        throw new Error('No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet.')
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors)
       }
 
-      // 2. Error de credenciales inválidas
-      if (password === '123456') {
-        // Simular una respuesta de API con error
-        const apiError = {
-          response: {
-            status: 401,
-            data: {
-              message: 'Credenciales inválidas. Por favor, verifica tu correo y contraseña.',
-              code: 'AUTH_FAILED'
-            }
-          }
-        }
-        throw apiError
+      if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
+        const errorMessage = getErrorMessage(error)
+        showErrorModal(errorMessage, 'Error de inicio de sesión')
       }
-
-      // 3. Error de cuenta bloqueada
-      if (email.includes('bloqueado')) {
-        // Simular una respuesta de API con error
-        const apiError = {
-          response: {
-            status: 403,
-            data: {
-              message: 'Tu cuenta ha sido bloqueada temporalmente por múltiples intentos fallidos. Intenta nuevamente en 30 minutos.',
-              code: 'ACCOUNT_LOCKED',
-              details: {
-                remainingTime: '30 minutos',
-                attemptsCount: 5
-              }
-            }
-          }
-        }
-        throw apiError
-      }
-
-      // 4. Error de mantenimiento
-      if (email.includes('mantenim')) {
-        // Simular una respuesta de API con error
-        const apiError = {
-          response: {
-            status: 503,
-            data: {
-              message: 'El servicio está en mantenimiento. Por favor, intenta más tarde.',
-              code: 'SERVICE_UNAVAILABLE',
-              details: {
-                estimatedTime: '2 horas',
-                maintenanceType: 'Actualización de base de datos'
-              }
-            }
-          }
-        }
-        throw apiError
-      }
-
-      // Si todo sale bien, redireccionar o mostrar mensaje de éxito
-      console.log('Inicio de sesión exitoso')
-
-      // Limpiar errores después de un envío exitoso
-      setErrors({})
-
-      // Aquí iría la redirección o lógica adicional después del login exitoso
-    } catch (error) {
-      console.error('Error en el inicio de sesión:', error)
-
-      // Usar el manejador global de errores
-      handleError(error)
-
-      // También podemos actualizar el estado local para mostrar errores en el formulario
-      if (error.response && error.response.status === 401) {
-        setErrors({
-          password: 'Credenciales inválidas. Por favor, verifica tu correo y contraseña.'
-        })
-      }
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsGoogleAuthenticating(true)
+  const googleLogin = useGoogleLogin({
+    onSuccess: async tokenResponse => {
+      try {
+        setIsGoogleAuthenticating(true)
+        const result = await loginWithGoogle(tokenResponse)
 
-      // Simular llamada al servicio de autenticación de Google
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      console.log('Inicio de sesión con Google exitoso')
-
-      // Aquí iría la redirección o lógica adicional
-    } catch (error) {
-      console.error('Error en el inicio de sesión con Google:', error)
-      handleError(error)
-    } finally {
+        if (result.success) {
+          navigate(fromPath, { replace: true })
+        } else {
+          handleError(result.error)
+        }
+      } finally {
+        setIsGoogleAuthenticating(false)
+      }
+    },
+    onError: () => {
+      handleError(new Error('No se pudo completar la autenticación con Google'))
       setIsGoogleAuthenticating(false)
-    }
+    },
+    flow: 'implicit'
+  })
+
+  const handleGoogleSignIn = () => {
+    setIsGoogleAuthenticating(true)
+    googleLogin()
   }
 
   return (
@@ -203,7 +151,7 @@ const FeelingLogin = () => {
             <span className="text-xs text-gray-500 ml-2">Recordar sesión</span>
           </label>
 
-          <Link href="/recuperar-contrasena" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
+          <Link href="/app/forgot-password" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -214,9 +162,9 @@ const FeelingLogin = () => {
             radius="full"
             color="default"
             className="w-full py-3 transition-colors"
-            isLoading={isLoading}
-            isDisabled={isLoading}>
-            {isLoading ? 'Iniciando sesión...' : 'Acceder'}
+            isLoading={loading}
+            isDisabled={loading}>
+            {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 
           <div className="relative flex items-center py-2">
@@ -234,14 +182,14 @@ const FeelingLogin = () => {
             className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
             isLoading={isGoogleAuthenticating}
             isDisabled={isGoogleAuthenticating}
-            onClick={handleGoogleSignIn}>
+            onPress={handleGoogleSignIn}>
             {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
           </Button>
         </div>
 
         <div className="w-full text-center text-xs text-gray-500 mt-6">
           ¿No tienes una cuenta?
-          <Button as={Link} href="/app/register" variant="bordered" color="default" radius="full" className="w-full mt-4 transition-colors">
+          <Button as={Link} href="/register" variant="bordered" color="default" radius="full" className="w-full mt-4 transition-colors">
             Regístrate
           </Button>
         </div>
