@@ -1,6 +1,5 @@
-// src/RequireAuth.jsx
 import { Navigate, useLocation } from 'react-router-dom'
-import useAuth from '@context/AuthContext'
+import useAuth from '@hooks/useAuth'
 
 const RequireAuth = ({ children, requiredRole = null }) => {
   const { user, loading, isAuthenticated } = useAuth()
@@ -17,7 +16,7 @@ const RequireAuth = ({ children, requiredRole = null }) => {
 
   // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
-    return <Navigate to="/app/login" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   // Verificar rol si es necesario

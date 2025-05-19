@@ -21,6 +21,7 @@ import ContactPage from '@pages/contact/ContactPage.jsx' */
 import AppLayout from '@layouts/AppLayout.jsx'
 // Páginas
 import App from '@pages/app/App.jsx'
+import Welcome from '@pages/welcome/Welcome.jsx'
 import Login from '@pages/app/auth/Login.jsx'
 import Register from '@pages/app/auth/Register.jsx'
 import VerifyEmail from '@pages/app/auth/VerifyEmail.jsx'
@@ -116,6 +117,7 @@ const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           // Páginas públicas dentro de app
+          { path: 'welcome', element: <Welcome /> },
           { path: 'login', element: <Login /> },
           { path: 'register', element: <Register /> },
           { path: 'verify-email', element: <VerifyEmail /> },
