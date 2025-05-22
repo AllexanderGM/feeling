@@ -5,7 +5,7 @@ set -e # Detener ejecución si ocurre un error
 ### VARIABLES Y VALIDACIONES ###
 
 PROFILE=${1:-local}                     # Si no se pasa parámetro, usar "local" por defecto
-VALID_PROFILES=("local" "back" "front") # Perfiles permitidos
+VALID_PROFILES=("local" "back" "front" "db") # Perfiles permitidos
 
 # Verificar si docker y docker-compose están instalados
 if ! command -v docker-compose &>/dev/null; then
@@ -76,8 +76,8 @@ EOL
 
 # Función para crear el .env del backend
 create_backend_env() {
-  # Definir DB_HOST para el perfil "front"
-  [[ "$PROFILE" == "front" ]] && DB_HOST="localhost"
+  # Definir DB_HOST para los perfiles "front" y "db"
+  [[ "$PROFILE" == "front" || "$PROFILE" == "db" ]] && DB_HOST="localhost"
 
   echo "📂 Creando archivo .env para el backend en $BACKEND_ENV_PATH..."
   cat <<EOL >"$BACKEND_ENV_PATH"
@@ -133,6 +133,8 @@ EOL
 }
 
 ### EJECUCIÓN ###
+
+# Crear archivos .env para todos los perfiles
 create_frontend_env
 create_backend_env
 
@@ -167,10 +169,12 @@ fi
 
 [[ "$PROFILE" == "front" || "$PROFILE" == "local" ]] && echo "🔗 Puedes acceder al frontend en: $URL_FRONT"
 [[ "$PROFILE" == "back" || "$PROFILE" == "local" ]] && echo "🔗 Puedes acceder al backend en: $URL_BACK"
-echo "🔗 Puedes acceder al MinIO WEB en: $MINIO_HOST:$MINIO_PORT_WEB"
-echo "🔗 Puedes acceder al MinIO CLI en: $MINIO_HOST:$MINIO_PORT"
+[[ "$PROFILE" == "db" || "$PROFILE" == "back" || "$PROFILE" == "local" || "$PROFILE" == "front" ]] && echo "🔗 Puedes acceder al MinIO WEB en: $MINIO_HOST:$MINIO_PORT_WEB"
+[[ "$PROFILE" == "db" || "$PROFILE" == "back" || "$PROFILE" == "local" || "$PROFILE" == "front" ]] && echo "🔗 Puedes acceder al MinIO CLI en: $MINIO_HOST:$MINIO_PORT"
 
 [[ "$PROFILE" == "front" ]] && echo "⚠️ Recuerda levantar el backend manualmente."
 [[ "$PROFILE" == "back" ]] && echo "⚠️ Recuerda levantar el frontend manualmente."
+[[ "$PROFILE" == "db" ]] && echo "⚠️ Solo se han levantado MySQL y MinIO. Recuerda levantar el backend y frontend manualmente."
+
 
 echo "🎉 Proceso completado."

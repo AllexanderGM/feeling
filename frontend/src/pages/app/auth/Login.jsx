@@ -50,8 +50,11 @@ const FeelingLogin = () => {
     }
 
     const result = await login(email, password)
+    console.log('Login result:', result)
 
     if (result.success) {
+      console.log('Login route:', fromPath)
+
       navigate(fromPath, { replace: true })
     } else {
       const error = result.error

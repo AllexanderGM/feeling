@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "user_tokens")
-public class Token {
+public class UserToken {
 
     public enum TokenType {
         ACCESS,

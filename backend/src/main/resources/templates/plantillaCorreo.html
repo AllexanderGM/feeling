@@ -1,69 +1,274 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.w3.org/1999/xhtml">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirmación de Reserva</title>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Verificación de Cuenta - Feeling</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #171717;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
 
+        .email-container {
+            background-color: #ffffff;
+            margin: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff0062 0%, #fcb87a 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff0062;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            margin: 10px 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #171717;
+        }
+
+        .verification-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+            text-align: center;
+            border: 2px solid #ff0062;
+        }
+
+        .verification-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #171717;
+            margin-bottom: 15px;
+        }
+
+        .verification-code {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            color: #ff0062;
+            font-family: 'Courier New', monospace;
+            background-color: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 3px dashed #ff0062;
+        }
+
+        .expiry-notice {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 15px;
+        }
+
+        .instructions {
+            background-color: #fcb87a;
+            color: #171717;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+        }
+
+        .instructions strong {
+            font-weight: 600;
+        }
+
+        .features {
+            margin: 30px 0;
+        }
+
+        .features h3 {
+            color: #171717;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "💕";
+            position: absolute;
+            left: 0;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .footer p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .footer a {
+            color: #ff0062;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .social-links {
+            margin: 20px 0;
+        }
+
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            padding: 8px 16px;
+            background-color: #ff0062;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .verification-code {
+                font-size: 28px;
+                letter-spacing: 4px;
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #11181c; max-width: 600px; margin: 0 auto; padding: 20px;">
-
-<header style="text-align: center; border-bottom: 2px solid #eaeaea; padding-bottom: 20px;">
-    <div style="width: 200px; height: 80px; overflow: hidden; margin: 0 auto;">
-        <img src="https://i.pinimg.com/1200x/7f/d9/81/7fd9811e2cc1cabf013582f5529bc702.jpg"
-             alt="Logo Agencia"
-             style="width: 100%; height: 100%; object-fit: cover;">
-    </div>
-    <h1 style="color: #e86c6e; margin-top: 15px;">¡Reserva de Tour Realizada con Éxito!</h1>
-</header>
-
-<!-- Contenido Principal -->
-<main style="padding: 25px 0;">
-    <p>Hola <span th:text="${name}">[Nombre del Cliente]</span>,</p>
-    <p>Te confirmamos que hemos registrado tu pago para el tour <strong><span th:text="${tourName}">[Nombre del Tour]</span></strong>.</p>
-
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #2a5a8d; margin-top: 0;">Detalles del Tour</h3>
-        <p><strong>Descripción:</strong> <span th:text="${tourDescription}">[Descripción del Tour]</span></p>
-        <p><strong>Fecha de inicio:</strong> <span th:text="${startDate}">[Fecha Inicio]</span></p>
-        <p><strong>Fecha de fin:</strong> <span th:text="${endDate}">[Fecha Fin]</span></p>
-        <p><strong>Fecha de reserva:</strong> <span th:text="${creationDate}">[Fecha Creación]</span></p>
-        <p><strong>Adultos:</strong> <span th:text="${adults}">[N° Adultos]</span></p>
-        <p><strong>Niños:</strong> <span th:text="${children}">[N° Niños]</span></p>
-        <p><strong>Precio Total:</strong> $<span th:text="${price}">[Precio]</span></p>
-        <p><strong>Método de Pago:</strong> <span th:text="${paymentMethod}">[Método de Pago]</span></p>
+<body>
+<div class="email-container">
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">F</div>
+        <h1>FEELING</h1>
+        <p>Conexiones significativas</p>
     </div>
 
-    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #2a5a8d; margin-top: 0;">¿Qué incluye el tour?</h3>
-        <ul>
-            <li th:each="item : ${includes}">
-                <strong th:text="${item.type}">[Tipo]</strong>:
-                <span th:text="${item.details}">[Detalles]</span> -
-                <span th:text="${item.description}">[Descripción]</span>
-            </li>
-        </ul>
+    <!-- Contenido Principal -->
+    <div class="content">
+        <div class="greeting">
+            ¡Hola <span th:text="${name}">Usuario</span>! 👋
+        </div>
+
+        <p>¡Bienvenido/a a <strong>Feeling</strong>! Estamos emocionados de tenerte en nuestra comunidad de conexiones
+            significativas.</p>
+
+        <p>Para completar tu registro y comenzar a conectar con personas afines a ti, por favor verifica tu cuenta con
+            el siguiente código:</p>
+
+        <div class="verification-section">
+            <div class="verification-title">Tu código de verificación es:</div>
+            <div class="verification-code" th:text="${verificationCode}">123456</div>
+            <div class="expiry-notice">⏰ Este código expirará en 30 minutos</div>
+        </div>
+
+        <div class="instructions">
+            <strong>¡Estás a un paso de formar parte de nuestra comunidad!</strong><br>
+            Ingresa este código en la aplicación para activar tu cuenta.
+        </div>
+
+        <div class="features">
+            <h3>En Feeling podrás:</h3>
+            <ul>
+                <li>Conectar con personas que comparten tus intereses y valores</li>
+                <li>Participar en eventos exclusivos y experiencias únicas</li>
+                <li>Usar nuestro sistema de matching inteligente</li>
+                <li>Crear relaciones significativas y duraderas</li>
+                <li>Acceder a las categorías SINGLES, ROUSE y SPIRIT</li>
+                <li>Disfrutar de una comunidad segura y verificada</li>
+            </ul>
+        </div>
+
+        <p style="font-size: 14px; color: #6c757d; margin-top: 30px;">
+            Si no has solicitado esta verificación, puedes ignorar este correo de forma segura.
+        </p>
     </div>
 
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>¿Necesitas ayuda?</strong></p>
+        <p>Contáctanos: <a href="mailto:conexionesfeeling@gmail.com">conexionesfeeling@gmail.com</a></p>
 
-    <p style="font-weight: bold;">¡No olvides llevar!</p>
-    <ul style="padding-left: 20px;">
-        <li>Calzado cómodo</li>
-        <li>Agua suficiente</li>
-        <li>Protector solar</li>
-        <li>Documento de identificación</li>
-    </ul>
-</main>
+        <div class="social-links">
+            <a href="#" th:href="@{https://instagram.com/feeling}">Instagram</a>
+            <a href="#" th:href="@{https://facebook.com/feeling}">Facebook</a>
+            <a href="#" th:href="@{https://tiktok.com/@feeling}">TikTok</a>
+        </div>
 
-<!-- Footer -->
-<footer style="border-top: 2px solid #eaeaea; padding-top: 20px; text-align: center; font-size: 0.9em; color: #666;">
-    <p>¿Preguntas? Contáctanos: <a href="mailto:preguntepues.glocal@gmail.com" style="color: #2a5a8d;">preguntepues.glocal@gmail.com</a></p>
-    <p style="margin-top: 10px;">
-        <a href="#" style="color: #666; text-decoration: none; margin: 0 10px;">Política de Cancelación</a> |
-        <a href="#" style="color: #666; text-decoration: none; margin: 0 10px;">Aviso Legal</a>
-    </p>
-    <p style="margin-top: 15px;">© 2025 Glocal Tours</p>
-</footer>
-
+        <p style="margin-top: 20px;">
+            <a href="#" th:href="@{/terminos}">Términos y Condiciones</a> |
+            <a href="#" th:href="@{/privacidad}">Política de Privacidad</a>
+        </p>
+        <p style="margin-top: 15px; font-size: 12px;">
+            © 2025 Feeling - Todos los derechos reservados<br>
+            Conexiones significativas para una vida plena
+        </p>
+    </div>
+</div>
 </body>
 </html>

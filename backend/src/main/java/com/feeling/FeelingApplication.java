@@ -10,7 +10,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class ToursApplication extends SpringBootServletInitializer {
+public class FeelingApplication extends SpringBootServletInitializer {
 
 	public static void main(String[] args) {
 		// Cargar las variables de entorno del archivo .env
@@ -19,7 +19,7 @@ public class ToursApplication extends SpringBootServletInitializer {
 			System.setProperty(entry.getKey(), entry.getValue());
 		});
 
-		SpringApplication.run(ToursApplication.class, args);
+		SpringApplication.run(FeelingApplication.class, args);
 	}
 
 	@Bean
@@ -32,7 +32,7 @@ public class ToursApplication extends SpringBootServletInitializer {
 
 	@Override
 	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-		return application.sources(ToursApplication.class);
+		return application.sources(FeelingApplication.class);
 	}
 
 }

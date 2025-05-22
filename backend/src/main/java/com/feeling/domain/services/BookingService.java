@@ -31,6 +31,7 @@ public class BookingService {
     private final IPaymentMethodRepository paymentMethodRepository;
     private final IAvailabilityRepository availabilityRepository;
     private final EmailService emailService;
+
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO, String userEmail) {
         //Obtener el tour

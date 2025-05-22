@@ -2,22 +2,25 @@ package com.feeling.domain.services;
 
 import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserModifyDTO;
+import com.feeling.domain.dto.user.UserProfileDTO;
 import com.feeling.domain.dto.user.UserResponseDTO;
+import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.infrastructure.entities.user.Role;
-import com.feeling.infrastructure.entities.user.Token;
 import com.feeling.infrastructure.entities.user.User;
-import com.feeling.infrastructure.entities.user.UserRol;
-import com.feeling.infrastructure.repositories.user.IRoleUserRepository;
-import com.feeling.infrastructure.repositories.user.ITokenRepository;
+import com.feeling.infrastructure.entities.user.UserRole;
+import com.feeling.infrastructure.entities.user.UserRoleList;
+import com.feeling.infrastructure.entities.user.UserToken;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
+import com.feeling.infrastructure.repositories.user.IUserRoleRepository;
+import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.Map;
@@ -27,15 +30,14 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    @Value("${ADMIN_USERNAME}")
-    private String superAdminEmail;
-
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private static final Map<String, String> tokenBlacklist = new ConcurrentHashMap<>();
     private final IUserRepository userRepository;
-    private final IRoleUserRepository rolRepository;
+    private final IUserRoleRepository rolRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
-    private final ITokenRepository tokenRepository;
+    private final IUserTokenRepository tokenRepository;
+    @Value("${ADMIN_USERNAME}")
+    private String superAdminEmail;
 
     public UserResponseDTO get(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
@@ -51,6 +53,24 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public UserResponseDTO completeProfile(String email, UserProfileDTO profileData) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        // Actualizar solo los campos proporcionados
+        if (profileData.lastName() != null) user.setLastname(profileData.lastName());
+        if (profileData.document() != null) user.setDocument(profileData.document());
+        if (profileData.phone() != null) user.setPhone(profileData.phone());
+        if (profileData.dateOfBirth() != null) user.setDateOfBirth(profileData.dateOfBirth());
+        if (profileData.city() != null) user.setCity(profileData.city());
+
+        User updatedUser = userRepository.save(user);
+        logger.info("Perfil completado correctamente para el usuario {}", email);
+
+        return new UserResponseDTO(updatedUser);
+    }
+
     public UserResponseDTO update(String email, UserModifyDTO userRequestDTO) {
         try {
             User user = userRepository.findByEmail(email).orElseThrow(() -> {
@@ -58,7 +78,6 @@ public class UserService {
                 return new UnauthorizedException("Usuario no encontrado");
             });
 
-            user.setImage(userRequestDTO.image());
             user.setEmail(userRequestDTO.email());
             user.setName(userRequestDTO.name());
             user.setLastname(userRequestDTO.lastName());
@@ -67,7 +86,6 @@ public class UserService {
             user.setDateOfBirth(userRequestDTO.dateOfBirth());
             user.setEmail(userRequestDTO.email());
             user.setPassword(bCryptPasswordEncoder.encode(userRequestDTO.password()));
-            user.setAddress(userRequestDTO.address());
             user.setCity(userRequestDTO.city());
 
             User userEdit = userRepository.save(user);
@@ -83,8 +101,8 @@ public class UserService {
     public MessageResponseDTO delete(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
         //Eliminar los tokens del usuario
-        List<Token> tokens = tokenRepository.findByUser(user);
-        tokenRepository.deleteAll(tokens);
+        List<UserToken> userTokens = tokenRepository.findByUser(user);
+        tokenRepository.deleteAll(userTokens);
         userRepository.delete(user);
         logger.info("Usuario eliminado correctamente {}", user.getEmail());
         return new MessageResponseDTO("Usuario eliminado correctamente");
@@ -104,10 +122,10 @@ public class UserService {
         User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
-        Role adminRole = rolRepository.findByUserRol(UserRol.ADMIN)
+        UserRole adminUserRole = rolRepository.findByUserRoleList(UserRoleList.ADMIN)
                 .orElseThrow(() -> new UnauthorizedException("Rol ADMIN no encontrado"));
 
-        user.setRole(adminRole);
+        user.setUserRole(adminUserRole);
         userRepository.save(user);
         logger.info("El usuario {} ahora es ADMIN", user.getEmail());
 
@@ -122,10 +140,10 @@ public class UserService {
         User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
-        Role userRole = rolRepository.findByUserRol(UserRol.CLIENT)
+        UserRole userRole = rolRepository.findByUserRoleList(UserRoleList.CLIENT)
                 .orElseThrow(() -> new UnauthorizedException("Rol CLIENT no encontrado"));
 
-        user.setRole(userRole);
+        user.setUserRole(userRole);
         userRepository.save(user);
         logger.info("El usuario {} ya no es ADMIN", user.getEmail());
 

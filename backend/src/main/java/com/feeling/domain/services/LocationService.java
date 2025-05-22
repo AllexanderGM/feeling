@@ -21,7 +21,6 @@ import java.util.Optional;
 @Data
 @Service
 public class LocationService {
-
     private static final Logger logger = LoggerFactory.getLogger(LocationService.class);
     private final ObjectMapper objectMapper;
     private final ILocationRepository locationRepository;

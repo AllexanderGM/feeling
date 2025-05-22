@@ -5,6 +5,7 @@ import com.feeling.domain.dto.info.InfoGeneralResponseDTO;
 import com.feeling.domain.dto.info.InfoSystemResponseDTO;
 import com.feeling.utils.MemoryFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -16,6 +17,8 @@ import java.sql.SQLException;
 @Service
 public class InfoService {
 
+    @Value("${spring.application.name}")
+    String projectName;
     final MemoryFormatter memoryFormatter;
     @Autowired
     private DataSource dataSource;
@@ -27,7 +30,7 @@ public class InfoService {
     public InfoGeneralResponseDTO getInfoGeneral() {
         InfoGeneralResponseDTO info = new InfoGeneralResponseDTO(
                 this.getUpdate(),
-                "Glocal Topur API - DH-G2-Final",
+                projectName,
                 "OK");
 
         info.addService("Spring Boot", "servicio disponible");
