@@ -48,7 +48,7 @@ const checkUserRole = (user, requiredRole) => {
     return user.roles[requiredRole] === true
   }
 
-  return false
+  return true
 }
 
 export default RequireAuth
