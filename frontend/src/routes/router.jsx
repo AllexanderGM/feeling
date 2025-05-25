@@ -27,6 +27,7 @@ import Register from '@pages/app/auth/Register.jsx'
 import VerifyEmail from '@pages/app/auth/VerifyEmail.jsx'
 import ForgotPassword from '@pages/app/auth/ForgotPassword.jsx'
 import ResetPassword from '@pages/app/auth/ResetPassword.jsx'
+import ProfileCreation from '@pages/createProfile/profileCreation.jsx'
 /* import Dashboard from '@pages/app/Dashboard.jsx'
 import MatchesPage from '@pages/app/MatchesPage.jsx'
 import EventsPage from '@pages/app/EventsPage.jsx'
@@ -123,6 +124,9 @@ const router = createBrowserRouter([
           { path: 'verify-email', element: <VerifyEmail /> },
           { path: 'forgot-password', element: <ForgotPassword /> },
           { path: 'reset-password', element: <ResetPassword /> },
+          
+          // Nueva ruta para creación de perfil
+          { path: 'profile/create', element: <ProfileCreation /> },
 
           // Páginas protegidas dentro de app
           {
