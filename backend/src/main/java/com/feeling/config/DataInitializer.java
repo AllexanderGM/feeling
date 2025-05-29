@@ -192,6 +192,12 @@ public class DataInitializer implements CommandLineRunner {
     private void initializeCommonTags() {
         logger.info("Inicializando tags comunes...");
 
+        // Verificar si ya existen tags para evitar duplicados
+        if (userTagRepository.count() > 0) {
+            logger.info("Los tags comunes ya están inicializados");
+            return;
+        }
+
         String systemEmail = "system@feeling.com";
         List<String> commonTags = Arrays.asList(
                 // Intereses generales
@@ -224,18 +230,26 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         commonTags.forEach(tagName -> {
-            if (userTagRepository.findByNameIgnoreCase(tagName).isEmpty()) {
-                UserTag tag = UserTag.builder()
-                        .name(tagName.toLowerCase())
-                        .createdBy(systemEmail)
-                        .createdAt(LocalDateTime.now())
-                        .usageCount(0L)
-                        .build();
+            try {
+                if (userTagRepository.findByNameIgnoreCase(tagName).isEmpty()) {
+                    UserTag tag = UserTag.builder()
+                            .name(tagName.toLowerCase())
+                            .createdBy(systemEmail)
+                            .createdAt(LocalDateTime.now())
+                            .usageCount(0L)
+                            .lastUsed(LocalDateTime.now())
+                            .build();
 
-                userTagRepository.save(tag);
-                logger.debug("Tag común creado: {}", tagName);
+                    userTagRepository.save(tag);
+                    logger.debug("Tag común creado: {}", tagName);
+                }
+            } catch (Exception e) {
+                logger.error("Error al crear tag '{}': {}", tagName, e.getMessage());
+                // Continuar con el siguiente tag en lugar de fallar completamente
             }
         });
+
+        logger.info("Inicialización de tags comunes completada");
     }
 
     // ==============================

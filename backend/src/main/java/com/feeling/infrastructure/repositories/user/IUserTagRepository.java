@@ -148,46 +148,59 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     // ========================================
     // TAGS POR CATEGORÍA DE INTERÉS
     // ========================================
-    @Query("""
-            SELECT t FROM UserTag t 
-            JOIN t.users u 
-            WHERE u.userCategoryInterest.categoryInterest = com.feeling.infrastructure.entities.user.UserCategoryInterestList.valueOf(:category)
-            AND t.usageCount > 0 
-            GROUP BY t 
-            ORDER BY COUNT(u) DESC
-            """)
+    @Query(value = """
+            SELECT t.* FROM user_tags t 
+            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN users u ON ut.user_id = u.id 
+            JOIN user_category_interest uci ON u.category_interest_id = uci.id
+            WHERE uci.category_interest = :category
+            AND t.usage_count > 0 
+            GROUP BY t.id 
+            ORDER BY COUNT(u.id) DESC
+            LIMIT :limit
+            """, nativeQuery = true)
     List<UserTag> findPopularTagsByCategory(@Param("category") String category, @Param("limit") int limit);
 
     // ========================================
     // MATCHING Y COMPATIBILIDAD
     // ========================================
-    @Query("""
-            SELECT DISTINCT u.email FROM User u 
-            JOIN u.tags ut 
-            WHERE ut.name IN :tagNames 
+    @Query(value = """
+            SELECT DISTINCT u.email FROM users u 
+            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tags t ON ut.tag_id = t.id
+            WHERE t.name IN :tagNames 
             AND u.email != :excludeEmail 
-            AND u.showMeInSearch = true 
+            AND u.show_me_in_search = true 
             AND u.verified = true
-            ORDER BY u.popularityScore DESC
-            """)
-    List<String> findUsersWithSimilarTags(@Param("tagNames") List<String> tagNames, @Param("excludeEmail") String excludeEmail, @Param("limit") int limit);
+            ORDER BY u.popularity_score DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<String> findUsersWithSimilarTags(
+            @Param("tagNames") List<String> tagNames,
+            @Param("excludeEmail") String excludeEmail,
+            @Param("limit") int limit);
 
-    @Query("""
-            SELECT DISTINCT u.email FROM User u 
-            JOIN u.tags ut 
-            WHERE ut.name IN :tagNames 
+    /**
+     * Encuentra candidatos para matching basado en tags y categoría
+     */
+    @Query(value = """
+            SELECT DISTINCT u.email FROM users u 
+            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tags t ON ut.tag_id = t.id
+            LEFT JOIN user_category_interest uci ON u.category_interest_id = uci.id
+            WHERE t.name IN :tagNames 
             AND u.email != :excludeEmail 
-            AND u.showMeInSearch = true 
+            AND u.show_me_in_search = true 
             AND u.verified = true
-            AND (:categoryFilter IS NULL OR u.userCategoryInterest.categoryInterest = com.feeling.infrastructure.entities.user.UserCategoryInterestList.valueOf(:categoryFilter))
-            ORDER BY u.popularityScore DESC
-            """)
+            AND (:categoryFilter IS NULL OR uci.category_interest = :categoryFilter)
+            ORDER BY u.popularity_score DESC
+            LIMIT :limit
+            """, nativeQuery = true)
     List<String> findMatchCandidatesByTags(
             @Param("tagNames") List<String> tagNames,
             @Param("excludeEmail") String excludeEmail,
             @Param("categoryFilter") String categoryFilter,
-            @Param("limit") int limit
-    );
+            @Param("limit") int limit);
 
     // ========================================
     // ACTUALIZACIÓN DE MÉTRICAS
@@ -211,59 +224,80 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     /**
      * Encuentra tags populares en una región específica
      */
-    @Query("""
-            SELECT t FROM UserTag t 
-            JOIN t.users u 
+    @Query(value = """
+            SELECT t.* FROM user_tags t 
+            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN users u ON ut.user_id = u.id 
             WHERE u.city = :city 
-            AND t.usageCount > 0 
-            GROUP BY t 
-            ORDER BY COUNT(u) DESC
-            """)
+            AND t.usage_count > 0 
+            GROUP BY t.id 
+            ORDER BY COUNT(u.id) DESC
+            LIMIT :limit
+            """, nativeQuery = true)
     List<UserTag> findPopularTagsByCity(@Param("city") String city, @Param("limit") int limit);
 
     /**
      * Encuentra tags que son tendencia en una categoría específica
      */
-    @Query("""
-            SELECT t FROM UserTag t 
-            JOIN t.users u 
-            WHERE u.userCategoryInterest.categoryInterest = com.feeling.infrastructure.entities.user.UserCategoryInterestList.valueOf(:category)
-            AND t.lastUsed >= :since 
-            AND t.usageCount >= :minUsage
-            GROUP BY t 
-            ORDER BY COUNT(u) DESC
-            """)
-    List<UserTag> findTrendingTagsByCategory(@Param("category") String category, @Param("since") LocalDateTime since, @Param("minUsage") Long minUsage);
+    @Query(value = """
+            SELECT t.* FROM user_tags t 
+            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN users u ON ut.user_id = u.id 
+            JOIN user_category_interest uci ON u.category_interest_id = uci.id
+            WHERE uci.category_interest = :category
+            AND t.last_used >= :since 
+            AND t.usage_count >= :minUsage
+            GROUP BY t.id 
+            ORDER BY COUNT(u.id) DESC
+            """, nativeQuery = true)
+    List<UserTag> findTrendingTagsByCategory(
+            @Param("category") String category,
+            @Param("since") LocalDateTime since,
+            @Param("minUsage") Long minUsage);
 
     /**
      * Encuentra usuarios premium con tags similares (para matching VIP)
      */
-    @Query("""
-            SELECT DISTINCT u.email FROM User u 
-            JOIN u.tags ut 
-            WHERE ut.name IN :tagNames 
+    @Query(value = """
+            SELECT DISTINCT u.email FROM users u 
+            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tags t ON ut.tag_id = t.id
+            WHERE t.name IN :tagNames 
             AND u.email != :excludeEmail 
-            AND u.availableAttempts > 0 
+            AND u.available_attempts > 0 
             AND u.verified = true
-            ORDER BY u.popularityScore DESC
-            """)
-    List<String> findPremiumUsersWithSimilarTags(@Param("tagNames") List<String> tagNames, @Param("excludeEmail") String excludeEmail, @Param("limit") int limit);
+            ORDER BY u.popularity_score DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<String> findPremiumUsersWithSimilarTags(
+            @Param("tagNames") List<String> tagNames,
+            @Param("excludeEmail") String excludeEmail,
+            @Param("limit") int limit);
 
     /**
      * Obtiene tags que un usuario específico no tiene pero que son populares en su categoría
      */
-    @Query("""
-            SELECT t FROM UserTag t 
-            JOIN t.users u 
-            WHERE u.userCategoryInterest.categoryInterest = (
-                SELECT u2.userCategoryInterest.categoryInterest FROM User u2 WHERE u2.email = :userEmail
+    @Query(value = """
+            SELECT t.* FROM user_tags t 
+            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN users u ON ut.user_id = u.id 
+            JOIN user_category_interest uci ON u.category_interest_id = uci.id
+            WHERE uci.category_interest = (
+                SELECT uci2.category_interest FROM users u2 
+                JOIN user_category_interest uci2 ON u2.category_interest_id = uci2.id
+                WHERE u2.email = :userEmail
             )
             AND t.id NOT IN (
-                SELECT ut.id FROM User u3 JOIN u3.tags ut WHERE u3.email = :userEmail
+                SELECT t2.id FROM users u3 
+                JOIN user_tags ut3 ON u3.id = ut3.user_id
+                JOIN user_tags t2 ON ut3.tag_id = t2.id
+                WHERE u3.email = :userEmail
             )
-            AND t.usageCount > 0
-            GROUP BY t 
-            ORDER BY COUNT(u) DESC
-            """)
+            AND t.usage_count > 0
+            GROUP BY t.id 
+            ORDER BY COUNT(u.id) DESC
+            LIMIT :limit
+            """, nativeQuery = true)
     List<UserTag> findMissingPopularTagsForUser(@Param("userEmail") String userEmail, @Param("limit") int limit);
+
 }

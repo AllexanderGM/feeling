@@ -37,6 +37,11 @@ public class UserTag {
     @Column(name = "last_used")
     private LocalDateTime lastUsed; // Última vez que alguien usó este tag
 
+    // NUEVO CAMPO AGREGADO
+    @Column(name = "trending")
+    @Builder.Default
+    private Boolean trending = false; // Si el tag está en tendencia
+
     // ========================================
     // RELACIONES
     // ========================================
@@ -104,6 +109,15 @@ public class UserTag {
         return result.toString().trim();
     }
 
+    // NUEVOS MÉTODOS PARA TRENDING
+    public void markAsTrending() {
+        this.trending = true;
+    }
+
+    public void unmarkAsTrending() {
+        this.trending = false;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -123,6 +137,7 @@ public class UserTag {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", usageCount=" + usageCount +
+                ", trending=" + trending +
                 '}';
     }
 }

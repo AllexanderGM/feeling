@@ -34,9 +34,8 @@ public class EmailService {
             Context context = new Context();
             context.setVariable("name", name);
             context.setVariable("verificationCode", verificationCode);
-
-            // La plantilla debe estar en resources/templates/email-verification.html
-            String htmlContent = templateEngine.process("email-verification", context);
+            
+            String htmlContent = templateEngine.process("email-verification.html", context);
 
             helper.setTo(to);
             helper.setSubject("Verificación de cuenta - Feeling");
@@ -67,7 +66,7 @@ public class EmailService {
             context.setVariable("price", bookingResponseDTO.getPrice());
             context.setVariable("paymentMethod", bookingResponseDTO.getPaymentMethod());
 
-            String html = templateEngine.process("plantillaCorreo.html", context);
+            String html = templateEngine.process("email-verification.html", context);
 
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);

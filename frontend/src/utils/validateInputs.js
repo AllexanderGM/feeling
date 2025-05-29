@@ -1,3 +1,7 @@
+// ========================================
+// VALIDACIONES PARA REGISTRO SIMPLIFICADO
+// ========================================
+
 // Validación manual para el email
 export const validateEmail = value => {
   if (!value) {
@@ -20,17 +24,57 @@ export const validatePassword = value => {
   return null
 }
 
-// Validación manual para nombres y apellidos
+// Validación manual para nombres
 export const validateName = value => {
   if (!value) {
-    return 'Este campo es requerido'
+    return 'El nombre es requerido'
   }
   if (value.length < 2) {
-    return 'Este campo debe tener al menos 2 caracteres'
+    return 'El nombre debe tener al menos 2 caracteres'
+  }
+  if (value.length > 50) {
+    return 'El nombre no puede tener más de 50 caracteres'
   }
   // Verificar que solo contiene letras y espacios
   if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/.test(value)) {
-    return 'Este campo solo debe contener letras'
+    return 'El nombre solo debe contener letras'
+  }
+  return null
+}
+
+// ========================================
+// VALIDACIONES PARA CÓDIGO DE VERIFICACIÓN
+// ========================================
+
+// Validación para código de verificación de 6 dígitos
+export const validateVerificationCode = value => {
+  if (!value) {
+    return 'El código de verificación es requerido'
+  }
+  if (!/^\d{6}$/.test(value)) {
+    return 'El código debe ser de exactamente 6 dígitos'
+  }
+  return null
+}
+
+// ========================================
+// VALIDACIONES ADICIONALES (para completar perfil)
+// ========================================
+
+// Validación manual para apellidos
+export const validateLastName = value => {
+  if (!value) {
+    return 'El apellido es requerido'
+  }
+  if (value.length < 2) {
+    return 'El apellido debe tener al menos 2 caracteres'
+  }
+  if (value.length > 50) {
+    return 'El apellido no puede tener más de 50 caracteres'
+  }
+  // Verificar que solo contiene letras y espacios
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/.test(value)) {
+    return 'El apellido solo debe contener letras'
   }
   return null
 }
@@ -42,9 +86,9 @@ export const validatePhone = value => {
   }
   // Eliminar espacios, guiones y paréntesis para validar
   const cleanedValue = value.replace(/\s+|-|\(|\)/g, '')
-  // Verificar que tenga 10 dígitos para Colombia (código de país opcional)
-  if (!/^(\+?57)?[3][0-9]{9}$/.test(cleanedValue)) {
-    return 'Ingresa un número de celular válido (ej: 300 123 4567)'
+  // Verificar que tenga entre 9 y 15 dígitos
+  if (!/^\d{9,15}$/.test(cleanedValue)) {
+    return 'Ingresa un número de teléfono válido (9-15 dígitos)'
   }
   return null
 }
@@ -113,4 +157,103 @@ export const validateInterests = interests => {
     return 'Debes seleccionar al menos un interés'
   }
   return null
+}
+
+// ========================================
+// VALIDACIONES PARA PERFIL COMPLETO
+// ========================================
+
+// Validación para documento de identidad
+export const validateDocument = value => {
+  if (!value) {
+    return 'El documento es requerido'
+  }
+  if (value.length < 6) {
+    return 'El documento debe tener al menos 6 caracteres'
+  }
+  if (value.length > 20) {
+    return 'El documento no puede tener más de 20 caracteres'
+  }
+  return null
+}
+
+// Validación para ciudad
+export const validateCity = value => {
+  if (!value) {
+    return 'La ciudad es requerida'
+  }
+  if (value.length < 2) {
+    return 'La ciudad debe tener al menos 2 caracteres'
+  }
+  if (value.length > 50) {
+    return 'La ciudad no puede tener más de 50 caracteres'
+  }
+  return null
+}
+
+// Validación para descripción de perfil
+export const validateDescription = value => {
+  if (value && value.length > 500) {
+    return 'La descripción no puede tener más de 500 caracteres'
+  }
+  return null
+}
+
+// Validación para URL de imagen
+export const validateImageUrl = value => {
+  if (!value) return null // Opcional
+
+  try {
+    new URL(value)
+    if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(value)) {
+      return 'La URL debe ser una imagen válida (jpg, jpeg, png, gif, webp)'
+    }
+    return null
+  } catch {
+    return 'La URL de la imagen no es válida'
+  }
+}
+
+// ========================================
+// UTILIDADES DE VALIDACIÓN
+// ========================================
+
+// Función para validar múltiples campos a la vez
+export const validateFields = (fields, validators) => {
+  const errors = {}
+
+  Object.keys(validators).forEach(fieldName => {
+    const value = fields[fieldName]
+    const validator = validators[fieldName]
+
+    if (typeof validator === 'function') {
+      const error = validator(value)
+      if (error) {
+        errors[fieldName] = error
+      }
+    }
+  })
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  }
+}
+
+// Función para validar el registro completo
+export const validateRegistration = formData => {
+  return validateFields(formData, {
+    name: validateName,
+    email: validateEmail,
+    password: validatePassword,
+    confirmPassword: value => validatePasswordMatch(formData.password, value)
+  })
+}
+
+// Función para validar la verificación de código
+export const validateVerification = formData => {
+  return validateFields(formData, {
+    email: validateEmail,
+    code: validateVerificationCode
+  })
 }

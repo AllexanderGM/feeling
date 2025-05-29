@@ -14,18 +14,71 @@ class AuthService {
     return this.cookieHandler !== null
   }
 
-  // Métodos principales de autenticación
+  // ========================================
+  // REGISTRO SIMPLIFICADO
+  // ========================================
+
+  /**
+   * Registra un nuevo usuario con datos mínimos
+   * Solo requiere: name, email, password
+   */
+  async register(userData) {
+    return this._request('/auth/register', {
+      method: 'POST',
+      body: {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password
+      }
+    })
+  }
+
+  // ========================================
+  // VERIFICACIÓN POR CÓDIGO
+  // ========================================
+
+  /**
+   * Verifica el código de 6 dígitos enviado por email
+   */
+  async verifyEmailCode(email, code) {
+    return this._request('/auth/verify-email', {
+      method: 'POST',
+      body: {
+        email: email,
+        code: code
+      }
+    })
+  }
+
+  /**
+   * Reenvía el código de verificación
+   */
+  async resendVerificationCode(email) {
+    return this._request('/auth/resend-verification', {
+      method: 'POST',
+      body: {},
+      // Enviar email como query parameter
+      endpoint: `/auth/resend-verification?email=${encodeURIComponent(email)}`
+    })
+  }
+
+  /**
+   * Verifica el estado del usuario
+   */
+  async checkUserStatus(email) {
+    return this._request(`/auth/status/${encodeURIComponent(email)}`, {
+      method: 'GET'
+    })
+  }
+
+  // ========================================
+  // AUTENTICACIÓN
+  // ========================================
+
   async login(email, password) {
     return this._request('/auth/login', {
       method: 'POST',
       body: { email, password }
-    })
-  }
-
-  async register(userData) {
-    return this._request('/auth/register', {
-      method: 'POST',
-      body: userData
     })
   }
 
@@ -75,6 +128,10 @@ class AuthService {
     }
   }
 
+  // ========================================
+  // RECUPERACIÓN DE CONTRASEÑA
+  // ========================================
+
   async forgotPassword(email) {
     return this._request('/auth/forgot-password', {
       method: 'POST',
@@ -92,12 +149,9 @@ class AuthService {
     })
   }
 
-  async verifyEmail(token) {
-    return this._request('/auth/verify-email', {
-      method: 'POST',
-      body: { token }
-    })
-  }
+  // ========================================
+  // GESTIÓN DE PERFIL
+  // ========================================
 
   async updateProfile(userData) {
     const data = await this._request('/users/profile', {
@@ -111,7 +165,10 @@ class AuthService {
     return data
   }
 
-  // Métodos auxiliares
+  // ========================================
+  // MÉTODOS AUXILIARES
+  // ========================================
+
   getCurrentUser() {
     if (!this.cookieHandler) {
       console.error('Cookie handler no inicializado')
@@ -130,7 +187,10 @@ class AuthService {
     return !!this.cookieHandler.get('access_token')
   }
 
-  // Métodos privados
+  // ========================================
+  // MÉTODOS PRIVADOS
+  // ========================================
+
   async _request(endpoint, options = {}) {
     this._validateCookieHandler()
 
@@ -140,6 +200,9 @@ class AuthService {
     if (token) {
       defaultHeaders.Authorization = `Bearer ${token}`
     }
+
+    // Usar endpoint personalizado si se proporciona (para query params)
+    const url = options.endpoint ? `${this.apiUrl}${options.endpoint}` : `${this.apiUrl}${endpoint}`
 
     const config = {
       ...options,
@@ -154,7 +217,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${this.apiUrl}${endpoint}`, config)
+      const response = await fetch(url, config)
 
       if (!response.ok) {
         // Manejar error 401 (token expirado)
@@ -176,7 +239,7 @@ class AuthService {
         const data = await response.json()
 
         // Manejar tokens y usuario en respuestas de autenticación
-        if (data.accessToken || data.refreshToken || data.user) {
+        if (data.token || data.accessToken || data.refreshToken || data.user) {
           this._handleAuthResponse(data)
         }
 
@@ -191,7 +254,7 @@ class AuthService {
         networkError.response = {
           status: 0,
           data: { message: 'Error de conexión' },
-          errorType: 'NETWORK_ERROR' // Añadir tipos estandarizados
+          errorType: 'NETWORK_ERROR'
         }
         throw networkError
       }
@@ -212,7 +275,7 @@ class AuthService {
         }
       }
 
-      throw error // Re-lanzar el error enriquecido
+      throw error
     }
   }
 
@@ -225,8 +288,10 @@ class AuthService {
 
       const response = await fetch(`${this.apiUrl}/auth/refresh-token`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshToken}`
+        }
       })
 
       if (!response.ok) {
@@ -235,7 +300,7 @@ class AuthService {
       }
 
       const data = await response.json()
-      this.cookieHandler.set('access_token', data.accessToken, COOKIE_OPTIONS)
+      this.cookieHandler.set('access_token', data.message || data.token, COOKIE_OPTIONS)
       return true
     } catch {
       this.logout()
@@ -257,10 +322,11 @@ class AuthService {
   }
 
   _handleAuthResponse(data) {
-    const { accessToken, refreshToken, user } = data
+    const { token, accessToken, refreshToken, user } = data
 
-    if (accessToken) {
-      this.cookieHandler.set('access_token', accessToken, COOKIE_OPTIONS)
+    // El backend devuelve 'token' en lugar de 'accessToken'
+    if (token || accessToken) {
+      this.cookieHandler.set('access_token', token || accessToken, COOKIE_OPTIONS)
     }
 
     if (refreshToken) {
@@ -272,6 +338,18 @@ class AuthService {
 
     if (user) {
       this.cookieHandler.set('user', user, COOKIE_OPTIONS)
+    }
+
+    // Si tenemos los datos del usuario en la respuesta de login
+    if (data.email && data.name) {
+      const userData = {
+        email: data.email,
+        name: data.name,
+        lastName: data.lastName,
+        role: data.role,
+        image: data.image
+      }
+      this.cookieHandler.set('user', userData, COOKIE_OPTIONS)
     }
   }
 

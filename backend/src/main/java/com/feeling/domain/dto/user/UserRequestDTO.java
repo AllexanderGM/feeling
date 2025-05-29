@@ -9,6 +9,10 @@ public record UserRequestDTO(
         @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
         String name,
 
+        @NotBlank(message = "El apellido es obligatorio")
+        @Size(min = 2, max = 50, message = "El apellido debe tener entre 2 y 50 caracteres")
+        String lastName,
+
         @NotBlank(message = "El correo electrónico es obligatorio")
         @Email(message = "El formato del correo electrónico no es válido")
         String email,

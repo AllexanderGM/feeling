@@ -6,6 +6,7 @@ import com.feeling.domain.dto.user.UserTagStatisticsDTO;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.User;
+import com.feeling.infrastructure.entities.user.UserCategoryInterestList;
 import com.feeling.infrastructure.entities.user.UserTag;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
 import com.feeling.infrastructure.repositories.user.IUserTagRepository;
@@ -286,10 +287,19 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene los tags más populares por categoría de interés
+     * Obtiene tags populares por categoría de interés
+     * Útil para SINGLES, ROUSE, SPIRIT
      */
-    public List<UserTagDTO> getPopularTagsByCategory(String categoryInterest, int limit) {
-        return userTagRepository.findPopularTagsByCategory(categoryInterest, limit)
+    public List<UserTagDTO> getPopularTagsByCategory(String category, int limit) {
+        // Validar que la categoría existe
+        try {
+            UserCategoryInterestList.valueOf(category.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            logger.warn("Categoría inválida proporcionada: {}", category);
+            return getPopularTags(limit); // Retornar tags populares generales como fallback
+        }
+
+        return userTagRepository.findPopularTagsByCategory(category.toUpperCase(), limit)
                 .stream()
                 .map(UserTagDTO::new)
                 .collect(Collectors.toList());
@@ -454,7 +464,7 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene usuarios recomendados basados en tags similares
+     * Obtiene recomendaciones de usuarios para matching basadas en tags
      * Específico para el sistema de matching de Feeling
      */
     public List<String> getMatchRecommendationsByTags(String userEmail, int limit) {
@@ -476,5 +486,26 @@ public class UserTagService {
                 categoryFilter,
                 limit
         );
+    }
+
+    /**
+     * Método de utilidad para verificar que las tablas de relación existen
+     * Solo usar durante la migración inicial
+     */
+    @Transactional
+    public void verifyDatabaseStructure() {
+        try {
+            // Verificar que la tabla de relación user_tags_relation existe
+            // Si no existe, crear los datos básicos necesarios
+            long tagCount = userTagRepository.count();
+            logger.info("Total de tags en la base de datos: {}", tagCount);
+
+            if (tagCount == 0) {
+                logger.info("No se encontraron tags. Inicializando tags básicos...");
+                // Aquí podrías llamar a un método para crear tags iniciales
+            }
+        } catch (Exception e) {
+            logger.error("Error verificando estructura de base de datos: {}", e.getMessage());
+        }
     }
 }

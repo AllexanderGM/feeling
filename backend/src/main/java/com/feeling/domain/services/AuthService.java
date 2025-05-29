@@ -13,13 +13,11 @@ import com.feeling.infrastructure.repositories.user.IUserRepository;
 import com.feeling.infrastructure.repositories.user.IUserRoleRepository;
 import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
 import com.feeling.infrastructure.repositories.user.IUserVerificationCodeRepository;
-import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -81,6 +79,7 @@ public class AuthService {
             // Construir usuario con datos mínimos
             User userEntity = User.builder()
                     .name(newUser.name().trim())
+                    .lastname(newUser.lastName().trim())
                     .email(newUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(newUser.password()))
                     .userRole(clientRole)
@@ -229,14 +228,18 @@ public class AuthService {
     /**
      * Crea y envía un código de verificación para un usuario
      */
-    @Async
+    @Transactional
     public void createAndSendVerificationCode(User user) {
         try {
-            // Revocar códigos anteriores si existen
+            // 1. ELIMINAR códigos anteriores si existen (con flush para forzar la eliminación)
             Optional<UserVerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
-            existingCode.ifPresent(verificationCodeRepository::delete);
+            if (existingCode.isPresent()) {
+                verificationCodeRepository.delete(existingCode.get());
+                verificationCodeRepository.flush(); // IMPORTANTE: Forzar la eliminación inmediatamente
+                logger.info("Código de verificación anterior eliminado para usuario: {}", user.getEmail());
+            }
 
-            // Crear nuevo código
+            // 2. Crear nuevo código
             String code = generateVerificationCode();
             LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
 
@@ -248,8 +251,9 @@ public class AuthService {
                     .build();
 
             verificationCodeRepository.save(verificationCode);
+            logger.info("Nuevo código de verificación creado para usuario: {}", user.getEmail());
 
-            // Enviar correo con el código
+            // 3. Enviar correo con el código
             emailService.sendVerificationEmail(
                     user.getEmail(),
                     user.getName() + " " + user.getLastname(),
@@ -258,10 +262,10 @@ public class AuthService {
 
             logger.info("Código de verificación enviado a: {}", user.getEmail());
 
-        } catch (MessagingException e) {
-            logger.error("Error al enviar código de verificación por email: {}", e.getMessage(), e);
         } catch (Exception e) {
             logger.error("Error inesperado al crear y enviar código de verificación: {}", e.getMessage(), e);
+            // Re-lanzar la excepción para que el controlador pueda manejarla
+            throw new RuntimeException("Error al generar código de verificación", e);
         }
     }
 
@@ -314,28 +318,37 @@ public class AuthService {
      */
     @Transactional
     public MessageResponseDTO resendCode(String email) {
-        User user = userRepository.findByEmail(email.toLowerCase().trim())
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        try {
+            User user = userRepository.findByEmail(email.toLowerCase().trim())
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        if (user.isVerified()) {
-            logger.info("Intento de reenvío de código para usuario ya verificado: {}", email);
-            return new MessageResponseDTO("La cuenta ya está verificada");
-        }
-
-        // Verificar si ha pasado suficiente tiempo desde el último envío (anti-spam)
-        Optional<UserVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
-        if (lastCode.isPresent()) {
-            LocalDateTime lastSent = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
-            if (lastSent.isAfter(LocalDateTime.now().minusMinutes(2))) {
-                throw new UnauthorizedException("Debes esperar al menos 2 minutos antes de solicitar un nuevo código");
+            if (user.isVerified()) {
+                logger.info("Intento de reenvío de código para usuario ya verificado: {}", email);
+                return new MessageResponseDTO("La cuenta ya está verificada");
             }
+
+            // Verificar si ha pasado suficiente tiempo desde el último envío (anti-spam)
+            Optional<UserVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
+            if (lastCode.isPresent() && !lastCode.get().isVerified()) {
+                LocalDateTime lastSent = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
+                if (lastSent.isAfter(LocalDateTime.now().minusMinutes(2))) {
+                    throw new UnauthorizedException("Debes esperar al menos 2 minutos antes de solicitar un nuevo código");
+                }
+            }
+
+            // Generar y enviar nuevo código (método ya corregido arriba)
+            createAndSendVerificationCode(user);
+
+            logger.info("Código de verificación reenviado a: {}", email);
+            return new MessageResponseDTO("Se ha enviado un nuevo código de verificación a tu correo electrónico");
+
+        } catch (NotFoundException | UnauthorizedException e) {
+            // Re-lanzar excepciones conocidas
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado al reenviar código: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al reenviar código de verificación", e);
         }
-
-        // Generar y enviar nuevo código
-        createAndSendVerificationCode(user);
-
-        logger.info("Código de verificación reenviado a: {}", email);
-        return new MessageResponseDTO("Se ha enviado un nuevo código de verificación a tu correo electrónico");
     }
 
     // ==============================
