@@ -11,21 +11,21 @@ import org.springframework.security.core.GrantedAuthority;
 @NoArgsConstructor
 @Entity
 @Table(name = "user_roles")
-public class Role implements GrantedAuthority {
+public class UserRole implements GrantedAuthority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
-    private UserRol userRol;
+    private UserRoleList userRoleList;
 
-    public Role(UserRol userRol) {
-        this.userRol = userRol;
+    public UserRole(UserRoleList userRoleList) {
+        this.userRoleList = userRoleList;
     }
 
     @Override
     public String getAuthority() {
-        return userRol.name();
+        return userRoleList.name();
     }
 }

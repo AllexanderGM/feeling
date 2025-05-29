@@ -3,7 +3,7 @@
 variable "prefix" {
   description = "Prefijo para los recursos de AWS"
   type        = string
-  default     = "DH_G2_final"
+  default     = "feeling-app"
 }
 
 # 🔹 Variables para la conexión con AWS

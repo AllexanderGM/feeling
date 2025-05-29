@@ -1,7 +1,7 @@
 package com.feeling.config;
 
-import com.feeling.infrastructure.entities.user.Token;
-import com.feeling.infrastructure.repositories.user.ITokenRepository;
+import com.feeling.infrastructure.entities.user.UserToken;
+import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,9 +29,10 @@ import java.util.List;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
+
     private final Filter loggingFilter;
     private final JwtAuthFilter jwtAuthFilter;
-    private final ITokenRepository tokenRepository;
+    private final IUserTokenRepository tokenRepository;
     private final AuthenticationProvider authenticationProvider;
 
     @Bean
@@ -39,9 +40,9 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // *******************************************
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Super-Admin-Email"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -51,35 +52,60 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
-                .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()))
-                .authorizeHttpRequests(
-                        auth -> {
-                            // 🔹 Rutas para Swagger
-                            auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                .exceptionHandling(exceptionHandling ->
+                        exceptionHandling.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()))
+                .authorizeHttpRequests(auth -> {
+                    // 🔹 Rutas para Swagger/OpenAPI
+                    auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll();
 
-                            // 🔹 Rutas para el sistema
-                            auth.requestMatchers(HttpMethod.GET, "/", "/system").permitAll();
+                    // 🔹 Rutas para el sistema
+                    auth.requestMatchers(HttpMethod.GET, "/", "/system", "/health").permitAll();
 
-                            // 🔹 Rutas para la autenticación
-                            auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
-                            auth.requestMatchers(HttpMethod.POST, "/auth/register").permitAll();
+                    // 🔹 Rutas de autenticación (públicas)
+                    auth.requestMatchers(HttpMethod.POST, "/auth/register").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/verify-email").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/resend-verification").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/auth/status/**").permitAll();
 
-                            // 🔹 Rutas para los turs
-                            auth.requestMatchers(HttpMethod.GET, "/tours").permitAll();
-                            auth.requestMatchers(HttpMethod.GET, "/tours/**").permitAll();
+                    // 🔹 Rutas para atributos (públicas para formularios de registro)
+                    auth.requestMatchers(HttpMethod.GET, "/user-attributes/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/category-interests").permitAll();
 
-                            // 🔹 Rutas protegidas para cambiar roles (Solo ADMIN)
-                            auth.requestMatchers(HttpMethod.POST, "/users/{id}/admin").permitAll();
-                            // ************************************
-                            auth.requestMatchers(HttpMethod.PUT, "/users/{id}/admin").permitAll();
-                            //auth.requestMatchers(HttpMethod.POST, "/users/{id}/admin").hasRole("ADMIN");
-                            //auth.requestMatchers(HttpMethod.DELETE, "/users/{id}/admin").hasRole("ADMIN");   //como estaba antes
+                    // 🔹 Rutas para tags populares (públicas)
+                    auth.requestMatchers(HttpMethod.GET, "/tags/popular").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/search").permitAll();
 
-                            auth.anyRequest().authenticated();
+                    // 🔹 Rutas protegidas para usuarios autenticados
+                    auth.requestMatchers(HttpMethod.POST, "/auth/refresh-token").authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/logout").authenticated();
 
-                        })
+                    // Perfil de usuario
+                    auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").authenticated();
+
+                    // Tags de usuario
+                    auth.requestMatchers("/users/tags/**").authenticated();
+
+                    // Matching y búsquedas
+                    auth.requestMatchers("/matches/**").authenticated();
+                    auth.requestMatchers("/users/search").authenticated();
+
+                    // 🔹 Rutas protegidas para administradores
+                    auth.requestMatchers("/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.POST, "/users/{id}/admin").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/users/{id}/admin").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN");
+
+                    // 🔹 Cualquier otra ruta requiere autenticación
+                    auth.anyRequest().authenticated();
+                })
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(management ->
+                        management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(loggingFilter, JwtAuthFilter.class)
                 .authenticationProvider(authenticationProvider)
@@ -101,16 +127,22 @@ public class SecurityConfiguration {
         }
 
         final String jwtToken = token.substring(7);
-        final Token foundToken = tokenRepository.findByToken(jwtToken)
+        final UserToken foundToken = tokenRepository.findByToken(jwtToken)
                 .orElseThrow(() -> new IllegalArgumentException("Token no encontrado"));
+
         foundToken.setExpired(true);
         foundToken.setRevoked(true);
         tokenRepository.save(foundToken);
     }
+
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring().requestMatchers(
-                "/swagger-ui/", "/v3/api-docs/","/swagger-ui.html"
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/swagger-ui.html",
+                "/favicon.ico",
+                "/error"
         );
     }
 }

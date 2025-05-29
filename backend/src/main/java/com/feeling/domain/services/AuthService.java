@@ -5,25 +5,25 @@ import com.feeling.domain.dto.auth.AuthResponseDTO;
 import com.feeling.domain.dto.auth.AuthVerifyCodeDTO;
 import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserRequestDTO;
+import com.feeling.exception.ExistEmailException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
-import com.feeling.infrastructure.repositories.user.IRoleUserRepository;
-import com.feeling.infrastructure.repositories.user.ITokenRepository;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
-import com.feeling.infrastructure.repositories.user.IVerificationCodeRepository;
+import com.feeling.infrastructure.repositories.user.IUserRoleRepository;
+import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
+import com.feeling.infrastructure.repositories.user.IUserVerificationCodeRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -39,92 +39,181 @@ public class AuthService {
     private static final int EXPIRATION_MINUTES = 30;
     private static final Map<String, String> tokenBlacklist = new ConcurrentHashMap<>();
 
-    private final ITokenRepository tokenRepository;
+    private final IUserTokenRepository tokenRepository;
     private final JwtService jwtService;
-    private final IRoleUserRepository roleUserRepository;
+    private final IUserRoleRepository roleUserRepository;
     private final AuthenticationManager authenticationManager;
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final IVerificationCodeRepository verificationCodeRepository;
+    private final IUserVerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
 
+    // ==============================
+    // REGISTRO CON DATOS MÍNIMOS
+    // ==============================
+
+    /**
+     * Registra un nuevo usuario con datos mínimos obligatorios
+     * Solo requiere: name, email, password
+     */
+    @Transactional
     public MessageResponseDTO register(UserRequestDTO newUser) {
         try {
-            Optional<User> user = userRepository.findByEmail(newUser.email());
-
-            if (user.isPresent()) {
+            // Validar que no existe un usuario con el mismo email
+            Optional<User> existingUser = userRepository.findByEmail(newUser.email());
+            if (existingUser.isPresent()) {
                 logger.error("Error: Usuario ya registrado - {}", newUser.email());
-                throw new UnauthorizedException("Usuario ya registrado");
+                throw new ExistEmailException("El correo electrónico ya está registrado");
             }
 
-            Role role = roleUserRepository.findByUserRol(UserRol.CLIENT)
-                    .orElseGet(() -> roleUserRepository.save(new Role(UserRol.CLIENT)));
+            // Validar datos mínimos
+            validateMinimumRegistrationData(newUser);
 
+            // Obtener o crear rol de cliente
+            UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
+                    .orElseGet(() -> {
+                        UserRole newRole = new UserRole(UserRoleList.CLIENT);
+                        return roleUserRepository.save(newRole);
+                    });
+
+            // Construir usuario con datos mínimos
             User userEntity = User.builder()
-                    .image(newUser.image())
-                    .name(newUser.name())
-                    .lastname(newUser.lastName())
-                    .document(newUser.document())
-                    .phone(newUser.phone())
-                    .dateOfBirth(newUser.dateOfBirth())
-                    .email(newUser.email())
+                    .name(newUser.name().trim())
+                    .lastname(newUser.lastName().trim())
+                    .email(newUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(newUser.password()))
-                    .dateOfJoin(LocalDate.now())
-                    .address(newUser.address())
-                    .city(newUser.city())
-                    .role(role)
+                    .userRole(clientRole)
+                    .verified(false) // Usuario no verificado hasta confirmar email
+                    .profileComplete(false) // Perfil incompleto hasta completar datos
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .allowNotifications(true)
+                    .showMeInSearch(true)
+                    .showAge(true)
+                    .showLocation(true)
+                    .showPhone(false)
+                    .availableAttempts(0)
+                    .totalAttemptsPurchased(0)
+                    .profileViews(0L)
+                    .likesReceived(0L)
+                    .matchesCount(0L)
+                    .popularityScore(0.0)
                     .build();
 
             User savedUser = userRepository.save(userEntity);
-            var jwtToken = jwtService.generateToken(savedUser);
-            saveUserToken(savedUser, jwtToken);
-            logger.info("Usuario registrado correctamente {}", newUser.email());
 
-            return new MessageResponseDTO("Usuario registrado correctamente");
+            // Generar y enviar código de verificación
+            createAndSendVerificationCode(savedUser);
+
+            logger.info("Usuario registrado correctamente: {}", newUser.email());
+            return new MessageResponseDTO("Usuario registrado exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.");
+
+        } catch (ExistEmailException e) {
+            logger.error("Error al registrar usuario: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
-            logger.error("Error al registrar usuario: {}", e.getMessage(), e);
-            return new MessageResponseDTO(String.format("Error al registrar usuario: %s", e.getMessage()));
+            logger.error("Error inesperado al registrar usuario: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al registrar usuario. Por favor, inténtalo de nuevo.");
         }
     }
 
+    /**
+     * Valida que los datos mínimos de registro estén presentes
+     */
+    private void validateMinimumRegistrationData(UserRequestDTO userData) {
+        if (userData.name() == null || userData.name().trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        if (userData.email() == null || userData.email().trim().isEmpty()) {
+            throw new IllegalArgumentException("El correo electrónico es obligatorio");
+        }
+        if (userData.password() == null || userData.password().length() < 6) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+        }
+        if (!isValidEmail(userData.email())) {
+            throw new IllegalArgumentException("El formato del correo electrónico no es válido");
+        }
+    }
+
+    /**
+     * Validación básica de formato de email
+     */
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    // ==============================
+    // AUTENTICACIÓN
+    // ==============================
+
+    /**
+     * Autentica un usuario con email y contraseña
+     */
     public AuthResponseDTO login(AuthRequestDTO auth) {
         try {
+            // Validar credenciales
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            auth.email(),
+                            auth.email().toLowerCase().trim(),
                             auth.password()
                     )
             );
+
+            // Buscar usuario
+            Optional<User> userOptional = userRepository.findByEmail(auth.email().toLowerCase().trim());
+            if (userOptional.isEmpty()) {
+                logger.error("Usuario no encontrado después de autenticación exitosa: {}", auth.email());
+                throw new UnauthorizedException("Usuario no encontrado");
+            }
+
+            User user = userOptional.get();
+
+            // Verificar que el usuario esté verificado
+            if (!user.isVerified()) {
+                logger.warn("Intento de login con usuario no verificado: {}", auth.email());
+                throw new UnauthorizedException("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+            }
+
+            // Generar token JWT
+            String jwtToken = jwtService.generateToken(user);
+
+            // Revocar tokens anteriores y guardar el nuevo
+            revokeAllUserTokens(user);
+            saveUserToken(user, jwtToken);
+
+            // Actualizar última actividad
+            user.setLastActive(LocalDateTime.now());
+            userRepository.save(user);
+
+            logger.info("Usuario autenticado correctamente: {}", auth.email());
+
+            return new AuthResponseDTO(
+                    user.getMainImage(), // Imagen principal (primera de la lista)
+                    user.getEmail(),
+                    user.getName(),
+                    user.getLastname(),
+                    user.getUserRole().getUserRoleList().name(),
+                    jwtToken
+            );
+
         } catch (BadCredentialsException e) {
-            logger.error("Error de autenticación: Credenciales incorrectas para {}", auth.email());
-            throw new UnauthorizedException("Credenciales incorrectas");
+            logger.error("Credenciales incorrectas para usuario: {}", auth.email());
+            throw new UnauthorizedException("Email o contraseña incorrectos");
+        } catch (UnauthorizedException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado durante autenticación: {}", e.getMessage(), e);
+            throw new UnauthorizedException("Error durante el inicio de sesión");
         }
-
-        Optional<User> user = userRepository.findByEmail(auth.email());
-        if (user.isEmpty()) {
-            logger.error("Error: Usuario no encontrado - {}", auth.email());
-            throw new UnauthorizedException("Usuario no encontrado");
-        }
-
-        var jwtToken = jwtService.generateToken(user.get());
-        revokeAllUserTokens(user.get());
-        saveUserToken(user.get(), jwtToken);
-        logger.info("Usuario autenticado correctamente - {}", auth.email());
-
-        return new AuthResponseDTO(
-                user.get().getImage(),
-                user.get().getEmail(),
-                user.get().getName(),
-                user.get().getLastname(),
-                user.get().getRole().getUserRol().name(),
-                jwtToken
-        );
     }
 
-    public MessageResponseDTO resendCode(String email) {
+    // ==============================
+    // VERIFICACIÓN POR EMAIL
+    // ==============================
 
-    }
-
+    /**
+     * Genera un código de verificación numérico aleatorio
+     */
     public String generateVerificationCode() {
         Random random = new Random();
         StringBuilder code = new StringBuilder();
@@ -136,99 +225,142 @@ public class AuthService {
         return code.toString();
     }
 
-    @Async
+    /**
+     * Crea y envía un código de verificación para un usuario
+     */
+    @Transactional
     public void createAndSendVerificationCode(User user) {
-        // Revocar códigos anteriores si existen
-        Optional<VerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
-        existingCode.ifPresent(verificationCodeRepository::delete);
-
-        // Crear nuevo código
-        String code = generateVerificationCode();
-        LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
-
-        VerificationCode verificationCode = VerificationCode.builder()
-                .code(code)
-                .user(user)
-                .expirationTime(expirationTime)
-                .verified(false)
-                .build();
-
-        verificationCodeRepository.save(verificationCode);
-
-        // Enviar correo con el código
         try {
-            sendVerificationEmail(user.getEmail(), user.getName() + " " + user.getLastname(), code);
-            logger.info("Código de verificación enviado a {}", user.getEmail());
+            // 1. ELIMINAR códigos anteriores si existen (con flush para forzar la eliminación)
+            Optional<UserVerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
+            if (existingCode.isPresent()) {
+                verificationCodeRepository.delete(existingCode.get());
+                verificationCodeRepository.flush(); // IMPORTANTE: Forzar la eliminación inmediatamente
+                logger.info("Código de verificación anterior eliminado para usuario: {}", user.getEmail());
+            }
+
+            // 2. Crear nuevo código
+            String code = generateVerificationCode();
+            LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
+
+            UserVerificationCode verificationCode = UserVerificationCode.builder()
+                    .code(code)
+                    .user(user)
+                    .expirationTime(expirationTime)
+                    .verified(false)
+                    .build();
+
+            verificationCodeRepository.save(verificationCode);
+            logger.info("Nuevo código de verificación creado para usuario: {}", user.getEmail());
+
+            // 3. Enviar correo con el código
+            emailService.sendVerificationEmail(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastname(),
+                    code
+            );
+
+            logger.info("Código de verificación enviado a: {}", user.getEmail());
+
         } catch (Exception e) {
-            logger.error("Error al enviar código de verificación: {}", e.getMessage(), e);
+            logger.error("Error inesperado al crear y enviar código de verificación: {}", e.getMessage(), e);
+            // Re-lanzar la excepción para que el controlador pueda manejarla
+            throw new RuntimeException("Error al generar código de verificación", e);
         }
     }
 
-    private void sendVerificationEmail(String email, String name, String code) throws MessagingException {
-        try {
-            // Crear contexto para la plantilla Thymeleaf
-            Context context = new Context();
-            context.setVariable("name", name);
-            context.setVariable("verificationCode", code);
-
-            // Usar el servicio de correo existente
-            emailService.sendVerificationEmail(email, name, code);
-        } catch (Exception e) {
-            logger.error("Error al enviar el correo de verificación: {}", e.getMessage());
-            throw new MessagingException("Error al enviar el correo de verificación", e);
-        }
-    }
-
+    /**
+     * Verifica un código de verificación enviado por el usuario
+     */
+    @Transactional
     public MessageResponseDTO verifyCode(AuthVerifyCodeDTO authVerifyCodeDTO) {
-        User user = userRepository.findByEmail(authVerifyCodeDTO.email())
+        // Buscar usuario
+        User user = userRepository.findByEmail(authVerifyCodeDTO.email().toLowerCase().trim())
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        VerificationCode verificationCode = verificationCodeRepository.findByCode(authVerifyCodeDTO.code())
+        // Buscar código de verificación
+        UserVerificationCode verificationCode = verificationCodeRepository.findByCode(authVerifyCodeDTO.code())
                 .orElseThrow(() -> new UnauthorizedException("Código de verificación inválido"));
 
+        // Verificar que el código pertenece al usuario
         if (!verificationCode.getUser().getId().equals(user.getId())) {
-            logger.error("El código no pertenece al usuario {}", authVerifyCodeDTO.email());
+            logger.error("Intento de verificación con código que no pertenece al usuario: {}", authVerifyCodeDTO.email());
             throw new UnauthorizedException("Código de verificación inválido");
         }
 
+        // Verificar si ya está verificado
         if (verificationCode.isVerified()) {
-            logger.info("El código ya ha sido verificado para {}", authVerifyCodeDTO.email());
+            logger.info("Intento de verificación con código ya usado: {}", authVerifyCodeDTO.email());
             return new MessageResponseDTO("La cuenta ya está verificada");
         }
 
+        // Verificar expiración
         if (verificationCode.getExpirationTime().isBefore(LocalDateTime.now())) {
-            logger.error("Código expirado para {}", authVerifyCodeDTO.email());
-            throw new UnauthorizedException("El código ha expirado");
+            logger.error("Código expirado para usuario: {}", authVerifyCodeDTO.email());
+            throw new UnauthorizedException("El código ha expirado. Solicita un nuevo código.");
         }
 
-        // Actualizar estado de verificación
+        // Marcar código como verificado
         verificationCode.setVerified(true);
         verificationCodeRepository.save(verificationCode);
 
+        // Activar usuario
         user.setVerified(true);
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        logger.info("Usuario verificado correctamente {}", email);
-        return new MessageResponseDTO("Cuenta verificada correctamente");
+        logger.info("Usuario verificado exitosamente: {}", authVerifyCodeDTO.email());
+        return new MessageResponseDTO("¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.");
     }
 
-    public MessageResponseDTO resendVerificationCode(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+    /**
+     * Reenvía un código de verificación al correo del usuario
+     */
+    @Transactional
+    public MessageResponseDTO resendCode(String email) {
+        try {
+            User user = userRepository.findByEmail(email.toLowerCase().trim())
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        if (user.isVerified()) {
-            logger.info("La cuenta ya está verificada {}", email);
-            return new MessageResponseDTO("La cuenta ya está verificada");
+            if (user.isVerified()) {
+                logger.info("Intento de reenvío de código para usuario ya verificado: {}", email);
+                return new MessageResponseDTO("La cuenta ya está verificada");
+            }
+
+            // Verificar si ha pasado suficiente tiempo desde el último envío (anti-spam)
+            Optional<UserVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
+            if (lastCode.isPresent() && !lastCode.get().isVerified()) {
+                LocalDateTime lastSent = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
+                if (lastSent.isAfter(LocalDateTime.now().minusMinutes(2))) {
+                    throw new UnauthorizedException("Debes esperar al menos 2 minutos antes de solicitar un nuevo código");
+                }
+            }
+
+            // Generar y enviar nuevo código (método ya corregido arriba)
+            createAndSendVerificationCode(user);
+
+            logger.info("Código de verificación reenviado a: {}", email);
+            return new MessageResponseDTO("Se ha enviado un nuevo código de verificación a tu correo electrónico");
+
+        } catch (NotFoundException | UnauthorizedException e) {
+            // Re-lanzar excepciones conocidas
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado al reenviar código: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al reenviar código de verificación", e);
         }
-
-        createAndSendVerificationCode(user);
-
-        return new MessageResponseDTO("Código de verificación reenviado");
     }
 
+    // ==============================
+    // GESTIÓN DE TOKENS JWT
+    // ==============================
+
+    /**
+     * Refresca un token JWT
+     */
     public MessageResponseDTO refreshToken(final String authHeader) throws BadRequestException {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Token no válido");
+            logger.error("Intento de refresh con token inválido");
             throw new BadRequestException("Token no válido");
         }
 
@@ -236,45 +368,84 @@ public class AuthService {
         final String userEmail = jwtService.extractUsername(refreshToken);
 
         if (userEmail == null) {
-            logger.error("Token no válido");
+            logger.error("No se pudo extraer email del token");
             throw new BadRequestException("Token no válido");
         }
 
-        final Optional<User> user = userRepository.findByEmail(userEmail);
+        final Optional<User> userOptional = userRepository.findByEmail(userEmail);
+        if (userOptional.isEmpty()) {
+            logger.error("Usuario no encontrado durante refresh: {}", userEmail);
+            throw new BadRequestException("Usuario no encontrado");
+        }
 
-        if (!jwtService.isTokenValid(refreshToken, user.get())) {
-            logger.error("Token no válido");
+        User user = userOptional.get();
+
+        if (!jwtService.isTokenValid(refreshToken, user)) {
+            logger.error("Token inválido durante refresh: {}", userEmail);
             throw new BadRequestException("Token no válido");
         }
 
-        final String newToken = jwtService.generateToken(user.get());
-        revokeAllUserTokens(user.get());
-        saveUserToken(user.get(), newToken);
-        logger.info("Token refrescado correctamente");
+        // Generar nuevo token
+        final String newToken = jwtService.generateToken(user);
+        revokeAllUserTokens(user);
+        saveUserToken(user, newToken);
+
+        logger.info("Token refrescado correctamente para: {}", userEmail);
         return new MessageResponseDTO(newToken);
     }
 
+    /**
+     * Guarda un token para un usuario
+     */
     private void saveUserToken(User user, String token) {
-        Token userToken = Token.builder()
+        UserToken userToken = UserToken.builder()
                 .token(token)
                 .user(user)
+                .type(UserToken.TokenType.ACCESS)
+                .expired(false)
+                .revoked(false)
                 .build();
-
 
         tokenRepository.save(userToken);
     }
 
+    /**
+     * Revoca todos los tokens activos de un usuario
+     */
     private void revokeAllUserTokens(User user) {
-        final List<Token> validUserTokens = tokenRepository
+        final List<UserToken> validUserTokens = tokenRepository
                 .findAllValidIsFalseOrRevokedIsFalseByUserId(user.getId());
 
         if (!validUserTokens.isEmpty()) {
             validUserTokens.forEach(token -> {
                 token.setExpired(true);
                 token.setRevoked(true);
-                tokenRepository.save(token);
             });
             tokenRepository.saveAll(validUserTokens);
         }
+    }
+
+    // ==============================
+    // MÉTODOS DE UTILIDAD
+    // ==============================
+
+    /**
+     * Verifica si un usuario está completamente registrado y verificado
+     */
+    public boolean isUserFullyRegistered(String email) {
+        Optional<User> userOptional = userRepository.findByEmail(email.toLowerCase().trim());
+        if (userOptional.isEmpty()) {
+            return false;
+        }
+
+        User user = userOptional.get();
+        return user.isVerified() && user.isEnabled();
+    }
+
+    /**
+     * Obtiene información básica del usuario por email
+     */
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email.toLowerCase().trim());
     }
 }

@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AvailabilityService {
-
     private final IAvailabilityRepository availabilityRepository;
     private final ITourRepository tourRepository;
     private final IBookingRepository bookingRepository;

@@ -9,6 +9,30 @@ volumes:
   minio_data:
 
 services:
+  mysql:
+    container_name: "${NAME}-mysql_db"
+    image: mysql:8.0
+    profiles:
+      - back
+      - front
+      - local
+      - db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_TCP_PORT: ${DB_PORT}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
   minio:
     container_name: "${NAME}-minio"
     image: quay.io/minio/minio
@@ -16,6 +40,7 @@ services:
       - back
       - front
       - local
+      - db # Añadido perfil db
     restart: always
     ports:
       - "${MINIO_PORT}:9000"
@@ -33,31 +58,6 @@ services:
       interval: 10s
       retries: 5
       start_period: 20s
-
-  mysql:
-    container_name: "${NAME}-mysql_db"
-    image: mysql:8.0
-    profiles:
-      - back
-      - front
-      - local
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
-      MYSQL_DATABASE: "${DB_NAME}"
-      MYSQL_TCP_PORT: ${DB_PORT}
-    ports:
-      - "${DB_PORT}:${DB_PORT}"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      retries: 5
-      start_period: 20s
-
   backend:
     container_name: "${NAME}-backend_spring_boot"
     profiles:
@@ -78,7 +78,6 @@ services:
         condition: service_started
     networks:
       - app-network
-
   frontend:
     container_name: "${NAME}-frontend_react"
     profiles:
