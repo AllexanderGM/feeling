@@ -477,16 +477,25 @@ public class AuthService {
     @Transactional
     public void createAndSendVerificationCode(User user) {
         try {
-            // 1. ELIMINAR códigos anteriores si existen (con flush para forzar la eliminación)
+            // 1. ELIMINAR códigos anteriores si existen
             Optional<UserVerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
             if (existingCode.isPresent()) {
                 verificationCodeRepository.delete(existingCode.get());
-                verificationCodeRepository.flush(); // IMPORTANTE: Forzar la eliminación inmediatamente
                 logger.info("Código de verificación anterior eliminado para usuario: {}", user.getEmail());
             }
 
-            // 2. Crear nuevo código
-            String code = generateVerificationCode();
+            // 2. Crear nuevo código único
+            String code;
+            int attempts = 0;
+            do {
+                code = generateVerificationCode();
+                attempts++;
+                // Evitar bucle infinito
+                if (attempts > 10) {
+                    throw new RuntimeException("No se pudo generar un código único");
+                }
+            } while (verificationCodeRepository.findByCode(code).isPresent());
+
             LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
 
             UserVerificationCode verificationCode = UserVerificationCode.builder()
@@ -510,7 +519,6 @@ public class AuthService {
 
         } catch (Exception e) {
             logger.error("Error inesperado al crear y enviar código de verificación: {}", e.getMessage(), e);
-            // Re-lanzar la excepción para que el controlador pueda manejarla
             throw new RuntimeException("Error al generar código de verificación", e);
         }
     }
@@ -575,16 +583,23 @@ public class AuthService {
                 return new MessageResponseDTO("La cuenta ya está verificada");
             }
 
-            // Verificar si ha pasado suficiente tiempo desde el último envío (anti-spam)
+            // Verificar límite de tiempo para anti-spam
             Optional<UserVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
             if (lastCode.isPresent() && !lastCode.get().isVerified()) {
-                LocalDateTime lastSent = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
-                if (lastSent.isAfter(LocalDateTime.now().minusMinutes(2))) {
-                    throw new UnauthorizedException("Debes esperar al menos 2 minutos antes de solicitar un nuevo código");
+                // Calcular tiempo transcurrido desde el último código
+                LocalDateTime lastCodeTime = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
+                LocalDateTime now = LocalDateTime.now();
+                long minutesElapsed = java.time.Duration.between(lastCodeTime, now).toMinutes();
+
+                if (minutesElapsed < 2) {
+                    long waitTime = 2 - minutesElapsed;
+                    throw new UnauthorizedException(
+                            String.format("Debes esperar %d minuto(s) antes de solicitar un nuevo código", waitTime)
+                    );
                 }
             }
 
-            // Generar y enviar nuevo código (método ya corregido arriba)
+            // Generar y enviar nuevo código
             createAndSendVerificationCode(user);
 
             logger.info("Código de verificación reenviado a: {}", email);
@@ -598,7 +613,6 @@ public class AuthService {
             throw new RuntimeException("Error al reenviar código de verificación", e);
         }
     }
-
     // ==============================
     // GESTIÓN DE TOKENS JWT
     // ==============================

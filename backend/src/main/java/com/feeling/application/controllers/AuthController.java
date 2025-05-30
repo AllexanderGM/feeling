@@ -157,7 +157,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/google")
+    @PostMapping("/login/google")
     @Operation(
             summary = "Iniciar sesión con Google",
             description = "Autentica un usuario usando Google OAuth2. Crea una cuenta si no existe."

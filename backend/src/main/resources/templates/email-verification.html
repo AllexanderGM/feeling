@@ -1,319 +1,660 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <meta content="IE=edge" http-equiv="X-UA-Compatible" />
     <title>Verificación de Cuenta - Feeling</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #171717;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-
-        .email-container {
-            background-color: #ffffff;
-            margin: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #ff0062 0%, #fcb87a 100%);
-            padding: 40px 20px;
-            text-align: center;
-            color: white;
-        }
-
-        .logo-container {
-            margin: 0 auto 20px;
-            width: 200px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-svg {
-            width: 200px;
-            height: auto;
-            max-height: 60px;
-        }
-
-        .logo-svg .cls-1 {
-            fill: #e0e0e0 !important;
-        }
-
-        .logo-svg path:not(.cls-1) {
-            fill: white !important;
-        }
-
-        .header h1 {
-            margin: 10px 0 0 0;
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: 2px;
-        }
-
-        .header p {
-            margin: 10px 0 0;
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 40px 30px;
-        }
-
-        .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #171717;
-        }
-
-        .verification-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            padding: 30px;
-            border-radius: 12px;
-            margin: 30px 0;
-            text-align: center;
-            border: 2px solid #ff0062;
-        }
-
-        .verification-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #171717;
-            margin-bottom: 15px;
-        }
-
-        .verification-code {
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: 8px;
-            color: #ff0062;
-            font-family: 'Courier New', monospace;
-            background-color: white;
-            padding: 20px 30px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border: 3px dashed #ff0062;
-        }
-
-        .expiry-notice {
-            font-size: 14px;
-            color: #6c757d;
-            margin-top: 15px;
-        }
-
-        .instructions {
-            background-color: #fcb87a;
-            color: #171717;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            text-align: center;
-        }
-
-        .instructions strong {
-            font-weight: 600;
-        }
-
-        .features {
-            margin: 30px 0;
-        }
-
-        .features h3 {
-            color: #171717;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-
-        .features ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .features li {
-            padding: 8px 0;
-            padding-left: 25px;
-            position: relative;
-        }
-
-        .features li:before {
-            content: "💕";
-            position: absolute;
-            left: 0;
-        }
-
-        .footer {
-            background-color: #f8f9fa;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #dee2e6;
-        }
-
-        .footer p {
-            margin: 10px 0;
-            font-size: 14px;
-            color: #6c757d;
-        }
-
-        .footer a {
-            color: #ff0062;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        .social-links {
-            margin: 20px 0;
-        }
-
-        .social-links a {
-            display: inline-block;
-            margin: 0 10px;
-            padding: 8px 16px;
-            background-color: #ff0062;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 12px;
-        }
-
-        @media (max-width: 600px) {
-            .email-container {
-                margin: 10px;
-            }
-
-            .content {
-                padding: 20px;
-            }
-
-            .verification-code {
-                font-size: 28px;
-                letter-spacing: 4px;
-                padding: 15px 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .logo-container {
-                width: 160px;
-                height: 50px;
-            }
-
-            .logo-svg {
-                width: 160px;
-                max-height: 50px;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="email-container">
-    <!-- Header -->
-    <div class="header">
-        <div class="logo-container">
-            <svg class="logo-svg" data-name="Capa 2" id="Capa_2" viewBox="0 0 936 311.28"
-                 xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <style>
-                        .cls-1 {
-                            fill: #e0e0e0;
-                        }
-                    </style>
-                </defs>
-                <g data-name="Layer 1" id="Layer_1">
-                    <g>
-                        <path d="M0,9.11h113.65v24.96H26.3v80.26h75.54v24.96H26.3v105.89H0V9.11Z" fill="white"/>
-                        <path class="cls-1"
-                              d="M150.08,236.25c-14.62-8.43-26.14-19.9-34.57-34.4-8.43-14.5-12.65-30.41-12.65-47.72s4.22-33.56,12.65-48.06,19.95-25.97,34.57-34.4c14.61-8.43,30.69-12.65,48.23-12.65s32.37,4.22,46.54,12.65c14.16,8.43,25.34,19.9,33.55,34.4,8.2,14.5,12.31,30.52,12.31,48.06,0,4.05-.45,7.87-1.35,11.47h-159.86c1.57,11.24,5.62,21.36,12.14,30.35s14.67,16.08,24.45,21.25c9.78,5.17,20.51,7.76,32.21,7.76,13.04,0,24.84-3.37,35.41-10.12,10.57-6.75,18.21-15.74,22.93-26.98h28.33c-5.62,18.21-16.41,32.94-32.38,44.18-15.97,11.24-34.06,16.86-54.3,16.86-17.53-.01-33.6-4.22-48.21-12.65ZM264.74,142.66c-1.58-11.47-5.51-21.69-11.8-30.69-6.3-8.99-14.16-16.07-23.61-21.25-9.44-5.17-19.79-7.76-31.03-7.76s-22.48,2.59-32.38,7.76-18.04,12.26-24.45,21.25c-6.41,8.99-10.4,19.22-11.97,30.69h135.24Z"/>
-                        <path class="cls-1"
-                              d="M388.1,248.89c-20.23,0-38.33-5.62-54.3-16.86-15.96-11.24-26.75-25.97-32.37-44.18h28.33c4.72,11.24,12.37,20.24,22.93,26.98,10.57,6.74,22.37,10.12,35.41,10.12,11.69,0,22.43-2.58,32.21-7.76,9.78-5.17,17.93-12.25,24.45-21.25,6.52-8.99,10.57-19.11,12.14-30.35h-159.85c-.9-3.59-1.35-7.42-1.35-11.47,0-17.54,4.11-33.56,12.31-48.06,8.21-14.5,19.39-25.97,33.55-34.4s29.68-12.65,46.54-12.65,33.61,4.22,48.23,12.65,26.14,19.9,34.57,34.4c8.43,14.5,12.65,30.52,12.65,48.06s-4.22,33.22-12.65,47.72-19.95,25.97-34.57,34.4c-14.61,8.44-30.69,12.65-48.23,12.65ZM456.9,142.66c-1.57-11.47-5.56-21.69-11.97-30.69-6.41-8.99-14.55-16.07-24.45-21.25-9.89-5.17-20.68-7.76-32.37-7.76s-21.58,2.59-31.03,7.76c-9.44,5.17-17.31,12.26-23.61,21.25-6.29,8.99-10.23,19.22-11.8,30.69h135.23Z"/>
-                        <path d="M494.55,0h25.29v248.88h-25.29V0Z" fill="white"/>
-                        <path d="M547.5,4.72h25.63v36.08h-25.63V4.72ZM547.5,66.44h25.29v182.45h-25.29V66.44Z"
-                              fill="white"/>
-                        <path d="M715.62,101.18c-9.11-9.66-21.19-14.5-36.25-14.5-10.12,0-19.28,2.25-27.49,6.74-8.21,4.5-14.62,10.74-19.22,18.72-4.61,7.98-6.91,16.92-6.91,26.81v109.94h-25.29V66.44h25.29v27.99c6.07-9.89,14.16-17.65,24.28-23.27s21.36-8.43,33.72-8.43c14.16,0,26.53,3.2,37.1,9.61s18.77,15.4,24.62,26.98c5.84,11.58,8.77,24.9,8.77,39.96v109.6h-24.96v-109.6c0-15.73-4.56-28.43-13.66-38.1Z"
-                              fill="white"/>
-                        <path d="M825.72,211.12l-27.32,38.78h78.58c18.88,0,33.44,5.34,43.67,16.02s15.34,25.8,15.34,45.36h-25.29c0-11.47-3.26-20.46-9.78-26.98s-16.19-9.78-29-9.78h-103.53v-24.62l35.41-51.26c-8.55-7.19-15.18-15.9-19.9-26.14-4.72-10.23-7.08-21.41-7.08-33.56,0-13.94,3.37-26.81,10.12-38.61,6.75-11.8,15.96-21.08,27.65-27.82,11.69-6.75,24.5-10.12,38.45-10.12s27.65,3.6,39.79,10.79l23.27-30.69,19.9,14.84-23.94,32.38c5.4,6.74,9.61,14.33,12.65,22.76,3.04,8.43,4.55,17.26,4.55,26.47,0,14.16-3.37,27.1-10.12,38.78-6.75,11.69-16.02,20.97-27.82,27.82-11.8,6.86-24.68,10.29-38.61,10.29-9.23,0-18.22-1.56-26.99-4.71ZM879.01,184.47c7.87-4.72,14.11-11.13,18.72-19.22,4.6-8.09,6.91-16.86,6.91-26.3s-2.31-18.15-6.91-26.14c-4.61-7.98-10.85-14.33-18.72-19.05-7.87-4.72-16.52-7.08-25.97-7.08s-18.1,2.36-25.97,7.08-14.05,11.08-18.55,19.05c-4.5,7.98-6.74,16.69-6.74,26.14s2.24,18.83,6.74,26.81c4.5,7.98,10.68,14.28,18.55,18.88,7.87,4.61,16.52,6.91,25.97,6.91,9.44.01,18.09-2.35,25.97-7.08Z"
-                              fill="white"/>
-                    </g>
-                </g>
-            </svg>
-        </div>
-        <p>Conexiones significativas</p>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    "
+  >
+    <!-- Preheader oculto -->
+    <div
+      style="
+        display: none;
+        font-size: 1px;
+        color: #f5f5f5;
+        line-height: 1px;
+        max-height: 0px;
+        max-width: 0px;
+        opacity: 0;
+        overflow: hidden;
+      "
+    >
+      Verifica tu cuenta de Feeling con el código de 6 dígitos incluido
     </div>
 
-    <!-- Contenido Principal -->
-    <div class="content">
-        <div class="greeting">
-            ¡Hola <span th:text="${name}">Usuario</span>! 👋
-        </div>
+    <!-- Contenedor principal -->
+    <table
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      role="presentation"
+      style="background-color: #f5f5f5"
+      width="100%"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 20px">
+          <!-- Contenedor del email -->
+          <table
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            role="presentation"
+            style="
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 20px;
+              overflow: hidden;
+              box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            "
+            width="600"
+          >
+            <!-- Header con gradiente de Feeling -->
+            <tr>
+              <td
+                style="
+                  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                  padding: 40px 30px;
+                  text-align: center;
+                  position: relative;
+                "
+              >
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <tr>
+                    <td align="center">
+                      <!-- Logo de Feeling -->
+                      <h1
+                        style="
+                          margin: 0 0 10px 0;
+                          font-size: 56px;
+                          font-weight: 300;
+                          color: #ffffff;
+                          letter-spacing: 2px;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        <span style="font-weight: 300">Feel</span
+                        ><span style="color: #ff0062; font-weight: 400">ing</span>
+                      </h1>
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 16px;
+                          color: rgba(255, 255, 255, 0.8);
+                          font-weight: 300;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        Conexiones significativas
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-        <p>¡Bienvenido/a a <strong>Feeling</strong>! Estamos emocionados de tenerte en nuestra comunidad de conexiones
-            significativas.</p>
+            <!-- Contenido principal -->
+            <tr>
+              <td style="background-color: #ffffff; padding: 40px 30px">
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <!-- Saludo -->
+                  <tr>
+                    <td style="padding-bottom: 24px">
+                      <h2
+                        style="
+                          margin: 0;
+                          font-size: 28px;
+                          color: #1a1a2e;
+                          font-weight: 600;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        ¡Hola <span th:text="${name}">Usuario</span>! 👋
+                      </h2>
+                    </td>
+                  </tr>
 
-        <p>Para completar tu registro y comenzar a conectar con personas afines a ti, por favor verifica tu cuenta con
-            el siguiente código:</p>
+                  <!-- Mensaje de bienvenida -->
+                  <tr>
+                    <td style="padding-bottom: 32px">
+                      <p
+                        style="
+                          margin: 0 0 20px 0;
+                          font-size: 16px;
+                          line-height: 1.6;
+                          color: #4a5568;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        ¡Bienvenido/a a <strong style="color: #ff0062">Feeling</strong>! Estamos
+                        emocionados de tenerte en nuestra comunidad de conexiones significativas.
+                      </p>
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 16px;
+                          line-height: 1.6;
+                          color: #4a5568;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        Para completar tu registro y comenzar a conectar con personas afines a ti,
+                        por favor verifica tu cuenta con el siguiente código:
+                      </p>
+                    </td>
+                  </tr>
 
-        <div class="verification-section">
-            <div class="verification-title">Tu código de verificación es:</div>
-            <div class="verification-code" th:text="${verificationCode}">123456</div>
-            <div class="expiry-notice">⏰ Este código expirará en 30 minutos</div>
-        </div>
+                  <!-- Sección del código -->
+                  <tr>
+                    <td style="padding: 32px 0">
+                      <table
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                        style="
+                          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                          border: 1px solid #e2e8f0;
+                          border-radius: 16px;
+                        "
+                        width="100%"
+                      >
+                        <tr>
+                          <td style="padding: 32px; text-align: center">
+                            <p
+                              style="
+                                margin: 0 0 20px 0;
+                                font-size: 18px;
+                                font-weight: 600;
+                                color: #1a1a2e;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                              "
+                            >
+                              Tu código de verificación es:
+                            </p>
+                            <div
+                              style="
+                                display: inline-block;
+                                background-color: #ffffff;
+                                border: 2px solid #ff0062;
+                                border-radius: 12px;
+                                padding: 20px 30px;
+                                margin: 16px 0;
+                                box-shadow: 0 4px 12px rgba(255, 0, 98, 0.15);
+                              "
+                            >
+                              <span
+                                style="
+                                  font-size: 36px;
+                                  font-weight: 700;
+                                  letter-spacing: 8px;
+                                  color: #ff0062;
+                                  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono',
+                                    Consolas, 'Courier New', monospace;
+                                "
+                                th:text="${verificationCode}"
+                                >123456</span
+                              >
+                            </div>
+                            <p
+                              style="
+                                margin: 16px 0 0 0;
+                                font-size: 14px;
+                                color: #64748b;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                              "
+                            >
+                              ⏰ Este código expirará en 30 minutos
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
 
-        <div class="instructions">
-            <strong>¡Estás a un paso de formar parte de nuestra comunidad!</strong><br>
-            Ingresa este código en la aplicación para activar tu cuenta.
-        </div>
+                  <!-- Instrucciones destacadas -->
+                  <tr>
+                    <td style="padding: 24px 0">
+                      <table
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                        style="
+                          background: linear-gradient(135deg, #ff0062 0%, #ff1f7a 100%);
+                          border-radius: 12px;
+                        "
+                        width="100%"
+                      >
+                        <tr>
+                          <td style="padding: 24px; text-align: center">
+                            <p
+                              style="
+                                margin: 0;
+                                font-size: 16px;
+                                color: #ffffff;
+                                font-weight: 500;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                                line-height: 1.5;
+                              "
+                            >
+                              <strong>¡Estás a un paso de formar parte de nuestra comunidad!</strong
+                              ><br />
+                              Ingresa este código en la aplicación para activar tu cuenta.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
 
-        <div class="features">
-            <h3>En Feeling podrás:</h3>
-            <ul>
-                <li>Conectar con personas que comparten tus intereses y valores</li>
-                <li>Participar en eventos exclusivos y experiencias únicas</li>
-                <li>Usar nuestro sistema de matching inteligente</li>
-                <li>Crear relaciones significativas y duraderas</li>
-                <li>Acceder a las categorías SINGLES, ROUSE y SPIRIT</li>
-                <li>Disfrutar de una comunidad segura y verificada</li>
-            </ul>
-        </div>
+                  <!-- Características con diseño moderno -->
+                  <tr>
+                    <td style="padding: 32px 0">
+                      <h3
+                        style="
+                          margin: 0 0 20px 0;
+                          font-size: 20px;
+                          font-weight: 600;
+                          color: #1a1a2e;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        En Feeling podrás:
+                      </h3>
+                      <table
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                        width="100%"
+                      >
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Conectar con personas que comparten tus intereses y valores
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Participar en eventos exclusivos y experiencias únicas
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Usar nuestro sistema de matching inteligente
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Crear relaciones significativas y duraderas
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Acceder a las categorías SINGLES, ROUSE y SPIRIT
+                          </td>
+                        </tr>
+                        <tr>
+                          <td
+                            style="
+                              padding: 8px 0;
+                              font-size: 15px;
+                              line-height: 1.5;
+                              color: #4a5568;
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                Arial, sans-serif;
+                            "
+                          >
+                            <div
+                              style="
+                                display: inline-block;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #ff0062;
+                                border-radius: 50%;
+                                margin-right: 12px;
+                                vertical-align: middle;
+                              "
+                            ></div>
+                            Disfrutar de una comunidad segura y verificada
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
 
-        <p style="font-size: 14px; color: #6c757d; margin-top: 30px;">
-            Si no has solicitado esta verificación, puedes ignorar este correo de forma segura.
-        </p>
-    </div>
+                  <!-- Aviso importante con diseño suave -->
+                  <tr>
+                    <td style="padding: 24px 0">
+                      <table
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                        style="
+                          background-color: #fef3c7;
+                          border-left: 4px solid #f59e0b;
+                          border-radius: 8px;
+                        "
+                        width="100%"
+                      >
+                        <tr>
+                          <td style="padding: 16px 20px">
+                            <p
+                              style="
+                                margin: 0;
+                                font-size: 14px;
+                                color: #92400e;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                                line-height: 1.4;
+                              "
+                            >
+                              <strong>💡 Importante:</strong> Si no has solicitado esta
+                              verificación, puedes ignorar este correo de forma segura.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p><strong>¿Necesitas ayuda?</strong></p>
-        <p>Contáctanos: <a href="mailto:conexionesfeeling@gmail.com">conexionesfeeling@gmail.com</a></p>
+            <!-- Footer moderno -->
+            <tr>
+              <td
+                style="
+                  background-color: #f8fafc;
+                  padding: 32px 30px;
+                  text-align: center;
+                  border-top: 1px solid #e2e8f0;
+                "
+              >
+                <table border="0" cellpadding="0" cellspacing="0" role="presentation" width="100%">
+                  <!-- Contacto -->
+                  <tr>
+                    <td style="padding-bottom: 20px">
+                      <h4
+                        style="
+                          margin: 0 0 8px 0;
+                          font-size: 16px;
+                          color: #1a1a2e;
+                          font-weight: 600;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        ¿Necesitas ayuda?
+                      </h4>
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 14px;
+                          color: #64748b;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        Contáctanos:
+                        <a
+                          href="mailto:conexionesfeeling@gmail.com"
+                          style="color: #ff0062; text-decoration: none; font-weight: 500"
+                          >conexionesfeeling@gmail.com</a
+                        >
+                      </p>
+                    </td>
+                  </tr>
 
-        <div class="social-links">
-            <a href="https://instagram.com/feeling">Instagram</a>
-            <a href="https://facebook.com/feeling">Facebook</a>
-            <a href="https://tiktok.com/@feeling">TikTok</a>
-        </div>
+                  <!-- Enlaces sociales modernos -->
+                  <tr>
+                    <td style="padding: 20px 0">
+                      <table
+                        align="center"
+                        border="0"
+                        cellpadding="0"
+                        cellspacing="0"
+                        role="presentation"
+                      >
+                        <tr>
+                          <td style="padding: 0 6px">
+                            <a
+                              href="https://instagram.com/feeling"
+                              style="
+                                display: inline-block;
+                                background-color: #ff0062;
+                                color: white;
+                                text-decoration: none;
+                                padding: 10px 20px;
+                                border-radius: 25px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                              "
+                              >Instagram</a
+                            >
+                          </td>
+                          <td style="padding: 0 6px">
+                            <a
+                              href="https://facebook.com/feeling"
+                              style="
+                                display: inline-block;
+                                background-color: #ff0062;
+                                color: white;
+                                text-decoration: none;
+                                padding: 10px 20px;
+                                border-radius: 25px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                              "
+                              >Facebook</a
+                            >
+                          </td>
+                          <td style="padding: 0 6px">
+                            <a
+                              href="https://tiktok.com/@feeling"
+                              style="
+                                display: inline-block;
+                                background-color: #ff0062;
+                                color: white;
+                                text-decoration: none;
+                                padding: 10px 20px;
+                                border-radius: 25px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                  Arial, sans-serif;
+                              "
+                              >TikTok</a
+                            >
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
 
-        <p style="margin-top: 20px;">
-            <a href="https://feeling.app/terminos">Términos y Condiciones</a> |
-            <a href="https://feeling.app/privacidad">Política de Privacidad</a>
-        </p>
-        <p style="margin-top: 15px; font-size: 12px;">
-            © 2025 Feeling - Todos los derechos reservados<br>
-            Conexiones significativas para una vida plena
-        </p>
-    </div>
-</div>
-</body>
+                  <!-- Enlaces legales -->
+                  <tr>
+                    <td style="padding: 20px 0 16px 0">
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 13px;
+                          color: #64748b;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                        "
+                      >
+                        <a
+                          href="https://feeling.app/terminos"
+                          style="color: #ff0062; text-decoration: none; font-weight: 500"
+                          >Términos y Condiciones</a
+                        >
+                        ·
+                        <a
+                          href="https://feeling.app/privacidad"
+                          style="color: #ff0062; text-decoration: none; font-weight: 500"
+                          >Política de Privacidad</a
+                        >
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Copyright elegante -->
+                  <tr>
+                    <td>
+                      <p
+                        style="
+                          margin: 0;
+                          font-size: 12px;
+                          color: #94a3b8;
+                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial,
+                            sans-serif;
+                          line-height: 1.5;
+                        "
+                      >
+                        © 2025 Feeling. Todos los derechos reservados.<br />
+                        <em>Conexiones significativas para una vida plena</em>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

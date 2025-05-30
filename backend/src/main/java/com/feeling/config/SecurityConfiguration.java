@@ -63,7 +63,9 @@ public class SecurityConfiguration {
 
                     // 🔹 Rutas de autenticación (públicas)
                     auth.requestMatchers(HttpMethod.POST, "/auth/register").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/register/google").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/login/google").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/verify-email").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/resend-verification").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();

@@ -11,8 +11,8 @@ import googleIcon from '@assets/icon/google-icon.svg'
 
 const FeelingRegister = () => {
   const navigate = useNavigate()
-  const { handleError, showErrorModal } = useError()
-  const { register, loading } = useAuth()
+  const { showErrorModal } = useError()
+  const { register, registerWithGoogle, loading } = useAuth()
 
   const [formData, setFormData] = useState({
     name: '',
@@ -74,9 +74,9 @@ const FeelingRegister = () => {
 
     // Preparar datos para el registro
     const userData = {
-      name: formData.name,
-      lastName: formData.lastName,
-      email: formData.email,
+      name: formData.name.trim(),
+      lastName: formData.lastName.trim(),
+      email: formData.email.toLowerCase().trim(),
       password: formData.password
     }
 
@@ -84,11 +84,12 @@ const FeelingRegister = () => {
     const result = await register(userData)
 
     if (result.success) {
-      // Redirigir al usuario a verificar su correo
+      // Redirigir al usuario a verificar su correo con el email como parámetro
       navigate('/verify-email', {
         state: {
-          email: formData.email,
-          fromRegister: true
+          email: formData.email.toLowerCase().trim(),
+          fromRegister: true,
+          userType: 'local' // Para distinguir de usuarios de Google
         },
         replace: true
       })
@@ -111,84 +112,55 @@ const FeelingRegister = () => {
     }
   }
 
-  // Implementación del login con Google
-  const googleLogin = useGoogleLogin({
+  // Implementación del registro con Google
+  const googleRegistration = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
         setIsGoogleAuthenticating(true)
 
-        // Obtener datos del usuario de Google
-        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: {
-            Authorization: `Bearer ${tokenResponse.access_token}`
-          }
-        })
-
-        if (!userInfoResponse.ok) {
-          throw new Error('Error al obtener la información del usuario de Google')
-        }
-
-        const googleUserData = await userInfoResponse.json()
-
-        // Separar nombre y apellido
-        const fullName = googleUserData.name || ''
-        const nameParts = fullName.split(' ')
-        const firstName = nameParts[0] || ''
-        const lastName = nameParts.slice(1).join(' ') || ''
-
-        // Preparar datos para el registro usando la misma ruta
-        const userData = {
-          name: firstName,
-          lastName: lastName || 'Usuario', // Fallback si no hay apellido
-          email: googleUserData.email,
-          password: `google_${googleUserData.sub}_${Date.now()}`, // Contraseña temporal única
-          fromGoogle: true,
-          googleId: googleUserData.sub,
-          profilePicture: googleUserData.picture
-        }
-
-        // Usar el mismo endpoint de registro
-        const result = await register(userData)
+        // Usar el método específico de registro con Google
+        const result = await registerWithGoogle(tokenResponse)
 
         if (result.success) {
-          // Para usuarios de Google, redirigir directamente a verificación
-          // ya que Google ya verificó el email
-          navigate('/verify-email', {
+          // Para usuarios de Google que se registran por primera vez,
+          // redirigir directamente a completar perfil ya que no necesitan verificar email
+          navigate('/complete-profile', {
             state: {
-              email: googleUserData.email,
+              email: result.data.email,
               fromGoogle: true,
-              autoVerified: true
+              autoVerified: true,
+              message: 'Tu cuenta de Google ha sido registrada exitosamente. Tu email ya está verificado.'
             },
             replace: true
           })
         } else {
-          handleError(result.error)
+          // Si hay error, intentar extraer mensaje específico
+          let errorMessage = 'No se pudo completar el registro con Google'
+
+          if (result.error?.response?.data?.error) {
+            errorMessage = result.error.response.data.error
+          }
+
+          showErrorModal(errorMessage, 'Error de registro con Google')
         }
       } catch (error) {
         console.error('Error en registro con Google:', error)
-        handleError(new Error('No se pudo completar el registro con Google'))
+        showErrorModal('No se pudo completar el registro con Google. Inténtalo de nuevo.', 'Error de registro')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
-    onError: () => {
-      handleError(new Error('No se pudo completar la autenticación con Google'))
+    onError: error => {
+      console.error('Google OAuth Error:', error)
+      showErrorModal('No se pudo completar la autenticación con Google', 'Error de autenticación')
       setIsGoogleAuthenticating(false)
     },
     flow: 'implicit'
   })
 
   const handleGoogleSignIn = () => {
-    if (!termsAccepted) {
-      setErrors({
-        ...errors,
-        terms: 'Debes aceptar los términos y condiciones para registrarte con Google'
-      })
-      return
-    }
-
     setIsGoogleAuthenticating(true)
-    googleLogin()
+    googleRegistration()
   }
 
   return (
@@ -209,9 +181,9 @@ const FeelingRegister = () => {
             startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
             className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
             isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating}
+            isDisabled={isGoogleAuthenticating || loading}
             onPress={handleGoogleSignIn}>
-            {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
+            {isGoogleAuthenticating ? 'Registrando con Google...' : 'Registrarse con Google'}
           </Button>
 
           <div className="py-4 px-2 bg-gray-800/30 rounded-lg border border-gray-700/50">
@@ -249,6 +221,7 @@ const FeelingRegister = () => {
             onChange={e => handleInputChange('name', e.target.value)}
             isInvalid={!!errors.name}
             errorMessage={errors.name}
+            isDisabled={loading || isGoogleAuthenticating}
           />
 
           <Input
@@ -262,6 +235,7 @@ const FeelingRegister = () => {
             onChange={e => handleInputChange('lastName', e.target.value)}
             isInvalid={!!errors.lastName}
             errorMessage={errors.lastName}
+            isDisabled={loading || isGoogleAuthenticating}
           />
         </div>
 
@@ -278,6 +252,7 @@ const FeelingRegister = () => {
           onChange={e => handleInputChange('email', e.target.value)}
           isInvalid={!!errors.email}
           errorMessage={errors.email}
+          isDisabled={loading || isGoogleAuthenticating}
         />
 
         <Input
@@ -293,8 +268,14 @@ const FeelingRegister = () => {
           onChange={e => handleInputChange('password', e.target.value)}
           isInvalid={!!errors.password}
           errorMessage={errors.password}
+          isDisabled={loading || isGoogleAuthenticating}
           endContent={
-            <button aria-label="toggle password visibility" className="focus:outline-none" type="button" onClick={togglePasswordVisibility}>
+            <button
+              aria-label="toggle password visibility"
+              className="focus:outline-none"
+              type="button"
+              onClick={togglePasswordVisibility}
+              disabled={loading || isGoogleAuthenticating}>
               {isPasswordVisible ? (
                 <span className="material-symbols-outlined">visibility_off</span>
               ) : (
@@ -317,12 +298,14 @@ const FeelingRegister = () => {
           onChange={e => handleInputChange('confirmPassword', e.target.value)}
           isInvalid={!!errors.confirmPassword}
           errorMessage={errors.confirmPassword}
+          isDisabled={loading || isGoogleAuthenticating}
           endContent={
             <button
               aria-label="toggle password visibility"
               className="focus:outline-none"
               type="button"
-              onClick={toggleConfirmPasswordVisibility}>
+              onClick={toggleConfirmPasswordVisibility}
+              disabled={loading || isGoogleAuthenticating}>
               {isConfirmPasswordVisible ? (
                 <span className="material-symbols-outlined">visibility_off</span>
               ) : (
@@ -334,7 +317,14 @@ const FeelingRegister = () => {
 
         <div className="pt-4">
           <label className="flex items-start cursor-pointer">
-            <Checkbox color="primary" name="terms" isSelected={termsAccepted} onValueChange={setTermsAccepted} isInvalid={!!errors.terms} />
+            <Checkbox
+              color="primary"
+              name="terms"
+              isSelected={termsAccepted}
+              onValueChange={setTermsAccepted}
+              isInvalid={!!errors.terms}
+              isDisabled={loading || isGoogleAuthenticating}
+            />
             <span className="text-xs text-gray-500 ml-2">
               Acepto los{' '}
               <Link href="/terminos" className="text-gray-300 text-xs hover:underline">
@@ -356,7 +346,7 @@ const FeelingRegister = () => {
             color="default"
             className="w-full py-3 font-semibold shadow-md transition-all hover:shadow-lg"
             isLoading={loading}
-            isDisabled={loading || !termsAccepted}>
+            isDisabled={loading || !termsAccepted || isGoogleAuthenticating}>
             {loading ? 'Registrando...' : 'Registrarse'}
           </Button>
 
@@ -364,7 +354,7 @@ const FeelingRegister = () => {
 
           <div className="w-full text-center">
             <p className="text-sm text-gray-400 mb-2">¿Ya tienes una cuenta?</p>
-            <Link href="/app/login" className="text-sm text-gray-300 hover:text-white transition-colors underline">
+            <Link href="/login" className="text-sm text-gray-300 hover:text-white transition-colors underline">
               Inicia sesión aquí
             </Link>
           </div>

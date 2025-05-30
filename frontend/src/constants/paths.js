@@ -24,7 +24,7 @@ export const APP_PATHS = {
     EVENTS: '/events',
     MATCHES: '/matches',
     SEARCH: '/search',
-    FAVORITES: '/favorites',
+    FAVORITES: '/favorites'
   },
 
   ADMIN: {

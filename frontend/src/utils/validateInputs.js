@@ -26,15 +26,36 @@ export const validatePassword = value => {
 export const validateName = value => {
   if (!value) return 'El nombre es requerido'
 
-  if (value.length < 2) {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length < 2) {
     return 'El nombre debe tener al menos 2 caracteres'
   }
-  if (value.length > 50) {
+  if (trimmedValue.length > 50) {
     return 'El nombre no puede tener más de 50 caracteres'
   }
-  // Verificar que solo contiene letras y espacios
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/.test(value)) {
+  // Verificar que solo contiene letras, espacios y acentos
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žÑñ\s]+$/.test(trimmedValue)) {
     return 'El nombre solo debe contener letras'
+  }
+  return null
+}
+
+// Validación manual para apellidos
+export const validateLastName = value => {
+  if (!value) return 'El apellido es requerido'
+
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length < 2) {
+    return 'El apellido debe tener al menos 2 caracteres'
+  }
+  if (trimmedValue.length > 50) {
+    return 'El apellido no puede tener más de 50 caracteres'
+  }
+  // Verificar que solo contiene letras, espacios y acentos
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žÑñ\s]+$/.test(trimmedValue)) {
+    return 'El apellido solo debe contener letras'
   }
   return null
 }
@@ -47,32 +68,23 @@ export const validateName = value => {
 export const validateVerificationCode = value => {
   if (!value) return 'El código de verificación es requerido'
 
-  if (!/^\d{6}$/.test(value)) {
+  // Remover espacios y caracteres no numéricos
+  const cleanValue = value.replace(/\D/g, '')
+
+  if (cleanValue.length !== 6) {
     return 'El código debe ser de exactamente 6 dígitos'
   }
+
+  if (!/^\d{6}$/.test(cleanValue)) {
+    return 'El código debe contener solo números'
+  }
+
   return null
 }
 
 // ========================================
 // VALIDACIONES ADICIONALES (para completar perfil)
 // ========================================
-
-// Validación manual para apellidos
-export const validateLastName = value => {
-  if (!value) return 'El apellido es requerido'
-
-  if (value.length < 2) {
-    return 'El apellido debe tener al menos 2 caracteres'
-  }
-  if (value.length > 50) {
-    return 'El apellido no puede tener más de 50 caracteres'
-  }
-  // Verificar que solo contiene letras y espacios
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/.test(value)) {
-    return 'El apellido solo debe contener letras'
-  }
-  return null
-}
 
 // Validación manual para número de teléfono
 export const validatePhone = value => {
@@ -135,6 +147,8 @@ export const validateTerms = value => {
 
 // Validación de coincidencia de contraseñas
 export const validatePasswordMatch = (password, confirmPassword) => {
+  if (!confirmPassword) return 'Debes confirmar la contraseña'
+
   if (password !== confirmPassword) return 'Las contraseñas no coinciden'
 
   return null
@@ -155,10 +169,12 @@ export const validateInterests = interests => {
 export const validateDocument = value => {
   if (!value) return 'El documento es requerido'
 
-  if (value.length < 6) {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length < 6) {
     return 'El documento debe tener al menos 6 caracteres'
   }
-  if (value.length > 20) {
+  if (trimmedValue.length > 20) {
     return 'El documento no puede tener más de 20 caracteres'
   }
   return null
@@ -168,10 +184,12 @@ export const validateDocument = value => {
 export const validateCity = value => {
   if (!value) return 'La ciudad es requerida'
 
-  if (value.length < 2) {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length < 2) {
     return 'La ciudad debe tener al menos 2 caracteres'
   }
-  if (value.length > 50) {
+  if (trimmedValue.length > 50) {
     return 'La ciudad no puede tener más de 50 caracteres'
   }
   return null
@@ -230,6 +248,7 @@ export const validateFields = (fields, validators) => {
 export const validateRegistration = formData => {
   return validateFields(formData, {
     name: validateName,
+    lastName: validateLastName,
     email: validateEmail,
     password: validatePassword,
     confirmPassword: value => validatePasswordMatch(formData.password, value)
@@ -242,4 +261,23 @@ export const validateVerification = formData => {
     email: validateEmail,
     code: validateVerificationCode
   })
+}
+
+// Función para validar el login
+export const validateLogin = formData => {
+  return validateFields(formData, {
+    email: validateEmail,
+    password: validatePassword
+  })
+}
+
+// Función para normalizar código de verificación
+export const normalizeVerificationCode = value => {
+  return value.replace(/\D/g, '').slice(0, 6)
+}
+
+// Función para formatear código de verificación (para mostrar)
+export const formatVerificationCode = value => {
+  const normalized = normalizeVerificationCode(value)
+  return normalized.replace(/(\d{3})(\d{3})/, '$1 $2')
 }
