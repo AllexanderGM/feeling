@@ -83,7 +83,7 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
     try {
       setIsLoading(true)
       // Excluir confirmPassword del envío
-      const { confirmPassword, ...userData } = formData
+      const { ...userData } = formData
       await createUser(userData)
       onSuccess?.()
       onClose()

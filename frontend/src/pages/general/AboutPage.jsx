@@ -1,14 +1,13 @@
 import { Card, CardBody, CardHeader, Avatar, Button } from '@heroui/react'
 import { FaGithub, FaLinkedin } from 'react-icons/fa'
-
-import Diego from '../../assets/perfiles/Diego.jpeg'
-import Alejandra from '../../assets/perfiles/Alejandra.jpeg'
-import Kevin from '../../assets/perfiles/Kevin.jpeg'
-import Adriana from '../../assets/perfiles/Adriana.jpeg'
-import Jeisson from '../../assets/perfiles/Jeisson.jpeg'
-import Yerlin from '../../assets/perfiles/Yerlin.jpeg'
-import Adrian from '../../assets/perfiles/Adrian.jpeg'
-import Andres from '../../assets/perfiles/Andres.jpeg'
+import Diego from '@assets/perfiles/Diego.jpeg'
+import Alejandra from '@assets/perfiles/Alejandra.jpeg'
+import Kevin from '@assets/perfiles/Kevin.jpeg'
+import Adriana from '@assets/perfiles/Adriana.jpeg'
+import Jeisson from '@assets/perfiles/Jeisson.jpeg'
+import Yerlin from '@assets/perfiles/Yerlin.jpeg'
+import Adrian from '@assets/perfiles/Adrian.jpeg'
+import Andres from '@assets/perfiles/Andres.jpeg'
 
 const AboutPage = () => {
   const teamMembers = [

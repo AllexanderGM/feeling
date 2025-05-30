@@ -26,7 +26,6 @@ const Welcome = () => {
       {/* Contenido principal con animación */}
       <div
         className={`flex flex-col items-center text-center px-6 py-8 mx-auto max-w-lg transition-all duration-700 ease-out transform ${animateIn ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-        
         {/* Logo y título */}
         <div className="mb-8 flex flex-col items-center">
           <figure className="text-center mb-4">

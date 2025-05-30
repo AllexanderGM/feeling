@@ -1,4 +1,3 @@
-// Tours
 export const INITIAL_VISIBLE_COLUMNS = [
   { name: 'NOMBRE', uid: 'nombre' },
   { name: 'DESTINO', uid: 'destino' },

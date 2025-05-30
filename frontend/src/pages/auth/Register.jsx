@@ -4,7 +4,7 @@ import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import { useGoogleLogin } from '@react-oauth/google'
 import useError from '@hooks/useError'
 import useAuth from '@hooks/useAuth'
-import { validateEmail, validatePassword, validateName, validatePasswordMatch } from '@utils/validateInputs'
+import { validateEmail, validatePassword, validateName, validateLastName, validatePasswordMatch } from '@utils/validateInputs'
 import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
@@ -12,10 +12,11 @@ import googleIcon from '@assets/icon/google-icon.svg'
 const FeelingRegister = () => {
   const navigate = useNavigate()
   const { handleError, showErrorModal } = useError()
-  const { register, loginWithGoogle, loading } = useAuth()
+  const { register, loading } = useAuth()
 
   const [formData, setFormData] = useState({
     name: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -46,6 +47,9 @@ const FeelingRegister = () => {
     const nameError = validateName(formData.name)
     if (nameError) newErrors.name = nameError
 
+    const lastNameError = validateLastName(formData.lastName)
+    if (lastNameError) newErrors.lastName = lastNameError
+
     const emailError = validateEmail(formData.email)
     if (emailError) newErrors.email = emailError
 
@@ -71,6 +75,7 @@ const FeelingRegister = () => {
     // Preparar datos para el registro
     const userData = {
       name: formData.name,
+      lastName: formData.lastName,
       email: formData.email,
       password: formData.password
     }
@@ -79,9 +84,12 @@ const FeelingRegister = () => {
     const result = await register(userData)
 
     if (result.success) {
-      // Redirigir al usuario a verificar su correo o iniciar sesión
+      // Redirigir al usuario a verificar su correo
       navigate('/verify-email', {
-        state: { email: formData.email },
+        state: {
+          email: formData.email,
+          fromRegister: true
+        },
         replace: true
       })
     } else {
@@ -108,13 +116,57 @@ const FeelingRegister = () => {
     onSuccess: async tokenResponse => {
       try {
         setIsGoogleAuthenticating(true)
-        const result = await loginWithGoogle(tokenResponse)
+
+        // Obtener datos del usuario de Google
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${tokenResponse.access_token}`
+          }
+        })
+
+        if (!userInfoResponse.ok) {
+          throw new Error('Error al obtener la información del usuario de Google')
+        }
+
+        const googleUserData = await userInfoResponse.json()
+
+        // Separar nombre y apellido
+        const fullName = googleUserData.name || ''
+        const nameParts = fullName.split(' ')
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || ''
+
+        // Preparar datos para el registro usando la misma ruta
+        const userData = {
+          name: firstName,
+          lastName: lastName || 'Usuario', // Fallback si no hay apellido
+          email: googleUserData.email,
+          password: `google_${googleUserData.sub}_${Date.now()}`, // Contraseña temporal única
+          fromGoogle: true,
+          googleId: googleUserData.sub,
+          profilePicture: googleUserData.picture
+        }
+
+        // Usar el mismo endpoint de registro
+        const result = await register(userData)
 
         if (result.success) {
-          navigate('/app/dashboard', { replace: true })
+          // Para usuarios de Google, redirigir directamente a verificación
+          // ya que Google ya verificó el email
+          navigate('/verify-email', {
+            state: {
+              email: googleUserData.email,
+              fromGoogle: true,
+              autoVerified: true
+            },
+            replace: true
+          })
         } else {
           handleError(result.error)
         }
+      } catch (error) {
+        console.error('Error en registro con Google:', error)
+        handleError(new Error('No se pudo completar el registro con Google'))
       } finally {
         setIsGoogleAuthenticating(false)
       }
@@ -140,29 +192,78 @@ const FeelingRegister = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20 pb-10">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-36" />
       </figure>
 
       <Form className="flex flex-col w-full space-y-4" validationBehavior="aria" onSubmit={handleSubmit}>
         <h2 className="text-xl font-medium text-white mb-2">Crear cuenta</h2>
+
+        <div className="pt-6 space-y-6 w-full">
+          <Button
+            type="button"
+            variant="flat"
+            radius="full"
+            color="primary"
+            startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
+            className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
+            isLoading={isGoogleAuthenticating}
+            isDisabled={isGoogleAuthenticating}
+            onPress={handleGoogleSignIn}>
+            {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
+          </Button>
+
+          <div className="py-4 px-2 bg-gray-800/30 rounded-lg border border-gray-700/50">
+            <p className="text-xs text-gray-400 text-center leading-relaxed">
+              Al registrarte mediante Google, aceptas automáticamente nuestros{' '}
+              <Link href="/terminos" className="text-gray-300 text-xs hover:underline">
+                Términos y Condiciones
+              </Link>{' '}
+              y la{' '}
+              <Link href="/privacidad" className="text-gray-300 text-xs hover:underline">
+                Política de Privacidad
+              </Link>
+              .
+            </p>
+          </div>
+
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-gray-700"></div>
+            <span className="flex-shrink mx-4 text-xs text-gray-500">o</span>
+            <div className="flex-grow border-t border-gray-700"></div>
+          </div>
+        </div>
+
         <p className="text-sm text-gray-400 mb-4">Completa el formulario para registrarte</p>
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Nombre"
-          name="name"
-          placeholder="Tu nombre"
-          type="text"
-          autoComplete="name"
-          aria-label="Nombre completo"
-          value={formData.name}
-          onChange={e => handleInputChange('name', e.target.value)}
-          isInvalid={!!errors.name}
-          errorMessage={errors.name}
-        />
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            variant="underlined"
+            isRequired
+            label="Nombre"
+            name="name"
+            placeholder="Tu nombre"
+            type="text"
+            value={formData.name}
+            onChange={e => handleInputChange('name', e.target.value)}
+            isInvalid={!!errors.name}
+            errorMessage={errors.name}
+          />
+
+          <Input
+            variant="underlined"
+            isRequired
+            label="Apellido"
+            name="lastName"
+            placeholder="Tu apellido"
+            type="text"
+            value={formData.lastName}
+            onChange={e => handleInputChange('lastName', e.target.value)}
+            isInvalid={!!errors.lastName}
+            errorMessage={errors.lastName}
+          />
+        </div>
 
         <Input
           variant="underlined"
@@ -257,25 +358,6 @@ const FeelingRegister = () => {
             isLoading={loading}
             isDisabled={loading || !termsAccepted}>
             {loading ? 'Registrando...' : 'Registrarse'}
-          </Button>
-
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-gray-700"></div>
-            <span className="flex-shrink mx-4 text-xs text-gray-500">o</span>
-            <div className="flex-grow border-t border-gray-700"></div>
-          </div>
-
-          <Button
-            type="button"
-            variant="flat"
-            radius="full"
-            color="primary"
-            startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
-            className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
-            isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating || !termsAccepted}
-            onPress={handleGoogleSignIn}>
-            {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
           </Button>
 
           <div className="border-t border-gray-700 my-4"></div>

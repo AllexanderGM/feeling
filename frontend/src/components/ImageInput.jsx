@@ -9,7 +9,7 @@ const ImageInput = ({ images = [''], onChange, maxImages = 5 }) => {
     if (JSON.stringify(images) !== JSON.stringify(imageUrls)) {
       setImageUrls(images.length > 0 ? images : [''])
     }
-  }, [images])
+  }, [images, imageUrls])
 
   const handleImageChange = (index, value) => {
     const newImages = [...imageUrls]

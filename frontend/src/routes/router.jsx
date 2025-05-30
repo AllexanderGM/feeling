@@ -1,177 +1,227 @@
 import { createBrowserRouter } from 'react-router-dom'
 // Layouts
-// import DynamicLayout from '@layouts/DynamicLayout.jsx'
-// Páginas
-import HomePage from '@pages/home/Home.jsx'
-// import DetalleTour from '@pages/tourDetail/DetalleTour.jsx'
-import NotFoundPage from '@pages/notFound/NotFoundPage.jsx'
-/* import RegistrarUsuario from '@pages/register/RegistrarUsuario.jsx'
-import AdminPage from '@pages/admin/AdminPage.jsx'
-import ProfilePage from '@pages/user/ProfilePage.jsx'
-import EditUserProfile from '@pages/userEdit/EditUserProfile.jsx'
-import BookingHistoryPage from '@pages/bookingHistory/BookingHistoryPage.jsx'
-import Users from '@components/Users.jsx'
-import ConfirmReserv from '@pages/confirmReservation/ConfirmReserv.jsx'
-import CategoryPage from '@pages/category/CategoryPage.jsx'
-import AboutPage from '@pages/about/AboutPage.jsx'
-import ToursPage from '@pages/tours/ToursPage.jsx'
-import ContactPage from '@pages/contact/ContactPage.jsx' */
-/* Aplicación matches */
-// Layout
-import AppLayout from '@layouts/AppLayout.jsx'
-// Páginas
-import App from '@pages/app/App.jsx'
-import Welcome from '@pages/welcome/Welcome.jsx'
-import Login from '@pages/app/auth/Login.jsx'
-import Register from '@pages/app/auth/Register.jsx'
-import VerifyEmail from '@pages/app/auth/VerifyEmail.jsx'
-import ForgotPassword from '@pages/app/auth/ForgotPassword.jsx'
-import ResetPassword from '@pages/app/auth/ResetPassword.jsx'
-import ProfileCreation from '@pages/createProfile/profileCreation.jsx'
-import ApiStatus from '@pages/apiStatus/ApiStatus.jsx'
-/* import Dashboard from '@pages/app/Dashboard.jsx'
-import MatchesPage from '@pages/app/MatchesPage.jsx'
-import EventsPage from '@pages/app/EventsPage.jsx'
-import AppLoginPage from '@pages/app/AppLoginPage.jsx'
+import Layout from '@layouts/Layout.jsx'
+import App from '@routes/App.jsx'
+// Páginas públicas
+import Welcome from '@pages/general/Welcome'
+import NotFound from '@pages/general/NotFound'
+import ApiStatus from '@pages/general/ApiStatus'
+// Páginas de autenticación
+import Login from '@pages/auth/Login'
+import Register from '@pages/auth/Register'
+import VerifyEmail from '@pages/auth/VerifyEmail'
+import ForgotPassword from '@pages/auth/ForgotPassword'
+import ResetPassword from '@pages/auth/ResetPassword'
+// Páginas del flujo de registro
+import CompleteProfile from '@pages/user/CompleteProfile.jsx'
+// Páginas de la aplicación
+import Home from '@pages/app/Home'
 
-import UserSearchPage from '@pages/app/UserSearchPage.jsx'
-import UserProfileView from '@pages/app/UserProfileView.jsx' */
-
-import RootApp from './RootApp.jsx'
-import RequireAuth from './RequireAuth.jsx'
-
+// Componentes de protección
+import { RequireVerifiedUser, RequireCompleteProfile, RequireAdmin, RedirectIfAuthenticated } from './RequireAuth.jsx'
 // Crear el router con todas las rutas
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <RootApp />,
-    errorElement: <NotFoundPage />,
+    element: <App />,
+    errorElement: <NotFound />,
     children: [
-      // Rutas públicas con DynamicLayout
-      {
-        path: 'app',
-        element: <></>, //<DynamicLayout />,
-        children: [
-          { index: true, element: <HomePage /> },
-          //{ path: 'tour/:id', element: <DetalleTour /> },
-          { path: 'login', element: <Login /> }
-          //{ path: 'register', element: <RegistrarUsuario /> },
-          //{ path: 'users', element: <Users /> },
-          //{ path: 'about', element: <AboutPage /> },
-          //{ path: 'tours', element: <ToursPage /> },
-          //{ path: 'contacto', element: <ContactPage /> },
-          /* {
-            path: 'tour/:id/confirm',
-            element: (
-              <RequireAuth>
-                <ConfirmReserv />
-              </RequireAuth>
-            )
-          }, */
-          //{ path: 'categoria/:categoryName', element: <CategoryPage /> },
-          /* {
-            path: 'profile-user',
-            element: (
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
-            )
-          }, */
-          /* {
-            path: 'edit-profile',
-            element: (
-              <RequireAuth>
-                <EditUserProfile />
-              </RequireAuth>
-            )
-          }, */
-          /* {
-            path: 'mis-reservas',
-            element: (
-              <RequireAuth>
-                <BookingHistoryPage />
-              </RequireAuth>
-            )
-          }, */
-          // Rutas protegidas para administradores
-          /* {
-            path: 'admin',
-            element: (
-              <RequireAuth requiredRole="admin">
-                <AdminPage />
-              </RequireAuth>
-            )
-          }, */
-          /* {
-            path: 'profile-admin',
-            element: (
-              <RequireAuth requiredRole="admin">
-                <ProfilePage />
-              </RequireAuth>
-            )
-          } */
-        ]
-      },
-
-      // Rutas para la aplicación de matches (fuera del DynamicLayout)
       {
         path: '',
-        element: <AppLayout />,
+        element: <Layout />,
         children: [
-          // Páginas públicas dentro de app
-          { path: 'welcome', element: <Welcome /> },
-          { path: 'login', element: <Login /> },
-          { path: 'register', element: <Register /> },
-          { path: 'verify-email', element: <VerifyEmail /> },
-          { path: 'forgot-password', element: <ForgotPassword /> },
-          { path: 'reset-password', element: <ResetPassword /> },
-
-          { path: 'api-status', element: <ApiStatus /> },
-
-          // Nueva ruta para creación de perfil
-          { path: 'profile/create', element: <ProfileCreation /> },
-
-          // Páginas protegidas dentro de app
+          // ========================================
+          // RUTAS PRINCIPALES DE LA APLICACIÓN
+          // ========================================
           {
             index: true,
             element: (
-              <RequireAuth>
-                <App />
-              </RequireAuth>
+              <RequireCompleteProfile>
+                <Home />
+              </RequireCompleteProfile>
             )
-          }
-          /* {
-            path: 'matches',
+          },
+
+          // ========================================
+          // RUTAS PÚBLICAS
+          // ========================================
+          {
+            path: 'welcome',
             element: (
-              <RequireAuth>
-                <MatchesPage />
-              </RequireAuth>
+              <RedirectIfAuthenticated redirectTo="/app">
+                <Welcome />
+              </RedirectIfAuthenticated>
+            )
+          },
+          { path: 'api-status', element: <ApiStatus /> },
+
+          // ========================================
+          // RUTAS DE AUTENTICACIÓN
+          // ========================================
+          {
+            path: 'login',
+            element: (
+              <RedirectIfAuthenticated redirectTo="/app">
+                <Login />
+              </RedirectIfAuthenticated>
             )
           },
           {
-            path: 'events',
+            path: 'register',
             element: (
-              <RequireAuth>
-                <EventsPage />
-              </RequireAuth>
+              <RedirectIfAuthenticated redirectTo="/app">
+                <Register />
+              </RedirectIfAuthenticated>
+            )
+          },
+          {
+            path: 'verify-email',
+            element: <VerifyEmail />
+          },
+          {
+            path: 'verify-email/:token',
+            element: <VerifyEmail />
+          },
+          {
+            path: 'forgot-password',
+            element: (
+              <RedirectIfAuthenticated redirectTo="/app">
+                <ForgotPassword />
+              </RedirectIfAuthenticated>
+            )
+          },
+          {
+            path: 'reset-password/:token',
+            element: (
+              <RedirectIfAuthenticated redirectTo="/app">
+                <ResetPassword />
+              </RedirectIfAuthenticated>
+            )
+          },
+
+          // ========================================
+          // RUTAS DEL FLUJO DE REGISTRO
+          // ========================================
+          {
+            path: 'complete-profile',
+            element: (
+              <RequireVerifiedUser>
+                <CompleteProfile />
+              </RequireVerifiedUser>
+            )
+          },
+
+          // ========================================
+          // RUTAS DE MATCHING Y FUNCIONALIDADES PRINCIPALES
+          // ========================================
+          {
+            path: 'matches',
+            element: (
+              <RequireCompleteProfile>
+                <div>Página de Matches - Por implementar</div>
+              </RequireCompleteProfile>
             )
           },
           {
             path: 'search',
             element: (
-              <RequireAuth>
-                <UserSearchPage />
-              </RequireAuth>
+              <RequireCompleteProfile>
+                <div>Búsqueda de Usuarios - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: 'events',
+            element: (
+              <RequireCompleteProfile>
+                <div>Eventos - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: 'profile',
+            element: (
+              <RequireCompleteProfile>
+                <div>Mi Perfil - Por implementar</div>
+              </RequireCompleteProfile>
             )
           },
           {
             path: 'profile/:userId',
             element: (
-              <RequireAuth>
-                <UserProfileView />
-              </RequireAuth>
+              <RequireCompleteProfile>
+                <div>Ver Perfil de Usuario - Por implementar</div>
+              </RequireCompleteProfile>
             )
-          } */
+          },
+          {
+            path: 'settings',
+            element: (
+              <RequireCompleteProfile>
+                <div>Configuración - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+
+          // ========================================
+          // RUTAS ADMINISTRATIVAS
+          // ========================================
+          {
+            path: 'admin',
+            element: (
+              <RequireAdmin>
+                <div>Panel de Administración - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: 'admin/users',
+            element: (
+              <RequireAdmin>
+                <div>Gestión de Usuarios - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: 'admin/events',
+            element: (
+              <RequireAdmin>
+                <div>Gestión de Eventos - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: 'admin/statistics',
+            element: (
+              <RequireAdmin>
+                <div>Estadísticas - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+
+          // ========================================
+          // RUTAS DE PÁGINAS LEGALES
+          // ========================================
+          {
+            path: 'terminos',
+            element: <div>Términos y Condiciones - Por implementar</div>
+          },
+          {
+            path: 'privacidad',
+            element: <div>Política de Privacidad - Por implementar</div>
+          },
+          {
+            path: 'soporte',
+            element: <div>Centro de Soporte - Por implementar</div>
+          },
+
+          // ========================================
+          // RUTA 404
+          // ========================================
+          {
+            path: '*',
+            element: <NotFound />
+          }
         ]
       }
     ]

@@ -4,9 +4,8 @@
 
 // Validación manual para el email
 export const validateEmail = value => {
-  if (!value) {
-    return 'El correo electrónico es requerido'
-  }
+  if (!value) return 'El correo electrónico es requerido'
+
   if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
     return 'El correo electrónico no es válido'
   }
@@ -15,9 +14,8 @@ export const validateEmail = value => {
 
 // Validación manual para la contraseña
 export const validatePassword = value => {
-  if (!value) {
-    return 'La contraseña es requerida'
-  }
+  if (!value) return 'La contraseña es requerida'
+
   if (value.length < 6) {
     return 'La contraseña debe tener al menos 6 caracteres'
   }
@@ -26,9 +24,8 @@ export const validatePassword = value => {
 
 // Validación manual para nombres
 export const validateName = value => {
-  if (!value) {
-    return 'El nombre es requerido'
-  }
+  if (!value) return 'El nombre es requerido'
+
   if (value.length < 2) {
     return 'El nombre debe tener al menos 2 caracteres'
   }
@@ -48,9 +45,8 @@ export const validateName = value => {
 
 // Validación para código de verificación de 6 dígitos
 export const validateVerificationCode = value => {
-  if (!value) {
-    return 'El código de verificación es requerido'
-  }
+  if (!value) return 'El código de verificación es requerido'
+
   if (!/^\d{6}$/.test(value)) {
     return 'El código debe ser de exactamente 6 dígitos'
   }
@@ -63,9 +59,8 @@ export const validateVerificationCode = value => {
 
 // Validación manual para apellidos
 export const validateLastName = value => {
-  if (!value) {
-    return 'El apellido es requerido'
-  }
+  if (!value) return 'El apellido es requerido'
+
   if (value.length < 2) {
     return 'El apellido debe tener al menos 2 caracteres'
   }
@@ -81,9 +76,8 @@ export const validateLastName = value => {
 
 // Validación manual para número de teléfono
 export const validatePhone = value => {
-  if (!value) {
-    return 'El número de teléfono es requerido'
-  }
+  if (!value) return 'El número de teléfono es requerido'
+
   // Eliminar espacios, guiones y paréntesis para validar
   const cleanedValue = value.replace(/\s+|-|\(|\)/g, '')
   // Verificar que tenga entre 9 y 15 dígitos
@@ -95,9 +89,7 @@ export const validatePhone = value => {
 
 // Validación manual para fecha de nacimiento
 export const validateBirthDate = value => {
-  if (!value) {
-    return 'La fecha de nacimiento es requerida'
-  }
+  if (!value) return 'La fecha de nacimiento es requerida'
 
   const birthDate = new Date(value)
   const today = new Date()
@@ -129,33 +121,29 @@ export const validateBirthDate = value => {
 
 // Validación manual para campos de selección (ciudad, orientación, etc.)
 export const validateSelect = (value, fieldName = 'selección') => {
-  if (!value) {
-    return `Debes realizar una ${fieldName}`
-  }
+  if (!value) return `Debes realizar una ${fieldName}`
+
   return null
 }
 
 // Validación de términos y condiciones
 export const validateTerms = value => {
-  if (!value) {
-    return 'Debes aceptar los términos y condiciones'
-  }
+  if (!value) return 'Debes aceptar los términos y condiciones'
+
   return null
 }
 
 // Validación de coincidencia de contraseñas
 export const validatePasswordMatch = (password, confirmPassword) => {
-  if (password !== confirmPassword) {
-    return 'Las contraseñas no coinciden'
-  }
+  if (password !== confirmPassword) return 'Las contraseñas no coinciden'
+
   return null
 }
 
 // Validación de intereses (debe seleccionar al menos uno)
 export const validateInterests = interests => {
-  if (!interests || interests.length === 0) {
-    return 'Debes seleccionar al menos un interés'
-  }
+  if (!interests || interests.length === 0) return 'Debes seleccionar al menos un interés'
+
   return null
 }
 
@@ -165,9 +153,8 @@ export const validateInterests = interests => {
 
 // Validación para documento de identidad
 export const validateDocument = value => {
-  if (!value) {
-    return 'El documento es requerido'
-  }
+  if (!value) return 'El documento es requerido'
+
   if (value.length < 6) {
     return 'El documento debe tener al menos 6 caracteres'
   }
@@ -179,9 +166,8 @@ export const validateDocument = value => {
 
 // Validación para ciudad
 export const validateCity = value => {
-  if (!value) {
-    return 'La ciudad es requerida'
-  }
+  if (!value) return 'La ciudad es requerida'
+
   if (value.length < 2) {
     return 'La ciudad debe tener al menos 2 caracteres'
   }
@@ -201,7 +187,7 @@ export const validateDescription = value => {
 
 // Validación para URL de imagen
 export const validateImageUrl = value => {
-  if (!value) return null // Opcional
+  if (!value) return 'La URL de la imagen es requerida'
 
   try {
     new URL(value)

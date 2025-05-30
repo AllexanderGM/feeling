@@ -6,6 +6,11 @@ set -e # Detener ejecución si ocurre un error
 
 PROFILE=${1:-local}                     # Si no se pasa parámetro, usar "local" por defecto
 VALID_PROFILES=("local" "back" "front" "db") # Perfiles permitidos
+# Explicación de perfiles:
+# - local: Levanta todo (frontend, backend, base de datos y MinIO)
+# - back: Levanta solo el backend, la base de datos y MinIO
+# - front: Levanta solo el frontend, la base de datos y MinIO
+# - db: Levanta solo la base de datos y MinIO
 
 # Verificar si docker y docker-compose están instalados
 if ! command -v docker-compose &>/dev/null; then

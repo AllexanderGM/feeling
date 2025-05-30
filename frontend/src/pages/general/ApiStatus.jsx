@@ -218,7 +218,7 @@ const ApiStatus = () => {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-2xl">miscellaneous_services</span>
+              <span className="material-symbols-outlined">electrical_services</span>
               <div>
                 <p className="text-lg font-semibold">Estado de Servicios</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Componentes del sistema y sus estados</p>

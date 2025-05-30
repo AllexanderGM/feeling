@@ -1,8 +1,6 @@
 package com.feeling.domain.services;
 
-import com.feeling.domain.dto.auth.AuthRequestDTO;
-import com.feeling.domain.dto.auth.AuthResponseDTO;
-import com.feeling.domain.dto.auth.AuthVerifyCodeDTO;
+import com.feeling.domain.dto.auth.*;
 import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserRequestDTO;
 import com.feeling.exception.ExistEmailException;
@@ -25,10 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -47,14 +42,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final IUserVerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
+    private final GoogleOAuthService googleOAuthService;
 
     // ==============================
-    // REGISTRO CON DATOS MÍNIMOS
+    // REGISTRO
     // ==============================
 
     /**
-     * Registra un nuevo usuario con datos mínimos obligatorios
-     * Solo requiere: name, email, password
+     * REGISTRO DE USUARIO
+     * Registra un usuario tradicional (MODIFICADO para validar Google)
      */
     @Transactional
     public MessageResponseDTO register(UserRequestDTO newUser) {
@@ -62,8 +58,21 @@ public class AuthService {
             // Validar que no existe un usuario con el mismo email
             Optional<User> existingUser = userRepository.findByEmail(newUser.email());
             if (existingUser.isPresent()) {
-                logger.error("Error: Usuario ya registrado - {}", newUser.email());
-                throw new ExistEmailException("El correo electrónico ya está registrado");
+                User user = existingUser.get();
+
+                // Mensaje específico según el proveedor
+                String conflictMessage = switch (user.getUserAuthProvider()) {
+                    case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
+                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
+                    case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
+                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                    case LOCAL -> "El correo electrónico ya está registrado. " +
+                            "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
+                    default -> "El correo electrónico ya está registrado con otro método.";
+                };
+
+                logger.error("Error: Usuario ya registrado - {} ({})", newUser.email(), user.getUserAuthProvider());
+                throw new ExistEmailException(conflictMessage);
             }
 
             // Validar datos mínimos
@@ -76,13 +85,14 @@ public class AuthService {
                         return roleUserRepository.save(newRole);
                     });
 
-            // Construir usuario con datos mínimos
+            // Construir usuario con datos mínimos (LOCAL por defecto)
             User userEntity = User.builder()
                     .name(newUser.name().trim())
                     .lastname(newUser.lastName().trim())
                     .email(newUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(newUser.password()))
                     .userRole(clientRole)
+                    .userAuthProvider(UserAuthProvider.LOCAL) // ← EXPLÍCITAMENTE LOCAL
                     .verified(false) // Usuario no verificado hasta confirmar email
                     .profileComplete(false) // Perfil incompleto hasta completar datos
                     .createdAt(LocalDateTime.now())
@@ -102,10 +112,10 @@ public class AuthService {
 
             User savedUser = userRepository.save(userEntity);
 
-            // Generar y enviar código de verificación
+            // Generar y enviar código de verificación (solo para LOCAL)
             createAndSendVerificationCode(savedUser);
 
-            logger.info("Usuario registrado correctamente: {}", newUser.email());
+            logger.info("Usuario registrado correctamente (LOCAL): {}", newUser.email());
             return new MessageResponseDTO("Usuario registrado exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.");
 
         } catch (ExistEmailException e) {
@@ -118,28 +128,113 @@ public class AuthService {
     }
 
     /**
-     * Valida que los datos mínimos de registro estén presentes
+     * REGISTRO CON GOOGLE
+     * Registra un nuevo usuario específicamente usando Google OAuth
      */
-    private void validateMinimumRegistrationData(UserRequestDTO userData) {
-        if (userData.name() == null || userData.name().trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre es obligatorio");
-        }
-        if (userData.email() == null || userData.email().trim().isEmpty()) {
-            throw new IllegalArgumentException("El correo electrónico es obligatorio");
-        }
-        if (userData.password() == null || userData.password().length() < 6) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
-        }
-        if (!isValidEmail(userData.email())) {
-            throw new IllegalArgumentException("El formato del correo electrónico no es válido");
-        }
-    }
+    @Transactional
+    public AuthResponseDTO registerWithGoogle(GoogleTokenRequestDTO request) {
+        try {
+            logger.info("Iniciando registro con Google");
 
-    /**
-     * Validación básica de formato de email
-     */
-    private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+            // 1. Obtener información del usuario de Google
+            GoogleUserInfoDTO googleUser = googleOAuthService.getUserInfo(request.accessToken());
+
+            // 2. Verificar si el usuario YA EXISTE
+            Optional<User> existingUser = userRepository.findByEmail(googleUser.email().toLowerCase().trim());
+
+            if (existingUser.isPresent()) {
+                User user = existingUser.get();
+
+                // Crear mensaje específico según el proveedor existente
+                String conflictMessage = switch (user.getUserAuthProvider()) {
+                    case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
+                            "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
+                            "o usa 'Iniciar Sesión con Google' para vincular tu cuenta.";
+                    case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
+                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
+                    case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
+                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                    default -> "Esta cuenta ya existe con otro método de autenticación.";
+                };
+
+                throw new ExistEmailException(conflictMessage);
+            }
+
+            // 3. Crear nuevo usuario desde Google (proceso de registro)
+            logger.info("Creando nuevo usuario desde Google (registro): {}", googleUser.email());
+
+            // Obtener rol de cliente
+            UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
+                    .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
+
+            // Crear usuario con más validaciones de registro
+            User newUser = User.builder()
+                    .name(googleUser.getFirstName())
+                    .lastname(googleUser.getLastName())
+                    .email(googleUser.email().toLowerCase().trim())
+                    .password(passwordEncoder.encode(
+                            googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
+                    ))
+                    .userRole(clientRole)
+                    .userAuthProvider(UserAuthProvider.GOOGLE)
+                    .externalId(googleUser.sub())
+                    .externalAvatarUrl(googleUser.picture())
+                    .verified(true) // Google ya verificó el email
+                    .profileComplete(false) // Necesita completar perfil en Feeling
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .lastExternalSync(LocalDateTime.now())
+                    // Configuración por defecto
+                    .allowNotifications(true)
+                    .showMeInSearch(true)
+                    .showAge(true)
+                    .showLocation(true)
+                    .showPhone(false)
+                    .availableAttempts(0) // Usuarios nuevos sin intentos
+                    .totalAttemptsPurchased(0)
+                    .profileViews(0L)
+                    .likesReceived(0L)
+                    .matchesCount(0L)
+                    .popularityScore(0.0)
+                    .build();
+
+            // Añadir imagen de Google si existe
+            if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
+                newUser.setImages(new ArrayList<>(List.of(googleUser.picture())));
+            }
+
+            // 4. Guardar usuario
+            newUser = userRepository.save(newUser);
+
+            // 5. Generar JWT
+            String jwtToken = jwtService.generateToken(newUser);
+            saveUserToken(newUser, jwtToken);
+
+            // 6. Actualizar última actividad
+            newUser.setLastActive(LocalDateTime.now());
+            userRepository.save(newUser);
+
+            logger.info("Usuario registrado con Google correctamente: {}", googleUser.email());
+
+            return new AuthResponseDTO(
+                    newUser.getMainImage(),
+                    newUser.getEmail(),
+                    newUser.getName(),
+                    newUser.getLastname(),
+                    newUser.getUserRole().getUserRoleList().name(),
+                    jwtToken
+            );
+
+        } catch (ExistEmailException e) {
+            logger.error("Error: Usuario ya registrado con Google - {}", e.getMessage());
+            throw e;
+        } catch (UnauthorizedException e) {
+            logger.error("Error de autorización con Google en registro: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado durante registro con Google: {}", e.getMessage(), e);
+            throw new RuntimeException("Error durante el registro con Google. Inténtalo de nuevo.");
+        }
     }
 
     // ==============================
@@ -147,10 +242,166 @@ public class AuthService {
     // ==============================
 
     /**
+     * LOGIN CON GOOGLE
+     * Autentica o registra un usuario usando Google OAuth
+     */
+    @Transactional
+    public AuthResponseDTO loginWithGoogle(GoogleTokenRequestDTO request) {
+        try {
+            logger.info("Iniciando autenticación con Google");
+
+            // 1. Obtener información del usuario de Google
+            GoogleUserInfoDTO googleUser = googleOAuthService.getUserInfo(request.accessToken());
+
+            // 2. Buscar si el usuario ya existe
+            Optional<User> existingUser = userRepository.findByEmail(googleUser.email().toLowerCase().trim());
+
+            User user;
+            boolean isNewUser = false;
+
+            if (existingUser.isPresent()) {
+                user = existingUser.get();
+
+                // Verificar el método de autenticación
+                if (user.getUserAuthProvider() == UserAuthProvider.LOCAL) {
+                    // Usuario registrado con email/contraseña quiere usar Google
+                    logger.info("Usuario existente con cuenta local quiere usar Google: {}", googleUser.email());
+
+                    // Opción 1: Permitir la migración automática
+                    user.setUserAuthProvider(UserAuthProvider.GOOGLE);
+                    user.setExternalId(googleUser.sub());
+                    user.updateFromOAuthProvider(
+                            googleUser.sub(),
+                            googleUser.getFirstName(),
+                            googleUser.getLastName(),
+                            googleUser.email(),
+                            googleUser.picture()
+                    );
+
+                    // Opción 2: Lanzar excepción para requerir confirmación
+                    // throw new AuthMethodConflictException(
+                    //     AuthMethodConflictDTO.create(googleUser.email(), "LOCAL", "GOOGLE")
+                    // );
+
+                } else if (user.getUserAuthProvider() == UserAuthProvider.GOOGLE) {
+                    // Usuario Google existente - actualizar información
+                    user.updateFromOAuthProvider(
+                            googleUser.sub(),
+                            googleUser.getFirstName(),
+                            googleUser.getLastName(),
+                            googleUser.email(),
+                            googleUser.picture()
+                    );
+                } else {
+                    // Usuario con otro proveedor OAuth
+                    throw new UnauthorizedException(
+                            "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
+                                    ". " + user.getAuthMethodMessage()
+                    );
+                }
+
+            } else {
+                // 3. Crear nuevo usuario desde Google
+                logger.info("Creando nuevo usuario desde Google: {}", googleUser.email());
+                isNewUser = true;
+
+                // Obtener rol de cliente
+                UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
+                        .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
+
+                // Crear usuario
+                user = User.builder()
+                        .name(googleUser.getFirstName())
+                        .lastname(googleUser.getLastName())
+                        .email(googleUser.email().toLowerCase().trim())
+                        .password(passwordEncoder.encode(
+                                googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
+                        ))
+                        .userRole(clientRole)
+                        .userAuthProvider(UserAuthProvider.GOOGLE)
+                        .externalId(googleUser.sub())
+                        .externalAvatarUrl(googleUser.picture())
+                        .verified(true) // Google ya verificó el email
+                        .profileComplete(false) // Necesita completar perfil en Feeling
+                        .createdAt(LocalDateTime.now())
+                        .updatedAt(LocalDateTime.now())
+                        .lastExternalSync(LocalDateTime.now())
+                        // Configuración por defecto
+                        .allowNotifications(true)
+                        .showMeInSearch(true)
+                        .showAge(true)
+                        .showLocation(true)
+                        .showPhone(false)
+                        .availableAttempts(0)
+                        .totalAttemptsPurchased(0)
+                        .profileViews(0L)
+                        .likesReceived(0L)
+                        .matchesCount(0L)
+                        .popularityScore(0.0)
+                        .build();
+
+                // Añadir imagen de Google si existe
+                if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
+                    user.setImages(new ArrayList<>(List.of(googleUser.picture())));
+                }
+            }
+
+            // 4. Guardar usuario
+            user = userRepository.save(user);
+
+            // 5. Generar JWT
+            String jwtToken = jwtService.generateToken(user);
+            revokeAllUserTokens(user);
+            saveUserToken(user, jwtToken);
+
+            // 6. Actualizar última actividad
+            user.setLastActive(LocalDateTime.now());
+            userRepository.save(user);
+
+            logger.info("Usuario autenticado con Google correctamente: {}", googleUser.email());
+
+            return new AuthResponseDTO(
+                    user.getMainImage(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getLastname(),
+                    user.getUserRole().getUserRoleList().name(),
+                    jwtToken
+            );
+
+        } catch (UnauthorizedException e) {
+            logger.error("Error de autorización con Google: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado durante autenticación con Google: {}", e.getMessage(), e);
+            throw new UnauthorizedException("Error durante la autenticación con Google");
+        }
+    }
+
+    /**
+     * LOGIN
      * Autentica un usuario con email y contraseña
      */
     public AuthResponseDTO login(AuthRequestDTO auth) {
         try {
+            // Buscar usuario ANTES de la autenticación para verificar el proveedor
+            Optional<User> userOptional = userRepository.findByEmail(auth.email().toLowerCase().trim());
+            if (userOptional.isEmpty()) {
+                throw new UnauthorizedException("Usuario no encontrado");
+            }
+
+            User user = userOptional.get();
+
+            // Verificar que el usuario pueda usar login tradicional
+            if (user.getUserAuthProvider() != UserAuthProvider.LOCAL) {
+                logger.warn("Intento de login tradicional con cuenta OAuth: {} ({})",
+                        auth.email(), user.getUserAuthProvider());
+                throw new UnauthorizedException(
+                        "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
+                                ". " + user.getAuthMethodMessage()
+                );
+            }
+
             // Validar credenciales
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -159,19 +410,12 @@ public class AuthService {
                     )
             );
 
-            // Buscar usuario
-            Optional<User> userOptional = userRepository.findByEmail(auth.email().toLowerCase().trim());
-            if (userOptional.isEmpty()) {
-                logger.error("Usuario no encontrado después de autenticación exitosa: {}", auth.email());
-                throw new UnauthorizedException("Usuario no encontrado");
-            }
-
-            User user = userOptional.get();
-
             // Verificar que el usuario esté verificado
             if (!user.isVerified()) {
                 logger.warn("Intento de login con usuario no verificado: {}", auth.email());
-                throw new UnauthorizedException("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+                throw new UnauthorizedException(
+                        "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada."
+                );
             }
 
             // Generar token JWT
@@ -188,7 +432,7 @@ public class AuthService {
             logger.info("Usuario autenticado correctamente: {}", auth.email());
 
             return new AuthResponseDTO(
-                    user.getMainImage(), // Imagen principal (primera de la lista)
+                    user.getMainImage(),
                     user.getEmail(),
                     user.getName(),
                     user.getLastname(),
@@ -212,6 +456,7 @@ public class AuthService {
     // ==============================
 
     /**
+     * GENERACIÓN DE CÓDIGO
      * Genera un código de verificación numérico aleatorio
      */
     public String generateVerificationCode() {
@@ -226,6 +471,7 @@ public class AuthService {
     }
 
     /**
+     * CREACIÓN Y ENVÍO DE CÓDIGO
      * Crea y envía un código de verificación para un usuario
      */
     @Transactional
@@ -270,6 +516,7 @@ public class AuthService {
     }
 
     /**
+     * VERIFICACIÓN DE CÓDIGO
      * Verifica un código de verificación enviado por el usuario
      */
     @Transactional
@@ -314,6 +561,7 @@ public class AuthService {
     }
 
     /**
+     * REENVÍO DE CÓDIGO
      * Reenvía un código de verificación al correo del usuario
      */
     @Transactional
@@ -356,6 +604,7 @@ public class AuthService {
     // ==============================
 
     /**
+     * REFRESH TOKEN
      * Refresca un token JWT
      */
     public MessageResponseDTO refreshToken(final String authHeader) throws BadRequestException {
@@ -395,6 +644,7 @@ public class AuthService {
     }
 
     /**
+     * GUARDAR TOKEN
      * Guarda un token para un usuario
      */
     private void saveUserToken(User user, String token) {
@@ -410,7 +660,8 @@ public class AuthService {
     }
 
     /**
-     * Revoca todos los tokens activos de un usuario
+     * REVOCAR TODOS LOS TOKENS DE USUARIO
+     * Revoca todos los tokens de un usuario
      */
     private void revokeAllUserTokens(User user) {
         final List<UserToken> validUserTokens = tokenRepository
@@ -430,6 +681,34 @@ public class AuthService {
     // ==============================
 
     /**
+     * VALIDACIÓN DE DATOS MÍNIMOS
+     * Valida que los datos mínimos de registro estén presentes
+     */
+    private void validateMinimumRegistrationData(UserRequestDTO userData) {
+        if (userData.name() == null || userData.name().trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        if (userData.email() == null || userData.email().trim().isEmpty()) {
+            throw new IllegalArgumentException("El correo electrónico es obligatorio");
+        }
+        if (userData.password() == null || userData.password().length() < 6) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+        }
+        if (!isValidEmail(userData.email())) {
+            throw new IllegalArgumentException("El formato del correo electrónico no es válido");
+        }
+    }
+
+    /**
+     * VALIDACIÓN DE EMAIL
+     * Validación básica de formato de email
+     */
+    private boolean isValidEmail(String email) {
+        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    /**
+     * VERIFICACIÓN DE USUARIO
      * Verifica si un usuario está completamente registrado y verificado
      */
     public boolean isUserFullyRegistered(String email) {
@@ -443,6 +722,7 @@ public class AuthService {
     }
 
     /**
+     * OBTENER USUARIO POR EMAIL
      * Obtiene información básica del usuario por email
      */
     public Optional<User> getUserByEmail(String email) {

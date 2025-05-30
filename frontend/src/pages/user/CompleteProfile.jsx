@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Form, Input, Button, DatePicker } from '@heroui/react'
+import { useState } from 'react'
+import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import { updateProfile } from '@services/userService'
 

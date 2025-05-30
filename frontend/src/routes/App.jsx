@@ -5,7 +5,7 @@ import GeneralProvider from '@context/GeneralProvider'
 import '@styles/_tailwind.scss'
 import '@styles/global.scss'
 
-const RootApp = () => {
+const App = () => {
   return (
     <LibrariesProvider>
       <GeneralProvider>
@@ -15,4 +15,4 @@ const RootApp = () => {
   )
 }
 
-export default RootApp
+export default App

@@ -1,9 +1,8 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 
 import { SearchIcon, ChevronDownIcon, PlusIcon } from '../utils/icons.jsx'
-import { ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants'
-
-export const capitalize = s => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '')
+import { ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants.js'
+import { capitalize } from '../utils/capitalize.js'
 
 const GenericTableControls = ({
   filterValue,

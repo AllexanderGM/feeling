@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 import Portal from './Portal.jsx'
 
@@ -7,7 +7,7 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef(null)
 
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       setPosition({
@@ -16,12 +16,12 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
         width: rect.width
       })
     }
-  }
+  }, [isOpen])
 
   // Actualizar posición cuando cambia isOpen o suggestions
   useEffect(() => {
     updatePosition()
-  }, [isOpen, suggestions])
+  }, [isOpen, suggestions, updatePosition])
 
   // Actualizar posición en resize y scroll
   useEffect(() => {
@@ -34,7 +34,7 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
         window.removeEventListener('scroll', updatePosition)
       }
     }
-  }, [isOpen])
+  }, [isOpen, updatePosition])
 
   // Reset selectedIndex cuando cambian las sugerencias o se cierra el dropdown
   useEffect(() => {
@@ -70,10 +70,11 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
       }
     }
 
-    if (inputRef?.current) {
-      inputRef.current.addEventListener('keydown', handleInputKeyDown)
+    const inputEl = inputRef?.current
+    if (inputEl) {
+      inputEl.addEventListener('keydown', handleInputKeyDown)
       return () => {
-        inputRef.current?.removeEventListener('keydown', handleInputKeyDown)
+        inputEl.removeEventListener('keydown', handleInputKeyDown)
       }
     }
   }, [isOpen, selectedIndex, suggestions, onSelect, inputRef])

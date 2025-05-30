@@ -187,6 +187,19 @@ class AuthService {
     return !!this.cookieHandler.get('access_token')
   }
 
+  /**
+   * Obtiene el token de autenticación actual
+   * Esta función es necesaria para otros servicios
+   */
+  getAuthToken() {
+    if (!this.cookieHandler) {
+      console.error('Cookie handler no inicializado')
+      return null
+    }
+
+    return this.cookieHandler.get('access_token')
+  }
+
   // ========================================
   // MÉTODOS PRIVADOS
   // ========================================
@@ -368,4 +381,22 @@ class AuthService {
   }
 }
 
-export default new AuthService()
+// Crear instancia singleton
+const authServiceInstance = new AuthService()
+
+// Función standalone para compatibilidad con otros servicios
+export const getAuthToken = () => {
+  return authServiceInstance.getAuthToken()
+}
+
+// También puedes exportar otras funciones útiles
+export const isAuthenticated = () => {
+  return authServiceInstance.isAuthenticated()
+}
+
+export const getCurrentUser = () => {
+  return authServiceInstance.getCurrentUser()
+}
+
+// Exportación por defecto de la instancia
+export default authServiceInstance

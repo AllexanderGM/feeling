@@ -125,6 +125,111 @@ export const updateUser = async (email, userData) => {
 }
 
 /**
+ * Actualiza el perfil del usuario autenticado
+ * Esta función es específica para completar/actualizar el perfil del usuario logueado
+ * @param {Object} profileData - Datos del perfil a actualizar
+ * @returns {Promise<Object>} Perfil actualizado
+ */
+export const updateProfile = async profileData => {
+  try {
+    const token = getAuthToken()
+
+    if (!token) {
+      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
+    }
+
+    const response = await fetch(`${URL}/users/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(profileData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }))
+      throw new Error(errorData.message || `Error al actualizar perfil: ${response.status}`)
+    }
+
+    const updatedProfile = await response.json()
+    console.log('Perfil actualizado correctamente:', updatedProfile)
+    return updatedProfile
+  } catch (error) {
+    console.error('Error actualizando perfil:', error)
+    throw error
+  }
+}
+
+/**
+ * Completa el perfil del usuario autenticado (para el flujo inicial de registro)
+ * @param {Object} completeProfileData - Datos para completar el perfil
+ * @returns {Promise<Object>} Perfil completado
+ */
+export const completeProfile = async completeProfileData => {
+  try {
+    const token = getAuthToken()
+
+    if (!token) {
+      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
+    }
+
+    const response = await fetch(`${URL}/users/complete-profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(completeProfileData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }))
+      throw new Error(errorData.message || `Error al completar perfil: ${response.status}`)
+    }
+
+    const completedProfile = await response.json()
+    console.log('Perfil completado correctamente:', completedProfile)
+    return completedProfile
+  } catch (error) {
+    console.error('Error completando perfil:', error)
+    throw error
+  }
+}
+
+/**
+ * Obtiene el perfil del usuario autenticado
+ * @returns {Promise<Object>} Datos del perfil del usuario
+ */
+export const getMyProfile = async () => {
+  try {
+    const token = getAuthToken()
+
+    if (!token) {
+      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
+    }
+
+    const response = await fetch(`${URL}/users/profile`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Error al obtener perfil: ${response.status}`)
+    }
+
+    const profileData = await response.json()
+    console.log('Perfil del usuario obtenido:', profileData)
+    return profileData
+  } catch (error) {
+    console.error('Error obteniendo perfil:', error)
+    throw error
+  }
+}
+
+/**
  * Elimina un usuario
  * @param {string} email - Email del usuario
  * @returns {Promise<Object>} Mensaje de confirmación
@@ -166,7 +271,7 @@ export const deleteUser = async email => {
       try {
         const errorData = JSON.parse(responseText)
         throw new Error(errorData.message || errorData.error || `Error al eliminar usuario: ${deleteResponse.status}`)
-      } catch (e) {
+      } catch {
         throw new Error(`Error al eliminar usuario: ${deleteResponse.status} - ${responseText}`)
       }
     }
@@ -210,7 +315,7 @@ export const assignAdminRole = async (userId, superAdminEmail) => {
 
     try {
       return responseText ? JSON.parse(responseText) : { message: 'Rol ADMIN asignado correctamente' }
-    } catch (e) {
+    } catch {
       return { message: responseText || 'Rol ADMIN asignado correctamente' }
     }
   } catch (error) {
@@ -250,7 +355,7 @@ export const revokeAdminRole = async (userId, superAdminEmail) => {
 
     try {
       return responseText ? JSON.parse(responseText) : { message: 'Rol ADMIN revocado correctamente' }
-    } catch (e) {
+    } catch {
       return { message: responseText || 'Rol ADMIN revocado correctamente' }
     }
   } catch (error) {

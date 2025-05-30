@@ -238,6 +238,109 @@ public class User implements UserDetails {
     private boolean showPhone = false;
 
     // ========================================
+    // CAMPOS DE AUTENTICACIÓN MÚLTIPLE
+    // ========================================
+
+    /**
+     * Proveedor de autenticación utilizado por este usuario
+     */
+    @Column(name = "auth_provider", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private UserAuthProvider userAuthProvider = UserAuthProvider.LOCAL;
+
+    /**
+     * ID único del usuario en el proveedor externo (Google ID, Facebook ID, etc.)
+     * Solo se usa para proveedores OAuth externos
+     */
+    @Column(name = "external_id")
+    private String externalId;
+
+    /**
+     * URL del avatar proporcionado por el proveedor externo
+     * Puede ser diferente de las imágenes del perfil que el usuario suba
+     */
+    @Column(name = "external_avatar_url")
+    private String externalAvatarUrl;
+
+    /**
+     * Fecha de la última sincronización con el proveedor externo
+     */
+    @Column(name = "last_external_sync")
+    private LocalDateTime lastExternalSync;
+
+    // ========================================
+    // MÉTODOS DE UTILIDAD PARA AUTENTICACIÓN
+    // ========================================
+
+    /**
+     * Verifica si el usuario puede usar login tradicional con contraseña
+     */
+    public boolean canUseLocalPassword() {
+        return userAuthProvider == UserAuthProvider.LOCAL && password != null;
+    }
+
+    /**
+     * Verifica si el usuario se registró con un proveedor OAuth
+     */
+    public boolean isOAuthUser() {
+        return userAuthProvider.isExternalOAuth();
+    }
+
+    /**
+     * Obtiene el mensaje apropiado para mostrar al usuario cuando intenta
+     * usar un método de login incorrecto
+     */
+    public String getAuthMethodMessage() {
+        return switch (userAuthProvider) {
+            case LOCAL -> "Inicia sesión con tu email y contraseña";
+            case GOOGLE -> "Inicia sesión con tu cuenta de Google";
+            case FACEBOOK -> "Inicia sesión con tu cuenta de Facebook";
+            case APPLE -> "Inicia sesión con tu cuenta de Apple";
+        };
+    }
+
+    /**
+     * Actualiza la información desde un proveedor OAuth
+     */
+    public void updateFromOAuthProvider(String externalId, String name, String lastName,
+                                        String email, String avatarUrl) {
+        this.externalId = externalId;
+        this.externalAvatarUrl = avatarUrl;
+        this.lastExternalSync = LocalDateTime.now();
+
+        // Actualizar información básica solo si no está establecida
+        if (this.name == null || this.name.trim().isEmpty()) {
+            this.name = name;
+        }
+        if (this.lastname == null || this.lastname.trim().isEmpty()) {
+            this.lastname = lastName;
+        }
+
+        // Añadir avatar externo a la lista de imágenes si no existe
+        if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+            if (this.images == null) {
+                this.images = new ArrayList<>();
+            }
+            if (!this.images.contains(avatarUrl)) {
+                this.images.add(0, avatarUrl); // Añadir al principio
+            }
+        }
+
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Convierte un usuario OAuth a usuario local (permite login con contraseña)
+     */
+    public void enableLocalPassword(String hashedPassword) {
+        if (this.userAuthProvider.isExternalOAuth()) {
+            this.password = hashedPassword;
+            // Mantener el proveedor original, pero ahora también puede usar contraseña
+        }
+    }
+
+    // ========================================
     // MÉTODOS DE UserDetails
     // ========================================
     @Override
@@ -267,7 +370,11 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return verified;
+        // Los usuarios OAuth están habilitados automáticamente si están verificados por el proveedor
+        if (userAuthProvider.isExternalOAuth()) {
+            return verified; // Ya verificado por Google/Facebook/etc.
+        }
+        return verified; // Para usuarios locales, deben verificar email
     }
 
     // ========================================

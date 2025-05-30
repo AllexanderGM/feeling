@@ -1,11 +1,11 @@
 package com.feeling.application.controllers;
 
-import com.feeling.domain.dto.auth.AuthRequestDTO;
-import com.feeling.domain.dto.auth.AuthResponseDTO;
-import com.feeling.domain.dto.auth.AuthVerifyCodeDTO;
+import com.feeling.domain.dto.auth.*;
 import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserRequestDTO;
 import com.feeling.domain.services.AuthService;
+import com.feeling.exception.ExistEmailException;
+import com.feeling.infrastructure.entities.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,6 +20,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -55,6 +58,32 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/register/google")
+    @Operation(
+            summary = "Registrarse con Google",
+            description = "Registra un nuevo usuario específicamente usando Google OAuth2. " +
+                    "Si el email ya existe, devuelve error con instrucciones específicas."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Usuario registrado con Google exitosamente",
+                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
+            @ApiResponse(responseCode = "409", description = "Email ya registrado con otro método")
+    })
+    public ResponseEntity<AuthResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
+        try {
+            logger.info("Intento de registro con Google");
+            AuthResponseDTO response = authService.registerWithGoogle(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ExistEmailException e) {
+            logger.error("Error en registro con Google - email existente: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error en registro con Google: {}", e.getMessage());
+            throw e;
+        }
+    }
+
     // ==============================
     // VERIFICACIÓN DE EMAIL
     // ==============================
@@ -79,6 +108,7 @@ public class AuthController {
             throw e;
         }
     }
+
 
     @PostMapping("/resend-verification")
     @Operation(
@@ -123,6 +153,122 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en login para {}: {}", authRequest.email(), e.getMessage());
+            throw e;
+        }
+    }
+
+    @PostMapping("/google")
+    @Operation(
+            summary = "Iniciar sesión con Google",
+            description = "Autentica un usuario usando Google OAuth2. Crea una cuenta si no existe."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Login con Google exitoso",
+                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+            @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
+            @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
+    })
+    public ResponseEntity<AuthResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
+        try {
+            logger.info("Intento de login con Google");
+            AuthResponseDTO response = authService.loginWithGoogle(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error en login con Google: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    @GetMapping("/check-auth-method/{email}")
+    @Operation(
+            summary = "Verificar método de autenticación",
+            description = "Verifica qué método de autenticación debe usar un email específico"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Método de autenticación verificado"),
+            @ApiResponse(responseCode = "404", description = "Email no registrado")
+    })
+    public ResponseEntity<AuthMethodInfoDTO> checkAuthMethod(@PathVariable String email) {
+        try {
+            logger.info("Verificando método de autenticación para: {}", email);
+
+            Optional<User> userOptional = authService.getUserByEmail(email);
+
+            if (userOptional.isEmpty()) {
+                // Email no registrado - puede usar cualquier método
+                return ResponseEntity.ok(new AuthMethodInfoDTO(
+                        email,
+                        null,
+                        false,
+                        "Email no registrado. Puedes registrarte con cualquier método.",
+                        List.of("LOCAL", "GOOGLE")
+                ));
+            }
+
+            User user = userOptional.get();
+            return ResponseEntity.ok(new AuthMethodInfoDTO(
+                    email,
+                    user.getUserAuthProvider().name(),
+                    true,
+                    user.getAuthMethodMessage(),
+                    List.of(user.getUserAuthProvider().name())
+            ));
+
+        } catch (Exception e) {
+            logger.error("Error verificando método de autenticación para {}: {}", email, e.getMessage());
+            throw e;
+        }
+    }
+
+    @GetMapping("/check-email/{email}")
+    @Operation(
+            summary = "Verificar disponibilidad de email",
+            description = "Verifica si un email está disponible para registro y con qué método"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Información del email verificada")
+    })
+    public ResponseEntity<EmailAvailabilityDTO> checkEmailAvailability(@PathVariable String email) {
+        try {
+            logger.info("Verificando disponibilidad del email: {}", email);
+
+            Optional<User> userOptional = authService.getUserByEmail(email);
+
+            if (userOptional.isEmpty()) {
+                // Email disponible
+                return ResponseEntity.ok(new EmailAvailabilityDTO(
+                        email,
+                        true,
+                        null,
+                        "Email disponible para registro",
+                        List.of("LOCAL", "GOOGLE"),
+                        null
+                ));
+            }
+
+            User user = userOptional.get();
+
+            // Email no disponible
+            String suggestion = switch (user.getUserAuthProvider()) {
+                case LOCAL -> "Este email ya tiene una cuenta. Ve a 'Iniciar Sesión' y usa tu contraseña.";
+                case GOOGLE ->
+                        "Este email ya tiene una cuenta con Google. Ve a 'Iniciar Sesión' y usa 'Continuar con Google'.";
+                case FACEBOOK ->
+                        "Este email ya tiene una cuenta con Facebook. Ve a 'Iniciar Sesión' y usa 'Continuar con Facebook'.";
+                default -> "Este email ya está registrado.";
+            };
+
+            return ResponseEntity.ok(new EmailAvailabilityDTO(
+                    email,
+                    false,
+                    user.getUserAuthProvider().name(),
+                    suggestion,
+                    List.of(), // No hay métodos disponibles
+                    user.getAuthMethodMessage()
+            ));
+
+        } catch (Exception e) {
+            logger.error("Error verificando disponibilidad del email {}: {}", email, e.getMessage());
             throw e;
         }
     }

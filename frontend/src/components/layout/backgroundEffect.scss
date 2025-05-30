@@ -25,7 +25,7 @@ $opacity-low: 0.2;
 
 // Mixin para configuración común de elipses
 @mixin ellipse-base($width, $height, $blur: $blur-heavy, $opacity: $opacity-medium) {
-  position: absolute;
+  position: fixed;
   width: $width;
   height: $height;
   border-radius: 50%;
@@ -147,13 +147,13 @@ $opacity-low: 0.2;
 @media (max-width: 480px) {
   .background-container {
     .top-ellipse {
-      width: 40vh;
-      height: 40vh;
+      width: 50vh;
+      height: 50vh;
     }
 
     .bottom-ellipse {
-      width: 35vh;
-      height: 35vh;
+      width: 45vh;
+      height: 45vh;
     }
   }
 }
