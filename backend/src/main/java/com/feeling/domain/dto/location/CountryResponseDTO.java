@@ -1,0 +1,15 @@
+// DTO para respuesta de países
+package com.feeling.domain.dto.location;
+
+import java.util.List;
+
+public record CountryResponseDTO(
+        String code,
+        String name,
+        String emoji,
+        String phoneCode,
+        String region,
+        boolean priority,
+        List<CityResponseDTO> cities
+) {
+}

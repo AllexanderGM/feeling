@@ -1,13 +1,17 @@
 import { API_URL, COOKIE_OPTIONS } from '@config/config'
 
+console.log('🔍 Importando AuthService. API_URL:', API_URL)
+
 class AuthService {
   constructor() {
     this.cookieHandler = null
     this.apiUrl = API_URL
+    console.log('🔧 AuthService constructor llamado')
   }
 
   setCookieHandler(cookieHandler) {
     this.cookieHandler = cookieHandler
+    console.log('🍪 Cookie handler configurado')
   }
 
   hasCookieHandler() {
@@ -18,55 +22,77 @@ class AuthService {
   // REGISTRO SIMPLIFICADO
   // ========================================
 
-  /**
-   * Registra un nuevo usuario con datos mínimos
-   * Solo requiere: name, email, password
-   */
-  async register(userData) {
-    return this._request('/auth/register', {
-      method: 'POST',
-      body: {
-        name: userData.name,
-        email: userData.email,
-        password: userData.password
-      }
-    })
+  register = async userData => {
+    console.log('🔄 Método register llamado con:', { ...userData, password: '[OCULTA]' })
+
+    try {
+      const result = await this._request('/auth/register', {
+        method: 'POST',
+        body: {
+          name: userData.name,
+          lastName: userData.lastName,
+          email: userData.email,
+          password: userData.password
+        }
+      })
+
+      console.log('✅ Registro completado:', result)
+      return result
+    } catch (error) {
+      console.error('❌ Error en registro:', error)
+      throw error
+    }
+  }
+
+  registerWithGoogle = async tokenResponse => {
+    console.log('🔄 Registro específico con Google')
+
+    try {
+      // Enviar datos a nuestro backend usando el endpoint específico de registro
+      const data = await this._request('/auth/register/google', {
+        method: 'POST',
+        body: {
+          accessToken: tokenResponse.access_token,
+          tokenType: tokenResponse.token_type || 'Bearer',
+          scope: tokenResponse.scope || ''
+        }
+      })
+
+      console.log('✅ Registro con Google exitoso:', data)
+      return data
+    } catch (error) {
+      console.error('❌ Error en registro con Google:', error)
+      throw error
+    }
   }
 
   // ========================================
   // VERIFICACIÓN POR CÓDIGO
   // ========================================
 
-  /**
-   * Verifica el código de 6 dígitos enviado por email
-   */
-  async verifyEmailCode(email, code) {
+  verifyEmailCode = async (email, code) => {
+    console.log('🔄 Verificando código para:', email)
+
     return this._request('/auth/verify-email', {
       method: 'POST',
       body: {
-        email: email,
-        code: code
+        email: email.toLowerCase().trim(),
+        code: code.trim()
       }
     })
   }
 
-  /**
-   * Reenvía el código de verificación
-   */
-  async resendVerificationCode(email) {
+  resendVerificationCode = async email => {
+    console.log('🔄 Reenviando código para:', email)
+
     return this._request('/auth/resend-verification', {
       method: 'POST',
-      body: {},
-      // Enviar email como query parameter
-      endpoint: `/auth/resend-verification?email=${encodeURIComponent(email)}`
+      endpoint: `/auth/resend-verification?email=${encodeURIComponent(email.toLowerCase().trim())}`
     })
   }
 
-  /**
-   * Verifica el estado del usuario
-   */
-  async checkUserStatus(email) {
-    return this._request(`/auth/status/${encodeURIComponent(email)}`, {
+  checkUserStatus = async email => {
+    return this._request(`/auth/status/${encodeURIComponent(email.toLowerCase().trim())}`, {
       method: 'GET'
     })
   }
@@ -75,45 +101,40 @@ class AuthService {
   // AUTENTICACIÓN
   // ========================================
 
-  async login(email, password) {
+  login = async (email, password) => {
+    console.log('🔄 Login para:', email)
+
     return this._request('/auth/login', {
       method: 'POST',
-      body: { email, password }
+      body: { email: email.toLowerCase().trim(), password }
     })
   }
 
-  async loginWithGoogle(tokenResponse) {
+  loginWithGoogle = async tokenResponse => {
+    console.log('🔄 Login con Google')
+
     try {
-      // Obtener datos del usuario de Google
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-          Authorization: `Bearer ${tokenResponse.access_token}`
-        }
-      })
-
-      if (!userInfoResponse.ok) {
-        throw new Error('Error al obtener la información del usuario de Google')
-      }
-
-      const userData = await userInfoResponse.json()
-
-      // Enviar datos a nuestro backend
-      const data = await this._request('/auth/google', {
+      // Enviar datos a nuestro backend usando el endpoint específico de login
+      const data = await this._request('/auth/login/google', {
         method: 'POST',
         body: {
           accessToken: tokenResponse.access_token,
-          userData
+          tokenType: tokenResponse.token_type || 'Bearer',
+          scope: tokenResponse.scope || ''
         }
       })
 
+      console.log('✅ Login con Google exitoso:', data)
       return data
     } catch (error) {
-      console.error('Error en loginWithGoogle:', error)
+      console.error('❌ Error en login con Google:', error)
       throw error
     }
   }
 
-  logout() {
+  logout = () => {
+    console.log('🔄 Logout')
+
     if (!this.cookieHandler) {
       console.error('Cookie handler no inicializado')
       return
@@ -132,14 +153,14 @@ class AuthService {
   // RECUPERACIÓN DE CONTRASEÑA
   // ========================================
 
-  async forgotPassword(email) {
+  forgotPassword = async email => {
     return this._request('/auth/forgot-password', {
       method: 'POST',
-      body: { email }
+      body: { email: email.toLowerCase().trim() }
     })
   }
 
-  async resetPassword(token, newPassword) {
+  resetPassword = async (token, newPassword) => {
     return this._request('/auth/reset-password', {
       method: 'POST',
       body: {
@@ -153,7 +174,7 @@ class AuthService {
   // GESTIÓN DE PERFIL
   // ========================================
 
-  async updateProfile(userData) {
+  updateProfile = async userData => {
     const data = await this._request('/users/profile', {
       method: 'PUT',
       body: userData
@@ -169,7 +190,7 @@ class AuthService {
   // MÉTODOS AUXILIARES
   // ========================================
 
-  getCurrentUser() {
+  getCurrentUser = () => {
     if (!this.cookieHandler) {
       console.error('Cookie handler no inicializado')
       return null
@@ -178,7 +199,7 @@ class AuthService {
     return this.cookieHandler.get('user') || null
   }
 
-  isAuthenticated() {
+  isAuthenticated = () => {
     if (!this.cookieHandler) {
       console.error('Cookie handler no inicializado')
       return false
@@ -187,11 +208,7 @@ class AuthService {
     return !!this.cookieHandler.get('access_token')
   }
 
-  /**
-   * Obtiene el token de autenticación actual
-   * Esta función es necesaria para otros servicios
-   */
-  getAuthToken() {
+  getAuthToken = () => {
     if (!this.cookieHandler) {
       console.error('Cookie handler no inicializado')
       return null
@@ -201,10 +218,28 @@ class AuthService {
   }
 
   // ========================================
+  // VERIFICACIÓN DE DISPONIBILIDAD DE EMAIL
+  // ========================================
+
+  checkEmailAvailability = async email => {
+    return this._request(`/auth/check-email/${encodeURIComponent(email.toLowerCase().trim())}`, {
+      method: 'GET'
+    })
+  }
+
+  checkAuthMethod = async email => {
+    return this._request(`/auth/check-auth-method/${encodeURIComponent(email.toLowerCase().trim())}`, {
+      method: 'GET'
+    })
+  }
+
+  // ========================================
   // MÉTODOS PRIVADOS
   // ========================================
 
-  async _request(endpoint, options = {}) {
+  _request = async (endpoint, options = {}) => {
+    console.log('🌐 Haciendo petición:', endpoint, options.method || 'GET')
+
     this._validateCookieHandler()
 
     const token = this.cookieHandler.get('access_token')
@@ -230,9 +265,12 @@ class AuthService {
     }
 
     try {
+      console.log('🌐 URL final:', url)
       const response = await fetch(url, config)
 
       if (!response.ok) {
+        console.error('❌ Response no OK:', response.status, response.statusText)
+
         // Manejar error 401 (token expirado)
         if (response.status === 401 && token && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-token')) {
           const refreshed = await this._refreshToken()
@@ -250,6 +288,7 @@ class AuthService {
 
       if (response.status !== 204) {
         const data = await response.json()
+        console.log('✅ Respuesta exitosa:', data)
 
         // Manejar tokens y usuario en respuestas de autenticación
         if (data.token || data.accessToken || data.refreshToken || data.user) {
@@ -261,6 +300,8 @@ class AuthService {
 
       return null
     } catch (error) {
+      console.error('❌ Error en petición:', error)
+
       // Formatear errores de red
       if (!error.response) {
         const networkError = new Error('No se pudo establecer conexión con el servidor')
@@ -292,7 +333,7 @@ class AuthService {
     }
   }
 
-  async _refreshToken() {
+  _refreshToken = async () => {
     try {
       const refreshToken = this.cookieHandler.get('refresh_token')
       if (!refreshToken) return false
@@ -321,7 +362,7 @@ class AuthService {
     }
   }
 
-  async _retryRequestWithNewToken(endpoint, options) {
+  _retryRequestWithNewToken = async (endpoint, options) => {
     const newToken = this.cookieHandler.get('access_token')
     const newHeaders = {
       ...options.headers,
@@ -334,7 +375,7 @@ class AuthService {
     })
   }
 
-  _handleAuthResponse(data) {
+  _handleAuthResponse = data => {
     const { token, accessToken, refreshToken, user } = data
 
     // El backend devuelve 'token' en lugar de 'accessToken'
@@ -366,7 +407,7 @@ class AuthService {
     }
   }
 
-  _updateUserInCookies(userData) {
+  _updateUserInCookies = userData => {
     const currentUser = this.getCurrentUser()
     if (currentUser) {
       const updatedUser = { ...currentUser, ...userData }
@@ -374,7 +415,7 @@ class AuthService {
     }
   }
 
-  _validateCookieHandler() {
+  _validateCookieHandler = () => {
     if (!this.cookieHandler) {
       throw new Error('Cookie handler no inicializado. Asegúrate de llamar a setCookieHandler primero.')
     }
@@ -384,12 +425,19 @@ class AuthService {
 // Crear instancia singleton
 const authServiceInstance = new AuthService()
 
+// Verificar que los métodos estén disponibles
+console.log('🔍 AuthService métodos disponibles:', {
+  register: typeof authServiceInstance.register,
+  login: typeof authServiceInstance.login,
+  verifyEmailCode: typeof authServiceInstance.verifyEmailCode,
+  instance: authServiceInstance
+})
+
 // Función standalone para compatibilidad con otros servicios
 export const getAuthToken = () => {
   return authServiceInstance.getAuthToken()
 }
 
-// También puedes exportar otras funciones útiles
 export const isAuthenticated = () => {
   return authServiceInstance.isAuthenticated()
 }

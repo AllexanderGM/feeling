@@ -13,12 +13,13 @@ import VerifyEmail from '@pages/auth/VerifyEmail'
 import ForgotPassword from '@pages/auth/ForgotPassword'
 import ResetPassword from '@pages/auth/ResetPassword'
 // Páginas del flujo de registro
-import CompleteProfile from '@pages/user/CompleteProfile.jsx'
+import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
 // Páginas de la aplicación
 import Home from '@pages/app/Home'
 
 // Componentes de protección
 import { RequireVerifiedUser, RequireCompleteProfile, RequireAdmin, RedirectIfAuthenticated } from './RequireAuth.jsx'
+
 // Crear el router con todas las rutas
 const router = createBrowserRouter([
   {
@@ -48,7 +49,7 @@ const router = createBrowserRouter([
           {
             path: 'welcome',
             element: (
-              <RedirectIfAuthenticated redirectTo="/app">
+              <RedirectIfAuthenticated redirectTo="/">
                 <Welcome />
               </RedirectIfAuthenticated>
             )
@@ -61,7 +62,7 @@ const router = createBrowserRouter([
           {
             path: 'login',
             element: (
-              <RedirectIfAuthenticated redirectTo="/app">
+              <RedirectIfAuthenticated redirectTo="/">
                 <Login />
               </RedirectIfAuthenticated>
             )
@@ -69,7 +70,7 @@ const router = createBrowserRouter([
           {
             path: 'register',
             element: (
-              <RedirectIfAuthenticated redirectTo="/app">
+              <RedirectIfAuthenticated redirectTo="/">
                 <Register />
               </RedirectIfAuthenticated>
             )
@@ -85,7 +86,7 @@ const router = createBrowserRouter([
           {
             path: 'forgot-password',
             element: (
-              <RedirectIfAuthenticated redirectTo="/app">
+              <RedirectIfAuthenticated redirectTo="/">
                 <ForgotPassword />
               </RedirectIfAuthenticated>
             )
@@ -93,7 +94,7 @@ const router = createBrowserRouter([
           {
             path: 'reset-password/:token',
             element: (
-              <RedirectIfAuthenticated redirectTo="/app">
+              <RedirectIfAuthenticated redirectTo="/">
                 <ResetPassword />
               </RedirectIfAuthenticated>
             )
@@ -104,11 +105,12 @@ const router = createBrowserRouter([
           // ========================================
           {
             path: 'complete-profile',
-            element: (
+            element: <CompleteProfile />
+            /* element: (
               <RequireVerifiedUser>
                 <CompleteProfile />
               </RequireVerifiedUser>
-            )
+            ) */
           },
 
           // ========================================

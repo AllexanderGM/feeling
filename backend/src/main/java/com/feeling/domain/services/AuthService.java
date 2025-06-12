@@ -144,8 +144,6 @@ public class AuthService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-
-                // Crear mensaje específico según el proveedor existente
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
                             "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
@@ -156,18 +154,15 @@ public class AuthService {
                             "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
                     default -> "Esta cuenta ya existe con otro método de autenticación.";
                 };
-
                 throw new ExistEmailException(conflictMessage);
             }
 
-            // 3. Crear nuevo usuario desde Google (proceso de registro)
+            // 3. Crear nuevo usuario desde Google
             logger.info("Creando nuevo usuario desde Google (registro): {}", googleUser.email());
 
-            // Obtener rol de cliente
             UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
                     .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
 
-            // Crear usuario con más validaciones de registro
             User newUser = User.builder()
                     .name(googleUser.getFirstName())
                     .lastname(googleUser.getLastName())
@@ -184,13 +179,12 @@ public class AuthService {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .lastExternalSync(LocalDateTime.now())
-                    // Configuración por defecto
                     .allowNotifications(true)
                     .showMeInSearch(true)
                     .showAge(true)
                     .showLocation(true)
                     .showPhone(false)
-                    .availableAttempts(0) // Usuarios nuevos sin intentos
+                    .availableAttempts(0)
                     .totalAttemptsPurchased(0)
                     .profileViews(0L)
                     .likesReceived(0L)
@@ -198,7 +192,6 @@ public class AuthService {
                     .popularityScore(0.0)
                     .build();
 
-            // Añadir imagen de Google si existe
             if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
                 newUser.setImages(new ArrayList<>(List.of(googleUser.picture())));
             }
@@ -206,11 +199,23 @@ public class AuthService {
             // 4. Guardar usuario
             newUser = userRepository.save(newUser);
 
-            // 5. Generar JWT
+            // 5. NUEVO: Enviar email de bienvenida para usuarios de Google
+            try {
+                emailService.sendWelcomeEmailForGoogleUser(
+                        newUser.getEmail(),
+                        newUser.getName() + " " + newUser.getLastname(),
+                        googleUser.picture()
+                );
+                logger.info("Email de bienvenida enviado a usuario de Google: {}", newUser.getEmail());
+            } catch (Exception emailError) {
+                logger.warn("Error al enviar email de bienvenida a usuario de Google: {}", emailError.getMessage());
+            }
+
+            // 6. Generar JWT
             String jwtToken = jwtService.generateToken(newUser);
             saveUserToken(newUser, jwtToken);
 
-            // 6. Actualizar última actividad
+            // 7. Actualizar última actividad
             newUser.setLastActive(LocalDateTime.now());
             userRepository.save(newUser);
 
@@ -477,16 +482,25 @@ public class AuthService {
     @Transactional
     public void createAndSendVerificationCode(User user) {
         try {
-            // 1. ELIMINAR códigos anteriores si existen (con flush para forzar la eliminación)
+            // 1. ELIMINAR códigos anteriores si existen
             Optional<UserVerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
             if (existingCode.isPresent()) {
                 verificationCodeRepository.delete(existingCode.get());
-                verificationCodeRepository.flush(); // IMPORTANTE: Forzar la eliminación inmediatamente
                 logger.info("Código de verificación anterior eliminado para usuario: {}", user.getEmail());
             }
 
-            // 2. Crear nuevo código
-            String code = generateVerificationCode();
+            // 2. Crear nuevo código único
+            String code;
+            int attempts = 0;
+            do {
+                code = generateVerificationCode();
+                attempts++;
+                // Evitar bucle infinito
+                if (attempts > 10) {
+                    throw new RuntimeException("No se pudo generar un código único");
+                }
+            } while (verificationCodeRepository.findByCode(code).isPresent());
+
             LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
 
             UserVerificationCode verificationCode = UserVerificationCode.builder()
@@ -510,7 +524,6 @@ public class AuthService {
 
         } catch (Exception e) {
             logger.error("Error inesperado al crear y enviar código de verificación: {}", e.getMessage(), e);
-            // Re-lanzar la excepción para que el controlador pueda manejarla
             throw new RuntimeException("Error al generar código de verificación", e);
         }
     }
@@ -556,6 +569,18 @@ public class AuthService {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
+        // NUEVO: Enviar email de bienvenida para usuarios locales
+        try {
+            emailService.sendWelcomeEmailForLocalUser(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastname()
+            );
+            logger.info("Email de bienvenida enviado a usuario local verificado: {}", user.getEmail());
+        } catch (Exception emailError) {
+            logger.warn("Error al enviar email de bienvenida a usuario local: {}", emailError.getMessage());
+            // No lanzamos excepción aquí porque la verificación ya fue exitosa
+        }
+
         logger.info("Usuario verificado exitosamente: {}", authVerifyCodeDTO.email());
         return new MessageResponseDTO("¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.");
     }
@@ -575,16 +600,23 @@ public class AuthService {
                 return new MessageResponseDTO("La cuenta ya está verificada");
             }
 
-            // Verificar si ha pasado suficiente tiempo desde el último envío (anti-spam)
+            // Verificar límite de tiempo para anti-spam
             Optional<UserVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
             if (lastCode.isPresent() && !lastCode.get().isVerified()) {
-                LocalDateTime lastSent = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
-                if (lastSent.isAfter(LocalDateTime.now().minusMinutes(2))) {
-                    throw new UnauthorizedException("Debes esperar al menos 2 minutos antes de solicitar un nuevo código");
+                // Calcular tiempo transcurrido desde el último código
+                LocalDateTime lastCodeTime = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
+                LocalDateTime now = LocalDateTime.now();
+                long minutesElapsed = java.time.Duration.between(lastCodeTime, now).toMinutes();
+
+                if (minutesElapsed < 2) {
+                    long waitTime = 2 - minutesElapsed;
+                    throw new UnauthorizedException(
+                            String.format("Debes esperar %d minuto(s) antes de solicitar un nuevo código", waitTime)
+                    );
                 }
             }
 
-            // Generar y enviar nuevo código (método ya corregido arriba)
+            // Generar y enviar nuevo código
             createAndSendVerificationCode(user);
 
             logger.info("Código de verificación reenviado a: {}", email);
@@ -598,7 +630,6 @@ public class AuthService {
             throw new RuntimeException("Error al reenviar código de verificación", e);
         }
     }
-
     // ==============================
     // GESTIÓN DE TOKENS JWT
     // ==============================

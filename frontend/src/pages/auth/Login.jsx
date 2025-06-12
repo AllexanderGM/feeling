@@ -12,7 +12,7 @@ import googleIcon from '@assets/icon/google-icon.svg'
 const FeelingLogin = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { handleError, showErrorModal } = useError()
+  const { showErrorModal } = useError()
   const { login, loginWithGoogle, loading } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -22,6 +22,9 @@ const FeelingLogin = () => {
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [errors, setErrors] = useState({})
   const fromPath = location.state?.from?.pathname || '/'
+
+  // Si viene mensaje del estado (ej: desde verificación exitosa)
+  const successMessage = location.state?.message
 
   const toggleVisibility = () => setIsVisible(!isVisible)
 
@@ -54,7 +57,6 @@ const FeelingLogin = () => {
 
     if (result.success) {
       console.log('Login route:', fromPath)
-
       navigate(fromPath, { replace: true })
     } else {
       const error = result.error
@@ -73,23 +75,36 @@ const FeelingLogin = () => {
     }
   }
 
+  // Implementación del login con Google
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
         setIsGoogleAuthenticating(true)
+
+        // Usar el método específico de login con Google
         const result = await loginWithGoogle(tokenResponse)
 
         if (result.success) {
           navigate(fromPath, { replace: true })
         } else {
-          handleError(result.error)
+          // Si hay error, verificar si es porque la cuenta no existe
+          if (result.error?.response?.status === 404 || result.error?.message?.toLowerCase().includes('no encontrado')) {
+            // Sugerir registro
+            showErrorModal('No encontramos una cuenta con este email de Google. ¿Quieres registrarte?', 'Cuenta no encontrada')
+          } else {
+            const errorMessage = getErrorMessage(result.error)
+            showErrorModal(errorMessage, 'Error de inicio de sesión')
+          }
         }
+      } catch (error) {
+        console.error('Error en login con Google:', error)
+        showErrorModal('No se pudo completar el inicio de sesión con Google', 'Error de autenticación')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
     onError: () => {
-      handleError(new Error('No se pudo completar la autenticación con Google'))
+      showErrorModal('No se pudo completar la autenticación con Google', 'Error de autenticación')
       setIsGoogleAuthenticating(false)
     },
     flow: 'implicit'
@@ -105,6 +120,13 @@ const FeelingLogin = () => {
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
+
+      {/* Mensaje de éxito si viene de verificación */}
+      {successMessage && (
+        <div className="bg-green-900/30 border border-green-800 text-green-300 px-4 py-3 rounded mb-4 max-w-md w-full text-center">
+          {successMessage}
+        </div>
+      )}
 
       <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit}>
         <h2 className="text-xl font-medium text-white mb-6">Acceder</h2>
@@ -122,6 +144,7 @@ const FeelingLogin = () => {
           onChange={handleEmailChange}
           isInvalid={!!errors.email}
           errorMessage={errors.email}
+          isDisabled={loading || isGoogleAuthenticating}
         />
 
         <Input
@@ -137,8 +160,14 @@ const FeelingLogin = () => {
           onChange={handlePasswordChange}
           isInvalid={!!errors.password}
           errorMessage={errors.password}
+          isDisabled={loading || isGoogleAuthenticating}
           endContent={
-            <button aria-label="toggle password visibility" className="focus:outline-none" type="button" onClick={toggleVisibility}>
+            <button
+              aria-label="toggle password visibility"
+              className="focus:outline-none"
+              type="button"
+              onClick={toggleVisibility}
+              disabled={loading || isGoogleAuthenticating}>
               {isVisible ? (
                 <span className="material-symbols-outlined">visibility_off</span>
               ) : (
@@ -150,11 +179,18 @@ const FeelingLogin = () => {
 
         <div className="flex items-center justify-between w-full pt-2">
           <label className="flex items-center cursor-pointer">
-            <Checkbox label="Recordar sesión" color="primary" name="remember" isSelected={rememberMe} onValueChange={setRememberMe} />
+            <Checkbox
+              label="Recordar sesión"
+              color="primary"
+              name="remember"
+              isSelected={rememberMe}
+              onValueChange={setRememberMe}
+              isDisabled={loading || isGoogleAuthenticating}
+            />
             <span className="text-xs text-gray-500 ml-2">Recordar sesión</span>
           </label>
 
-          <Link href="/app/forgot-password" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
+          <Link href="/forgot-password" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -166,7 +202,7 @@ const FeelingLogin = () => {
             color="default"
             className="w-full py-3 transition-colors"
             isLoading={loading}
-            isDisabled={loading}>
+            isDisabled={loading || isGoogleAuthenticating}>
             {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 
@@ -184,7 +220,7 @@ const FeelingLogin = () => {
             startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
             className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
             isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating}
+            isDisabled={isGoogleAuthenticating || loading}
             onPress={handleGoogleSignIn}>
             {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
           </Button>

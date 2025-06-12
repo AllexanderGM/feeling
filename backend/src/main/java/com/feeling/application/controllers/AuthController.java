@@ -157,24 +157,26 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/google")
+    @PostMapping("/login/google")
     @Operation(
             summary = "Iniciar sesión con Google",
-            description = "Autentica un usuario usando Google OAuth2. Crea una cuenta si no existe."
+            description = "Autentica un usuario usando Google OAuth2. Crea una cuenta automáticamente si no existe."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Login con Google exitoso",
+            @ApiResponse(responseCode = "200", description = "Login con Google exitoso (usuario existente)",
+                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+            @ApiResponse(responseCode = "201", description = "Usuario creado y autenticado con Google (usuario nuevo)",
                     content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
             @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
     })
     public ResponseEntity<AuthResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
         try {
-            logger.info("Intento de login con Google");
+            logger.info("Intento de autenticación con Google");
             AuthResponseDTO response = authService.loginWithGoogle(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error en login con Google: {}", e.getMessage());
+            logger.error("Error en autenticación con Google: {}", e.getMessage());
             throw e;
         }
     }

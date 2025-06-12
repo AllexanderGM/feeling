@@ -58,7 +58,7 @@ public class LocationService {
                 location.setRegion(country.region());
                 location.setCountry(country.name());
                 location.setCity(cities);
-                location.setImage(country.image());
+                location.setImage(country.emoji());
                 location.setPhone(Optional.ofNullable(country.phone()).orElse(new ArrayList<>()));
                 locationRepository.save(location);
                 logger.info("Destino guardado: {} - {}", country.region(), country.name());
