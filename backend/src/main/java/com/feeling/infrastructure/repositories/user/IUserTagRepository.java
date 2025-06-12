@@ -150,8 +150,8 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     // ========================================
     @Query(value = """
             SELECT t.* FROM user_tags t 
-            JOIN user_tags ut ON t.id = ut.tag_id
-            JOIN users u ON ut.user_id = u.id 
+            JOIN user_tag_relations utr ON t.id = utr.tag_id
+            JOIN users u ON utr.user_id = u.id 
             JOIN user_category_interest uci ON u.category_interest_id = uci.id
             WHERE uci.category_interest = :category
             AND t.usage_count > 0 
@@ -166,7 +166,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     // ========================================
     @Query(value = """
             SELECT DISTINCT u.email FROM users u 
-            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tag_relations ut ON u.id = ut.user_id
             JOIN user_tags t ON ut.tag_id = t.id
             WHERE t.name IN :tagNames 
             AND u.email != :excludeEmail 
@@ -185,7 +185,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query(value = """
             SELECT DISTINCT u.email FROM users u 
-            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tag_relations ut ON u.id = ut.user_id
             JOIN user_tags t ON ut.tag_id = t.id
             LEFT JOIN user_category_interest uci ON u.category_interest_id = uci.id
             WHERE t.name IN :tagNames 
@@ -226,7 +226,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query(value = """
             SELECT t.* FROM user_tags t 
-            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN user_tag_relations ut ON t.id = ut.tag_id
             JOIN users u ON ut.user_id = u.id 
             WHERE u.city = :city 
             AND t.usage_count > 0 
@@ -241,7 +241,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query(value = """
             SELECT t.* FROM user_tags t 
-            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN user_tag_relations ut ON t.id = ut.tag_id
             JOIN users u ON ut.user_id = u.id 
             JOIN user_category_interest uci ON u.category_interest_id = uci.id
             WHERE uci.category_interest = :category
@@ -260,7 +260,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query(value = """
             SELECT DISTINCT u.email FROM users u 
-            JOIN user_tags ut ON u.id = ut.user_id
+            JOIN user_tag_relations ut ON u.id = ut.user_id
             JOIN user_tags t ON ut.tag_id = t.id
             WHERE t.name IN :tagNames 
             AND u.email != :excludeEmail 
@@ -279,7 +279,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query(value = """
             SELECT t.* FROM user_tags t 
-            JOIN user_tags ut ON t.id = ut.tag_id
+            JOIN user_tag_relations ut ON t.id = ut.tag_id
             JOIN users u ON ut.user_id = u.id 
             JOIN user_category_interest uci ON u.category_interest_id = uci.id
             WHERE uci.category_interest = (
@@ -289,7 +289,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
             )
             AND t.id NOT IN (
                 SELECT t2.id FROM users u3 
-                JOIN user_tags ut3 ON u3.id = ut3.user_id
+                JOIN user_tag_relations ut3 ON u3.id = ut3.user_id
                 JOIN user_tags t2 ON ut3.tag_id = t2.id
                 WHERE u3.email = :userEmail
             )

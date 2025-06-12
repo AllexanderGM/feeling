@@ -72,6 +72,11 @@ public class SecurityConfiguration {
                     auth.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/auth/status/**").permitAll();
 
+                    // 🔹 Rutas de ubicaciones (públicas mientras tanto)
+                    auth.requestMatchers("/geographic/**").permitAll();
+                    // 🔹 Rutas de ubicaciones (públicas mientras tanto)
+                    auth.requestMatchers("/user-attributes/**").permitAll();
+
                     // 🔹 Rutas para atributos (públicas para formularios de registro)
                     auth.requestMatchers(HttpMethod.GET, "/user-attributes/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/category-interests").permitAll();
@@ -79,6 +84,8 @@ public class SecurityConfiguration {
                     // 🔹 Rutas para tags populares (públicas)
                     auth.requestMatchers(HttpMethod.GET, "/tags/popular").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/tags/search").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/popular/category/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/trending").permitAll();
 
                     // 🔹 Rutas protegidas para usuarios autenticados
                     auth.requestMatchers(HttpMethod.POST, "/auth/refresh-token").authenticated();

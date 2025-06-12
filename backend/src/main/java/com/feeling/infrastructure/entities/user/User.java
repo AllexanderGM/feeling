@@ -162,7 +162,7 @@ public class User implements UserDetails {
     // ========================================
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
-            name = "user_tag_relations", // Nombre diferente para evitar conflictos
+            name = "user_tag_relations",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )

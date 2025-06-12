@@ -144,8 +144,6 @@ public class AuthService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
-
-                // Crear mensaje específico según el proveedor existente
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
                             "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
@@ -156,18 +154,15 @@ public class AuthService {
                             "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
                     default -> "Esta cuenta ya existe con otro método de autenticación.";
                 };
-
                 throw new ExistEmailException(conflictMessage);
             }
 
-            // 3. Crear nuevo usuario desde Google (proceso de registro)
+            // 3. Crear nuevo usuario desde Google
             logger.info("Creando nuevo usuario desde Google (registro): {}", googleUser.email());
 
-            // Obtener rol de cliente
             UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
                     .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
 
-            // Crear usuario con más validaciones de registro
             User newUser = User.builder()
                     .name(googleUser.getFirstName())
                     .lastname(googleUser.getLastName())
@@ -184,13 +179,12 @@ public class AuthService {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .lastExternalSync(LocalDateTime.now())
-                    // Configuración por defecto
                     .allowNotifications(true)
                     .showMeInSearch(true)
                     .showAge(true)
                     .showLocation(true)
                     .showPhone(false)
-                    .availableAttempts(0) // Usuarios nuevos sin intentos
+                    .availableAttempts(0)
                     .totalAttemptsPurchased(0)
                     .profileViews(0L)
                     .likesReceived(0L)
@@ -198,7 +192,6 @@ public class AuthService {
                     .popularityScore(0.0)
                     .build();
 
-            // Añadir imagen de Google si existe
             if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
                 newUser.setImages(new ArrayList<>(List.of(googleUser.picture())));
             }
@@ -206,11 +199,23 @@ public class AuthService {
             // 4. Guardar usuario
             newUser = userRepository.save(newUser);
 
-            // 5. Generar JWT
+            // 5. NUEVO: Enviar email de bienvenida para usuarios de Google
+            try {
+                emailService.sendWelcomeEmailForGoogleUser(
+                        newUser.getEmail(),
+                        newUser.getName() + " " + newUser.getLastname(),
+                        googleUser.picture()
+                );
+                logger.info("Email de bienvenida enviado a usuario de Google: {}", newUser.getEmail());
+            } catch (Exception emailError) {
+                logger.warn("Error al enviar email de bienvenida a usuario de Google: {}", emailError.getMessage());
+            }
+
+            // 6. Generar JWT
             String jwtToken = jwtService.generateToken(newUser);
             saveUserToken(newUser, jwtToken);
 
-            // 6. Actualizar última actividad
+            // 7. Actualizar última actividad
             newUser.setLastActive(LocalDateTime.now());
             userRepository.save(newUser);
 
@@ -563,6 +568,18 @@ public class AuthService {
         user.setVerified(true);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+
+        // NUEVO: Enviar email de bienvenida para usuarios locales
+        try {
+            emailService.sendWelcomeEmailForLocalUser(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastname()
+            );
+            logger.info("Email de bienvenida enviado a usuario local verificado: {}", user.getEmail());
+        } catch (Exception emailError) {
+            logger.warn("Error al enviar email de bienvenida a usuario local: {}", emailError.getMessage());
+            // No lanzamos excepción aquí porque la verificación ya fue exitosa
+        }
 
         logger.info("Usuario verificado exitosamente: {}", authVerifyCodeDTO.email());
         return new MessageResponseDTO("¡Cuenta verificada exitosamente! Ya puedes iniciar sesión.");

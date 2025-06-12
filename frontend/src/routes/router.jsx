@@ -13,7 +13,7 @@ import VerifyEmail from '@pages/auth/VerifyEmail'
 import ForgotPassword from '@pages/auth/ForgotPassword'
 import ResetPassword from '@pages/auth/ResetPassword'
 // Páginas del flujo de registro
-import CompleteProfile from '@pages/user/CompleteProfile.jsx'
+import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
 // Páginas de la aplicación
 import Home from '@pages/app/Home'
 
@@ -105,11 +105,12 @@ const router = createBrowserRouter([
           // ========================================
           {
             path: 'complete-profile',
-            element: (
+            element: <CompleteProfile />
+            /* element: (
               <RequireVerifiedUser>
                 <CompleteProfile />
               </RequireVerifiedUser>
-            )
+            ) */
           },
 
           // ========================================
