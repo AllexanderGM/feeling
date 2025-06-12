@@ -42,3 +42,26 @@ html {
     background-attachment: scroll;
   }
 }
+
+/* Fix para HeroUI Select scroll y aria-hidden bugs */
+
+/* Prevenir bloqueo de scroll cuando el select está abierto */
+body.hero-ui-popover-open,
+body[style*='overflow: hidden'] {
+  overflow: auto !important;
+}
+
+/* Remover aria-hidden del root cuando hay popovers abiertos */
+#root[aria-hidden='true'] {
+  aria-hidden: false !important;
+}
+
+/* Asegurar que el popover no interfiera con scroll */
+[data-slot='popover'] {
+  position: fixed !important;
+}
+
+/* Fix adicional para scroll en contenedores padre */
+.hero-ui-select-open {
+  overflow: visible !important;
+}

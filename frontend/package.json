@@ -71,7 +71,7 @@
     "find-unused-sass-variables": "^6.0.0",
     "globals": "^15.14.0",
     "postcss": "8.4.38",
-    "prettier": "^3.4.2",
+    "prettier": "^3.5.3",
     "sass": "^1.83.4",
     "sass-true": "^8.1.0",
     "vite": "^6.0.5"

@@ -1,5 +1,4 @@
-// pages/CompleteProfile.jsx (versión simplificada)
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@heroui/react'
 import useGeographicData from '@hooks/useGeographicData'
 
@@ -41,7 +40,7 @@ const CompleteProfile = () => {
     document: '',
     phone: '',
     phoneNumber: '',
-    dateOfBirth: null,
+    birthDate: null,
     description: '',
 
     // Ubicación - SIMPLIFICADO
@@ -96,11 +95,6 @@ const CompleteProfile = () => {
       behavior: 'smooth'
     })
   }
-
-  // Efecto para hacer scroll cuando cambia el step
-  useEffect(() => {
-    scrollToTop()
-  }, [currentStep])
 
   // Manejadores de eventos simplificados
   const handleInputChange = (field, value) => {
@@ -352,8 +346,8 @@ const CompleteProfile = () => {
           newErrors.phoneNumber = 'El teléfono debe tener entre 7 y 15 dígitos'
         }
 
-        if (!formData.dateOfBirth) {
-          newErrors.dateOfBirth = 'La fecha de nacimiento es requerida'
+        if (!formData.birthDate) {
+          newErrors.birthDate = 'La fecha de nacimiento es requerida'
         }
         break
 
@@ -385,11 +379,13 @@ const CompleteProfile = () => {
   const nextStep = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps))
+      scrollToTop()
     }
   }
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1))
+    scrollToTop()
   }
 
   const handleSubmit = async () => {
@@ -437,12 +433,14 @@ const CompleteProfile = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
+        console.log('🔍 Renderizando Step1 con countries:', formattedCountries?.length || 0)
         return (
           <Step1BasicInfo
             formData={formData}
             errors={errors}
             isDragging={isDragging}
             isDraggingAdditional={isDraggingAdditional}
+            availableCountries={formattedCountries}
             handleInputChange={handleInputChange}
             handleDateChange={handleDateChange}
             handleFileChange={handleFileChange}
@@ -532,9 +530,9 @@ const CompleteProfile = () => {
           </div>
 
           <div className="w-full">
-            <div className="mb-6">
-              <h2 className="text-xl font-medium text-white mb-4">Completa tu perfil</h2>
-              <p className="text-gray-400">Ayúdanos a conocerte mejor para encontrar las mejores conexiones</p>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-white mb-2">¡Hola! 👋</h2>
+              <p className="text-gray-300">Ayúdanos a conocerte mejor para encontrar las mejores conexiones</p>
             </div>
 
             <div className="flex flex-col w-full space-y-6">

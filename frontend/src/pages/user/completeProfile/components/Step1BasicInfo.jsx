@@ -1,7 +1,5 @@
-import { useRef } from 'react'
-import { Input, DatePicker, Avatar } from '@heroui/react'
-import { today, getLocalTimeZone } from '@internationalized/date'
-import clsx from 'clsx'
+import { useState, useRef, useEffect } from 'react'
+import { Input, DatePicker, Avatar, Select, SelectItem } from '@heroui/react'
 
 const Step1BasicInfo = ({
   formData,
@@ -21,173 +19,153 @@ const Step1BasicInfo = ({
   removeImage,
   removeAdditionalImage,
   selectProfileImage,
-  getSelectedCountryFlag
+  getSelectedCountryFlag,
+  availableCountries = []
 }) => {
   const fileInputRef = useRef(null)
-  const additionalFileInputRefs = useRef([useRef(null), useRef(null), useRef(null)])
+  const additionalFileInputRefs = useRef([])
 
-  const profileImageClasses = clsx('relative w-32 h-32 rounded-full border-4 transition-all duration-300', {
-    'border-blue-400 border-dashed bg-blue-400/20': isDragging,
-    'border-white/20': formData.profileImageUrl && !isDragging,
-    'border-gray-600 border-dashed hover:border-gray-500': !formData.profileImageUrl && !isDragging,
-    'bg-gray-700/50 hover:bg-gray-600/50': !formData.profileImageUrl,
-    'ring-4 ring-primary-500': formData.selectedProfileImageIndex === 0
-  })
+  // Efecto para animar el cambio de imagen principal
+  const [imageKey, setImageKey] = useState(0)
 
-  const getAdditionalImageClasses = index =>
-    clsx('relative w-24 h-24 rounded-lg border-2 transition-all duration-300', {
-      'border-blue-400 border-dashed bg-blue-400/20': isDraggingAdditional[index],
-      'border-white/20': formData.additionalImageUrls[index] && !isDraggingAdditional[index],
-      'border-gray-600 border-dashed hover:border-gray-500': !formData.additionalImageUrls[index] && !isDraggingAdditional[index],
-      'bg-gray-700/50 hover:bg-gray-600/50': !formData.additionalImageUrls[index],
-      'ring-2 ring-primary-500': formData.selectedProfileImageIndex === index + 1
-    })
+  // Fix para aria-hidden y scroll bug de HeroUI
+  useEffect(() => {
+    return () => {
+      // Limpiar aria-hidden y overflow al desmontar
+      const root = document.getElementById('root')
+      if (root) {
+        root.removeAttribute('aria-hidden')
+      }
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  useEffect(() => {
+    setImageKey(prev => prev + 1)
+  }, [formData.selectedProfileImageIndex])
+
+  // Función para obtener la URL de la imagen principal actual
+  const getCurrentProfileImageUrl = () => {
+    if (formData.selectedProfileImageIndex === 0) {
+      return formData.profileImageUrl
+    }
+    return formData.additionalImageUrls[formData.selectedProfileImageIndex - 1]
+  }
+
+  // Función para manejar el cambio de país
+  const handleCountryChange = countryCode => {
+    const country = availableCountries.find(c => c.code === countryCode)
+    if (country) {
+      handleInputChange('selectedCountryCode', countryCode)
+      handleInputChange('selectedPhoneCode', country.phone_code)
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-white mb-6">Información básica</h3>
+    <div className="space-y-4">
+      <h3 className="text-white text-lg font-medium">Información básica</h3>
 
-      {/* Foto de perfil principal */}
+      {/* Foto principal con animación */}
       <div className="flex flex-col items-center space-y-4">
-        <div
-          className={clsx('relative group cursor-pointer transition-all duration-300', isDragging ? 'scale-110' : 'hover:scale-105')}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}>
-          <div className={profileImageClasses}>
-            {formData.profileImageUrl ? (
-              <>
-                <Avatar src={formData.profileImageUrl} className="w-full h-full" isBordered={false} />
-                <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="text-white text-center">
-                    <div className="text-2xl mb-1">📷</div>
-                    <div className="text-xs">Cambiar</div>
-                  </div>
-                </div>
-                {formData.selectedProfileImageIndex === 0 && (
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-primary-500 text-white text-xs px-2 py-1 rounded-full">
-                    Perfil
-                  </div>
-                )}
-              </>
+        <div key={imageKey} className="relative transform transition-all duration-500 ease-out animate-in fade-in-0 zoom-in-95">
+          <div
+            className={`relative cursor-pointer w-36 h-36 rounded-full border-4 ${
+              formData.selectedProfileImageIndex === 0 ? 'border-primary-500' : 'border-gray-600'
+            } transition-all duration-300 ${isDragging ? 'border-primary-400 scale-105' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}>
+            {getCurrentProfileImageUrl() ? (
+              <Avatar src={getCurrentProfileImageUrl()} className="w-full h-full object-cover" showFallback />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+              <div className="w-full h-full rounded-full bg-gray-700/50 flex flex-col items-center justify-center text-gray-400">
                 <div className="text-3xl mb-2">{isDragging ? '📤' : '📷'}</div>
-                <div className="text-xs text-center px-2">{isDragging ? 'Suelta aquí' : 'Foto principal'}</div>
+                <div className="text-xs text-center px-2">{isDragging ? 'Soltar aquí' : 'Foto principal'}</div>
+              </div>
+            )}
+
+            {getCurrentProfileImageUrl() && formData.selectedProfileImageIndex === 0 && (
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation()
+                  removeImage()
+                }}
+                className="absolute -top-1 -right-1 w-7 h-7 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors">
+                ✕
+              </button>
+            )}
+
+            {formData.selectedProfileImageIndex === 0 && (
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs">
+                ⭐
               </div>
             )}
           </div>
-
-          {formData.profileImageUrl && (
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation()
-                removeImage()
-              }}
-              className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-sm hover:bg-red-600 transition-colors">
-              ✕
-            </button>
-          )}
-
-          {formData.profileImageUrl && formData.selectedProfileImageIndex !== 0 && (
-            <button
-              type="button"
-              onClick={e => {
-                e.stopPropagation()
-                selectProfileImage(0)
-              }}
-              className="absolute -bottom-2 -left-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs hover:bg-primary-600 transition-colors">
-              ⭐
-            </button>
-          )}
         </div>
+
+        <p className="text-sm text-gray-400 text-center">
+          Foto principal (obligatoria)
+          <br />
+          Arrastra una imagen o haz clic para seleccionar
+        </p>
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-
-        <div className="text-center">
-          <p className="text-gray-400 text-sm">Foto principal (obligatoria)</p>
-          <p className="text-gray-500 text-xs mt-1">Arrastra una imagen o haz clic para seleccionar</p>
-        </div>
-
-        {errors.profileImage && <p className="text-red-500 text-sm text-center">{errors.profileImage}</p>}
       </div>
 
       {/* Fotos adicionales */}
       <div className="space-y-4">
-        <div className="text-center">
-          <h4 className="text-white font-medium mb-2">Fotos adicionales (opcionales)</h4>
-          <p className="text-gray-400 text-sm">Puedes agregar hasta 3 fotos más</p>
-        </div>
+        <h4 className="text-white font-medium">Fotos adicionales (opcionales)</h4>
+        <p className="text-sm text-gray-400">Puedes agregar hasta 3 fotos más</p>
 
-        <div className="grid grid-cols-3 gap-4">
-          {[0, 1, 2].map(index => (
-            <div key={index} className="flex flex-col items-center space-y-2">
+        <div className="grid grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(index => (
+            <div key={index} className="relative">
               <div
-                className={clsx(
-                  'relative group cursor-pointer transition-all duration-300',
-                  isDraggingAdditional[index] ? 'scale-110' : 'hover:scale-105'
-                )}
+                className={`relative cursor-pointer w-full aspect-square rounded-lg border-2 border-dashed ${
+                  formData.selectedProfileImageIndex === index + 1 ? 'border-primary-500' : 'border-gray-600'
+                } transition-all duration-300 ${isDraggingAdditional[index] ? 'border-primary-400 scale-105' : ''}`}
                 onDragOver={e => handleAdditionalDragOver(index, e)}
                 onDragLeave={e => handleAdditionalDragLeave(index, e)}
                 onDrop={e => handleAdditionalDrop(index, e)}
-                onClick={() => additionalFileInputRefs.current[index]?.current?.click()}>
-                <div className={getAdditionalImageClasses(index)}>
-                  {formData.additionalImageUrls[index] ? (
-                    <>
-                      <img
-                        src={formData.additionalImageUrls[index]}
-                        alt={`Foto adicional ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="text-white text-center">
-                          <div className="text-lg mb-1">📷</div>
-                          <div className="text-xs">Cambiar</div>
-                        </div>
-                      </div>
-                      {formData.selectedProfileImageIndex === index + 1 && (
-                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-primary-500 text-white text-xs px-2 py-1 rounded-full">
-                          Perfil
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                      <div className="text-lg mb-1">{isDraggingAdditional[index] ? '📤' : '📷'}</div>
-                      <div className="text-xs text-center px-1">{isDraggingAdditional[index] ? 'Soltar' : `Foto ${index + 2}`}</div>
-                    </div>
-                  )}
-                </div>
-
-                {formData.additionalImageUrls[index] && (
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      removeAdditionalImage(index)
-                    }}
-                    className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs hover:bg-red-600 transition-colors">
-                    ✕
-                  </button>
-                )}
-
-                {formData.additionalImageUrls[index] && formData.selectedProfileImageIndex !== index + 1 && (
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      selectProfileImage(index + 1)
-                    }}
-                    className="absolute -bottom-1 -left-1 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs hover:bg-primary-600 transition-colors">
-                    ⭐
-                  </button>
+                onClick={() => additionalFileInputRefs.current[index]?.click()}>
+                {formData.additionalImageUrls[index] ? (
+                  <Avatar src={formData.additionalImageUrls[index]} className="w-full h-full object-cover rounded-lg" showFallback />
+                ) : (
+                  <div className="w-full h-full rounded-lg bg-gray-700/50 flex flex-col items-center justify-center text-gray-400">
+                    <div className="text-2xl mb-1">{isDraggingAdditional[index] ? '📤' : '📷'}</div>
+                    <div className="text-xs text-center px-1">{isDraggingAdditional[index] ? 'Soltar' : `Foto ${index + 2}`}</div>
+                  </div>
                 )}
               </div>
 
+              {formData.additionalImageUrls[index] && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation()
+                    removeAdditionalImage(index)
+                  }}
+                  className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs hover:bg-red-600 transition-colors">
+                  ✕
+                </button>
+              )}
+
+              {formData.additionalImageUrls[index] && formData.selectedProfileImageIndex !== index + 1 && (
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation()
+                    selectProfileImage(index + 1)
+                  }}
+                  className="absolute -bottom-1 -left-1 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center text-white text-xs hover:bg-primary-600 transition-colors">
+                  ⭐
+                </button>
+              )}
+
               <input
-                ref={additionalFileInputRefs.current[index]}
+                ref={el => (additionalFileInputRefs.current[index] = el)}
                 type="file"
                 accept="image/*"
                 onChange={e => handleAdditionalFileChange(index, e)}
@@ -210,31 +188,49 @@ const Step1BasicInfo = ({
         errorMessage={errors.document}
       />
 
-      {/* Teléfono con código de país */}
+      {/* Teléfono con selector de país mejorado */}
       <div className="space-y-2">
-        <label className="text-white text-sm">Teléfono *</label>
-        <div className="flex gap-2">
-          {/* Selector de código de país */}
-          <div className="flex items-center bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2 min-w-[120px]">
-            <span className="text-lg mr-2">{getSelectedCountryFlag()}</span>
-            <span className="text-white text-sm">{formData.selectedPhoneCode}</span>
-          </div>
+        <div className="flex gap-3">
+          {/* Selector de país con bandera */}
+          <Select
+            isRequired
+            label="Código de país"
+            aria-label="Código de país"
+            variant="underlined"
+            items={availableCountries}
+            startContent={<span className="text-lg">{getSelectedCountryFlag(formData.selectedCountryCode) || '🌍'}</span>}
+            defaultSelectedKeys={formData.selectedCountryCode ? [formData.selectedCountryCode] : []}>
+            {country => (
+              <SelectItem value={country.key} textValue={`${country.name} ${country.phone}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{country.emoji || '🌍'}</span>
+                  <div className="flex gap-1">
+                    <span className="text-gray-400">{country.phone}</span>
+                    <span className="text-white">{country.name}</span>
+                  </div>
+                </div>
+              </SelectItem>
+            )}
+          </Select>
 
           {/* Campo del número */}
           <Input
-            variant="bordered"
-            placeholder="Número de teléfono"
+            label="Número de teléfono"
+            variant="underlined"
+            placeholder="Ej: 123 456 789"
             value={formData.phoneNumber}
             onChange={e => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
             isInvalid={!!errors.phoneNumber}
             errorMessage={errors.phoneNumber}
-            className="flex-1"
           />
         </div>
-        <p className="text-gray-500 text-xs">
-          Teléfono completo: {formData.selectedPhoneCode}
-          {formData.phoneNumber}
-        </p>
+
+        {formData.selectedPhoneCode && formData.phoneNumber && (
+          <p className="text-xs text-gray-400">
+            Teléfono completo: {formData.selectedPhoneCode}
+            {formData.phoneNumber}
+          </p>
+        )}
       </div>
 
       {/* Fecha de nacimiento */}
@@ -242,13 +238,12 @@ const Step1BasicInfo = ({
         variant="underlined"
         isRequired
         label="Fecha de nacimiento"
-        value={formData.dateOfBirth}
+        value={formData.birthDate}
         onChange={handleDateChange}
-        isInvalid={!!errors.dateOfBirth}
-        errorMessage={errors.dateOfBirth}
-        maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
+        isInvalid={!!errors.birthDate}
+        errorMessage={errors.birthDate}
+        maxValue={new Date(new Date().getFullYear() - 18, 11, 31)}
         showMonthAndYearPickers
-        granularity="day"
       />
     </div>
   )
