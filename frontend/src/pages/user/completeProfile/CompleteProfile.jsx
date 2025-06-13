@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { Button } from '@heroui/react'
 import useGeographicData from '@hooks/useGeographicData'
 
+import useImageManager from './hooks/useImageManager.js'
 import Step1BasicInfo from './components/Step1BasicInfo.jsx'
 import Step2LocationAndCharacteristics from './components/Step2LocationAndCharacteristics.jsx'
 import Step3AboutYou from './components/Step3AboutYou.jsx'
 import Step4PreferencesAndConfig from './components/Step4PreferencesAndConfig.jsx'
 
 const CompleteProfile = () => {
-  // Hook personalizado para datos geográficos
+  // Hook para datos geográficos
   const {
     formattedCountries,
     formattedCities,
@@ -20,51 +21,53 @@ const CompleteProfile = () => {
     loadCitiesByCountry,
     loadLocalitiesByCity,
     getCountryByCode,
-    cityHasLocalities,
-    isReady: geographicDataReady
+    cityHasLocalities
   } = useGeographicData({
-    loadAll: true, // Cargar todos los datos inicialmente
+    loadAll: true,
     defaultCountry: 'Colombia',
     defaultCity: 'Bogotá D.C.'
   })
 
-  // Estados del formulario
-  const [loading, setLoading] = useState(false)
+  // Hook para manejo de imágenes
+  const imageManager = useImageManager({
+    selectedCountryCode: 'CO',
+    selectedCountry: 'Colombia',
+    selectedPhoneCode: '+57'
+  })
+
+  // Estados del formulario (sin datos de imágenes)
   const [formData, setFormData] = useState({
     // Datos básicos
     profileImage: null,
     profileImageUrl: '',
-    additionalImages: [null, null, null],
-    additionalImageUrls: ['', '', ''],
+    additionalImages: [null, null, null, null],
+    additionalImageUrls: ['', '', '', ''],
     selectedProfileImageIndex: 0,
     document: '',
-    phone: '',
+    phoneCode: '+57',
     phoneNumber: '',
     birthDate: null,
-    description: '',
 
-    // Ubicación - SIMPLIFICADO
-    selectedCountryCode: 'CO',
-    selectedCountry: 'Colombia',
-    selectedPhoneCode: '+57',
+    // Ubicación
+    country: 'Colombia',
     city: 'Bogotá D.C.',
     locality: '',
 
+    // Categoría de interés
+    categoryInterest: '',
     // Características físicas
-    height: 170,
     genderId: '',
+    height: 170,
     eyeColorId: '',
     hairColorId: '',
     bodyTypeId: '',
 
     // Información personal
+    description: '',
     religionId: '',
     maritalStatusId: '',
     profession: '',
     education: '',
-
-    // Categoría de interés
-    categoryInterest: '',
 
     // Tags/Intereses
     tags: [],
@@ -84,8 +87,7 @@ const CompleteProfile = () => {
 
   const [errors, setErrors] = useState({})
   const [currentStep, setCurrentStep] = useState(1)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isDraggingAdditional, setIsDraggingAdditional] = useState([false, false, false])
+  const [loading, setLoading] = useState(false)
   const totalSteps = 4
 
   // Función para scroll suave hacia arriba
@@ -96,7 +98,7 @@ const CompleteProfile = () => {
     })
   }
 
-  // Manejadores de eventos simplificados
+  // Manejador genérico para cambios en el formulario
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
 
@@ -115,11 +117,10 @@ const CompleteProfile = () => {
         selectedCountryCode: countryCode,
         selectedCountry: selectedCountryData.name,
         selectedPhoneCode: selectedCountryData.phone,
-        city: '', // Limpiar ciudad al cambiar país
-        locality: '' // Limpiar localidad al cambiar país
+        city: '',
+        locality: ''
       }))
 
-      // Cargar ciudades del nuevo país
       await loadCitiesByCountry(selectedCountryData.name)
 
       if (errors.selectedCountry) {
@@ -133,10 +134,9 @@ const CompleteProfile = () => {
     setFormData(prev => ({
       ...prev,
       city: cityName,
-      locality: '' // Limpiar localidad al cambiar ciudad
+      locality: ''
     }))
 
-    // Cargar localidades de la nueva ciudad
     if (cityName && cityHasLocalities(cityName)) {
       await loadLocalitiesByCity(cityName)
     }
@@ -146,174 +146,27 @@ const CompleteProfile = () => {
     }
   }
 
-  const handleDateChange = value => {
-    setFormData(prev => ({ ...prev, dateOfBirth: value }))
-    if (errors.dateOfBirth) {
-      setErrors(prev => ({ ...prev, dateOfBirth: null }))
+  // Manejador para fecha de nacimiento
+  const handleDateChange = date => {
+    if (date) {
+      const dateString = `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}`
+      setFormData(prev => ({
+        ...prev,
+        birthDate: dateString
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        birthDate: null
+      }))
+    }
+
+    if (errors.birthDate) {
+      setErrors(prev => ({ ...prev, birthDate: null }))
     }
   }
 
-  // Funciones para manejo de archivos (igual que antes)
-  const handleFileChange = event => {
-    const file = event.target.files[0]
-    if (file) {
-      processImageFile(file, 'main')
-    }
-  }
-
-  const handleAdditionalFileChange = (index, event) => {
-    const file = event.target.files[0]
-    if (file) {
-      processImageFile(file, 'additional', index)
-    }
-  }
-
-  const processImageFile = (file, type = 'main', additionalIndex = null) => {
-    if (!file.type.startsWith('image/')) {
-      const errorKey = type === 'main' ? 'profileImage' : `additionalImage${additionalIndex}`
-      setErrors(prev => ({ ...prev, [errorKey]: 'Por favor selecciona una imagen válida' }))
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      const errorKey = type === 'main' ? 'profileImage' : `additionalImage${additionalIndex}`
-      setErrors(prev => ({ ...prev, [errorKey]: 'La imagen no puede superar los 5MB' }))
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = e => {
-      if (type === 'main') {
-        setFormData(prev => ({
-          ...prev,
-          profileImage: file,
-          profileImageUrl: e.target.result
-        }))
-
-        if (errors.profileImage) {
-          setErrors(prev => ({ ...prev, profileImage: null }))
-        }
-      } else {
-        const newAdditionalImages = [...formData.additionalImages]
-        const newAdditionalUrls = [...formData.additionalImageUrls]
-
-        newAdditionalImages[additionalIndex] = file
-        newAdditionalUrls[additionalIndex] = e.target.result
-
-        setFormData(prev => ({
-          ...prev,
-          additionalImages: newAdditionalImages,
-          additionalImageUrls: newAdditionalUrls
-        }))
-
-        const errorKey = `additionalImage${additionalIndex}`
-        if (errors[errorKey]) {
-          setErrors(prev => ({ ...prev, [errorKey]: null }))
-        }
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  // Funciones de drag & drop (igual que antes)
-  const handleDragOver = e => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = e => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
-  const handleDrop = e => {
-    e.preventDefault()
-    setIsDragging(false)
-
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      processImageFile(files[0], 'main')
-    }
-  }
-
-  const handleAdditionalDragOver = (index, e) => {
-    e.preventDefault()
-    const newDragging = [...isDraggingAdditional]
-    newDragging[index] = true
-    setIsDraggingAdditional(newDragging)
-  }
-
-  const handleAdditionalDragLeave = (index, e) => {
-    e.preventDefault()
-    const newDragging = [...isDraggingAdditional]
-    newDragging[index] = false
-    setIsDraggingAdditional(newDragging)
-  }
-
-  const handleAdditionalDrop = (index, e) => {
-    e.preventDefault()
-    const newDragging = [...isDraggingAdditional]
-    newDragging[index] = false
-    setIsDraggingAdditional(newDragging)
-
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      processImageFile(files[0], 'additional', index)
-    }
-  }
-
-  // Funciones de gestión de imágenes (igual que antes)
-  const getAllImages = () => {
-    const images = []
-    if (formData.profileImageUrl) {
-      images.push({ url: formData.profileImageUrl, index: 0, type: 'main' })
-    }
-    formData.additionalImageUrls.forEach((url, index) => {
-      if (url) {
-        images.push({ url, index: index + 1, type: 'additional' })
-      }
-    })
-    return images
-  }
-
-  const getCurrentProfileImageUrl = () => {
-    const allImages = getAllImages()
-    const selectedImage = allImages.find(img => img.index === formData.selectedProfileImageIndex)
-    return selectedImage ? selectedImage.url : formData.profileImageUrl || ''
-  }
-
-  const removeImage = () => {
-    setFormData(prev => ({
-      ...prev,
-      profileImage: null,
-      profileImageUrl: '',
-      selectedProfileImageIndex: 0
-    }))
-  }
-
-  const removeAdditionalImage = index => {
-    const newAdditionalImages = [...formData.additionalImages]
-    const newAdditionalUrls = [...formData.additionalImageUrls]
-
-    newAdditionalImages[index] = null
-    newAdditionalUrls[index] = ''
-
-    setFormData(prev => ({
-      ...prev,
-      additionalImages: newAdditionalImages,
-      additionalImageUrls: newAdditionalUrls,
-      selectedProfileImageIndex: prev.selectedProfileImageIndex === index + 1 ? 0 : prev.selectedProfileImageIndex
-    }))
-  }
-
-  const selectProfileImage = imageIndex => {
-    setFormData(prev => ({
-      ...prev,
-      selectedProfileImageIndex: imageIndex
-    }))
-  }
-
-  // Funciones de tags (igual que antes)
+  // Funciones de tags
   const addTag = () => {
     if (formData.newTag.trim() && !formData.tags.includes(formData.newTag.trim())) {
       setFormData(prev => ({
@@ -331,13 +184,18 @@ const CompleteProfile = () => {
     }))
   }
 
-  // Validación (igual que antes)
+  // Validación
   const validateStep = step => {
     const newErrors = {}
+    const imageErrors = {}
 
     switch (step) {
       case 1:
-        if (!formData.profileImageUrl) newErrors.profileImage = 'La foto de perfil es requerida'
+        // Validación de imagen principal
+        if (!imageManager.formData.profileImageUrl) {
+          imageErrors.profileImage = 'La foto de perfil es requerida'
+        }
+
         if (!formData.document.trim()) newErrors.document = 'El documento es requerido'
 
         if (!formData.phoneNumber.trim()) {
@@ -372,7 +230,9 @@ const CompleteProfile = () => {
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    imageManager.setErrors(imageErrors)
+
+    return Object.keys(newErrors).length === 0 && Object.keys(imageErrors).length === 0
   }
 
   // Navegación entre pasos
@@ -388,6 +248,7 @@ const CompleteProfile = () => {
     scrollToTop()
   }
 
+  // Envío del formulario
   const handleSubmit = async () => {
     setLoading(true)
 
@@ -399,14 +260,17 @@ const CompleteProfile = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Combinar código de país con número
       const fullPhoneNumber = `${formData.selectedPhoneCode}${formData.phoneNumber}`
 
       const profileData = {
+        // Datos del formulario principal
         ...formData,
         fullPhoneNumber,
-        images: getAllImages(),
-        selectedProfileImage: getCurrentProfileImageUrl()
+
+        // Datos de las imágenes del hook
+        ...imageManager.formData,
+        images: imageManager.getAllImagesArray(),
+        selectedProfileImage: imageManager.getCurrentProfileImageUrl()
       }
 
       console.log('Datos del perfil:', profileData)
@@ -420,8 +284,8 @@ const CompleteProfile = () => {
   }
 
   // Función para obtener la imagen de bandera del país seleccionado
-  const getSelectedCountryFlag = () => {
-    const countryData = getCountryByCode(formData.selectedCountryCode)
+  const getSelectedCountryFlag = (countryCode = formData.selectedCountryCode) => {
+    const countryData = getCountryByCode(countryCode)
     return countryData ? countryData.emoji : '🌍'
   }
 
@@ -433,28 +297,16 @@ const CompleteProfile = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        console.log('🔍 Renderizando Step1 con countries:', formattedCountries?.length || 0)
         return (
           <Step1BasicInfo
-            formData={formData}
-            errors={errors}
-            isDragging={isDragging}
-            isDraggingAdditional={isDraggingAdditional}
+            formData={{ ...formData, ...imageManager.formData }}
+            errors={{ ...errors, ...imageManager.errors }}
             availableCountries={formattedCountries}
             handleInputChange={handleInputChange}
             handleDateChange={handleDateChange}
-            handleFileChange={handleFileChange}
-            handleAdditionalFileChange={handleAdditionalFileChange}
-            handleDragOver={handleDragOver}
-            handleDragLeave={handleDragLeave}
-            handleDrop={handleDrop}
-            handleAdditionalDragOver={handleAdditionalDragOver}
-            handleAdditionalDragLeave={handleAdditionalDragLeave}
-            handleAdditionalDrop={handleAdditionalDrop}
-            removeImage={removeImage}
-            removeAdditionalImage={removeAdditionalImage}
-            selectProfileImage={selectProfileImage}
             getSelectedCountryFlag={getSelectedCountryFlag}
+            // Props del hook de imágenes
+            {...imageManager}
           />
         )
       case 2:
@@ -483,8 +335,8 @@ const CompleteProfile = () => {
           <Step4PreferencesAndConfig
             formData={formData}
             handleInputChange={handleInputChange}
-            getCurrentProfileImageUrl={getCurrentProfileImageUrl}
-            getAllImages={getAllImages}
+            getCurrentProfileImageUrl={imageManager.getCurrentProfileImageUrl}
+            getAllImages={imageManager.getAllImagesArray}
             getSelectedCountryFlag={getSelectedCountryFlag}
           />
         )
@@ -495,7 +347,6 @@ const CompleteProfile = () => {
 
   return (
     <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-10">
-      {/* Mostrar loading mientras se cargan los datos geográficos */}
       {geographicLoading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
           <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
@@ -529,42 +380,35 @@ const CompleteProfile = () => {
             </div>
           </div>
 
-          <div className="w-full">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-white mb-2">¡Hola! 👋</h2>
-              <p className="text-gray-300">Ayúdanos a conocerte mejor para encontrar las mejores conexiones</p>
-            </div>
+          <div className="flex flex-col w-full space-y-6">
+            {renderStepContent()}
 
-            <div className="flex flex-col w-full space-y-6">
-              {renderStepContent()}
+            <div className="flex justify-between mt-8 pt-6">
+              <Button
+                type="button"
+                variant="bordered"
+                onPress={prevStep}
+                isDisabled={currentStep === 1}
+                radius="full"
+                className="text-gray-300 border-gray-600 transition-colors">
+                Anterior
+              </Button>
 
-              <div className="flex justify-between mt-8 pt-6">
+              {currentStep < totalSteps ? (
+                <Button type="button" color="default" onPress={nextStep} radius="full" className="w-auto px-8 py-3 transition-colors">
+                  Siguiente
+                </Button>
+              ) : (
                 <Button
                   type="button"
-                  variant="bordered"
-                  onPress={prevStep}
-                  isDisabled={currentStep === 1}
+                  color="default"
+                  isLoading={loading}
+                  onPress={handleSubmit}
                   radius="full"
-                  className="text-gray-300 border-gray-600 transition-colors">
-                  Anterior
+                  className="w-auto px-8 py-3 transition-colors">
+                  {loading ? 'Completando...' : 'Completar perfil'}
                 </Button>
-
-                {currentStep < totalSteps ? (
-                  <Button type="button" color="default" onPress={nextStep} radius="full" className="w-auto px-8 py-3 transition-colors">
-                    Siguiente
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    color="default"
-                    isLoading={loading}
-                    onPress={handleSubmit}
-                    radius="full"
-                    className="w-auto px-8 py-3 transition-colors">
-                    {loading ? 'Completando...' : 'Completar perfil'}
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

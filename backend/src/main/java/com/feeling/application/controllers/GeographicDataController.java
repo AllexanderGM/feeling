@@ -90,7 +90,7 @@ public class GeographicDataController {
                 .map(country -> new CountryResponseDTO(
                         country.code(),
                         country.name(),
-                        country.emoji(),
+                        country.image(),
                         country.phoneCode(),
                         country.region(),
                         country.priority(),

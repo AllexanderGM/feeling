@@ -59,7 +59,7 @@ public class GeographicDataService {
                         return new CountryResponseDTO(
                                 countryCode,
                                 country.name(),
-                                country.emoji(),
+                                country.image(),
                                 country.phone() != null && !country.phone().isEmpty() ?
                                         country.phone().get(0) : "",
                                 country.region(),
