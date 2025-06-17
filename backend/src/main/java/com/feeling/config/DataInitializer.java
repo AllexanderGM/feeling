@@ -5,6 +5,7 @@ import com.feeling.infrastructure.repositories.user.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,12 @@ public class DataInitializer implements CommandLineRunner {
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final IUserTagRepository userTagRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${spring.security.user.name}")
+    private String adminEmail;
+
+    @Value("${spring.security.user.password}")
+    private String adminPassword;
 
     @Override
     public void run(String... args) throws Exception {
@@ -258,17 +265,15 @@ public class DataInitializer implements CommandLineRunner {
     private void createAdminUser() {
         logger.info("Verificando usuario administrador...");
 
-        String adminEmail = "admin@feeling.com";
-
-        if (userRepository.findByEmail(adminEmail).isEmpty()) {
+        if (userRepository.findByEmail(this.adminEmail).isEmpty()) {
             UserRole adminRole = userRoleRepository.findByUserRoleList(UserRoleList.ADMIN)
                     .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
 
             User admin = User.builder()
                     .name("Administrador")
                     .lastname("Feeling")
-                    .email(adminEmail)
-                    .password(passwordEncoder.encode("AdminFeeling2025!"))
+                    .email(this.adminEmail)
+                    .password(passwordEncoder.encode(this.adminPassword))
                     .userRole(adminRole)
                     .verified(true)
                     .profileComplete(true)
@@ -276,12 +281,12 @@ public class DataInitializer implements CommandLineRunner {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .allowNotifications(true)
-                    .showMeInSearch(false) // El admin no aparece en búsquedas
+                    .showMeInSearch(false)
                     .availableAttempts(999)
                     .build();
 
             userRepository.save(admin);
-            logger.info("Usuario administrador creado: {}", adminEmail);
+            logger.info("Usuario administrador creado: {}", this.adminEmail);
         }
     }
 

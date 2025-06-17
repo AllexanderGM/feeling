@@ -59,7 +59,7 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         // Actualizar solo los campos proporcionados
-        if (profileData.lastName() != null) user.setLastname(profileData.lastName());
+        if (profileData.image() != null) user.setImages(profileData.image());
         if (profileData.document() != null) user.setDocument(profileData.document());
         if (profileData.phone() != null) user.setPhone(profileData.phone());
         if (profileData.dateOfBirth() != null) user.setDateOfBirth(profileData.dateOfBirth());

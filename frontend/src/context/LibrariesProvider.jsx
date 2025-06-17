@@ -10,15 +10,13 @@ const LibrariesProvider = ({ children }) => {
   const navigate = useNavigate()
 
   return (
-    <HelmetProvider>
-      <CookiesProvider defaultSetOptions={{ path: '/' }}>
-        <GoogleOAuthProvider clientId={CLIENT_ID}>
-          <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES">
-            {children}
-          </HeroUIProvider>
-        </GoogleOAuthProvider>
-      </CookiesProvider>
-    </HelmetProvider>
+    <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES">
+      <HelmetProvider>
+        <CookiesProvider defaultSetOptions={{ path: '/' }}>
+          <GoogleOAuthProvider clientId={CLIENT_ID}>{children}</GoogleOAuthProvider>
+        </CookiesProvider>
+      </HelmetProvider>
+    </HeroUIProvider>
   )
 }
 

@@ -6,7 +6,7 @@ import java.util.List;
 public record CountryResponseDTO(
         String code,
         String name,
-        String emoji,
+        String image,
         String phoneCode,
         String region,
         boolean priority,

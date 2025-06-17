@@ -32,7 +32,7 @@ public record UserProfileDTO(
         @Size(max = 50, message = "El país no puede superar los 50 caracteres")
         String country,
 
-        String image,
+        List<String> image,
 
         @Size(max = 500, message = "La descripción no puede superar los 500 caracteres")
         String description,

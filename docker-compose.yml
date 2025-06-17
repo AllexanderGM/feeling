@@ -35,19 +35,19 @@ services:
       start_period: 20s
   minio:
     container_name: "${NAME}-minio"
-    image: quay.io/minio/minio
+    image: quay.io/minio/minio:latest
     profiles:
       - back
       - front
       - local
-      - db # Añadido perfil db
+      - db
     restart: always
     ports:
       - "${MINIO_PORT}:9000"
       - "${MINIO_PORT_WEB}:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-admin123}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
@@ -55,9 +55,10 @@ services:
       - app-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      retries: 5
-      start_period: 20s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
   backend:
     container_name: "${NAME}-backend_spring_boot"
     profiles:
