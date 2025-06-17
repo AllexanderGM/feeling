@@ -13,11 +13,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "user_tokens")
 public class UserToken {
-
-    public enum TokenType {
-        ACCESS,
-    }
-
     @Id
     @GeneratedValue
     private Long id;
@@ -25,13 +20,20 @@ public class UserToken {
     public String token;
 
     @Enumerated(EnumType.STRING)
+    @Builder.Default
     public TokenType type = TokenType.ACCESS;
 
-    public boolean revoked;
+    @Builder.Default
+    public boolean revoked = false;
 
-    public boolean expired;
+    @Builder.Default
+    public boolean expired = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     public User user;
+
+    public enum TokenType {
+        ACCESS,
+    }
 }

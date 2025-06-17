@@ -35,7 +35,7 @@ const CompleteProfile = () => {
     selectedPhoneCode: '+57'
   })
 
-  // Estados del formulario (sin datos de imágenes)
+  // Estados del formulario
   const [formData, setFormData] = useState({
     // Datos básicos
     profileImage: null,
