@@ -1,6 +1,6 @@
 package com.feeling.domain.dto.auth;
 
-public record AuthResponseDTO(
+public record AuthLoginResponseDTO(
         String image,
         String email,
         String name,

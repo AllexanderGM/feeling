@@ -2,17 +2,12 @@ package com.feeling.domain.services;
 
 import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserModifyDTO;
-import com.feeling.domain.dto.user.UserProfileDTO;
+import com.feeling.domain.dto.user.UserProfileRequestDTO;
 import com.feeling.domain.dto.user.UserResponseDTO;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.infrastructure.entities.user.User;
-import com.feeling.infrastructure.entities.user.UserRole;
-import com.feeling.infrastructure.entities.user.UserRoleList;
-import com.feeling.infrastructure.entities.user.UserToken;
-import com.feeling.infrastructure.repositories.user.IUserRepository;
-import com.feeling.infrastructure.repositories.user.IUserRoleRepository;
-import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
+import com.feeling.infrastructure.entities.user.*;
+import com.feeling.infrastructure.repositories.user.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -21,7 +16,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +34,10 @@ public class UserService {
     private final IUserRoleRepository rolRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final IUserTokenRepository tokenRepository;
+    private final StorageService storageService;
+    private final UserTagService userTagService;
+    private final IUserAttributeRepository userAttributeRepository;
+    private final IUserCategoryInterestRepository userCategoryInterestRepository;
     @Value("${ADMIN_USERNAME}")
     private String superAdminEmail;
 
@@ -54,21 +56,183 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO completeProfile(String email, UserProfileDTO profileData) {
+    public MessageResponseDTO completeProfile(String email, List<MultipartFile> profileImages,
+                                              UserProfileRequestDTO profileData) throws IOException {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        // Actualizar solo los campos proporcionados
-        if (profileData.image() != null) user.setImages(profileData.image());
+
+        // ========================================
+        // PROCESAR DATOS PERSONALES BÁSICOS
+        // ========================================
+
+        List<String> imageUrls = new ArrayList<>();
+
+        // Subir imágenes
+        if (profileImages != null && !profileImages.isEmpty()) {
+            List<String> additionalImageUrls = storageService.uploadImages(
+                    profileImages.stream()
+                            .filter(file -> file != null && !file.isEmpty())
+                            .collect(Collectors.toList()),
+                    "profiles/" + user.getId() + "/images"
+            );
+            imageUrls.addAll(additionalImageUrls);
+            logger.info("Imágenes subidas: {}", additionalImageUrls.size());
+        }
+
+        if (!imageUrls.isEmpty()) user.setImages(imageUrls);
         if (profileData.document() != null) user.setDocument(profileData.document());
         if (profileData.phone() != null) user.setPhone(profileData.phone());
         if (profileData.dateOfBirth() != null) user.setDateOfBirth(profileData.dateOfBirth());
+        if (profileData.description() != null) user.setDescription(profileData.description());
+
+        // ========================================
+        // PROCESAR UBICACIÓN GEOGRÁFICA
+        // ========================================
+        if (profileData.country() != null) user.setCountry(profileData.country());
         if (profileData.city() != null) user.setCity(profileData.city());
+        if (profileData.department() != null) user.setDepartment(profileData.department());
+        if (profileData.locality() != null) user.setLocality(profileData.locality());
 
-        User updatedUser = userRepository.save(user);
-        logger.info("Perfil completado correctamente para el usuario {}", email);
+        // ========================================
+        // PROCESAR CARACTERÍSTICAS
+        // ========================================
+        if (profileData.categoryInterest() != null) {
+            // Convertir String a enum
+            UserCategoryInterestList categoryEnum;
+            try {
+                categoryEnum = UserCategoryInterestList.valueOf(profileData.categoryInterest().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Categoría de interés no válida: " + profileData.categoryInterest() +
+                        ". Valores válidos: ESSENCE, ROUSE, SPIRIT");
+            }
 
-        return new UserResponseDTO(updatedUser);
+            // Buscar en la base de datos usando el enum
+            UserCategoryInterest categoryInterest = userCategoryInterestRepository
+                    .findByCategoryInterestEnum(categoryEnum)
+                    .orElseThrow(() -> new NotFoundException("Categoría de interés no encontrada: " + categoryEnum));
+
+            user.setUserCategoryInterest(categoryInterest);
+        }
+
+        if (profileData.genderId() != null) {
+            UserAttribute gender = userAttributeRepository.findById(profileData.genderId())
+                    .orElseThrow(() -> new NotFoundException("Género no encontrado"));
+            user.setGender(gender);
+        }
+
+        if (profileData.maritalStatusId() != null) {
+            UserAttribute maritalStatus = userAttributeRepository.findById(profileData.maritalStatusId())
+                    .orElseThrow(() -> new NotFoundException("Estado civil no encontrado"));
+            user.setMaritalStatus(maritalStatus);
+        }
+
+        if (profileData.height() != null) {
+            if (profileData.height() < 0) {
+                throw new IllegalArgumentException("La altura no puede ser negativa");
+            }
+            user.setHeight(profileData.height());
+        }
+
+        if (profileData.eyeColorId() != null) {
+            UserAttribute eyeColor = userAttributeRepository.findById(profileData.eyeColorId())
+                    .orElseThrow(() -> new NotFoundException("Color de ojos no encontrado"));
+            user.setEyeColor(eyeColor);
+        }
+
+        if (profileData.hairColorId() != null) {
+            UserAttribute hairColor = userAttributeRepository.findById(profileData
+                            .hairColorId())
+                    .orElseThrow(() -> new NotFoundException("Color de cabello no encontrado"));
+            user.setHairColor(hairColor);
+        }
+
+        if (profileData.bodyTypeId() != null) {
+            UserAttribute bodyType = userAttributeRepository.findById(profileData.bodyTypeId())
+                    .orElseThrow(() -> new NotFoundException("Tipo de cuerpo no encontrado"));
+            user.setBodyType(bodyType);
+        }
+
+        if (profileData.educationId() != null) {
+            UserAttribute educationLevel = userAttributeRepository.findById(profileData.educationId())
+                    .orElseThrow(() -> new NotFoundException("Nivel educativo no encontrado"));
+            user.setEducation(educationLevel);
+        }
+
+        if (profileData.profession() != null) {
+            user.setProfession(profileData.profession().trim());
+        }
+
+        // PROCESAR TAGS DE INTERESES
+        if (profileData.tags() != null && !profileData.tags().isEmpty()) {
+            // Limpiar tags existentes
+            user.getTags().clear();
+
+            // Agregar nuevos tags
+            for (String tagName : profileData.tags()) {
+                UserTag tag = userTagService.findOrCreateTag(tagName.trim().toLowerCase());
+                user.addTag(tag);
+            }
+        }
+
+        // ========================================
+        // PROCESAR DATOS PARA SPIRIT
+        // ========================================
+
+        if (profileData.religionId() != null) {
+            UserAttribute religion = userAttributeRepository.findById(profileData.religionId())
+                    .orElseThrow(() -> new NotFoundException("Religión no encontrada"));
+            user.setReligion(religion);
+        }
+
+        if (profileData.spiritualMoments() != null) {
+            user.setSpiritualMoments(profileData.spiritualMoments().trim());
+        }
+
+        if (profileData.spiritualPractices() != null) {
+            user.setSpiritualPractices(profileData.spiritualPractices().trim());
+        }
+
+        // ========================================
+        // PROCESAR DATOS PARA ROUSE
+        // ========================================
+
+        if (profileData.sexualRoleId() != null) {
+            UserAttribute sexualRole = userAttributeRepository.findById(profileData.sexualRoleId())
+                    .orElseThrow(() -> new NotFoundException("Rol sexual no encontrado"));
+            user.setSexualRole(sexualRole);
+        }
+
+        if (profileData.relationshipId() != null) {
+            UserAttribute relationshipStatus = userAttributeRepository.findById(profileData.relationshipId())
+                    .orElseThrow(() -> new NotFoundException("Estado de relación no encontrado"));
+            user.setRelationshipType(relationshipStatus);
+        }
+
+
+        // ========================================
+        // CONFIGURAR PREFERENCIAS DE MATCHING
+        // ========================================
+        if (profileData.agePreferenceMin() != null) {
+            user.setAgePreferenceMin(profileData.agePreferenceMin());
+        }
+        if (profileData.agePreferenceMax() != null) {
+            user.setAgePreferenceMax(profileData.agePreferenceMax());
+        }
+        if (profileData.locationPreferenceRadius() != null) {
+            user.setLocationPreferenceRadius(profileData.locationPreferenceRadius());
+        }
+
+        // ========================================
+        // GUARDAR Y RETORNAR
+        // ========================================
+        userRepository.save(user);
+
+        logger.info("Perfil completado correctamente para el usuario {}: {} imágenes subidas, {} tags agregados",
+                email, imageUrls.size(), profileData.tags() != null ? profileData.tags().size() : 0);
+
+        return new MessageResponseDTO("Perfil completado correctamente para el usuario " + email);
     }
 
     public UserResponseDTO update(String email, UserModifyDTO userRequestDTO) {

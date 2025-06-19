@@ -94,7 +94,7 @@ public class SecurityConfiguration {
                     // Perfil de usuario
                     auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
                     auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
-                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").permitAll(); // mientras tanto
 
                     // Tags de usuario
                     auth.requestMatchers("/users/tags/**").authenticated();

@@ -65,19 +65,12 @@ public class User implements UserDetails {
     @Column(name = "last_active")
     private LocalDateTime lastActive;
 
-    // ========================================
-    // RELACIONES PRINCIPALES
-    // ========================================
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private UserRole userRole;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserToken> userTokens = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "category_interest_id")
-    private UserCategoryInterest userCategoryInterest;
 
     // ========================================
     // DATOS PERSONALES BÁSICOS
@@ -102,13 +95,17 @@ public class User implements UserDetails {
     // UBICACIÓN GEOGRÁFICA
     // ========================================
     private String country;
-    private String department; // Estado/Provincia
     private String city;
+    private String department; // Estado/Provincia
     private String locality; // Localidad/Barrio específico
 
     // ========================================
-    // CARACTERÍSTICAS DINÁMICAS (Reemplaza ENUMs)
+    // CARACTERÍSTICAS
     // ========================================
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_interest_id")
+    private UserCategoryInterest userCategoryInterest;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gender_id")
     private UserAttribute gender;
@@ -116,6 +113,9 @@ public class User implements UserDetails {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "marital_status_id")
     private UserAttribute maritalStatus;
+
+    @Column(name = "height_cm")
+    private Integer height;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "eye_color_id")
@@ -130,36 +130,12 @@ public class User implements UserDetails {
     private UserAttribute bodyType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "religion_id")
-    private UserAttribute religion;
+    @JoinColumn(name = "education_level_id")
+    private UserAttribute education;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sexual_role_id")
-    private UserAttribute sexualRole; // Para ROUSE
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "relationship_type_id")
-    private UserAttribute relationshipType; // Para ROUSE
-
-    // ========================================
-    // DATOS COMPLEMENTARIOS
-    // ========================================
     private String profession;
-    private String education;
 
-    @Column(name = "height_cm")
-    private Integer height; // Altura en centímetros
-
-    // Información religiosa específica (Para SPIRIT)
-    private String church;
-    @Column(columnDefinition = "TEXT")
-    private String spiritualMoments;
-    @Column(columnDefinition = "TEXT")
-    private String spiritualPractices;
-
-    // ========================================
     // SISTEMA DE TAGS DINÁMICO
-    // ========================================
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "user_tag_relations",
@@ -168,6 +144,33 @@ public class User implements UserDetails {
     )
     @Builder.Default
     private List<UserTag> tags = new ArrayList<>();
+
+    // ========================================
+    // DATOS PARA SPIRIT
+    // ========================================
+    private String church;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "religion_id")
+    private UserAttribute religion;
+
+    @Column(columnDefinition = "TEXT")
+    private String spiritualMoments;
+
+    @Column(columnDefinition = "TEXT")
+    private String spiritualPractices;
+
+    // ========================================
+    // DATOS PARA ROUSE
+    // ========================================
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sexual_role_id")
+    private UserAttribute sexualRole;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "relationship_type_id")
+    private UserAttribute relationshipType;
 
     // ========================================
     // PREFERENCIAS DE MATCHING
@@ -179,7 +182,7 @@ public class User implements UserDetails {
     private Integer agePreferenceMax;
 
     @Column(name = "location_preference_radius_km")
-    private Integer locationPreferenceRadius; // Radio en kilómetros
+    private Integer locationPreferenceRadius;
 
     @Column(name = "show_me_in_search")
     @Builder.Default
