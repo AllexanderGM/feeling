@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react'
 import { Button } from '@heroui/react'
 import useGeographicData from '@hooks/useGeographicData'
-import { validateStep } from '@utils/validateInputs.js'
+import { validateStep } from '@utils/validateInputs'
+import useAuth from '@hooks/useAuth'
 
 import Step1BasicInfo from './components/Step1BasicInfo.jsx'
 import Step2LocationAndCharacteristics from './components/Step2LocationAndCharacteristics.jsx'
@@ -51,11 +52,50 @@ const INITIAL_FORM_DATA = {
 const TOTAL_STEPS = 4
 
 const CompleteProfile = () => {
-  // Estados
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
+  const { user, loading: authLoading } = useAuth() // Renombrar loading a authLoading
+
+  console.log('Usuario actual:', user)
+  console.log('Auth loading:', authLoading)
+
+  // Esperar a que termine de cargar la autenticación
+  if (authLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
+          <p className="text-gray-400">Cargando usuario...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Verificar que hay usuario
+  if (!user) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-red-400">Error: No se encontró información del usuario</p>
+          <Button variant="bordered" onClick={() => (window.location.href = '/login')}>
+            Volver al login
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return <CompleteProfileForm user={user} />
+}
+
+// Componente separado para el formulario
+const CompleteProfileForm = ({ user }) => {
+  const [formData, setFormData] = useState({
+    ...INITIAL_FORM_DATA,
+    name: user.name || '',
+    lastName: user.lastName || ''
+  })
   const [errors, setErrors] = useState({})
   const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false) // Renombrar loading a submitting
 
   // Hook de datos geográficos
   const geographic = useGeographicData({
@@ -191,7 +231,7 @@ const CompleteProfile = () => {
   const handleSubmit = useCallback(async () => {
     if (!validateCurrentStep()) return
 
-    setLoading(true)
+    setSubmitting(true)
 
     try {
       // Preparar datos para envío
@@ -218,19 +258,20 @@ const CompleteProfile = () => {
       console.error('Error al enviar:', error)
       alert('Error al completar el perfil. Por favor intenta de nuevo.')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }, [formData, validateCurrentStep])
 
   // Props comunes para los pasos
   const commonStepProps = useMemo(
     () => ({
+      user,
       formData,
       errors,
       updateFormData,
       updateErrors
     }),
-    [formData, errors, updateFormData, updateErrors]
+    [user, formData, errors, updateFormData, updateErrors]
   )
 
   // Renderizar contenido del paso
@@ -275,7 +316,7 @@ const CompleteProfile = () => {
     [currentStep]
   )
 
-  // Loading inicial
+  // Loading inicial de datos geográficos
   if (geographic.loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -351,10 +392,10 @@ const CompleteProfile = () => {
             <Button
               color="primary"
               onPress={handleSubmit}
-              isLoading={loading}
+              isLoading={submitting}
               radius="full"
-              endContent={!loading && <span className="material-symbols-outlined">check</span>}>
-              {loading ? 'Completando...' : 'Completar'}
+              endContent={!submitting && <span className="material-symbols-outlined">check</span>}>
+              {submitting ? 'Completando...' : 'Completar'}
             </Button>
           ) : (
             <Button

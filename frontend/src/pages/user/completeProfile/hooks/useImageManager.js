@@ -93,23 +93,42 @@ const useImageManager = () => {
     [validateImageFile]
   )
 
-  // Manejadores de drag & drop simplificados
+  // Manejadores de drag & drop CORREGIDOS
   const handleDragOver = useCallback((position, e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(prev => ({ ...prev, [position]: true }))
+
+    // Solo actualizar si realmente cambió para evitar re-renders
+    setIsDragging(prev => {
+      if (prev[position] === true) return prev
+      return { ...prev, [position]: true }
+    })
   }, [])
 
   const handleDragLeave = useCallback((position, e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(prev => ({ ...prev, [position]: false }))
+
+    // Verificar que realmente estamos saliendo del área
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+
+    // Solo actualizar si el mouse está fuera del elemento
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragging(prev => {
+        if (prev[position] === false) return prev
+        return { ...prev, [position]: false }
+      })
+    }
   }, [])
 
   const handleDrop = useCallback(
     async (position, e, options = {}) => {
       e.preventDefault()
       e.stopPropagation()
+
+      // Limpiar estado de dragging inmediatamente
       setIsDragging(prev => ({ ...prev, [position]: false }))
 
       const files = e.dataTransfer.files
@@ -142,14 +161,14 @@ const useImageManager = () => {
     return newImages
   }, [])
 
-  // Obtener URL de imagen
+  // Obtener URL de imagen MEJORADO
   const getImageUrl = useCallback(image => {
     if (!image) return null
 
     // String directo (URL)
     if (typeof image === 'string') return image
 
-    // File o Blob
+    // File o Blob - crear URL temporal
     if (image instanceof File || image instanceof Blob) {
       return URL.createObjectURL(image)
     }
@@ -160,7 +179,7 @@ const useImageManager = () => {
     return null
   }, [])
 
-  // Obtener clases CSS para imagen
+  // Obtener clases CSS para imagen SIMPLIFICADO
   const getImageClasses = useCallback(
     (position, hasImage = false) => {
       const baseClasses = 'relative cursor-pointer transition-all duration-300 group overflow-hidden'

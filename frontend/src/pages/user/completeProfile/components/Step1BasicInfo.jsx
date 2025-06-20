@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Input, DatePicker, Avatar, Select, SelectItem, Chip } from '@heroui/react'
+import { Input, DatePicker, Select, SelectItem, Chip } from '@heroui/react'
 import { today, getLocalTimeZone } from '@internationalized/date'
 
 import useImageManager from '../hooks/useImageManager.js'
 
-const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availableCountries = [] }) => {
+const Step1BasicInfo = ({ user, formData, errors, updateFormData, updateErrors, availableCountries = [] }) => {
   const imageManager = useImageManager()
   const fileInputRefs = useRef({})
   const [animatingPositions, setAnimatingPositions] = useState(new Set())
@@ -147,7 +147,7 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
     }
   }, [imageManager, normalizeImages])
 
-  // Renderizar slot de imagen
+  // Renderizar slot de imagen CORREGIDO
   const renderImageSlot = position => {
     const images = normalizeImages()
     const image = images[position]
@@ -159,17 +159,41 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
 
     return (
       <div key={position} className={position === 0 ? 'flex flex-col items-center' : 'flex flex-col items-center'}>
-        <div className="relative">
+        <div className="relative group">
           <div
-            className={`${imageManager.getImageClasses(position, hasImage)} ${isAnimating ? 'animate-pulse' : ''}`}
+            className={`
+              relative cursor-pointer transition-all duration-300
+              ${position === 0 ? 'w-36 h-36 rounded-full border-4' : 'w-32 h-32 rounded-lg border-2 border-dashed'}
+              ${hasImage ? 'border-primary-500' : 'border-gray-600'}
+              ${imageManager.isDragging[position] ? 'border-primary-400 scale-105' : ''}
+              ${isAnimating ? 'animate-pulse' : ''}
+            `}
             onDragOver={e => imageManager.handleDragOver(position, e)}
             onDragLeave={e => imageManager.handleDragLeave(position, e)}
             onDrop={e => handleImageDrop(position, e)}
             onClick={() => fileInputRefs.current[position]?.click()}>
-            {imageUrl ? (
-              <Avatar src={imageUrl} className="w-full h-full object-cover" showFallback />
+            {hasImage ? (
+              // Imagen con estilos directos para evitar conflictos con Avatar
+              <img
+                src={imageUrl}
+                alt={`Imagen ${position === 0 ? 'principal' : position}`}
+                className={`
+                  w-full h-full object-cover
+                  ${position === 0 ? 'rounded-full' : 'rounded-lg'}
+                `}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  objectPosition: 'center'
+                }}
+              />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-700/30">
+              <div
+                className={`
+                w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-700/30
+                ${position === 0 ? 'rounded-full' : 'rounded-lg'}
+              `}>
                 <div className="text-3xl mb-2">{imageManager.isDragging[position] ? '📤' : '📷'}</div>
                 <div className="text-xs text-center px-2">
                   {imageManager.isDragging[position] ? 'Soltar aquí' : position === 0 ? 'Foto principal' : `Foto ${position}`}
@@ -182,10 +206,13 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
               <button
                 type="button"
                 onClick={e => handleRemoveImage(position, e)}
-                className={`absolute -top-2 -right-2 ${position === 0 ? 'w-8 h-8' : 'w-6 h-6'}
+                className={`
+                  absolute
+                  ${position === 0 ? 'w-8 h-8 -top-1 -right-1' : 'w-6 h-6 -top-2 -right-2'}
                   bg-red-500 rounded-full flex items-center justify-center text-white
                   hover:bg-red-600 transition-all hover:scale-110 shadow-lg
-                  ${position === 0 ? '' : 'opacity-0 group-hover:opacity-100'}`}>
+                  ${position === 0 ? '' : 'opacity-0 group-hover:opacity-100'}
+                `}>
                 ✕
               </button>
             )}
@@ -203,7 +230,7 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
                 <Chip
                   color="secondary"
                   size="sm"
-                  startContent={<span className="material-symbols-outlined text-xs">star</span>}
+                  startContent={<span className="text-xs">⭐</span>}
                   variant="shadow"
                   className="cursor-pointer hover:scale-105 transition-transform">
                   Principal
@@ -214,7 +241,10 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
             {/* Overlay de carga */}
             {isAnimating && (
               <div
-                className={`absolute inset-0 bg-black/50 ${position === 0 ? 'rounded-full' : 'rounded-lg'} flex items-center justify-center`}>
+                className={`
+                  absolute inset-0 bg-black/50 flex items-center justify-center
+                  ${position === 0 ? 'rounded-full' : 'rounded-lg'}
+                `}>
                 <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
               </div>
             )}
@@ -248,7 +278,10 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
       {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-xl font-bold text-gray-200">Completa tu perfil</h2>
-        <p className="text-gray-400 mt-2">Ayúdanos a conocerte mejor</p>
+        <p className="text-gray-400 mt-2">{name} Ayúdanos a conocerte mejor</p>
+        <p className="text-gray-500 text-xs text-center">
+          Usuario asociado al correo: <span className="font-bold">{user.email}</span>{' '}
+        </p>
       </div>
 
       {/* Foto principal */}
@@ -274,7 +307,8 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
         <Input
           variant="underlined"
           isRequired
-          label="Nombre"
+          label="Nombre(s)"
+          placeholder="Tus nombre(s)"
           value={name || ''}
           onChange={e => updateFormData('name', e.target.value)}
           isInvalid={!!errors.name}
@@ -285,7 +319,8 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
         <Input
           variant="underlined"
           isRequired
-          label="Apellido"
+          label="Apellidos"
+          placeholder="Tus apellidos"
           value={lastName || ''}
           onChange={e => updateFormData('lastName', e.target.value)}
           isInvalid={!!errors.lastName}
@@ -319,11 +354,11 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
             startContent={
               <div className="flex items-center gap-2">
                 <img className="w-5 h-5 rounded-full" src={getCountryData().flag} alt={getCountryData().name} />
-                <span className="text-gray-400">{phoneCode}</span>
+                <span className="text-gray-400 pr-3">{phoneCode}</span>
               </div>
             }>
             {availableCountries.map(country => (
-              <SelectItem key={country.phone} value={country.phone} textValue={`${country.phone} ${country.name}`}>
+              <SelectItem key={country.phone} value={country.phone} textValue={`${country.name}`}>
                 <div className="flex items-center gap-3">
                   <img src={country.image} alt={country.name} className="w-5 h-5 rounded-full" />
                   <span>{country.phone}</span>
@@ -373,21 +408,29 @@ const Step1BasicInfo = ({ formData, errors, updateFormData, updateErrors, availa
       />
 
       {/* Información sobre las imágenes */}
-      {imageStats().total === 0 && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-6">
-          <div className="flex gap-3">
-            <span className="material-symbols-outlined text-blue-400">photo_camera</span>
-            <div className="text-sm">
-              <p className="text-blue-400 font-medium">Tip para mejores fotos</p>
-              <ul className="text-blue-300/80 mt-1 space-y-1">
-                <li>• Usa fotos recientes y claras</li>
-                <li>• Muestra tu rostro claramente en la foto principal</li>
-                <li>• Evita filtros excesivos</li>
-              </ul>
-            </div>
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-6">
+        <div className="flex gap-3">
+          <span className="material-symbols-outlined text-blue-400">photo_camera</span>
+          <div className="text-sm">
+            <h4 className="text-blue-400 font-medium mb-2">Tips para mejores resultados</h4>
+            <ul className="text-blue-300/80 space-y-1">
+              <li>
+                • <strong>Foto principal:</strong> Rostro visible, sonriendo - aumenta 40% más interacciones
+              </li>
+              <li>
+                • <strong>Variedad:</strong> Incluye fotos de cuerpo completo y haciendo actividades
+              </li>
+              <li>
+                • <strong>Calidad:</strong> Fotos nítidas con buena iluminación natural
+              </li>
+              <li>
+                • <strong>Autenticidad:</strong> Evita fotos grupales o con lentes de sol en todas
+              </li>
+            </ul>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

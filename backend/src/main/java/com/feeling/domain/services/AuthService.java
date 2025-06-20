@@ -218,7 +218,9 @@ public class AuthService {
                     newUser.getName(),
                     newUser.getLastname(),
                     newUser.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    newUser.isVerified(),
+                    newUser.isProfileComplete()
             );
 
         } catch (ExistEmailException e) {
@@ -362,7 +364,9 @@ public class AuthService {
                     user.getName(),
                     user.getLastname(),
                     user.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    user.isVerified(),
+                    user.isProfileComplete()
             );
 
         } catch (UnauthorizedException e) {
@@ -433,7 +437,9 @@ public class AuthService {
                     user.getName(),
                     user.getLastname(),
                     user.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    user.isVerified(),
+                    user.isProfileComplete()
             );
 
         } catch (BadCredentialsException e) {
