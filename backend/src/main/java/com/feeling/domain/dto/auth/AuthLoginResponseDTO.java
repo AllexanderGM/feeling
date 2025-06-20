@@ -1,11 +1,13 @@
 package com.feeling.domain.dto.auth;
 
-public record AuthResponseDTO(
+public record AuthLoginResponseDTO(
         String image,
         String email,
         String name,
         String lastName,
         String role,
-        String token
+        String token,
+        Boolean verified,
+        Boolean completeProfile
 ) {
 }

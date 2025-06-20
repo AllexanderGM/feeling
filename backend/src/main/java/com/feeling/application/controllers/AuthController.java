@@ -2,7 +2,6 @@ package com.feeling.application.controllers;
 
 import com.feeling.domain.dto.auth.*;
 import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.domain.dto.user.UserRequestDTO;
 import com.feeling.domain.services.AuthService;
 import com.feeling.exception.ExistEmailException;
 import com.feeling.infrastructure.entities.user.User;
@@ -47,7 +46,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Datos de registro inválidos"),
             @ApiResponse(responseCode = "409", description = "El email ya está registrado")
     })
-    public ResponseEntity<MessageResponseDTO> register(@Valid @RequestBody UserRequestDTO newUser) {
+    public ResponseEntity<MessageResponseDTO> register(@Valid @RequestBody AuthRegisterRequestDTO newUser) {
         try {
             logger.info("Intento de registro para usuario: {}", newUser.email());
             MessageResponseDTO response = authService.register(newUser);
@@ -66,14 +65,14 @@ public class AuthController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Usuario registrado con Google exitosamente",
-                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
             @ApiResponse(responseCode = "409", description = "Email ya registrado con otro método")
     })
-    public ResponseEntity<AuthResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
+    public ResponseEntity<AuthLoginResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
         try {
             logger.info("Intento de registro con Google");
-            AuthResponseDTO response = authService.registerWithGoogle(request);
+            AuthLoginResponseDTO response = authService.registerWithGoogle(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (ExistEmailException e) {
             logger.error("Error en registro con Google - email existente: {}", e.getMessage());
@@ -142,14 +141,14 @@ public class AuthController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Login exitoso",
-                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
             @ApiResponse(responseCode = "401", description = "Credenciales incorrectas o usuario no verificado"),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthRequestDTO authRequest) {
+    public ResponseEntity<AuthLoginResponseDTO> login(@Valid @RequestBody AuthLoginRequestDTO authRequest) {
         try {
             logger.info("Intento de login para usuario: {}", authRequest.email());
-            AuthResponseDTO response = authService.login(authRequest);
+            AuthLoginResponseDTO response = authService.login(authRequest);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en login para {}: {}", authRequest.email(), e.getMessage());
@@ -164,16 +163,16 @@ public class AuthController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Login con Google exitoso (usuario existente)",
-                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
             @ApiResponse(responseCode = "201", description = "Usuario creado y autenticado con Google (usuario nuevo)",
-                    content = @Content(schema = @Schema(implementation = AuthResponseDTO.class))),
+                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
             @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
             @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
     })
-    public ResponseEntity<AuthResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
+    public ResponseEntity<AuthLoginResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
         try {
             logger.info("Intento de autenticación con Google");
-            AuthResponseDTO response = authService.loginWithGoogle(request);
+            AuthLoginResponseDTO response = authService.loginWithGoogle(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en autenticación con Google: {}", e.getMessage());
@@ -333,16 +332,16 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Estado verificado exitosamente"),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
-    public ResponseEntity<UserStatusDTO> checkUserStatus(@PathVariable String email) {
+    public ResponseEntity<AuthUserStatusDTO> checkUserStatus(@PathVariable String email) {
         try {
             logger.info("Verificación de estado para usuario: {}", email);
             boolean isFullyRegistered = authService.isUserFullyRegistered(email);
 
-            UserStatusDTO status = new UserStatusDTO(
+            AuthUserStatusDTO status = new AuthUserStatusDTO(
                     email,
                     isFullyRegistered,
-                    authService.getUserByEmail(email).map(user -> user.isVerified()).orElse(false),
-                    authService.getUserByEmail(email).map(user -> user.isProfileComplete()).orElse(false)
+                    authService.getUserByEmail(email).map(User::isVerified).orElse(false),
+                    authService.getUserByEmail(email).map(User::isProfileComplete).orElse(false)
             );
 
             return ResponseEntity.ok(status);
@@ -350,17 +349,5 @@ public class AuthController {
             logger.error("Error verificando estado para {}: {}", email, e.getMessage());
             throw e;
         }
-    }
-
-    // ==============================
-    // DTO INTERNO PARA ESTADO DE USUARIO
-    // ==============================
-
-    public record UserStatusDTO(
-            String email,
-            boolean fullyRegistered,
-            boolean verified,
-            boolean profileComplete
-    ) {
     }
 }

@@ -12,7 +12,7 @@ const RequireAuth = ({ children, requiredRole = null, requireVerification = true
     // Solo determinar redirección cuando la autenticación esté inicializada
     if (!isInitialized) return
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setRedirectPath('/login')
       return
     }

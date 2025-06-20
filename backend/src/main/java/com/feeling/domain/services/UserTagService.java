@@ -508,4 +508,19 @@ public class UserTagService {
             logger.error("Error verificando estructura de base de datos: {}", e.getMessage());
         }
     }
+
+    public UserTag findOrCreateTag(String lowerCase) {
+        // Busca un tag por nombre, ignorando mayúsculas y minúsculas
+        return userTagRepository.findByNameIgnoreCase(lowerCase)
+                .orElseGet(() -> {
+                    UserTag newTag = UserTag.builder()
+                            .name(lowerCase)
+                            .createdBy("system") // Asignar un creador por defecto
+                            .createdAt(LocalDateTime.now())
+                            .usageCount(0L)
+                            .lastUsed(LocalDateTime.now())
+                            .build();
+                    return userTagRepository.save(newTag);
+                });
+    }
 }

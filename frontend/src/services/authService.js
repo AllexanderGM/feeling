@@ -1,17 +1,13 @@
 import { API_URL, COOKIE_OPTIONS } from '@config/config'
 
-console.log('🔍 Importando AuthService. API_URL:', API_URL)
-
 class AuthService {
   constructor() {
     this.cookieHandler = null
     this.apiUrl = API_URL
-    console.log('🔧 AuthService constructor llamado')
   }
 
   setCookieHandler(cookieHandler) {
     this.cookieHandler = cookieHandler
-    console.log('🍪 Cookie handler configurado')
   }
 
   hasCookieHandler() {
@@ -424,14 +420,6 @@ class AuthService {
 
 // Crear instancia singleton
 const authServiceInstance = new AuthService()
-
-// Verificar que los métodos estén disponibles
-console.log('🔍 AuthService métodos disponibles:', {
-  register: typeof authServiceInstance.register,
-  login: typeof authServiceInstance.login,
-  verifyEmailCode: typeof authServiceInstance.verifyEmailCode,
-  instance: authServiceInstance
-})
 
 // Función standalone para compatibilidad con otros servicios
 export const getAuthToken = () => {

@@ -1,10 +1,10 @@
-package com.feeling.domain.dto.user;
+package com.feeling.domain.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record UserRequestDTO(
+public record AuthRegisterRequestDTO(
         @NotBlank(message = "El nombre es obligatorio")
         @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
         String name,

@@ -1,5 +1,5 @@
 import ErrorProvider from '@context/ErrorProvider'
-import AuthProvider from '@context/AuthProvider'
+import { AuthProvider } from '@context/AuthContext'
 import ErrorDisplay from '@components/layout/ErrorDisplay'
 import { ErrorBoundary } from '@utils/ErrorBoundary'
 

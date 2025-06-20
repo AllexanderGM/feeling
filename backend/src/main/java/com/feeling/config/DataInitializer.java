@@ -132,6 +132,17 @@ public class DataInitializer implements CommandLineRunner {
                 new AttributeData("PLUS_SIZE", "Talla grande", "Constitución de talla grande", 5)
         ));
 
+        createAttributesIfNotExists("EDUCATION_LEVEL", Arrays.asList(
+                new AttributeData("PRIMARY", "Primaria", "Educación primaria completa", 1),
+                new AttributeData("SECONDARY", "Secundaria", "Educación secundaria completa", 2),
+                new AttributeData("HIGH_SCHOOL", "Bachillerato", "Educación de bachillerato completa", 3),
+                new AttributeData("TECHNICIAN", "Técnico o Tecnólogo", "Educación técnica o tecnóloga", 4),
+                new AttributeData("VOCATIONAL", "Profesional", "Título profesional o Licenciatura", 5),
+                new AttributeData("MASTER", "Maestría", "Título universitario de maestría", 6),
+                new AttributeData("DOCTORATE", "Doctorado", "Título universitario de doctorado", 7),
+                new AttributeData("OTHER", "Otro nivel educativo", "Otro nivel educativo no especificado", 8)
+        ));
+
         // Religión
         createAttributesIfNotExists("RELIGION", Arrays.asList(
                 new AttributeData("CHRISTIAN", "Cristiano/a", "Religión cristiana", 1),

@@ -2,7 +2,6 @@ package com.feeling.domain.services;
 
 import com.feeling.domain.dto.auth.*;
 import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.domain.dto.user.UserRequestDTO;
 import com.feeling.exception.ExistEmailException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
@@ -53,14 +52,12 @@ public class AuthService {
      * Registra un usuario tradicional (MODIFICADO para validar Google)
      */
     @Transactional
-    public MessageResponseDTO register(UserRequestDTO newUser) {
+    public MessageResponseDTO register(AuthRegisterRequestDTO newUser) {
         try {
-            // Validar que no existe un usuario con el mismo email
             Optional<User> existingUser = userRepository.findByEmail(newUser.email());
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
 
-                // Mensaje específico según el proveedor
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
                             "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
@@ -75,26 +72,23 @@ public class AuthService {
                 throw new ExistEmailException(conflictMessage);
             }
 
-            // Validar datos mínimos
             validateMinimumRegistrationData(newUser);
 
-            // Obtener o crear rol de cliente
             UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
                     .orElseGet(() -> {
                         UserRole newRole = new UserRole(UserRoleList.CLIENT);
                         return roleUserRepository.save(newRole);
                     });
 
-            // Construir usuario con datos mínimos (LOCAL por defecto)
             User userEntity = User.builder()
                     .name(newUser.name().trim())
                     .lastname(newUser.lastName().trim())
                     .email(newUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(newUser.password()))
                     .userRole(clientRole)
-                    .userAuthProvider(UserAuthProvider.LOCAL) // ← EXPLÍCITAMENTE LOCAL
-                    .verified(false) // Usuario no verificado hasta confirmar email
-                    .profileComplete(false) // Perfil incompleto hasta completar datos
+                    .userAuthProvider(UserAuthProvider.LOCAL)
+                    .verified(false)
+                    .profileComplete(false)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .allowNotifications(true)
@@ -112,7 +106,6 @@ public class AuthService {
 
             User savedUser = userRepository.save(userEntity);
 
-            // Generar y enviar código de verificación (solo para LOCAL)
             createAndSendVerificationCode(savedUser);
 
             logger.info("Usuario registrado correctamente (LOCAL): {}", newUser.email());
@@ -132,7 +125,7 @@ public class AuthService {
      * Registra un nuevo usuario específicamente usando Google OAuth
      */
     @Transactional
-    public AuthResponseDTO registerWithGoogle(GoogleTokenRequestDTO request) {
+    public AuthLoginResponseDTO registerWithGoogle(GoogleTokenRequestDTO request) {
         try {
             logger.info("Iniciando registro con Google");
 
@@ -174,8 +167,8 @@ public class AuthService {
                     .userAuthProvider(UserAuthProvider.GOOGLE)
                     .externalId(googleUser.sub())
                     .externalAvatarUrl(googleUser.picture())
-                    .verified(true) // Google ya verificó el email
-                    .profileComplete(false) // Necesita completar perfil en Feeling
+                    .verified(true)
+                    .profileComplete(false)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .lastExternalSync(LocalDateTime.now())
@@ -196,10 +189,8 @@ public class AuthService {
                 newUser.setImages(new ArrayList<>(List.of(googleUser.picture())));
             }
 
-            // 4. Guardar usuario
             newUser = userRepository.save(newUser);
 
-            // 5. NUEVO: Enviar email de bienvenida para usuarios de Google
             try {
                 emailService.sendWelcomeEmailForGoogleUser(
                         newUser.getEmail(),
@@ -221,13 +212,15 @@ public class AuthService {
 
             logger.info("Usuario registrado con Google correctamente: {}", googleUser.email());
 
-            return new AuthResponseDTO(
+            return new AuthLoginResponseDTO(
                     newUser.getMainImage(),
                     newUser.getEmail(),
                     newUser.getName(),
                     newUser.getLastname(),
                     newUser.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    newUser.isVerified(),
+                    newUser.isProfileComplete()
             );
 
         } catch (ExistEmailException e) {
@@ -251,7 +244,7 @@ public class AuthService {
      * Autentica o registra un usuario usando Google OAuth
      */
     @Transactional
-    public AuthResponseDTO loginWithGoogle(GoogleTokenRequestDTO request) {
+    public AuthLoginResponseDTO loginWithGoogle(GoogleTokenRequestDTO request) {
         try {
             logger.info("Iniciando autenticación con Google");
 
@@ -365,13 +358,15 @@ public class AuthService {
 
             logger.info("Usuario autenticado con Google correctamente: {}", googleUser.email());
 
-            return new AuthResponseDTO(
+            return new AuthLoginResponseDTO(
                     user.getMainImage(),
                     user.getEmail(),
                     user.getName(),
                     user.getLastname(),
                     user.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    user.isVerified(),
+                    user.isProfileComplete()
             );
 
         } catch (UnauthorizedException e) {
@@ -387,7 +382,7 @@ public class AuthService {
      * LOGIN
      * Autentica un usuario con email y contraseña
      */
-    public AuthResponseDTO login(AuthRequestDTO auth) {
+    public AuthLoginResponseDTO login(AuthLoginRequestDTO auth) {
         try {
             // Buscar usuario ANTES de la autenticación para verificar el proveedor
             Optional<User> userOptional = userRepository.findByEmail(auth.email().toLowerCase().trim());
@@ -436,13 +431,15 @@ public class AuthService {
 
             logger.info("Usuario autenticado correctamente: {}", auth.email());
 
-            return new AuthResponseDTO(
+            return new AuthLoginResponseDTO(
                     user.getMainImage(),
                     user.getEmail(),
                     user.getName(),
                     user.getLastname(),
                     user.getUserRole().getUserRoleList().name(),
-                    jwtToken
+                    jwtToken,
+                    user.isVerified(),
+                    user.isProfileComplete()
             );
 
         } catch (BadCredentialsException e) {
@@ -715,7 +712,7 @@ public class AuthService {
      * VALIDACIÓN DE DATOS MÍNIMOS
      * Valida que los datos mínimos de registro estén presentes
      */
-    private void validateMinimumRegistrationData(UserRequestDTO userData) {
+    private void validateMinimumRegistrationData(AuthRegisterRequestDTO userData) {
         if (userData.name() == null || userData.name().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre es obligatorio");
         }

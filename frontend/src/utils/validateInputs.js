@@ -1,283 +1,297 @@
-// ========================================
-// VALIDACIONES PARA REGISTRO SIMPLIFICADO
-// ========================================
+/**
+ * Utilidades de validación simplificadas y optimizadas
+ */
 
-// Validación manual para el email
-export const validateEmail = value => {
-  if (!value) return 'El correo electrónico es requerido'
-
-  if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
-    return 'El correo electrónico no es válido'
-  }
-  return null
+// Expresiones regulares reutilizables
+const REGEX = {
+  email: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+  name: /^[A-Za-zÀ-ÖØ-öø-ÿĀ-žÑñ\s]+$/,
+  phone: /^\+?\d{9,15}$/,
+  verificationCode: /^\d{6}$/
 }
 
-// Validación manual para la contraseña
-export const validatePassword = value => {
-  if (!value) return 'La contraseña es requerida'
-
-  if (value.length < 6) {
-    return 'La contraseña debe tener al menos 6 caracteres'
-  }
-  return null
-}
-
-// Validación manual para nombres
-export const validateName = value => {
-  if (!value) return 'El nombre es requerido'
-
-  const trimmedValue = value.trim()
-
-  if (trimmedValue.length < 2) {
-    return 'El nombre debe tener al menos 2 caracteres'
-  }
-  if (trimmedValue.length > 50) {
-    return 'El nombre no puede tener más de 50 caracteres'
-  }
-  // Verificar que solo contiene letras, espacios y acentos
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žÑñ\s]+$/.test(trimmedValue)) {
-    return 'El nombre solo debe contener letras'
-  }
-  return null
-}
-
-// Validación manual para apellidos
-export const validateLastName = value => {
-  if (!value) return 'El apellido es requerido'
-
-  const trimmedValue = value.trim()
-
-  if (trimmedValue.length < 2) {
-    return 'El apellido debe tener al menos 2 caracteres'
-  }
-  if (trimmedValue.length > 50) {
-    return 'El apellido no puede tener más de 50 caracteres'
-  }
-  // Verificar que solo contiene letras, espacios y acentos
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿĀ-žÑñ\s]+$/.test(trimmedValue)) {
-    return 'El apellido solo debe contener letras'
-  }
-  return null
+// Mensajes de error comunes
+const ERROR_MESSAGES = {
+  required: field => `${field} es requerido`,
+  minLength: (field, min) => `${field} debe tener al menos ${min} caracteres`,
+  maxLength: (field, max) => `${field} no puede tener más de ${max} caracteres`,
+  invalid: field => `${field} no es válido`,
+  minAge: age => `Debes ser mayor de ${age} años`
 }
 
 // ========================================
-// VALIDACIONES PARA CÓDIGO DE VERIFICACIÓN
+// VALIDADORES BASE
 // ========================================
 
-// Validación para código de verificación de 6 dígitos
-export const validateVerificationCode = value => {
-  if (!value) return 'El código de verificación es requerido'
+/**
+ * Validador genérico con opciones comunes
+ */
+const createValidator = (options = {}) => {
+  const { required = true, minLength, maxLength, pattern, fieldName = 'Campo', customValidator } = options
 
-  // Remover espacios y caracteres no numéricos
-  const cleanValue = value.replace(/\D/g, '')
+  return value => {
+    const trimmedValue = value?.toString().trim() || ''
 
-  if (cleanValue.length !== 6) {
-    return 'El código debe ser de exactamente 6 dígitos'
+    if (required && !trimmedValue) {
+      return ERROR_MESSAGES.required(fieldName)
+    }
+
+    if (!required && !trimmedValue) {
+      return null
+    }
+
+    if (minLength && trimmedValue.length < minLength) {
+      return ERROR_MESSAGES.minLength(fieldName, minLength)
+    }
+
+    if (maxLength && trimmedValue.length > maxLength) {
+      return ERROR_MESSAGES.maxLength(fieldName, maxLength)
+    }
+
+    if (pattern && !pattern.test(trimmedValue)) {
+      return ERROR_MESSAGES.invalid(fieldName)
+    }
+
+    if (customValidator) {
+      return customValidator(trimmedValue)
+    }
+
+    return null
   }
-
-  if (!/^\d{6}$/.test(cleanValue)) {
-    return 'El código debe contener solo números'
-  }
-
-  return null
 }
 
 // ========================================
-// VALIDACIONES ADICIONALES (para completar perfil)
+// VALIDADORES ESPECÍFICOS
 // ========================================
 
-// Validación manual para número de teléfono
+export const validateEmail = createValidator({
+  fieldName: 'El correo',
+  pattern: REGEX.email
+})
+
+export const validatePassword = createValidator({
+  fieldName: 'La contraseña',
+  minLength: 6
+})
+
+export const validateName = createValidator({
+  fieldName: 'El nombre',
+  minLength: 2,
+  maxLength: 50,
+  pattern: REGEX.name
+})
+
+export const validateLastName = createValidator({
+  fieldName: 'El apellido',
+  minLength: 2,
+  maxLength: 50,
+  pattern: REGEX.name
+})
+
+export const validateDocument = createValidator({
+  fieldName: 'El documento',
+  minLength: 6,
+  maxLength: 20
+})
+
 export const validatePhone = value => {
-  if (!value) return 'El número de teléfono es requerido'
+  const cleaned = value?.replace(/[\s()-]/g, '') || ''
 
-  // Eliminar espacios, guiones y paréntesis para validar
-  const cleanedValue = value.replace(/\s+|-|\(|\)/g, '')
-  // Verificar que tenga entre 9 y 15 dígitos
-  if (!/^\d{9,15}$/.test(cleanedValue)) {
-    return 'Ingresa un número de teléfono válido (9-15 dígitos)'
-  }
+  if (!cleaned) return 'El teléfono es requerido'
+  if (!REGEX.phone.test(cleaned)) return 'Número de teléfono inválido'
+
   return null
 }
 
-// Validación manual para fecha de nacimiento
+export const validateVerificationCode = value => {
+  const cleaned = value?.replace(/\D/g, '') || ''
+
+  if (!cleaned) return 'El código es requerido'
+  if (!REGEX.verificationCode.test(cleaned)) return 'Código de 6 dígitos'
+
+  return null
+}
+
 export const validateBirthDate = value => {
   if (!value) return 'La fecha de nacimiento es requerida'
 
   const birthDate = new Date(value)
   const today = new Date()
 
-  // Verificar que la fecha es válida
-  if (isNaN(birthDate.getTime())) {
-    return 'Fecha inválida'
-  }
-
-  // Verificar que no es una fecha futura
-  if (birthDate > today) {
-    return 'La fecha no puede ser en el futuro'
-  }
+  if (isNaN(birthDate.getTime())) return 'Fecha inválida'
+  if (birthDate > today) return 'La fecha no puede ser futura'
 
   // Calcular edad
   let age = today.getFullYear() - birthDate.getFullYear()
   const monthDiff = today.getMonth() - birthDate.getMonth()
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--
   }
 
-  // Verificar mayoría de edad (18 años)
-  if (age < 18) {
-    return 'Debes ser mayor de 18 años para registrarte'
-  }
+  if (age < 18) return ERROR_MESSAGES.minAge(18)
 
   return null
 }
 
-// Validación manual para campos de selección (ciudad, orientación, etc.)
-export const validateSelect = (value, fieldName = 'selección') => {
-  if (!value) return `Debes realizar una ${fieldName}`
-
-  return null
-}
-
-// Validación de términos y condiciones
-export const validateTerms = value => {
-  if (!value) return 'Debes aceptar los términos y condiciones'
-
-  return null
-}
-
-// Validación de coincidencia de contraseñas
 export const validatePasswordMatch = (password, confirmPassword) => {
-  if (!confirmPassword) return 'Debes confirmar la contraseña'
-
+  if (!confirmPassword) return 'Confirma tu contraseña'
   if (password !== confirmPassword) return 'Las contraseñas no coinciden'
-
   return null
 }
 
-// Validación de intereses (debe seleccionar al menos uno)
-export const validateInterests = interests => {
-  if (!interests || interests.length === 0) return 'Debes seleccionar al menos un interés'
-
+export const validateTerms = value => {
+  if (!value) return 'Acepta los términos y condiciones'
   return null
 }
 
 // ========================================
-// VALIDACIONES PARA PERFIL COMPLETO
+// VALIDADORES DE IMAGEN SIMPLIFICADOS
 // ========================================
 
-// Validación para documento de identidad
-export const validateDocument = value => {
-  if (!value) return 'El documento es requerido'
+export const validateImageFile = async (file, options = {}) => {
+  const { maxSizeMB = 5, allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] } = options
 
-  const trimmedValue = value.trim()
+  if (!file) return null // No es error si no hay archivo
 
-  if (trimmedValue.length < 6) {
-    return 'El documento debe tener al menos 6 caracteres'
+  if (!(file instanceof File)) return 'Archivo inválido'
+
+  // Validar tipo
+  if (!allowedTypes.includes(file.type)) {
+    return 'Formato no permitido'
   }
-  if (trimmedValue.length > 20) {
-    return 'El documento no puede tener más de 20 caracteres'
+
+  // Validar tamaño
+  const sizeMB = file.size / (1024 * 1024)
+  if (sizeMB > maxSizeMB) {
+    return `Máximo ${maxSizeMB}MB`
   }
+
+  // Las dimensiones se validan en el hook useImageManager
   return null
 }
 
-// Validación para ciudad
-export const validateCity = value => {
-  if (!value) return 'La ciudad es requerida'
+// ========================================
+// UTILIDADES DE FORMATO
+// ========================================
 
-  const trimmedValue = value.trim()
-
-  if (trimmedValue.length < 2) {
-    return 'La ciudad debe tener al menos 2 caracteres'
-  }
-  if (trimmedValue.length > 50) {
-    return 'La ciudad no puede tener más de 50 caracteres'
-  }
-  return null
-}
-
-// Validación para descripción de perfil
-export const validateDescription = value => {
-  if (value && value.length > 500) {
-    return 'La descripción no puede tener más de 500 caracteres'
-  }
-  return null
-}
-
-// Validación para URL de imagen
-export const validateImageUrl = value => {
-  if (!value) return 'La URL de la imagen es requerida'
-
-  try {
-    new URL(value)
-    if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(value)) {
-      return 'La URL debe ser una imagen válida (jpg, jpeg, png, gif, webp)'
-    }
-    return null
-  } catch {
-    return 'La URL de la imagen no es válida'
-  }
+export const formatters = {
+  phone: value => value?.replace(/\D/g, '') || '',
+  verificationCode: value => {
+    const digits = value?.replace(/\D/g, '').slice(0, 6) || ''
+    return digits.replace(/(\d{3})(\d{3})/, '$1 $2').trim()
+  },
+  name: value => value?.trim().replace(/\s+/g, ' ') || ''
 }
 
 // ========================================
-// UTILIDADES DE VALIDACIÓN
+// VALIDADOR DE FORMULARIOS
 // ========================================
 
-// Función para validar múltiples campos a la vez
-export const validateFields = (fields, validators) => {
+export const validateForm = (data, validators) => {
   const errors = {}
 
-  Object.keys(validators).forEach(fieldName => {
-    const value = fields[fieldName]
-    const validator = validators[fieldName]
-
+  Object.entries(validators).forEach(([field, validator]) => {
     if (typeof validator === 'function') {
-      const error = validator(value)
-      if (error) {
-        errors[fieldName] = error
-      }
+      const error = validator(data[field])
+      if (error) errors[field] = error
     }
   })
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
+    errorCount: Object.keys(errors).length
   }
 }
 
-// Función para validar el registro completo
-export const validateRegistration = formData => {
-  return validateFields(formData, {
+// ========================================
+// VALIDADORES PRE-CONFIGURADOS
+// ========================================
+
+export const validators = {
+  // Step 1 - Información básica
+  basicInfo: {
     name: validateName,
     lastName: validateLastName,
+    document: validateDocument,
+    phone: validatePhone,
+    birthDate: validateBirthDate,
+    profileImage: images => {
+      if (!images || !images[0]) return 'La foto de perfil es requerida'
+      return null
+    }
+  },
+
+  // Step 2 - Ubicación y características
+  location: {
+    country: value => (!value ? 'Selecciona un país' : null),
+    city: value => (!value?.trim() ? 'Selecciona una ciudad' : null),
+    genderId: value => (!value ? 'Selecciona tu género' : null),
+    categoryInterest: value => (!value ? 'Selecciona una categoría' : null)
+  },
+
+  // Step 3 - Sobre ti
+  about: {
+    description: createValidator({
+      fieldName: 'La descripción',
+      minLength: 10,
+      maxLength: 500
+    }),
+    tags: tags => {
+      if (!tags || tags.length === 0) return 'Agrega al menos un interés'
+      if (tags.length > 10) return 'Máximo 10 intereses'
+      return null
+    }
+  },
+
+  // Login/Registro
+  auth: {
     email: validateEmail,
     password: validatePassword,
-    confirmPassword: value => validatePasswordMatch(formData.password, value)
+    confirmPassword: (value, data) => validatePasswordMatch(data.password, value),
+    terms: validateTerms
+  }
+}
+
+// ========================================
+// HELPERS DE VALIDACIÓN
+// ========================================
+
+/**
+ * Valida un paso específico del formulario
+ */
+export const validateStep = (step, formData) => {
+  const stepValidators = {
+    1: validators.basicInfo,
+    2: validators.location,
+    3: validators.about,
+    4: {} // Step 4 no requiere validaciones
+  }
+
+  const currentValidators = stepValidators[step] || {}
+  return validateForm(formData, currentValidators)
+}
+
+/**
+ * Obtiene mensaje de error para campo específico
+ */
+export const getFieldError = (errors, field) => {
+  return errors[field] || null
+}
+
+/**
+ * Limpia y valida múltiples campos a la vez
+ */
+export const validateFields = (fields, validatorMap) => {
+  const results = {}
+
+  Object.entries(fields).forEach(([key, value]) => {
+    if (validatorMap[key]) {
+      const error = validatorMap[key](value, fields)
+      if (error) results[key] = error
+    }
   })
-}
 
-// Función para validar la verificación de código
-export const validateVerification = formData => {
-  return validateFields(formData, {
-    email: validateEmail,
-    code: validateVerificationCode
-  })
-}
-
-// Función para validar el login
-export const validateLogin = formData => {
-  return validateFields(formData, {
-    email: validateEmail,
-    password: validatePassword
-  })
-}
-
-// Función para normalizar código de verificación
-export const normalizeVerificationCode = value => {
-  return value.replace(/\D/g, '').slice(0, 6)
-}
-
-// Función para formatear código de verificación (para mostrar)
-export const formatVerificationCode = value => {
-  const normalized = normalizeVerificationCode(value)
-  return normalized.replace(/(\d{3})(\d{3})/, '$1 $2')
+  return results
 }
