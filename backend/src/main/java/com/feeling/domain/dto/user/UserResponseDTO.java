@@ -53,7 +53,7 @@ public record UserResponseDTO(
                 user.getImages(),
                 user.getMainImage(),
                 user.getUserCategoryInterest() != null ?
-                        user.getUserCategoryInterest().getCategoryInterest().name() : null,
+                        user.getUserCategoryInterest().getCategoryInterestEnum().name() : null,
                 user.getCreatedAt(),
                 user.getLastActive(),
                 user.getAvailableAttempts(),

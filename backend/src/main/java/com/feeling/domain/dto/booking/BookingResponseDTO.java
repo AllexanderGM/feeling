@@ -1,7 +1,7 @@
 package com.feeling.domain.dto.booking;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.feeling.domain.dto.tour.IncludeDTO;
+import com.feeling.domain.dto.event.IncludeDTO;
 import com.feeling.infrastructure.entities.booking.Booking;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,10 +43,10 @@ public class BookingResponseDTO {
         this.adults = booking.getAdults();
         this.children = booking.getChildren();
         this.price = booking.getPrice();
-        if(booking.getAccommodation() != null){
+        if (booking.getAccommodation() != null) {
             this.accommodation = booking.getAccommodation().getAccommodationBooking().toString();
         }
-        if(booking.getPay() != null){
+        if (booking.getPay() != null) {
             this.paymentMethod = booking.getPay().getPaymentMethod().getName();
         }
         //Se mapean los includes del tour a una lista de IncludeDTO

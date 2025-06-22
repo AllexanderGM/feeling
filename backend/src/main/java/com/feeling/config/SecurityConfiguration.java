@@ -38,10 +38,37 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+
+        // ✅ CORRECCIÓN: Usar allowedOriginPatterns en lugar de allowedOrigins cuando allowCredentials = true
         configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+
+        // Métodos HTTP permitidos
+        configuration.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+        ));
+
+        // Headers permitidos
+        configuration.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+
+        // Headers expuestos al cliente
+        configuration.setExposedHeaders(List.of(
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"
+        ));
+
+        // Permitir credenciales (cookies, headers de autorización, etc.)
         configuration.setAllowCredentials(true);
+
+        // Tiempo de cache para preflight requests
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -72,14 +99,14 @@ public class SecurityConfiguration {
                     auth.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/auth/status/**").permitAll();
 
-                    // 🔹 Rutas de ubicaciones (públicas mientras tanto)
+                    // 🔹 Rutas de ubicaciones (públicas)
                     auth.requestMatchers("/geographic/**").permitAll();
-                    // 🔹 Rutas de ubicaciones (públicas mientras tanto)
+
+                    // 🔹 Rutas de atributos de usuario (públicas)
                     auth.requestMatchers("/user-attributes/**").permitAll();
 
-                    // 🔹 Rutas para atributos (públicas para formularios de registro)
-                    auth.requestMatchers(HttpMethod.GET, "/user-attributes/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/category-interests").permitAll();
+                    // 🔹 Rutas para categorías de interés (públicas)
+                    auth.requestMatchers("/category-interests/**").permitAll();
 
                     // 🔹 Rutas para tags populares (públicas)
                     auth.requestMatchers(HttpMethod.GET, "/tags/popular").permitAll();
@@ -94,7 +121,7 @@ public class SecurityConfiguration {
                     // Perfil de usuario
                     auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
                     auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
-                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").permitAll(); // mientras tanto
+                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").permitAll(); // temporal
 
                     // Tags de usuario
                     auth.requestMatchers("/users/tags/**").authenticated();

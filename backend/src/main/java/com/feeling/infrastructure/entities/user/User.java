@@ -561,7 +561,7 @@ public class User implements UserDetails {
 
         // Compatibilidad religiosa para SPIRIT (peso: 20%)
         if (this.userCategoryInterest != null &&
-                "SPIRIT".equals(this.userCategoryInterest.getCategoryInterest().name())) {
+                "SPIRIT".equals(this.userCategoryInterest.getCategoryInterestEnum().name())) {
             if (this.religion != null && otherUser.religion != null &&
                     this.religion.equals(otherUser.religion)) {
                 score += 0.2;

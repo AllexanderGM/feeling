@@ -1,6 +1,6 @@
 package com.feeling.config;
 
-import com.feeling.domain.services.JwtService;
+import com.feeling.domain.services.auth.JwtService;
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserToken;
 import com.feeling.infrastructure.repositories.user.IUserRepository;

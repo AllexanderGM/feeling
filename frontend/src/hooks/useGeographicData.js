@@ -3,11 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { geographicService } from '@services/geographicService.js'
 
 const useGeographicData = (options = {}) => {
-  const {
-    loadAll = true, // Si true, carga todos los datos de una vez
-    defaultCountry = 'Colombia',
-    defaultCity = 'Bogotá D.C.'
-  } = options
+  const { loadAll = true, defaultCountry = 'Colombia', defaultCity = 'Bogotá D.C.' } = options
 
   // Estados principales
   const [countries, setCountries] = useState([])
@@ -32,21 +28,26 @@ const useGeographicData = (options = {}) => {
         setError(null)
 
         if (loadAll) {
-          // Cargar todos los datos de una vez (más eficiente)
+          // Cargar todos los datos de una vez
           const data = await geographicService.getAllGeographicData()
-          setCountries(data.countries)
 
-          // Si hay un país por defecto, cargar sus ciudades
-          if (defaultCountry) {
-            const defaultCountryData = data.countries.find(country => country.name === defaultCountry)
-            if (defaultCountryData) {
-              setCities(defaultCountryData.cities)
+          if (data.countries) {
+            setCountries(data.countries)
 
-              // Si hay una ciudad por defecto, cargar sus localidades
-              if (defaultCity) {
-                const defaultCityData = defaultCountryData.cities.find(city => city.name === defaultCity)
-                if (defaultCityData) {
-                  setLocalities(defaultCityData.localities)
+            // Si hay un país por defecto, cargar sus ciudades
+            if (defaultCountry) {
+              const defaultCountryData = data.countries.find(country => country.name === defaultCountry || country.code === defaultCountry)
+
+              if (defaultCountryData && defaultCountryData.cities) {
+                setCities(defaultCountryData.cities)
+
+                // Si hay una ciudad por defecto, cargar sus localidades
+                if (defaultCity) {
+                  const defaultCityData = defaultCountryData.cities.find(city => city.name === defaultCity)
+
+                  if (defaultCityData && defaultCityData.localities) {
+                    setLocalities(defaultCityData.localities)
+                  }
                 }
               }
             }
@@ -55,6 +56,11 @@ const useGeographicData = (options = {}) => {
           // Solo cargar países inicialmente
           const countriesData = await geographicService.getAllCountries()
           setCountries(countriesData)
+
+          // Si hay país por defecto, cargar sus ciudades
+          if (defaultCountry) {
+            await loadCitiesByCountry(defaultCountry)
+          }
         }
       } catch (err) {
         console.error('Error al cargar datos geográficos:', err)
@@ -65,7 +71,7 @@ const useGeographicData = (options = {}) => {
     }
 
     loadInitialData()
-  }, [loadAll, defaultCountry, defaultCity])
+  }, []) // Removemos las dependencias para evitar loops
 
   // Cargar ciudades de un país específico
   const loadCitiesByCountry = useCallback(async countryName => {
@@ -81,7 +87,7 @@ const useGeographicData = (options = {}) => {
       setLocalities([]) // Limpiar localidades al cambiar país
 
       const citiesData = await geographicService.getCitiesByCountry(countryName)
-      setCities(citiesData)
+      setCities(citiesData || [])
     } catch (err) {
       console.error(`Error al cargar ciudades para ${countryName}:`, err)
       setCitiesError(err.message)
@@ -103,7 +109,7 @@ const useGeographicData = (options = {}) => {
       setLocalitiesError(null)
 
       const localitiesData = await geographicService.getLocalitiesByCity(cityName)
-      setLocalities(localitiesData)
+      setLocalities(localitiesData || [])
     } catch (err) {
       console.error(`Error al cargar localidades para ${cityName}:`, err)
       setLocalitiesError(err.message)
@@ -123,7 +129,17 @@ const useGeographicData = (options = {}) => {
   // Obtener país por código
   const getCountryByCode = useCallback(
     countryCode => {
+      if (!countryCode) return null
       return countries.find(country => country.code === countryCode)
+    },
+    [countries]
+  )
+
+  // Obtener país por nombre
+  const getCountryByName = useCallback(
+    countryName => {
+      if (!countryName) return null
+      return countries.find(country => country.name === countryName)
     },
     [countries]
   )
@@ -131,6 +147,7 @@ const useGeographicData = (options = {}) => {
   // Obtener ciudad por nombre
   const getCityByName = useCallback(
     cityName => {
+      if (!cityName) return null
       return cities.find(city => city.name === cityName)
     },
     [cities]
@@ -175,6 +192,7 @@ const useGeographicData = (options = {}) => {
     loadCitiesByCountry,
     loadLocalitiesByCity,
     getCountryByCode,
+    getCountryByName,
     getCityByName,
     cityHasLocalities,
     clearCache,

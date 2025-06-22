@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -27,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final IUserTagRepository userTagRepository;
     private final PasswordEncoder passwordEncoder;
+    private final IUserCategoryInterestRepository categoryInterestRepository;
 
     @Value("${spring.security.user.name}")
     private String adminEmail;
@@ -68,13 +70,91 @@ public class DataInitializer implements CommandLineRunner {
     private void initializeCategoryInterests() {
         logger.info("Inicializando categorías de interés...");
 
-        Arrays.stream(UserCategoryInterestList.values()).forEach(category -> {
-            if (userCategoryInterestRepository.findByCategoryInterest(category).isEmpty()) {
-                UserCategoryInterest categoryInterest = new UserCategoryInterest(category);
-                userCategoryInterestRepository.save(categoryInterest);
-                logger.info("Categoría de interés creada: {}", category.name());
-            }
-        });
+        // ESSENCE
+        createCategoryIfNotExists(
+                UserCategoryInterestList.ESSENCE,
+                "Essence",
+                "Conexiones auténticas para relaciones heterosexuales",
+                "💝",
+                "Essence es el espacio ideal para personas que buscan relaciones heterosexuales auténticas y significativas. Aquí puedes conectar con personas que comparten tus intereses y valores para formar vínculos duraderos.",
+                "Personas heterosexuales que buscan relaciones auténticas, desde citas casuales hasta relaciones de largo plazo.",
+                List.of(
+                        "Conexiones basadas en compatibilidad real",
+                        "Algoritmos diseñados para relaciones heterosexuales",
+                        "Comunidad enfocada en relaciones serias",
+                        "Herramientas para conocer gustos e intereses"
+                ),
+                1
+        );
+
+        // ROUSE
+        createCategoryIfNotExists(
+                UserCategoryInterestList.ROUSE,
+                "Rouse",
+                "Espacio inclusivo para la comunidad LGBTI+",
+                "🏳️‍🌈",
+                "Rouse es un espacio seguro e inclusivo diseñado especialmente para la comunidad LGBTI+. Aquí puedes ser auténtico/a y conectar con personas que entienden y celebran tu identidad.",
+                "Miembros de la comunidad LGBTI+ que buscan conexiones auténticas en un ambiente seguro y comprensivo.",
+                List.of(
+                        "Ambiente 100% inclusivo y respetuoso",
+                        "Opciones de identidad de género y orientación flexibles",
+                        "Comunidad diversa y acogedora",
+                        "Herramientas de seguridad y privacidad reforzadas"
+                ),
+                2
+        );
+
+        // SPIRIT
+        createCategoryIfNotExists(
+                UserCategoryInterestList.SPIRIT,
+                "Spirit",
+                "Comunidad cristiana con valores compartidos",
+                "✝️",
+                "Spirit es una comunidad para personas cristianas que desean conectar con otros que comparten su fe y valores. Un espacio donde la espiritualidad es parte fundamental de las relaciones.",
+                "Personas cristianas que buscan relaciones donde la fe y los valores espirituales sean prioritarios.",
+                List.of(
+                        "Comunidad centrada en valores cristianos",
+                        "Conexiones basadas en fe compartida",
+                        "Ambiente respetuoso y familiar",
+                        "Enfoque en relaciones con propósito y valores"
+                ),
+                3
+        );
+
+        logger.info("Inicialización de categorías de interés completada.");
+    }
+
+    private void createCategoryIfNotExists(
+            UserCategoryInterestList categoryEnum,
+            String name,
+            String description,
+            String icon,
+            String fullDescription,
+            String targetAudience,
+            List<String> features,
+            int displayOrder) {
+
+        // CORREGIDO: Usar el método correcto
+        Optional<UserCategoryInterest> existing = userCategoryInterestRepository.findByCategoryInterestEnum(categoryEnum);
+
+        if (existing.isEmpty()) {
+            UserCategoryInterest category = UserCategoryInterest.builder()
+                    .categoryInterestEnum(categoryEnum)
+                    .name(name)
+                    .description(description)
+                    .icon(icon)
+                    .fullDescription(fullDescription)
+                    .targetAudience(targetAudience)
+                    .features(features)
+                    .isActive(true)
+                    .displayOrder(displayOrder)
+                    .build();
+
+            userCategoryInterestRepository.save(category);
+            logger.info("Categoría de interés creada: {}", name);
+        } else {
+            logger.info("Categoría de interés ya existe: {}", name);
+        }
     }
 
     // ==============================

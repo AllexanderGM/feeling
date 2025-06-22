@@ -2,6 +2,7 @@ package com.feeling.infrastructure.repositories.user;
 
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserCategoryInterest;
+import com.feeling.infrastructure.entities.user.UserCategoryInterestList;
 import com.feeling.infrastructure.entities.user.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,8 +43,12 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     // ========================================
     List<User> findByUserCategoryInterest(UserCategoryInterest categoryInterest);
 
-    @Query("SELECT u FROM User u WHERE u.userCategoryInterest.categoryInterest = :categoryInterest AND u.verified = true AND u.showMeInSearch = true")
-    List<User> findVerifiedUsersByCategory(@Param("categoryInterest") String categoryInterest);
+    @Query("SELECT u FROM User u WHERE u.userCategoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.showMeInSearch = true")
+    List<User> findVerifiedUsersByCategory(@Param("categoryInterest") UserCategoryInterestList categoryInterest);
+
+    // Si tienes consultas que usen String en lugar del enum:
+    @Query("SELECT u FROM User u WHERE u.userCategoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.showMeInSearch = true")
+    List<User> findVerifiedUsersByCategoryString(@Param("categoryInterest") String categoryInterest);
 
     // ========================================
     // BÚSQUEDAS PARA MATCHING
@@ -100,7 +105,14 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     long countByProfileCompleteTrue();
 
-    long countByUserCategoryInterest(UserCategoryInterest categoryInterest);
+    /**
+     * Cuenta usuarios por categoría de interés
+     *
+     * @param categoryInterest Categoría de interés
+     * @return Número de usuarios en esa categoría
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.userCategoryInterest = :categoryInterest")
+    Long countByUserCategoryInterest(@Param("categoryInterest") UserCategoryInterest categoryInterest);
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
     long countNewUsersSince(@Param("since") LocalDateTime since);

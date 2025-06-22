@@ -5,13 +5,13 @@ import { validateStep } from '@utils/validateInputs'
 import useAuth from '@hooks/useAuth'
 
 import Step1BasicInfo from './components/Step1BasicInfo.jsx'
-import Step2LocationAndCharacteristics from './components/Step2LocationAndCharacteristics.jsx'
+import Step2CharacteristicsAndInterests from './components/Step2CharacteristicsAndInterests.jsx'
 import Step3AboutYou from './components/Step3AboutYou.jsx'
 import Step4PreferencesAndConfig from './components/Step4PreferencesAndConfig.jsx'
 
 // Configuración inicial del formulario
 const INITIAL_FORM_DATA = {
-  // Step 1 - Información básica
+  // Step 1 - Información básica y ubicación
   images: [],
   name: '',
   lastName: '',
@@ -19,11 +19,12 @@ const INITIAL_FORM_DATA = {
   phoneCode: '+57',
   phone: '',
   birthDate: '',
-
-  // Step 2 - Ubicación y características
+  // Campos de ubicación movidos del Step 2
   country: 'Colombia',
-  city: 'Bogotá D.C.',
+  city: 'Bogotá',
   locality: '',
+
+  // Step 2 - Características e intereses (sin ubicación)
   categoryInterest: '',
   genderId: '',
   height: 170,
@@ -52,10 +53,8 @@ const INITIAL_FORM_DATA = {
 const TOTAL_STEPS = 4
 
 const CompleteProfile = () => {
-  const { user, loading: authLoading } = useAuth() // Renombrar loading a authLoading
-
+  const { user, loading: authLoading } = useAuth()
   console.log('Usuario actual:', user)
-  console.log('Auth loading:', authLoading)
 
   // Esperar a que termine de cargar la autenticación
   if (authLoading) {
@@ -95,7 +94,7 @@ const CompleteProfileForm = ({ user }) => {
   })
   const [errors, setErrors] = useState({})
   const [currentStep, setCurrentStep] = useState(1)
-  const [submitting, setSubmitting] = useState(false) // Renombrar loading a submitting
+  const [submitting, setSubmitting] = useState(false)
 
   // Hook de datos geográficos
   const geographic = useGeographicData({
@@ -143,39 +142,6 @@ const CompleteProfileForm = ({ user }) => {
   const updateErrors = useCallback(newErrors => {
     setErrors(newErrors)
   }, [])
-
-  // Manejadores de ubicación
-  const handleCountryChange = useCallback(
-    async countryCode => {
-      const country = geographic.getCountryByCode(countryCode)
-
-      if (country) {
-        updateMultipleFields({
-          country: country.name,
-          phoneCode: country.phone,
-          city: '',
-          locality: ''
-        })
-
-        await geographic.loadCitiesByCountry(country.name)
-      }
-    },
-    [geographic, updateMultipleFields]
-  )
-
-  const handleCityChange = useCallback(
-    async cityName => {
-      updateMultipleFields({
-        city: cityName,
-        locality: ''
-      })
-
-      if (cityName && geographic.cityHasLocalities(cityName)) {
-        await geographic.loadLocalitiesByCity(cityName)
-      }
-    },
-    [geographic, updateMultipleFields]
-  )
 
   // Manejo de tags
   const addTag = useCallback(
@@ -278,23 +244,10 @@ const CompleteProfileForm = ({ user }) => {
   const renderStepContent = useMemo(() => {
     switch (currentStep) {
       case 1:
-        return <Step1BasicInfo {...commonStepProps} availableCountries={geographic.formattedCountries} />
+        return <Step1BasicInfo {...commonStepProps} updateMultipleFields={updateMultipleFields} />
 
       case 2:
-        return (
-          <Step2LocationAndCharacteristics
-            {...commonStepProps}
-            availableCountries={geographic.formattedCountries}
-            availableCities={geographic.formattedCities}
-            availableLocalities={geographic.formattedLocalities}
-            loadingCities={geographic.loadingCities}
-            loadingLocalities={geographic.loadingLocalities}
-            handleCountryChange={handleCountryChange}
-            handleCityChange={handleCityChange}
-            getCountryByCode={geographic.getCountryByCode}
-            shouldShowLocalities={geographic.formattedLocalities.length > 0}
-          />
-        )
+        return <Step2CharacteristicsAndInterests {...commonStepProps} />
 
       case 3:
         return <Step3AboutYou {...commonStepProps} addTag={addTag} removeTag={removeTag} />
@@ -305,7 +258,7 @@ const CompleteProfileForm = ({ user }) => {
       default:
         return null
     }
-  }, [currentStep, commonStepProps, geographic, handleCountryChange, handleCityChange, addTag, removeTag])
+  }, [currentStep, commonStepProps, geographic, addTag, removeTag, updateMultipleFields])
 
   // Calcular progreso
   const progress = useMemo(

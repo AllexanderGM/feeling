@@ -146,9 +146,36 @@ export const validateTerms = value => {
 }
 
 // ========================================
-// VALIDADORES DE IMAGEN SIMPLIFICADOS
+// VALIDADORES DE IMAGEN CORREGIDOS
 // ========================================
 
+/**
+ * Valida si hay una imagen principal válida
+ */
+export const validateProfileImage = images => {
+  if (!images || !Array.isArray(images)) {
+    return 'La foto de perfil es requerida'
+  }
+
+  const mainImage = images[0]
+
+  // Verificar si hay imagen en la posición principal
+  if (!mainImage) {
+    return 'La foto de perfil es requerida'
+  }
+
+  // Verificar si la imagen es válida (no null, undefined o string vacío)
+  if (typeof mainImage === 'string' && !mainImage.trim()) {
+    return 'La foto de perfil es requerida'
+  }
+
+  // Si llegamos aquí, hay una imagen válida
+  return null
+}
+
+/**
+ * Valida archivos de imagen
+ */
 export const validateImageFile = async (file, options = {}) => {
   const { maxSizeMB = 5, allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] } = options
 
@@ -168,6 +195,41 @@ export const validateImageFile = async (file, options = {}) => {
   }
 
   // Las dimensiones se validan en el hook useImageManager
+  return null
+}
+
+/**
+ * Valida el conjunto completo de imágenes
+ */
+export const validateImageSet = (images, options = {}) => {
+  const { requireMain = true, minImages = 1, maxImages = 5 } = options
+
+  if (!images || !Array.isArray(images)) {
+    return requireMain ? 'La foto de perfil es requerida' : null
+  }
+
+  // Filtrar imágenes válidas (no null, undefined o string vacío)
+  const validImages = images.filter(img => {
+    if (!img) return false
+    if (typeof img === 'string' && !img.trim()) return false
+    return true
+  })
+
+  // Validar imagen principal
+  if (requireMain && !validImages[0]) {
+    return 'La foto de perfil es requerida'
+  }
+
+  // Validar cantidad mínima
+  if (validImages.length < minImages) {
+    return `Mínimo ${minImages} imagen${minImages > 1 ? 'es' : ''}`
+  }
+
+  // Validar cantidad máxima
+  if (validImages.length > maxImages) {
+    return `Máximo ${maxImages} imágenes`
+  }
+
   return null
 }
 
@@ -193,7 +255,7 @@ export const validateForm = (data, validators) => {
 
   Object.entries(validators).forEach(([field, validator]) => {
     if (typeof validator === 'function') {
-      const error = validator(data[field])
+      const error = validator(data[field], data) // Pasar datos completos para validaciones que los necesiten
       if (error) errors[field] = error
     }
   })
@@ -217,10 +279,7 @@ export const validators = {
     document: validateDocument,
     phone: validatePhone,
     birthDate: validateBirthDate,
-    profileImage: images => {
-      if (!images || !images[0]) return 'La foto de perfil es requerida'
-      return null
-    }
+    images: validateProfileImage
   },
 
   // Step 2 - Ubicación y características
@@ -270,6 +329,16 @@ export const validateStep = (step, formData) => {
   }
 
   const currentValidators = stepValidators[step] || {}
+
+  // Log para debugging
+  if (step === 1) {
+    console.log('Validando Step 1:', {
+      formData: formData,
+      images: formData.images,
+      hasMainImage: !!formData.images?.[0]
+    })
+  }
+
   return validateForm(formData, currentValidators)
 }
 
@@ -294,4 +363,26 @@ export const validateFields = (fields, validatorMap) => {
   })
 
   return results
+}
+
+/**
+ * Utilidad para debugging de validaciones
+ */
+export const debugValidation = (step, formData) => {
+  console.group(`🔍 Debug Validación - Step ${step}`)
+
+  const validation = validateStep(step, formData)
+
+  console.log('FormData:', formData)
+  console.log('Validation Result:', validation)
+
+  if (!validation.isValid) {
+    console.log('❌ Errores encontrados:', validation.errors)
+  } else {
+    console.log('✅ Validación exitosa')
+  }
+
+  console.groupEnd()
+
+  return validation
 }

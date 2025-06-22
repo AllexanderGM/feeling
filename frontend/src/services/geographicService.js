@@ -1,4 +1,3 @@
-// services/geographicService.js
 import { API_URL } from '@config/config'
 
 class GeographicService {
@@ -103,33 +102,28 @@ class GeographicService {
       this.setCachedData(cacheKey, data)
 
       // También cachear los datos individuales para consultas futuras
-      this.setCachedData('countries', data.countries)
+      if (data.countries) {
+        this.setCachedData('countries', data.countries)
+
+        // Cachear ciudades por país
+        data.countries.forEach(country => {
+          if (country.cities) {
+            this.setCachedData(`cities-${country.name}`, country.cities)
+
+            // Cachear localidades por ciudad
+            country.cities.forEach(city => {
+              if (city.localities) {
+                this.setCachedData(`localities-${city.name}`, city.localities)
+              }
+            })
+          }
+        })
+      }
 
       return data
     } catch (error) {
       console.error('Error al obtener datos geográficos:', error)
       throw new Error('No se pudieron cargar los datos geográficos')
-    }
-  }
-
-  // Obtener países simplificados (sin ciudades anidadas)
-  async getSimpleCountries() {
-    const cacheKey = 'simple-countries'
-    const cached = this.getCachedData(cacheKey)
-    if (cached) return cached
-
-    try {
-      const response = await fetch(`${this.baseURL}/countries/simple`)
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-
-      const countries = await response.json()
-      this.setCachedData(cacheKey, countries)
-      return countries
-    } catch (error) {
-      console.error('Error al obtener países simplificados:', error)
-      throw new Error('No se pudieron cargar los países')
     }
   }
 
@@ -144,9 +138,9 @@ class GeographicService {
       key: country.code,
       name: country.name,
       phone: country.phoneCode,
-      emoji: country.emoji,
-      image: country.image,
-      priority: country.priority
+      image: country.flag || country.image,
+      emoji: country.emoji || '🌍',
+      priority: country.priority || false
     }))
   }
 
@@ -155,7 +149,7 @@ class GeographicService {
     return cities.map(city => ({
       key: city.name,
       name: city.name,
-      priority: city.priority
+      priority: city.priority || false
     }))
   }
 
