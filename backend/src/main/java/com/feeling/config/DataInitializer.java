@@ -165,11 +165,11 @@ public class DataInitializer implements CommandLineRunner {
 
         // Género
         createAttributesIfNotExists("GENDER", Arrays.asList(
-                new AttributeData("MALE", "Masculino", "Identidad de género masculina", 1),
-                new AttributeData("FEMALE", "Femenino", "Identidad de género femenina", 2),
-                new AttributeData("NON_BINARY", "No binario", "Identidad de género no binaria", 3),
-                new AttributeData("OTHER", "Otro", "Otra identidad de género", 4),
-                new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", 5)
+                new AttributeData("MALE", "Masculino", "Identidad de género masculina", "man", 1),
+                new AttributeData("FEMALE", "Femenino", "Identidad de género femenina", "woman", 2),
+                new AttributeData("NON_BINARY", "No binario", "Identidad de género no binaria", "transgender", 3),
+                new AttributeData("OTHER", "Otro", "Otra identidad de género", "diversity_3", 4),
+                new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", "visibility_off", 5)
         ));
 
         // Estado civil
@@ -184,34 +184,43 @@ public class DataInitializer implements CommandLineRunner {
 
         // Color de ojos
         createAttributesIfNotExists("EYE_COLOR", Arrays.asList(
-                new AttributeData("BROWN", "Marrones", "Ojos de color marrón", 1),
-                new AttributeData("BLUE", "Azules", "Ojos de color azul", 2),
-                new AttributeData("GREEN", "Verdes", "Ojos de color verde", 3),
-                new AttributeData("HAZEL", "Avellana", "Ojos de color avellana", 4),
-                new AttributeData("GRAY", "Grises", "Ojos de color gris", 5),
-                new AttributeData("BLACK", "Negros", "Ojos de color negro", 6)
+                new AttributeData("BROWN", "Marrones", "Ojos de color marrón", "#D2691E", 1),
+                new AttributeData("BLUE", "Azules", "Ojos de color azul", "#1E90FF", 2),
+                new AttributeData("GREEN", "Verdes", "Ojos de color verde", "#32CD32", 3),
+                new AttributeData("HAZEL", "Avellana", "Ojos de color avellana", "#DAA520", 4),
+                new AttributeData("GRAY", "Grises", "Ojos de color gris", "#6495ED", 5),
+                new AttributeData("BLACK", "Negros", "Ojos de color negro", "#2F2F2F", 6),
+                new AttributeData("AMBER", "Ámbar", "Ojos de color ámbar", "#FFBF00", 7)
         ));
 
         // Color de cabello
         createAttributesIfNotExists("HAIR_COLOR", Arrays.asList(
-                new AttributeData("BLACK", "Negro", "Cabello negro", 1),
-                new AttributeData("BROWN", "Castaño", "Cabello castaño", 2),
-                new AttributeData("BLONDE", "Rubio", "Cabello rubio", 3),
-                new AttributeData("RED", "Pelirrojo", "Cabello pelirrojo", 4),
-                new AttributeData("GRAY", "Canoso", "Cabello canoso", 5),
-                new AttributeData("WHITE", "Blanco", "Cabello blanco", 6),
-                new AttributeData("OTHER", "Otro", "Otro color de cabello", 7)
+                new AttributeData("BLACK", "Negro", "Cabello negro", "#1C1C1C", 1),
+                new AttributeData("DARK_BROWN", "Castaño Oscuro", "Cabello castaño oscuro", "#654321", 2),
+                new AttributeData("BROWN", "Castaño", "Cabello castaño", "#8B4513", 3),
+                new AttributeData("LIGHT_BROWN", "Castaño Claro", "Cabello castaño claro", "#CD853F", 4),
+                new AttributeData("DARK_BLONDE", "Rubio Oscuro", "Cabello rubio oscuro", "#B8860B", 5),
+                new AttributeData("BLONDE", "Rubio", "Cabello rubio", "#FFD700", 6),
+                new AttributeData("LIGHT_BLONDE", "Rubio Claro", "Cabello rubio claro", "#F0E68C", 7),
+                new AttributeData("STRAWBERRY_BLONDE", "Rubio Fresa", "Cabello rubio fresa", "#FF7F50", 8),
+                new AttributeData("RED", "Pelirrojo", "Cabello pelirrojo", "#FF4500", 9),
+                new AttributeData("AUBURN", "Cobrizo", "Cabello cobrizo", "#A52A2A", 10),
+                new AttributeData("GRAY", "Canoso", "Cabello canoso", "#C0C0C0", 11),
+                new AttributeData("WHITE", "Blanco", "Cabello blanco", "#F8F8FF", 12),
+                new AttributeData("OTHER", "Otro", "Otro color de cabello", "palette", 13)
         ));
 
         // Tipo de cuerpo
         createAttributesIfNotExists("BODY_TYPE", Arrays.asList(
-                new AttributeData("SLIM", "Delgado/a", "Constitución delgada", 1),
-                new AttributeData("ATHLETIC", "Atlético/a", "Constitución atlética", 2),
-                new AttributeData("AVERAGE", "Promedio", "Constitución promedio", 3),
-                new AttributeData("CURVY", "Con curvas", "Constitución con curvas", 4),
-                new AttributeData("PLUS_SIZE", "Talla grande", "Constitución de talla grande", 5)
+                new AttributeData("SLIM", "Delgado/a", "Constitución delgada", "straighten", 1),
+                new AttributeData("ATHLETIC", "Atlético/a", "Constitución atlética", "fitness_center", 2),
+                new AttributeData("AVERAGE", "Promedio", "Constitución promedio", "person", 3),
+                new AttributeData("CURVY", "Con curvas", "Constitución con curvas", "waving_hand", 4),
+                new AttributeData("PLUS_SIZE", "Talla grande", "Constitución de talla grande", "sentiment_satisfied", 5),
+                new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", "visibility_off", 6)
         ));
 
+        // Nivel educativo
         createAttributesIfNotExists("EDUCATION_LEVEL", Arrays.asList(
                 new AttributeData("PRIMARY", "Primaria", "Educación primaria completa", 1),
                 new AttributeData("SECONDARY", "Secundaria", "Educación secundaria completa", 2),
@@ -225,39 +234,39 @@ public class DataInitializer implements CommandLineRunner {
 
         // Religión
         createAttributesIfNotExists("RELIGION", Arrays.asList(
-                new AttributeData("CHRISTIAN", "Cristiano/a", "Religión cristiana", 1),
-                new AttributeData("CATHOLIC", "Católico/a", "Religión católica", 2),
-                new AttributeData("PROTESTANT", "Protestante", "Religión protestante", 3),
-                new AttributeData("EVANGELICAL", "Evangélico/a", "Religión evangélica", 4),
-                new AttributeData("PENTECOSTAL", "Pentecostal", "Religión pentecostal", 5),
-                new AttributeData("ORTHODOX", "Ortodoxo/a", "Religión ortodoxa", 6),
-                new AttributeData("JEWISH", "Judío/a", "Religión judía", 7),
-                new AttributeData("MUSLIM", "Musulmán/a", "Religión musulmana", 8),
-                new AttributeData("BUDDHIST", "Budista", "Religión budista", 9),
-                new AttributeData("HINDU", "Hindú", "Religión hindú", 10),
-                new AttributeData("SPIRITUAL", "Espiritual", "Persona espiritual sin religión específica", 11),
-                new AttributeData("AGNOSTIC", "Agnóstico/a", "Persona agnóstica", 12),
-                new AttributeData("ATHEIST", "Ateo/a", "Persona atea", 13),
-                new AttributeData("OTHER", "Otra", "Otra religión", 14),
-                new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", 15)
+                new AttributeData("CHRISTIAN", "Cristiano/a", "Religión cristiana", "church", 1),
+                new AttributeData("CATHOLIC", "Católico/a", "Religión católica", "church", 2),
+                new AttributeData("PROTESTANT", "Protestante", "Religión protestante", "menu_book", 3),
+                new AttributeData("EVANGELICAL", "Evangélico/a", "Religión evangélica", "campaign", 4),
+                new AttributeData("PENTECOSTAL", "Pentecostal", "Religión pentecostal", "whatshot", 5),
+                new AttributeData("ORTHODOX", "Ortodoxo/a", "Religión ortodoxa", "account_balance", 6),
+                new AttributeData("JEWISH", "Judío/a", "Religión judía", "star_of_david", 7),
+                new AttributeData("MUSLIM", "Musulmán/a", "Religión musulmana", "mosque", 8),
+                new AttributeData("BUDDHIST", "Budista", "Religión budista", "self_improvement", 9),
+                new AttributeData("HINDU", "Hindú", "Religión hindú", "spa", 10),
+                new AttributeData("SPIRITUAL", "Espiritual", "Persona espiritual sin religión específica", "auto_awesome", 11),
+                new AttributeData("AGNOSTIC", "Agnóstico/a", "Persona agnóstica", "help", 12),
+                new AttributeData("ATHEIST", "Ateo/a", "Persona atea", "block", 13),
+                new AttributeData("OTHER", "Otra", "Otra religión", "public", 14),
+                new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", "visibility_off", 15)
         ));
 
         // Roles sexuales (específico para ROUSE)
         createAttributesIfNotExists("SEXUAL_ROLE", Arrays.asList(
-                new AttributeData("TOP", "Activo", "Rol sexual activo", 1),
-                new AttributeData("BOTTOM", "Pasivo", "Rol sexual pasivo", 2),
-                new AttributeData("VERSATILE", "Versátil", "Rol sexual versátil", 3),
-                new AttributeData("SIDE", "Side", "Prefiere actividades sin penetración", 4)
+                new AttributeData("TOP", "Activo", "Rol sexual activo", "keyboard_arrow_up", 1),
+                new AttributeData("BOTTOM", "Pasivo", "Rol sexual pasivo", "keyboard_arrow_down", 2),
+                new AttributeData("VERSATILE", "Versátil", "Rol sexual versátil", "swap_vert", 3),
+                new AttributeData("SIDE", "Side", "Prefiere actividades sin penetración", "swap_horiz", 4)
         ));
 
         // Tipos de relación (específico para ROUSE)
         createAttributesIfNotExists("RELATIONSHIP_TYPE", Arrays.asList(
-                new AttributeData("MONOGAMOUS", "Monógamo", "Relación monógama", 1),
-                new AttributeData("OPEN", "Abierta", "Relación abierta", 2),
-                new AttributeData("POLYAMOROUS", "Poliamorosa", "Relación poliamorosa", 3),
-                new AttributeData("CASUAL", "Casual", "Relación casual", 4),
-                new AttributeData("FRIENDS_WITH_BENEFITS", "Amigos con beneficios", "Amigos con beneficios", 5),
-                new AttributeData("EXPLORING", "Explorando", "Explorando opciones", 6)
+                new AttributeData("MONOGAMOUS", "Monógamo", "Relación monógama", "favorite", 1),
+                new AttributeData("OPEN", "Abierta", "Relación abierta", "link", 2),
+                new AttributeData("POLYAMOROUS", "Poliamorosa", "Relación poliamorosa", "group", 3),
+                new AttributeData("CASUAL", "Casual", "Relación casual", "sentiment_satisfied", 4),
+                new AttributeData("FRIENDS_WITH_BENEFITS", "Amigos con beneficios", "Amigos con beneficios", "handshake", 5),
+                new AttributeData("EXPLORING", "Explorando", "Explorando opciones", "search", 6)
         ));
     }
 
@@ -272,6 +281,7 @@ public class DataInitializer implements CommandLineRunner {
                         .name(data.name)
                         .attributeType(attributeType)
                         .description(data.description)
+                        .detail(data.detail)
                         .displayOrder(data.displayOrder)
                         .active(true)
                         .createdAt(LocalDateTime.now())
@@ -388,12 +398,24 @@ public class DataInitializer implements CommandLineRunner {
         public final String code;
         public final String name;
         public final String description;
+        public final String detail;
         public final Integer displayOrder;
 
+        // Constructor con detail explícito
+        public AttributeData(String code, String name, String description, String detail, Integer displayOrder) {
+            this.code = code;
+            this.name = name;
+            this.description = description;
+            this.detail = detail;
+            this.displayOrder = displayOrder;
+        }
+
+        // Constructor que mantiene compatibilidad (detail = null)
         public AttributeData(String code, String name, String description, Integer displayOrder) {
             this.code = code;
             this.name = name;
             this.description = description;
+            this.detail = null;
             this.displayOrder = displayOrder;
         }
     }

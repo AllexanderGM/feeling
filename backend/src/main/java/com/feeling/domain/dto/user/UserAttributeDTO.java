@@ -8,6 +8,7 @@ public record UserAttributeDTO(
         String name,
         String attributeType,
         String description,
+        String detail,
         Integer displayOrder,
         boolean active
 ) {
@@ -18,6 +19,7 @@ public record UserAttributeDTO(
                 attribute.getName(),
                 attribute.getAttributeType(),
                 attribute.getDescription(),
+                attribute.getDetail(),
                 attribute.getDisplayOrder(),
                 attribute.isActive()
         );

@@ -31,6 +31,9 @@ public class UserAttribute {
     @Column(columnDefinition = "TEXT")
     private String description; // Descripción opcional
 
+    @Column(columnDefinition = "TEXT")
+    private String detail; // Detalle opcional (ej: "<i>", "#ffffff", "icono")
+
     @Column(name = "display_order")
     @Builder.Default
     private Integer displayOrder = 0; // Orden para mostrar en formularios
@@ -60,10 +63,25 @@ public class UserAttribute {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Constructor con description y displayOrder
     public UserAttribute(String code, String name, String attributeType, String description, Integer displayOrder) {
         this(code, name, attributeType);
         this.description = description;
         this.displayOrder = displayOrder != null ? displayOrder : 0;
+    }
+
+    // Nuevo constructor que incluye detail
+    public UserAttribute(String code, String name, String attributeType, String description, String detail, Integer displayOrder) {
+        this(code, name, attributeType);
+        this.description = description;
+        this.detail = detail;
+        this.displayOrder = displayOrder != null ? displayOrder : 0;
+    }
+
+    // Constructor completo con todos los parámetros opcionales
+    public UserAttribute(String code, String name, String attributeType, String description, String detail, Integer displayOrder, boolean active) {
+        this(code, name, attributeType, description, detail, displayOrder);
+        this.active = active;
     }
 
     // ========================================

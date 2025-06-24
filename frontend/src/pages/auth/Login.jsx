@@ -1,3 +1,4 @@
+// React y React Router
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
@@ -8,6 +9,7 @@ import { validateEmail, validatePassword } from '@utils/validateInputs'
 import { getErrorMessage, getFieldErrors } from '@utils/errorUtils'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
+import { APP_PATHS } from '@constants/paths.js'
 
 const FeelingLogin = () => {
   const navigate = useNavigate()
@@ -21,7 +23,7 @@ const FeelingLogin = () => {
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [errors, setErrors] = useState({})
-  const fromPath = location.state?.from?.pathname || '/'
+  const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
 
   // Si viene mensaje del estado (ej: desde verificación exitosa)
   const successMessage = location.state?.message
@@ -190,7 +192,7 @@ const FeelingLogin = () => {
             <span className="text-xs text-gray-500 ml-2">Recordar sesión</span>
           </label>
 
-          <Link href="/forgot-password" className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
+          <Link href={APP_PATHS.AUTH.FORGOT_PASSWORD} className="text-xs text-gray-500 hover:text-gray-200 transition-colors">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -228,7 +230,13 @@ const FeelingLogin = () => {
 
         <div className="w-full text-center text-xs text-gray-500 mt-6">
           ¿No tienes una cuenta?
-          <Button as={Link} href="/register" variant="bordered" color="default" radius="full" className="w-full mt-4 transition-colors">
+          <Button
+            as={Link}
+            href={APP_PATHS.AUTH.REGISTER}
+            variant="bordered"
+            color="default"
+            radius="full"
+            className="w-full mt-4 transition-colors">
             Regístrate
           </Button>
         </div>
