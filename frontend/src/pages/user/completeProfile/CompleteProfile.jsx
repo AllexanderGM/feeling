@@ -3,9 +3,10 @@ import { Button } from '@heroui/react'
 import useGeographicData from '@hooks/useGeographicData'
 import { validateStep } from '@utils/validateInputs'
 import useAuth from '@hooks/useAuth'
+import { APP_PATHS } from '@constants/paths.js'
 
 import Step1BasicInfo from './components/Step1BasicInfo.jsx'
-import Step2CharacteristicsAndInterests from './components/Step2CharacteristicsAndInterests.jsx'
+import Step2Characteristics from './components/Step2Characteristics.jsx'
 import Step3AboutYou from './components/Step3AboutYou.jsx'
 import Step4PreferencesAndConfig from './components/Step4PreferencesAndConfig.jsx'
 
@@ -19,12 +20,11 @@ const INITIAL_FORM_DATA = {
   phoneCode: '+57',
   phone: '',
   birthDate: '',
-  // Campos de ubicación movidos del Step 2
   country: 'Colombia',
   city: 'Bogotá',
   locality: '',
 
-  // Step 2 - Características e intereses (sin ubicación)
+  // Step 2 - Características e intereses
   categoryInterest: '',
   genderId: '',
   height: 170,
@@ -74,7 +74,7 @@ const CompleteProfile = () => {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400">Error: No se encontró información del usuario</p>
-          <Button variant="bordered" onClick={() => (window.location.href = '/login')}>
+          <Button variant="bordered" onPress={() => (window.location.href = APP_PATHS.AUTH.LOGIN)}>
             Volver al login
           </Button>
         </div>
@@ -247,7 +247,7 @@ const CompleteProfileForm = ({ user }) => {
         return <Step1BasicInfo {...commonStepProps} updateMultipleFields={updateMultipleFields} />
 
       case 2:
-        return <Step2CharacteristicsAndInterests {...commonStepProps} />
+        return <Step2Characteristics {...commonStepProps} />
 
       case 3:
         return <Step3AboutYou {...commonStepProps} addTag={addTag} removeTag={removeTag} />
@@ -287,7 +287,7 @@ const CompleteProfileForm = ({ user }) => {
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400">Error al cargar datos</p>
-          <Button variant="bordered" onClick={() => window.location.reload()}>
+          <Button variant="bordered" onPress={() => window.location.reload()}>
             Reintentar
           </Button>
         </div>

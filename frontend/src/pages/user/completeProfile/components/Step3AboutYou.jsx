@@ -1,5 +1,5 @@
 import { Textarea, Input, Select, SelectItem } from '@heroui/react'
-import { useUserAttributes } from '@hooks/useUserAttributes'
+import { useUserAttributes } from '@hooks/useUserAttributes.js'
 
 import TagSelector from './TagSelector.jsx'
 
