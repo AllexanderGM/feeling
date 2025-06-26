@@ -76,7 +76,7 @@ const CompleteProfile = () => {
   const location = useLocation({ defaultCountry: INITIAL_FORM_DATA.country, defaultCity: INITIAL_FORM_DATA.city })
   const userAttributes = useUserAttributes()
   const userTags = useUserTags()
-  const { submitting, error: userError, completeProfile, validateProfile, clearError } = useUser()
+  const { submitting, completeProfile } = useUser()
   const [formData, setFormData] = useState({
     ...INITIAL_FORM_DATA,
     name: user.name || '',
