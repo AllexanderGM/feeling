@@ -8,6 +8,7 @@ import { validateEmail, validatePassword, validateName, validateLastName, valida
 import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
+import { APP_PATHS } from '@constants/paths.js'
 
 const FeelingRegister = () => {
   const navigate = useNavigate()
@@ -85,7 +86,7 @@ const FeelingRegister = () => {
 
     if (result.success) {
       // Redirigir al usuario a verificar su correo con el email como parámetro
-      navigate('/verify-email', {
+      navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
         state: {
           email: formData.email.toLowerCase().trim(),
           fromRegister: true,
@@ -124,7 +125,7 @@ const FeelingRegister = () => {
         if (result.success) {
           // Para usuarios de Google que se registran por primera vez,
           // redirigir directamente a completar perfil ya que no necesitan verificar email
-          navigate('/complete-profile', {
+          navigate(APP_PATHS.USER.COMPLETE_PROFILE, {
             state: {
               email: result.data.email,
               fromGoogle: true,
@@ -354,7 +355,7 @@ const FeelingRegister = () => {
 
           <div className="w-full text-center">
             <p className="text-sm text-gray-400 mb-2">¿Ya tienes una cuenta?</p>
-            <Link href="/login" className="text-sm text-gray-300 hover:text-white transition-colors underline">
+            <Link href={APP_PATHS.AUTH.LOGIN} className="text-sm text-gray-300 hover:text-white transition-colors underline">
               Inicia sesión aquí
             </Link>
           </div>
