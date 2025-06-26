@@ -1,5 +1,5 @@
 /**
- * Utilidades de validación simplificadas y optimizadas
+ * Utilidades de validación corregidas y optimizadas
  */
 
 // Expresiones regulares reutilizables
@@ -129,7 +129,7 @@ export const validateBirthDate = value => {
     age--
   }
 
-  if (age < 18) return ERROR_MESSAGES.minAge(18)
+  if (age < 18) return 'Debes ser mayor de 18 años'
 
   return null
 }
@@ -141,83 +141,37 @@ export const validatePasswordMatch = (password, confirmPassword) => {
 }
 
 export const validateTerms = value => {
-  if (!value) return 'Acepta los términos y condiciones'
+  return value ? null : 'Debes aceptar los términos y condiciones'
+}
+
+export const validatePhoneCode = value => {
+  if (!value) return 'Selecciona el código de país'
   return null
 }
 
-// ========================================
-// VALIDADORES DE IMAGEN CORREGIDOS
-// ========================================
-
-/**
- * Valida si hay una imagen principal válida
- */
-export const validateProfileImage = images => {
-  if (!images || !Array.isArray(images)) {
-    return 'La foto de perfil es requerida'
-  }
-
-  const mainImage = images[0]
-
-  // Verificar si hay imagen en la posición principal
-  if (!mainImage) {
-    return 'La foto de perfil es requerida'
-  }
-
-  // Verificar si la imagen es válida (no null, undefined o string vacío)
-  if (typeof mainImage === 'string' && !mainImage.trim()) {
-    return 'La foto de perfil es requerida'
-  }
-
-  // Si llegamos aquí, hay una imagen válida
-  return null
-}
-
-/**
- * Valida archivos de imagen
- */
-export const validateImageFile = async (file, options = {}) => {
-  const { maxSizeMB = 5, allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'] } = options
-
-  if (!file) return null // No es error si no hay archivo
-
-  if (!(file instanceof File)) return 'Archivo inválido'
-
-  // Validar tipo
-  if (!allowedTypes.includes(file.type)) {
-    return 'Formato no permitido'
-  }
-
-  // Validar tamaño
-  const sizeMB = file.size / (1024 * 1024)
-  if (sizeMB > maxSizeMB) {
-    return `Máximo ${maxSizeMB}MB`
-  }
-
-  // Las dimensiones se validan en el hook useImageManager
-  return null
-}
-
-/**
- * Valida el conjunto completo de imágenes
- */
-export const validateImageSet = (images, options = {}) => {
+// Validación específica para imágenes
+export const validateProfileImage = (images, options = {}) => {
   const { requireMain = true, minImages = 1, maxImages = 5 } = options
 
-  if (!images || !Array.isArray(images)) {
-    return requireMain ? 'La foto de perfil es requerida' : null
-  }
+  // Si images no es un array, convertirlo
+  const imageArray = Array.isArray(images) ? images : []
 
   // Filtrar imágenes válidas (no null, undefined o string vacío)
-  const validImages = images.filter(img => {
+  const validImages = imageArray.filter(img => {
     if (!img) return false
     if (typeof img === 'string' && !img.trim()) return false
     return true
   })
 
-  // Validar imagen principal
-  if (requireMain && !validImages[0]) {
-    return 'La foto de perfil es requerida'
+  // Validar imagen principal (posición 0) - ESTO ES LO MÁS IMPORTANTE
+  if (requireMain) {
+    const mainImage = imageArray[0]
+    if (!mainImage) {
+      return 'La foto de perfil es requerida'
+    }
+    if (typeof mainImage === 'string' && !mainImage.trim()) {
+      return 'La foto de perfil es requerida'
+    }
   }
 
   // Validar cantidad mínima
@@ -232,6 +186,20 @@ export const validateImageSet = (images, options = {}) => {
 
   return null
 }
+
+// Validación para tags/intereses
+export const validateTags = tags => {
+  if (!tags || tags.length === 0) return 'Agrega al menos un interés'
+  if (tags.length > 10) return 'Máximo 10 intereses'
+  return null
+}
+
+// Validación para descripción
+export const validateDescription = createValidator({
+  fieldName: 'La descripción',
+  minLength: 10,
+  maxLength: 500
+})
 
 // ========================================
 // UTILIDADES DE FORMATO
@@ -255,7 +223,7 @@ export const validateForm = (data, validators) => {
 
   Object.entries(validators).forEach(([field, validator]) => {
     if (typeof validator === 'function') {
-      const error = validator(data[field], data) // Pasar datos completos para validaciones que los necesiten
+      const error = validator(data[field], data)
       if (error) errors[field] = error
     }
   })
@@ -268,53 +236,80 @@ export const validateForm = (data, validators) => {
 }
 
 // ========================================
-// VALIDADORES PRE-CONFIGURADOS
+// VALIDADORES PRE-CONFIGURADOS POR PASO
 // ========================================
 
 export const validators = {
   // Step 1 - Información básica
-  basicInfo: {
+  step1: {
+    images: validateProfileImage,
     name: validateName,
     lastName: validateLastName,
     document: validateDocument,
+    phoneCode: validatePhoneCode,
     phone: validatePhone,
     birthDate: validateBirthDate,
-    images: validateProfileImage
-  },
-
-  // Step 2 - Ubicación y características
-  location: {
     country: value => (!value ? 'Selecciona un país' : null),
-    city: value => (!value?.trim() ? 'Selecciona una ciudad' : null),
-    genderId: value => (!value ? 'Selecciona tu género' : null),
-    categoryInterest: value => (!value ? 'Selecciona una categoría' : null)
+    city: value => (!value?.trim() ? 'Selecciona una ciudad' : null)
   },
 
   // Step 3 - Sobre ti
-  about: {
-    description: createValidator({
-      fieldName: 'La descripción',
-      minLength: 10,
-      maxLength: 500
-    }),
-    tags: tags => {
-      if (!tags || tags.length === 0) return 'Agrega al menos un interés'
-      if (tags.length > 10) return 'Máximo 10 intereses'
+  step2: {
+    description: validateDescription,
+    tags: validateTags,
+    genderId: value => (!value ? 'Selecciona tu género' : null),
+    height: value => {
+      if (!value || value < 140 || value > 220) {
+        return 'La estatura debe estar entre 140 y 220 cm'
+      }
       return null
     }
   },
 
-  // Login/Registro
-  auth: {
-    email: validateEmail,
-    password: validatePassword,
-    confirmPassword: (value, data) => validatePasswordMatch(data.password, value),
-    terms: validateTerms
-  }
+  // Step 2 - Características y categoría
+  step3: {
+    categoryInterest: value => (!value ? 'Selecciona una categoría' : null),
+    agePreferenceMin: value => {
+      if (!value || value < 18) return 'Edad mínima debe ser 18 años'
+      return null
+    },
+    agePreferenceMax: value => {
+      if (!value || value > 80) return 'Edad máxima no puede ser mayor a 80 años'
+      return null
+    },
+    locationPreferenceRadius: value => {
+      if (!value || value < 5) return 'Radio mínimo debe ser 5 km'
+      if (value > 200) return 'Radio máximo es 200 km'
+      return null
+    },
+    // Validaciones específicas para SPIRIT
+    religionId: (value, data) => {
+      if (data.categoryInterest === 'SPIRIT' && !value) {
+        return 'Selecciona tu religión'
+      }
+      return null
+    },
+    // Validaciones específicas para ROUSE
+    sexualRoleId: (value, data) => {
+      if (data.categoryInterest === 'ROUSE' && !value) {
+        return 'Selecciona tu rol sexual'
+      }
+      return null
+    },
+    relationshipTypeId: (value, data) => {
+      if (data.categoryInterest === 'ROUSE' && !value) {
+        return 'Selecciona el tipo de relación que buscas'
+      }
+      return null
+    }
+  },
+
+  // Step 4 - No tiene validaciones obligatorias
+  step4: {}
 }
 
 // ========================================
-// HELPERS DE VALIDACIÓN
+// FUNCIÓN PRINCIPAL DE VALIDACIÓN POR PASO
 // ========================================
 
 /**
@@ -322,22 +317,19 @@ export const validators = {
  */
 export const validateStep = (step, formData) => {
   const stepValidators = {
-    1: validators.basicInfo,
-    2: validators.location,
-    3: validators.about,
-    4: {} // Step 4 no requiere validaciones
+    1: validators.step1,
+    2: validators.step2,
+    3: validators.step3,
+    4: validators.step4
   }
 
   const currentValidators = stepValidators[step] || {}
 
   // Log para debugging
-  if (step === 1) {
-    console.log('Validando Step 1:', {
-      formData: formData,
-      images: formData.images,
-      hasMainImage: !!formData.images?.[0]
-    })
-  }
+  console.log(`🔍 Validando Step ${step}:`, {
+    formData: formData,
+    validators: Object.keys(currentValidators)
+  })
 
   return validateForm(formData, currentValidators)
 }

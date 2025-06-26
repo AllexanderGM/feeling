@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getUserAttributes, getUserAttributesByType, createUserAttribute } from '@services/userAttributesService'
 
-export const useUserAttributes = () => {
+export default function useUserAttributes() {
   const [attributes, setAttributes] = useState({})
   const [tempAttributes, setTempAttributes] = useState({
     EYE_COLOR: [],

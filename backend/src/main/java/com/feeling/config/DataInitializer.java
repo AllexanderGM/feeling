@@ -75,7 +75,7 @@ public class DataInitializer implements CommandLineRunner {
                 UserCategoryInterestList.ESSENCE,
                 "Essence",
                 "Conexiones auténticas para relaciones heterosexuales",
-                "💝",
+                "✨",
                 "Essence es el espacio ideal para personas que buscan relaciones heterosexuales auténticas y significativas. Aquí puedes conectar con personas que comparten tus intereses y valores para formar vínculos duraderos.",
                 "Personas heterosexuales que buscan relaciones auténticas, desde citas casuales hasta relaciones de largo plazo.",
                 List.of(
@@ -240,7 +240,7 @@ public class DataInitializer implements CommandLineRunner {
                 new AttributeData("EVANGELICAL", "Evangélico/a", "Religión evangélica", "campaign", 4),
                 new AttributeData("PENTECOSTAL", "Pentecostal", "Religión pentecostal", "whatshot", 5),
                 new AttributeData("ORTHODOX", "Ortodoxo/a", "Religión ortodoxa", "account_balance", 6),
-                new AttributeData("JEWISH", "Judío/a", "Religión judía", "star_of_david", 7),
+                new AttributeData("JEWISH", "Judío/a", "Religión judía", "brightness_empty", 7),
                 new AttributeData("MUSLIM", "Musulmán/a", "Religión musulmana", "mosque", 8),
                 new AttributeData("BUDDHIST", "Budista", "Religión budista", "self_improvement", 9),
                 new AttributeData("HINDU", "Hindú", "Religión hindú", "spa", 10),

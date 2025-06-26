@@ -1,8 +1,7 @@
-// hooks/useGeographicData.js
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { geographicService } from '@services/geographicService.js'
 
-const useGeographicData = (options = {}) => {
+const useLocation = (options = {}) => {
   const { loadAll = true, defaultCountry = 'Colombia', defaultCity = 'Bogotá D.C.' } = options
 
   // Estados principales
@@ -205,4 +204,4 @@ const useGeographicData = (options = {}) => {
   }
 }
 
-export default useGeographicData
+export default useLocation
