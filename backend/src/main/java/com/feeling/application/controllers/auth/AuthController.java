@@ -280,17 +280,18 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     @Operation(
-            summary = "Refrescar token JWT",
-            description = "Genera un nuevo token JWT usando un token existente válido"
+            summary = "Refrescar access token",
+            description = "Genera un nuevo access token usando un refresh token válido"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Token refrescado exitosamente"),
-            @ApiResponse(responseCode = "401", description = "Token inválido o expirado")
+            @ApiResponse(responseCode = "200", description = "Access token refrescado exitosamente"),
+            @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
     })
-    public ResponseEntity<MessageResponseDTO> refreshToken(@RequestHeader("Authorization") String authHeader) throws BadRequestException {
+    public ResponseEntity<RefreshTokenResponseDTO> refreshToken(
+            @RequestBody @Valid RefreshTokenRequestDTO request) throws BadRequestException {
         try {
             logger.info("Solicitud de refresh token");
-            MessageResponseDTO response = authService.refreshToken(authHeader);
+            RefreshTokenResponseDTO response = authService.refreshToken(request);
             return ResponseEntity.ok(response);
         } catch (BadRequestException e) {
             logger.error("Error en refresh token: {}", e.getMessage());

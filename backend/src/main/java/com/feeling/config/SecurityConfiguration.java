@@ -1,9 +1,9 @@
 package com.feeling.config;
 
-import com.feeling.infrastructure.entities.user.UserToken;
 import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -35,12 +35,15 @@ public class SecurityConfiguration {
     private final IUserTokenRepository tokenRepository;
     private final AuthenticationProvider authenticationProvider;
 
+    @Value("${cors.allowed.origins}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ CORRECCIÓN: Usar allowedOriginPatterns en lugar de allowedOrigins cuando allowCredentials = true
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // Configurar los orígenes permitidos
+        configuration.setAllowedOriginPatterns(List.of(allowedOrigins));
 
         // Métodos HTTP permitidos
         configuration.setAllowedMethods(List.of(
@@ -82,21 +85,33 @@ public class SecurityConfiguration {
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()))
                 .authorizeHttpRequests(auth -> {
-                    // 🔹 Rutas para Swagger/OpenAPI
+                    // 🔹Rutas para Swagger/OpenAPI y sistema
                     auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll();
-
-                    // 🔹 Rutas para el sistema
                     auth.requestMatchers(HttpMethod.GET, "/", "/system", "/health").permitAll();
+                    auth.requestMatchers("/favicon.ico", "/error").permitAll();
 
-                    // 🔹 Rutas de autenticación (públicas)
+                    // 🔹RUTAS DE AUTENTICACIÓN (PÚBLICAS) - CORREGIDAS
                     auth.requestMatchers(HttpMethod.POST, "/auth/register").permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/auth/register/google").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/auth/login/google").permitAll();
+
+                    // 🔹Rutas Google OAuth actualizadas
+                    auth.requestMatchers(HttpMethod.POST, "/auth/google/register").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/auth/google/login").permitAll();
+
+                    // 🔹Verificación de email
                     auth.requestMatchers(HttpMethod.POST, "/auth/verify-email").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/resend-verification").permitAll();
+
+                    // 🔹Recuperación de contraseña
                     auth.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
+
+                    // 🔹Refresh token debe ser PÚBLICO (no autenticado)
+                    auth.requestMatchers(HttpMethod.POST, "/auth/refresh-token").permitAll();
+
+                    // 🔹Verificación de email y métodos
+                    auth.requestMatchers(HttpMethod.GET, "/auth/check-email/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/auth/check-method/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/auth/status/**").permitAll();
 
                     // 🔹 Rutas de ubicaciones (públicas)
@@ -114,14 +129,14 @@ public class SecurityConfiguration {
                     auth.requestMatchers(HttpMethod.GET, "/tags/popular/category/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/tags/trending").permitAll();
 
-                    // 🔹 Rutas protegidas para usuarios autenticados
-                    auth.requestMatchers(HttpMethod.POST, "/auth/refresh-token").authenticated();
+                    // 🔹 RUTAS PROTEGIDAS PARA USUARIOS AUTENTICADOS
+                    // Logout (requiere autenticación)
                     auth.requestMatchers(HttpMethod.POST, "/auth/logout").authenticated();
 
                     // Perfil de usuario
                     auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
                     auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
-                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").permitAll(); // temporal
+                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").authenticated();
 
                     // Tags de usuario
                     auth.requestMatchers("/users/tags/**").authenticated();
@@ -130,7 +145,7 @@ public class SecurityConfiguration {
                     auth.requestMatchers("/matches/**").authenticated();
                     auth.requestMatchers("/users/search").authenticated();
 
-                    // 🔹 Rutas protegidas para administradores
+                    // 🔹 RUTAS PROTEGIDAS PARA ADMINISTRADORES
                     auth.requestMatchers("/admin/**").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.POST, "/users/{id}/admin").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.PUT, "/users/{id}/admin").hasRole("ADMIN");
@@ -149,26 +164,40 @@ public class SecurityConfiguration {
                         .logoutUrl("/auth/logout")
                         .addLogoutHandler((request, response, authentication) -> {
                             final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-                            logout(authHeader);
+                            // Manejar errores en logout
+                            try {
+                                logout(authHeader);
+                            } catch (Exception e) {
+                                // Log error pero no fallar el logout
+                                System.err.println("Error en logout: " + e.getMessage());
+                            }
                         })
-                        .logoutSuccessHandler((request, response, authentication) ->
-                                SecurityContextHolder.clearContext())
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            SecurityContextHolder.clearContext();
+                            response.setStatus(200);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"message\": \"Logout exitoso\"}");
+                        })
                 )
                 .build();
     }
 
+    /**
+     * Manejo de logout con mejor control de errores
+     */
     private void logout(final String token) {
         if (token == null || !token.startsWith("Bearer ")) {
             throw new IllegalArgumentException("Token no válido");
         }
 
         final String jwtToken = token.substring(7);
-        final UserToken foundToken = tokenRepository.findByToken(jwtToken)
-                .orElseThrow(() -> new IllegalArgumentException("Token no encontrado"));
 
-        foundToken.setExpired(true);
-        foundToken.setRevoked(true);
-        tokenRepository.save(foundToken);
+        // Revocar solo si existe, no fallar si no existe
+        tokenRepository.findByToken(jwtToken).ifPresent(foundToken -> {
+            foundToken.setExpired(true);
+            foundToken.setRevoked(true);
+            tokenRepository.save(foundToken);
+        });
     }
 
     @Bean

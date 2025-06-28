@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import { registerSchema } from '@utils/formSchemas'
 import { useGoogleLogin } from '@react-oauth/google'
 import useError from '@hooks/useError'
 import useAuth from '@hooks/useAuth'
-import { validateEmail, validatePassword, validateName, validateLastName, validatePasswordMatch } from '@utils/validateInputs'
 import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
@@ -15,63 +17,60 @@ const FeelingRegister = () => {
   const { showErrorModal } = useError()
   const { register, registerWithGoogle, loading } = useAuth()
 
-  const [formData, setFormData] = useState({
-    name: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  })
-
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [serverErrors, setServerErrors] = useState({})
+  const [termsError, setTermsError] = useState('')
+
+  // Configuración de React Hook Form
+  const {
+    control,
+    handleSubmit,
+    clearErrors,
+    formState: { errors, isValid }
+  } = useForm({
+    resolver: yupResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      lastName: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    },
+    mode: 'onChange'
+  })
 
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible)
   const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
-  const handleInputChange = (field, value) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    })
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null })
+  // Limpiar errores del servidor cuando el usuario empiece a escribir
+  const handleFieldChange = fieldName => {
+    if (serverErrors[fieldName]) {
+      setServerErrors(prev => ({ ...prev, [fieldName]: null }))
+    }
+    clearErrors(fieldName)
+  }
+
+  // Manejar cambios en términos y condiciones
+  const handleTermsChange = accepted => {
+    setTermsAccepted(accepted)
+    if (accepted && termsError) {
+      setTermsError('')
     }
   }
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    const nameError = validateName(formData.name)
-    if (nameError) newErrors.name = nameError
-
-    const lastNameError = validateLastName(formData.lastName)
-    if (lastNameError) newErrors.lastName = lastNameError
-
-    const emailError = validateEmail(formData.email)
-    if (emailError) newErrors.email = emailError
-
-    const passwordError = validatePassword(formData.password)
-    if (passwordError) newErrors.password = passwordError
-
-    const passwordMatchError = validatePasswordMatch(formData.password, formData.confirmPassword)
-    if (passwordMatchError) newErrors.confirmPassword = passwordMatchError
-
+  const onSubmit = async formData => {
+    // Validar términos y condiciones
     if (!termsAccepted) {
-      newErrors.terms = 'Debes aceptar los términos y condiciones'
+      setTermsError('Debes aceptar los términos y condiciones')
+      return
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async event => {
-    event.preventDefault()
-
-    if (!validateForm()) return
+    // Limpiar errores del servidor antes de enviar
+    setServerErrors({})
+    setTermsError('')
 
     // Preparar datos para el registro
     const userData = {
@@ -90,7 +89,7 @@ const FeelingRegister = () => {
         state: {
           email: formData.email.toLowerCase().trim(),
           fromRegister: true,
-          userType: 'local' // Para distinguir de usuarios de Google
+          userType: 'local'
         },
         replace: true
       })
@@ -102,7 +101,7 @@ const FeelingRegister = () => {
       const fieldErrors = getFieldErrors(error)
 
       if (Object.keys(fieldErrors).length > 0) {
-        setErrors(fieldErrors)
+        setServerErrors(fieldErrors)
       }
 
       // Mostrar modal de error para errores generales o del servidor
@@ -113,18 +112,15 @@ const FeelingRegister = () => {
     }
   }
 
-  // Implementación del registro con Google
+  // Implementación del registro con Google (sin cambios)
   const googleRegistration = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
         setIsGoogleAuthenticating(true)
 
-        // Usar el método específico de registro con Google
         const result = await registerWithGoogle(tokenResponse)
 
         if (result.success) {
-          // Para usuarios de Google que se registran por primera vez,
-          // redirigir directamente a completar perfil ya que no necesitan verificar email
           navigate(APP_PATHS.USER.COMPLETE_PROFILE, {
             state: {
               email: result.data.email,
@@ -135,7 +131,6 @@ const FeelingRegister = () => {
             replace: true
           })
         } else {
-          // Si hay error, intentar extraer mensaje específico
           let errorMessage = 'No se pudo completar el registro con Google'
 
           if (result.error?.response?.data?.error) {
@@ -164,14 +159,19 @@ const FeelingRegister = () => {
     googleRegistration()
   }
 
+  // Combinar errores de validación y del servidor
+  const getFieldError = fieldName => {
+    return errors[fieldName]?.message || serverErrors[fieldName]
+  }
+
   return (
     <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20 pb-10">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-36" />
       </figure>
 
-      <Form className="flex flex-col w-full space-y-4" validationBehavior="aria" onSubmit={handleSubmit}>
-        <h2 className="text-xl font-medium text-white mb-2">Crear cuenta</h2>
+      <Form className="flex flex-col w-full space-y-4" validationBehavior="aria" onSubmit={handleSubmit(onSubmit)}>
+        <h2 className="text-xl font-medium text-white text-center w-full">Crear cuenta</h2>
 
         <div className="pt-6 space-y-6 w-full">
           <Button
@@ -211,109 +211,149 @@ const FeelingRegister = () => {
         <p className="text-sm text-gray-400 mb-4">Completa el formulario para registrarte</p>
 
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            variant="underlined"
-            isRequired
-            label="Nombre"
+          <Controller
             name="name"
-            placeholder="Tu nombre"
-            type="text"
-            value={formData.name}
-            onChange={e => handleInputChange('name', e.target.value)}
-            isInvalid={!!errors.name}
-            errorMessage={errors.name}
-            isDisabled={loading || isGoogleAuthenticating}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                isRequired
+                label="Nombre(s)"
+                placeholder="Tu(s) nombre(s)"
+                type="text"
+                isInvalid={!!getFieldError('name')}
+                errorMessage={getFieldError('name')}
+                isDisabled={loading || isGoogleAuthenticating}
+                onChange={e => {
+                  field.onChange(e)
+                  handleFieldChange('name')
+                }}
+              />
+            )}
           />
 
-          <Input
-            variant="underlined"
-            isRequired
-            label="Apellido"
+          <Controller
             name="lastName"
-            placeholder="Tu apellido"
-            type="text"
-            value={formData.lastName}
-            onChange={e => handleInputChange('lastName', e.target.value)}
-            isInvalid={!!errors.lastName}
-            errorMessage={errors.lastName}
-            isDisabled={loading || isGoogleAuthenticating}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                isRequired
+                label="Apellido(s)"
+                placeholder="Tu(s) apellido(s)"
+                type="text"
+                isInvalid={!!getFieldError('lastName')}
+                errorMessage={getFieldError('lastName')}
+                isDisabled={loading || isGoogleAuthenticating}
+                onChange={e => {
+                  field.onChange(e)
+                  handleFieldChange('lastName')
+                }}
+              />
+            )}
           />
         </div>
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Correo electrónico"
+        <Controller
           name="email"
-          placeholder="usuario@correo.com"
-          type="email"
-          autoComplete="email"
-          aria-label="Correo electrónico"
-          value={formData.email}
-          onChange={e => handleInputChange('email', e.target.value)}
-          isInvalid={!!errors.email}
-          errorMessage={errors.email}
-          isDisabled={loading || isGoogleAuthenticating}
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Correo electrónico"
+              placeholder="usuario@correo.com"
+              type="email"
+              autoComplete="email"
+              aria-label="Correo electrónico"
+              isInvalid={!!getFieldError('email')}
+              errorMessage={getFieldError('email')}
+              isDisabled={loading || isGoogleAuthenticating}
+              onChange={e => {
+                field.onChange(e)
+                handleFieldChange('email')
+              }}
+            />
+          )}
         />
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Contraseña"
+        <Controller
           name="password"
-          placeholder="••••••••"
-          type={isPasswordVisible ? 'text' : 'password'}
-          autoComplete="new-password"
-          aria-label="Contraseña"
-          value={formData.password}
-          onChange={e => handleInputChange('password', e.target.value)}
-          isInvalid={!!errors.password}
-          errorMessage={errors.password}
-          isDisabled={loading || isGoogleAuthenticating}
-          endContent={
-            <button
-              aria-label="toggle password visibility"
-              className="focus:outline-none"
-              type="button"
-              onClick={togglePasswordVisibility}
-              disabled={loading || isGoogleAuthenticating}>
-              {isPasswordVisible ? (
-                <span className="material-symbols-outlined">visibility_off</span>
-              ) : (
-                <span className="material-symbols-outlined">visibility</span>
-              )}
-            </button>
-          }
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Contraseña"
+              placeholder="••••••••"
+              type={isPasswordVisible ? 'text' : 'password'}
+              autoComplete="new-password"
+              aria-label="Contraseña"
+              isInvalid={!!getFieldError('password')}
+              errorMessage={getFieldError('password')}
+              isDisabled={loading || isGoogleAuthenticating}
+              onChange={e => {
+                field.onChange(e)
+                handleFieldChange('password')
+              }}
+              endContent={
+                <button
+                  aria-label="toggle password visibility"
+                  className="focus:outline-none"
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  disabled={loading || isGoogleAuthenticating}>
+                  {isPasswordVisible ? (
+                    <span className="material-symbols-outlined">visibility_off</span>
+                  ) : (
+                    <span className="material-symbols-outlined">visibility</span>
+                  )}
+                </button>
+              }
+            />
+          )}
         />
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Confirma tu contraseña"
+        <Controller
           name="confirmPassword"
-          placeholder="••••••••"
-          type={isConfirmPasswordVisible ? 'text' : 'password'}
-          autoComplete="new-password"
-          aria-label="Confirma tu contraseña"
-          value={formData.confirmPassword}
-          onChange={e => handleInputChange('confirmPassword', e.target.value)}
-          isInvalid={!!errors.confirmPassword}
-          errorMessage={errors.confirmPassword}
-          isDisabled={loading || isGoogleAuthenticating}
-          endContent={
-            <button
-              aria-label="toggle password visibility"
-              className="focus:outline-none"
-              type="button"
-              onClick={toggleConfirmPasswordVisibility}
-              disabled={loading || isGoogleAuthenticating}>
-              {isConfirmPasswordVisible ? (
-                <span className="material-symbols-outlined">visibility_off</span>
-              ) : (
-                <span className="material-symbols-outlined">visibility</span>
-              )}
-            </button>
-          }
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Confirma tu contraseña"
+              placeholder="••••••••"
+              type={isConfirmPasswordVisible ? 'text' : 'password'}
+              autoComplete="new-password"
+              aria-label="Confirma tu contraseña"
+              isInvalid={!!getFieldError('confirmPassword')}
+              errorMessage={getFieldError('confirmPassword')}
+              isDisabled={loading || isGoogleAuthenticating}
+              onChange={e => {
+                field.onChange(e)
+                handleFieldChange('confirmPassword')
+              }}
+              endContent={
+                <button
+                  aria-label="toggle password visibility"
+                  className="focus:outline-none"
+                  type="button"
+                  onClick={toggleConfirmPasswordVisibility}
+                  disabled={loading || isGoogleAuthenticating}>
+                  {isConfirmPasswordVisible ? (
+                    <span className="material-symbols-outlined">visibility_off</span>
+                  ) : (
+                    <span className="material-symbols-outlined">visibility</span>
+                  )}
+                </button>
+              }
+            />
+          )}
         />
 
         <div className="pt-4">
@@ -322,8 +362,8 @@ const FeelingRegister = () => {
               color="primary"
               name="terms"
               isSelected={termsAccepted}
-              onValueChange={setTermsAccepted}
-              isInvalid={!!errors.terms}
+              onValueChange={handleTermsChange}
+              isInvalid={!!termsError}
               isDisabled={loading || isGoogleAuthenticating}
             />
             <span className="text-xs text-gray-500 ml-2">
@@ -337,7 +377,7 @@ const FeelingRegister = () => {
               </Link>
             </span>
           </label>
-          {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
+          {termsError && <p className="text-red-500 text-xs mt-1">{termsError}</p>}
         </div>
 
         <div className="pt-6 space-y-6 w-full">
@@ -347,7 +387,7 @@ const FeelingRegister = () => {
             color="default"
             className="w-full py-3 font-semibold shadow-md transition-all hover:shadow-lg"
             isLoading={loading}
-            isDisabled={loading || !termsAccepted || isGoogleAuthenticating}>
+            isDisabled={loading || !termsAccepted || isGoogleAuthenticating || !isValid}>
             {loading ? 'Registrando...' : 'Registrarse'}
           </Button>
 

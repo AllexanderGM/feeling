@@ -29,12 +29,21 @@ export const AuthProvider = ({ children }) => {
     () => ({
       get: name => {
         const value = cookies[name]
-        // Si es la cookie 'user' y es string, parsearlo
+
+        // Validar que el valor no sea undefined o string 'undefined'
+        if (value === undefined || value === 'undefined' || value === null) {
+          return null
+        }
+
+        // Si es la cookie 'user' y es string, parsearlo con validación
         if (name === 'user' && typeof value === 'string') {
           try {
-            return JSON.parse(value)
+            const parsed = JSON.parse(value)
+            // Validar que el objeto parseado sea válido
+            return parsed && typeof parsed === 'object' ? parsed : null
           } catch {
-            return value
+            console.warn(`Cookie corrupta detectada: ${name}`)
+            return null
           }
         }
         return value
@@ -61,9 +70,18 @@ export const AuthProvider = ({ children }) => {
         // Primero intentar obtener el usuario directamente de las cookies
         const userCookie = cookies.user
         if (userCookie) {
-          const userData = typeof userCookie === 'string' ? JSON.parse(userCookie) : userCookie
-          setUser(userData)
+          // Validar que userCookie no sea undefined antes de intentar parsearlo
+          const userData = typeof userCookie === 'string' && userCookie !== 'undefined' ? JSON.parse(userCookie) : userCookie
+
+          // Validar que userData sea un objeto válido
+          if (userData && typeof userData === 'object' && userData.email) {
+            setUser(userData)
+          } else {
+            // Si no es válido, limpiar la cookie corrupta
+            removeCookie('user', { path: '/' })
+          }
         } else if (cookies.access_token) {
+          // Si no hay usuario pero hay token, intentar obtener el usuario actual
           const currentUser = await authService.getCurrentUser()
           if (currentUser) {
             setUser(currentUser)
@@ -71,6 +89,12 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('❌ Error al inicializar autenticación:', err)
+
+        // Si hay error en el parsing, limpiar las cookies corruptas
+        removeCookie('user', { path: '/' })
+        removeCookie('access_token', { path: '/' })
+        removeCookie('refresh_token', { path: '/' })
+
         handleError(`Error al inicializar la autenticación: ${err.message}`)
       } finally {
         setLoading(false)
@@ -82,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     if (authService.hasCookieHandler()) {
       initAuth()
     }
-  }, [cookies.user, cookies.access_token, handleError]) // Dependencias específicas
+  }, [cookies.user, cookies.access_token, handleError, removeCookie])
 
   // Registro de usuario
   const register = async userData => {

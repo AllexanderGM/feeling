@@ -13,27 +13,33 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "user_tokens")
 public class UserToken {
+
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    public String token;
+    @Column(name = "token", unique = true, length = 1000, nullable = false)
+    private String token;
 
     @Enumerated(EnumType.STRING)
-    @Builder.Default
-    public TokenType type = TokenType.ACCESS;
+    @Column(name = "type", nullable = false)
+    private TokenType type;
 
+    @Column(name = "revoked", nullable = false)
     @Builder.Default
-    public boolean revoked = false;
+    private boolean revoked = false;
 
+    @Column(name = "expired", nullable = false)
     @Builder.Default
-    public boolean expired = false;
+    private boolean expired = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    public User user;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     public enum TokenType {
         ACCESS,
+        REFRESH
     }
 }

@@ -19,7 +19,14 @@ public class JwtService {
     private String secret;
 
     @Value("${jwt.expiration}")
-    private String expiration;
+    private String accessTokenExpiration;
+
+    @Value("${jwt.refresh.expiration}")
+    private String refreshTokenExpiration;
+
+    // ==============================
+    // EXTRACCIÓN DE DATOS
+    // ==============================
 
     public String extractUsername(final String token) {
         final Claims jwtToken = Jwts.parser()
@@ -31,14 +38,42 @@ public class JwtService {
         return jwtToken.getSubject();
     }
 
-    public String generateToken(final User user) {
-        return generateToken(user, expiration);
+    public String extractTokenType(final String token) {
+        final Claims jwtToken = Jwts.parser()
+                .verifyWith(getSecretKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        return jwtToken.get("type", String.class);
     }
 
-    private String generateToken(final User user, String expiration) {
+    // ==============================
+    // GENERACIÓN DE TOKENS
+    // ==============================
+
+    /**
+     * Genera un ACCESS TOKEN (corta duración)
+     */
+    public String generateToken(final User user) {
+        return generateToken(user, accessTokenExpiration, "ACCESS");
+    }
+
+    /**
+     * Genera un REFRESH TOKEN (larga duración)
+     */
+    public String generateRefreshToken(final User user) {
+        return generateToken(user, refreshTokenExpiration, "REFRESH");
+    }
+
+    /**
+     * Método interno para generar tokens con tipo específico
+     */
+    private String generateToken(final User user, String expiration, String tokenType) {
         return Jwts.builder()
                 .id(user.getId().toString())
                 .claim("name", user.getName())
+                .claim("type", tokenType) // Importante: identificar el tipo
                 .subject(user.getEmail())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(Date.from(Instant.ofEpochMilli(System.currentTimeMillis() + Long.parseLong(expiration))))
@@ -46,14 +81,40 @@ public class JwtService {
                 .compact();
     }
 
+    // ==============================
+    // VALIDACIONES
+    // ==============================
+
     public boolean isTokenValid(final String token, final User user) {
         final String username = extractUsername(token);
         return (username.equals(user.getEmail()) && !isTokenExpired(token));
     }
 
+    public boolean isAccessToken(final String token) {
+        try {
+            String tokenType = extractTokenType(token);
+            return "ACCESS".equals(tokenType);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isRefreshToken(final String token) {
+        try {
+            String tokenType = extractTokenType(token);
+            return "REFRESH".equals(tokenType);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean isTokenExpired(final String token) {
         return extractExpiration(token).before(new Date());
     }
+
+    // ==============================
+    // MÉTODOS PRIVADOS
+    // ==============================
 
     private Date extractExpiration(final String token) {
         return Jwts.parser()

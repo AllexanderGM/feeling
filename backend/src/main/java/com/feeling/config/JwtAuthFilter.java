@@ -9,11 +9,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -38,114 +37,204 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            @NotNull HttpServletRequest request,
-            @NotNull HttpServletResponse response,
-            @NotNull FilterChain filterChain
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        logger.debug("🔍 Procesando petición a: {}", request.getServletPath());
-
-        // Omitir filtro para rutas de autenticación
-        if (isAuthPath(request.getServletPath())) {
-            logger.debug("🔹 Ruta pública, omitiendo filtro JWT");
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.debug("❌ No se encontró token Bearer válido");
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        final String jwtToken = authHeader.substring(7);
-        logger.debug("🔑 Token extraído: {}...", jwtToken.substring(0, Math.min(20, jwtToken.length())));
-
         try {
-            final String userEmail = jwtService.extractUsername(jwtToken);
-            logger.debug("👤 Usuario extraído del token: {}", userEmail);
+            // Obtener path de la petición para logging
+            final String requestPath = request.getRequestURI();
 
-            if (userEmail == null || SecurityContextHolder.getContext().getAuthentication() != null) {
-                logger.debug("⚠️ Usuario no encontrado en token o ya autenticado");
+            // Verificar si es una ruta que no requiere autenticación
+            if (isPublicEndpoint(requestPath)) {
+                logger.debug("📂 Ruta pública: {}", requestPath);
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // Verificar que el token existe en la base de datos
-            final Optional<UserToken> tokenOptional = tokenRepository.findByToken(jwtToken);
-            if (tokenOptional.isEmpty()) {
-                logger.warn("❌ Token no encontrado en base de datos");
+            // Extraer token del header Authorization
+            final String authHeader = request.getHeader("Authorization");
+
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                logger.debug("❌ No hay token Authorization en la petición a: {}", requestPath);
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            UserToken userToken = tokenOptional.get();
-            if (userToken.isExpired() || userToken.isRevoked()) {
-                logger.warn("❌ Token expirado o revocado");
+            final String jwtToken = authHeader.substring(7);
+            logger.debug("🔍 Token extraído para: {}", requestPath);
+
+            // Validaciones básicas del token
+            if (jwtToken.isEmpty()) {
+                logger.warn("❌ Token vacío");
                 filterChain.doFilter(request, response);
+                return;
+            }
+
+            // Extraer email del token
+            final String userEmail;
+            try {
+                userEmail = jwtService.extractUsername(jwtToken);
+            } catch (Exception e) {
+                logger.warn("❌ Error al extraer username del token: {}", e.getMessage());
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (userEmail == null || userEmail.isEmpty()) {
+                logger.warn("❌ No se pudo extraer email del token");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // Si ya hay autenticación en el contexto, continuar
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                logger.debug("✅ Usuario ya autenticado en contexto: {}", userEmail);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // Verificar que es un ACCESS token (no REFRESH)
+            try {
+                if (!jwtService.isAccessToken(jwtToken)) {
+                    logger.warn("❌ Token no es de tipo ACCESS para usuario: {}", userEmail);
+                    setErrorResponse(response, "Token inválido - se requiere access token");
+                    return;
+                }
+            } catch (Exception e) {
+                logger.warn("❌ Error al verificar tipo de token: {}", e.getMessage());
+                setErrorResponse(response, "Token malformado");
+                return;
+            }
+
+            // Verificar que el token existe en la base de datos y no está revocado
+            Optional<UserToken> storedTokenOptional = tokenRepository.findByToken(jwtToken);
+            if (storedTokenOptional.isEmpty()) {
+                logger.warn("❌ Token no encontrado en base de datos para usuario: {}", userEmail);
+                setErrorResponse(response, "Token inválido");
+                return;
+            }
+
+            UserToken storedToken = storedTokenOptional.get();
+            if (storedToken.isExpired() || storedToken.isRevoked()) {
+                logger.warn("❌ Token expirado o revocado para usuario: {}", userEmail);
+                setErrorResponse(response, "Token expirado o revocado");
+                return;
+            }
+
+            // Verificar que es un ACCESS token en la BD también
+            if (storedToken.getType() != UserToken.TokenType.ACCESS) {
+                logger.warn("❌ Token en BD no es de tipo ACCESS para usuario: {}", userEmail);
+                setErrorResponse(response, "Token inválido - tipo incorrecto");
                 return;
             }
 
             // Verificar que el usuario existe
-            final Optional<User> userOptional = userRepository.findByEmail(userEmail);
+            Optional<User> userOptional = userRepository.findByEmail(userEmail);
             if (userOptional.isEmpty()) {
                 logger.warn("❌ Usuario no encontrado: {}", userEmail);
-                filterChain.doFilter(request, response);
+                setErrorResponse(response, "Usuario no encontrado");
                 return;
             }
 
             User user = userOptional.get();
 
             // Verificar que el token es válido para el usuario
-            if (!jwtService.isTokenValid(jwtToken, user)) {
-                logger.warn("❌ Token inválido para usuario: {}", userEmail);
-                filterChain.doFilter(request, response);
+            try {
+                if (!jwtService.isTokenValid(jwtToken, user)) {
+                    logger.warn("❌ Token inválido para usuario: {}", userEmail);
+                    setErrorResponse(response, "Token inválido");
+                    return;
+                }
+            } catch (Exception e) {
+                logger.warn("❌ Error al validar token: {}", e.getMessage());
+                setErrorResponse(response, "Error en validación de token");
                 return;
             }
 
-            // Verificar que el usuario está verificado
+            // Verificar que el usuario está verificado y habilitado
             if (!user.isVerified()) {
                 logger.warn("❌ Usuario no verificado: {}", userEmail);
-                filterChain.doFilter(request, response);
+                setErrorResponse(response, "Usuario no verificado");
                 return;
             }
 
-            // Cargar detalles del usuario y crear contexto de autenticación
-            final UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            if (!user.isEnabled()) {
+                logger.warn("❌ Usuario deshabilitado: {}", userEmail);
+                setErrorResponse(response, "Usuario deshabilitado");
+                return;
+            }
 
-            final UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+            // Cargar detalles del usuario para Spring Security
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+            // Crear token de autenticación para Spring Security
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,
                     userDetails.getAuthorities()
             );
-
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            // Establecer autenticación en el contexto de seguridad
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            logger.debug("✅ Usuario autenticado correctamente: {}", userEmail);
+            logger.debug("✅ Usuario autenticado exitosamente: {}", userEmail);
+
+            // Continuar con la cadena de filtros
+            filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            logger.error("💥 Error procesando token JWT: {}", e.getMessage());
-            SecurityContextHolder.clearContext();
+            logger.error("❌ Error inesperado en JwtAuthFilter: {}", e.getMessage(), e);
+            setErrorResponse(response, "Error interno del servidor");
         }
-
-        filterChain.doFilter(request, response);
     }
 
     /**
-     * Verifica si la ruta es pública (no requiere autenticación)
+     * Verificar si el endpoint es público (no requiere autenticación)
      */
-    private boolean isAuthPath(String path) {
-        return path.startsWith("/auth/") ||
-                path.equals("/") ||
-                path.startsWith("/swagger-ui") ||
-                path.startsWith("/v3/api-docs") ||
-                path.startsWith("/user-attributes") ||
-                path.equals("/category-interests") ||
-                path.startsWith("/tags/popular") ||
-                path.startsWith("/tags/search") ||
-                path.equals("/favicon.ico") ||
-                path.equals("/error");
+    private boolean isPublicEndpoint(String path) {
+        String[] publicPaths = {
+                "/auth/login",
+                "/auth/register",
+                "/auth/google/login",
+                "/auth/google/register",
+                "/auth/verify-email",
+                "/auth/resend-verification",
+                "/auth/forgot-password",
+                "/auth/reset-password",
+                "/auth/check-email",
+                "/auth/check-method",
+                "/auth/refresh-token",  // Refresh token es público
+                "/swagger-ui",
+                "/v3/api-docs",
+                "/actuator/health",
+                "/error"
+        };
+
+        for (String publicPath : publicPaths) {
+            if (path.startsWith(publicPath)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Establecer respuesta de error en formato JSON
+     */
+    private void setErrorResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String jsonResponse = String.format(
+                "{\"error\": \"%s\", \"status\": 401, \"timestamp\": \"%s\"}",
+                message,
+                java.time.Instant.now().toString()
+        );
+
+        response.getWriter().write(jsonResponse);
     }
 }

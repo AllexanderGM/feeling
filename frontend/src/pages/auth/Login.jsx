@@ -2,14 +2,16 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import useError from '@hooks/useError'
 import useAuth from '@hooks/useAuth'
-import { validateEmail, validatePassword } from '@utils/validateInputs'
 import { getErrorMessage, getFieldErrors } from '@utils/errorUtils'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { loginSchema } from '@utils/formSchemas'
 
 const FeelingLogin = () => {
   const navigate = useNavigate()
@@ -17,42 +19,45 @@ const FeelingLogin = () => {
   const { showErrorModal } = useError()
   const { login, loginWithGoogle, loading } = useAuth()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [isVisible, setIsVisible] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [serverErrors, setServerErrors] = useState({})
   const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
+
+  // Configuración de React Hook Form
+  const {
+    control,
+    handleSubmit,
+    clearErrors,
+    formState: { errors, isValid }
+  } = useForm({
+    resolver: yupResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: ''
+    },
+    mode: 'onChange'
+  })
 
   // Si viene mensaje del estado (ej: desde verificación exitosa)
   const successMessage = location.state?.message
 
   const toggleVisibility = () => setIsVisible(!isVisible)
 
-  const handleEmailChange = event => {
-    setEmail(event.target.value)
-    if (errors.email) setErrors({ ...errors, email: null })
-  }
-
-  const handlePasswordChange = event => {
-    setPassword(event.target.value)
-    if (errors.password) setErrors({ ...errors, password: null })
-  }
-
-  const handleSubmit = async event => {
-    event.preventDefault()
-
-    const emailError = validateEmail(email)
-    const passwordError = validatePassword(password)
-
-    if (emailError || passwordError) {
-      setErrors({
-        email: emailError,
-        password: passwordError
-      })
-      return
+  // Limpiar errores del servidor cuando el usuario empiece a escribir
+  const handleFieldChange = fieldName => {
+    if (serverErrors[fieldName]) {
+      setServerErrors(prev => ({ ...prev, [fieldName]: null }))
     }
+    clearErrors(fieldName)
+  }
+
+  const onSubmit = async formData => {
+    const { email, password } = formData
+
+    // Limpiar errores del servidor antes de enviar
+    setServerErrors({})
 
     const result = await login(email, password)
     console.log('Login result:', result)
@@ -67,9 +72,10 @@ const FeelingLogin = () => {
       const fieldErrors = getFieldErrors(error)
 
       if (Object.keys(fieldErrors).length > 0) {
-        setErrors(fieldErrors)
+        setServerErrors(fieldErrors)
       }
 
+      // Mostrar modal de error solo si no hay errores de campo o es error del servidor
       if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
         const errorMessage = getErrorMessage(error)
         showErrorModal(errorMessage, 'Error de inicio de sesión')
@@ -77,21 +83,18 @@ const FeelingLogin = () => {
     }
   }
 
-  // Implementación del login con Google
+  // Implementación del login con Google (sin cambios)
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
         setIsGoogleAuthenticating(true)
 
-        // Usar el método específico de login con Google
         const result = await loginWithGoogle(tokenResponse)
 
         if (result.success) {
           navigate(fromPath, { replace: true })
         } else {
-          // Si hay error, verificar si es porque la cuenta no existe
           if (result.error?.response?.status === 404 || result.error?.message?.toLowerCase().includes('no encontrado')) {
-            // Sugerir registro
             showErrorModal('No encontramos una cuenta con este email de Google. ¿Quieres registrarte?', 'Cuenta no encontrada')
           } else {
             const errorMessage = getErrorMessage(result.error)
@@ -117,6 +120,11 @@ const FeelingLogin = () => {
     googleLogin()
   }
 
+  // Combinar errores de validación y del servidor
+  const getFieldError = fieldName => {
+    return errors[fieldName]?.message || serverErrors[fieldName]
+  }
+
   return (
     <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
       <figure className="text-center pb-8">
@@ -130,53 +138,69 @@ const FeelingLogin = () => {
         </div>
       )}
 
-      <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit}>
+      <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit(onSubmit)}>
         <h2 className="text-xl font-medium text-white mb-6">Acceder</h2>
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Correo electrónico"
+        <Controller
           name="email"
-          placeholder="usuario@correo.com"
-          type="email"
-          autoComplete="email"
-          aria-label="Email"
-          value={email}
-          onChange={handleEmailChange}
-          isInvalid={!!errors.email}
-          errorMessage={errors.email}
-          isDisabled={loading || isGoogleAuthenticating}
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Correo electrónico"
+              placeholder="usuario@correo.com"
+              type="email"
+              autoComplete="email"
+              aria-label="Email"
+              isInvalid={!!getFieldError('email')}
+              errorMessage={getFieldError('email')}
+              isDisabled={loading || isGoogleAuthenticating}
+              onChange={e => {
+                field.onChange(e)
+                handleFieldChange('email')
+              }}
+            />
+          )}
         />
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Contraseña"
+        <Controller
           name="password"
-          placeholder="••••••••"
-          type={isVisible ? 'text' : 'password'}
-          autoComplete="current-password"
-          aria-label="Contraseña"
-          value={password}
-          onChange={handlePasswordChange}
-          isInvalid={!!errors.password}
-          errorMessage={errors.password}
-          isDisabled={loading || isGoogleAuthenticating}
-          endContent={
-            <button
-              aria-label="toggle password visibility"
-              className="focus:outline-none"
-              type="button"
-              onClick={toggleVisibility}
-              disabled={loading || isGoogleAuthenticating}>
-              {isVisible ? (
-                <span className="material-symbols-outlined">visibility_off</span>
-              ) : (
-                <span className="material-symbols-outlined">visibility</span>
-              )}
-            </button>
-          }
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Contraseña"
+              placeholder="••••••••"
+              type={isVisible ? 'text' : 'password'}
+              autoComplete="current-password"
+              aria-label="Contraseña"
+              isInvalid={!!getFieldError('password')}
+              errorMessage={getFieldError('password')}
+              isDisabled={loading || isGoogleAuthenticating}
+              onChange={e => {
+                field.onChange(e)
+                handleFieldChange('password')
+              }}
+              endContent={
+                <button
+                  aria-label="toggle password visibility"
+                  className="focus:outline-none"
+                  type="button"
+                  onClick={toggleVisibility}
+                  disabled={loading || isGoogleAuthenticating}>
+                  {isVisible ? (
+                    <span className="material-symbols-outlined">visibility_off</span>
+                  ) : (
+                    <span className="material-symbols-outlined">visibility</span>
+                  )}
+                </button>
+              }
+            />
+          )}
         />
 
         <div className="flex items-center justify-between w-full pt-2">
@@ -204,7 +228,7 @@ const FeelingLogin = () => {
             color="default"
             className="w-full py-3 transition-colors"
             isLoading={loading}
-            isDisabled={loading || isGoogleAuthenticating}>
+            isDisabled={loading || isGoogleAuthenticating || !isValid}>
             {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 

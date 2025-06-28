@@ -1,6 +1,9 @@
-import { getAuthToken } from './authService.js'
+import api from '@services/api'
+import authService from '@services/authService'
 
-const URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8080'
+/**
+ * Servicio para manejar operaciones de usuario
+ */
 
 /**
  * Obtiene la lista de todos los usuarios
@@ -8,22 +11,25 @@ const URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8080'
  */
 export const getAllUsers = async () => {
   try {
-    const token = getAuthToken()
-    const response = await fetch(`${URL}/users`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+    console.log('🔄 Obteniendo lista de todos los usuarios')
+
+    const response = await api.get('/users')
+
+    console.log('✅ Lista de usuarios obtenida:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error obteniendo usuarios:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    if (!response.ok) {
-      throw new Error(`Error al obtener usuarios: ${response.status}`)
-    }
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al obtener la lista de usuarios')
 
-    return await response.json()
-  } catch (error) {
-    console.error('Error obteniendo usuarios:', error)
-    throw error
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'GET_USERS_ERROR'
+
+    throw structuredError
   }
 }
 
@@ -34,130 +40,54 @@ export const getAllUsers = async () => {
  */
 export const getUserByEmail = async email => {
   try {
-    const token = getAuthToken()
-    console.log('Obteniendo usuario con email:', email)
-    const response = await fetch(`${URL}/users/${email}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+    console.log('🔄 Obteniendo usuario con email:', email)
+
+    const response = await api.get(`/users/${encodeURIComponent(email)}`)
+
+    console.log('✅ Usuario obtenido:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error obteniendo usuario por email:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    if (!response.ok) {
-      throw new Error(`Error al obtener usuario: ${response.status}`)
-    }
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al obtener el usuario')
 
-    const userData = await response.json()
-    console.log('Respuesta del servidor (getUserByEmail):', userData)
-    return userData
-  } catch (error) {
-    console.error('Error obteniendo usuario:', error)
-    throw error
-  }
-}
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'GET_USER_ERROR'
 
-/**
- * Crea un nuevo usuario
- * @param {Object} userData - Datos del usuario
- * @returns {Promise<Object>} Respuesta del servidor
- */
-export const createUser = async userData => {
-  try {
-    const response = await fetch(`${URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        image: userData.image || '',
-        name: userData.name,
-        lastName: userData.lastName,
-        document: userData.document,
-        phone: userData.phone,
-        dateOfBirth: userData.dateOfBirth,
-        email: userData.email,
-        password: userData.password,
-        address: userData.address || '',
-        city: userData.city || ''
-      })
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }))
-      throw new Error(errorData.message || `Error al crear usuario: ${response.status}`)
-    }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Error creando usuario:', error)
-    throw error
-  }
-}
-
-/**
- * Actualiza un usuario existente
- * @param {string} email - Email del usuario
- * @param {Object} userData - Datos actualizados
- * @returns {Promise<Object>} Usuario actualizado
- */
-export const updateUser = async (email, userData) => {
-  try {
-    const token = getAuthToken()
-    const response = await fetch(`${URL}/users/${email}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : ''
-      },
-      body: JSON.stringify(userData)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }))
-      throw new Error(errorData.message || `Error al actualizar usuario: ${response.status}`)
-    }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Error actualizando usuario:', error)
-    throw error
+    throw structuredError
   }
 }
 
 /**
  * Actualiza el perfil del usuario autenticado
- * Esta función es específica para completar/actualizar el perfil del usuario logueado
  * @param {Object} profileData - Datos del perfil a actualizar
  * @returns {Promise<Object>} Perfil actualizado
  */
 export const updateProfile = async profileData => {
   try {
-    const token = getAuthToken()
+    console.log('🔄 Actualizando perfil del usuario')
 
-    if (!token) {
-      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
-    }
+    const response = await api.put('/users/profile', profileData)
 
-    const response = await fetch(`${URL}/users/profile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(profileData)
+    console.log('✅ Perfil actualizado correctamente:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error actualizando perfil:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }))
-      throw new Error(errorData.message || `Error al actualizar perfil: ${response.status}`)
-    }
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al actualizar el perfil')
 
-    const updatedProfile = await response.json()
-    console.log('Perfil actualizado correctamente:', updatedProfile)
-    return updatedProfile
-  } catch (error) {
-    console.error('Error actualizando perfil:', error)
-    throw error
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'UPDATE_PROFILE_ERROR'
+
+    throw structuredError
   }
 }
 
@@ -168,32 +98,25 @@ export const updateProfile = async profileData => {
  */
 export const completeProfile = async completeProfileData => {
   try {
-    const token = getAuthToken()
+    console.log('🔄 Completando perfil del usuario')
 
-    if (!token) {
-      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
-    }
+    const response = await api.post('/users/complete-profile', completeProfileData)
 
-    const response = await fetch(`${URL}/users/complete-profile`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(completeProfileData)
+    console.log('✅ Perfil completado correctamente:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error completando perfil:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }))
-      throw new Error(errorData.message || `Error al completar perfil: ${response.status}`)
-    }
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al completar el perfil')
 
-    const completedProfile = await response.json()
-    console.log('Perfil completado correctamente:', completedProfile)
-    return completedProfile
-  } catch (error) {
-    console.error('Error completando perfil:', error)
-    throw error
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'COMPLETE_PROFILE_ERROR'
+
+    throw structuredError
   }
 }
 
@@ -203,29 +126,25 @@ export const completeProfile = async completeProfileData => {
  */
 export const getMyProfile = async () => {
   try {
-    const token = getAuthToken()
+    console.log('🔄 Obteniendo perfil del usuario')
 
-    if (!token) {
-      throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
-    }
+    const response = await api.get('/users/profile')
 
-    const response = await fetch(`${URL}/users/profile`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      }
+    console.log('✅ Perfil del usuario obtenido:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error obteniendo perfil:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    if (!response.ok) {
-      throw new Error(`Error al obtener perfil: ${response.status}`)
-    }
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al obtener el perfil')
 
-    const profileData = await response.json()
-    console.log('Perfil del usuario obtenido:', profileData)
-    return profileData
-  } catch (error) {
-    console.error('Error obteniendo perfil:', error)
-    throw error
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'GET_PROFILE_ERROR'
+
+    throw structuredError
   }
 }
 
@@ -236,130 +155,117 @@ export const getMyProfile = async () => {
  */
 export const deleteUser = async email => {
   try {
-    const token = getAuthToken()
-    console.log('Intentando eliminar usuario:', email)
+    console.log('🔄 Eliminando usuario:', email)
 
-    // 1. Primero revocar/eliminar los tokens del usuario
-    const revokeResponse = await fetch(`${URL}/users/${email}/revoke-tokens`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      }
-    })
+    const response = await api.delete(`/users/${encodeURIComponent(email)}`)
 
-    if (!revokeResponse.ok) {
-      const revokeText = await revokeResponse.text()
-      console.warn('Error al revocar tokens:', revokeText)
-      // Continuamos con la eliminación aunque falle la revocación
-    }
-
-    // 2. Luego intentar eliminar el usuario
-    const deleteResponse = await fetch(`${URL}/users/${email}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const responseText = await deleteResponse.text()
-    console.log('Respuesta completa del servidor:', responseText)
-
-    if (!deleteResponse.ok) {
-      // Intentar parsear como JSON si es posible
-      try {
-        const errorData = JSON.parse(responseText)
-        throw new Error(errorData.message || errorData.error || `Error al eliminar usuario: ${deleteResponse.status}`)
-      } catch {
-        throw new Error(`Error al eliminar usuario: ${deleteResponse.status} - ${responseText}`)
-      }
-    }
-
-    return { success: true, message: 'Usuario eliminado exitosamente' }
+    console.log('✅ Usuario eliminado correctamente:', response.data)
+    return response.data
   } catch (error) {
-    console.error('Error completo al eliminar usuario:', error)
-    throw error
+    console.error('❌ Error eliminando usuario:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al eliminar el usuario')
+
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'DELETE_USER_ERROR'
+
+    throw structuredError
   }
 }
 
 /**
- * Asigna el rol de ADMIN a un usuario
- * @param {string} userId - ID del usuario
- * @param {string} superAdminEmail - Email del superadmin
- * @returns {Promise<Object>} Mensaje de confirmación
+ * Sube una imagen de perfil
+ * @param {File} imageFile - Archivo de imagen
+ * @returns {Promise<Object>} URL de la imagen subida
  */
-export const assignAdminRole = async (userId, superAdminEmail) => {
+export const uploadProfileImage = async imageFile => {
   try {
-    const token = getAuthToken()
+    console.log('🔄 Subiendo imagen de perfil')
 
-    console.log('Asignando rol ADMIN al usuario ID:', userId)
-    console.log('Super admin email:', superAdminEmail)
-    console.log('Token de autorización:', token ? 'Presente' : 'Ausente')
+    const formData = new FormData()
+    formData.append('profileImage', imageFile)
 
-    const response = await fetch(`${URL}/users/${userId}/admin`, {
-      method: 'POST',
+    const response = await api.post('/users/upload-image', formData, {
       headers: {
-        'Content-Type': 'application/json',
-        'Super-Admin-Email': superAdminEmail,
-        Authorization: token ? `Bearer ${token}` : ''
+        'Content-Type': 'multipart/form-data'
       }
     })
 
-    const responseText = await response.text()
-    console.log('Respuesta completa del servidor (asignar rol ADMIN):', responseText)
-
-    if (!response.ok) {
-      throw new Error(`Error al asignar rol ADMIN: ${response.status} - ${responseText}`)
-    }
-
-    try {
-      return responseText ? JSON.parse(responseText) : { message: 'Rol ADMIN asignado correctamente' }
-    } catch {
-      return { message: responseText || 'Rol ADMIN asignado correctamente' }
-    }
+    console.log('✅ Imagen de perfil subida:', response.data)
+    return response.data
   } catch (error) {
-    console.error('Error asignando rol ADMIN:', error)
-    throw error
+    console.error('❌ Error subiendo imagen de perfil:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al subir la imagen de perfil')
+
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'UPLOAD_IMAGE_ERROR'
+
+    throw structuredError
   }
 }
 
 /**
- * Revoca el rol de ADMIN de un usuario
- * @param {string} userId - ID del usuario
- * @param {string} superAdminEmail - Email del superadmin
- * @returns {Promise<Object>} Mensaje de confirmación
+ * Obtiene las preferencias del usuario
+ * @returns {Promise<Object>} Preferencias del usuario
  */
-export const revokeAdminRole = async (userId, superAdminEmail) => {
+export const getUserPreferences = async () => {
   try {
-    const token = getAuthToken()
-    console.log('Revocando rol ADMIN al usuario ID:', userId)
-    console.log('Super admin email:', superAdminEmail)
-    console.log('Token de autorización:', token ? 'Presente' : 'Ausente')
+    console.log('🔄 Obteniendo preferencias del usuario')
 
-    const response = await fetch(`${URL}/users/${userId}/admin`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Super-Admin-Email': superAdminEmail,
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+    const response = await api.get('/users/preferences')
+
+    console.log('✅ Preferencias obtenidas:', response.data)
+    return response.data
+  } catch (error) {
+    console.error('❌ Error obteniendo preferencias:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
     })
 
-    const responseText = await response.text()
-    console.log('Respuesta completa del servidor (revocar rol ADMIN):', responseText)
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al obtener las preferencias')
 
-    if (!response.ok) {
-      throw new Error(`Error al revocar rol ADMIN: ${response.status} - ${responseText}`)
-    }
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'GET_PREFERENCES_ERROR'
 
-    try {
-      return responseText ? JSON.parse(responseText) : { message: 'Rol ADMIN revocado correctamente' }
-    } catch {
-      return { message: responseText || 'Rol ADMIN revocado correctamente' }
-    }
+    throw structuredError
+  }
+}
+
+/**
+ * Actualiza las preferencias del usuario
+ * @param {Object} preferences - Nuevas preferencias
+ * @returns {Promise<Object>} Preferencias actualizadas
+ */
+export const updateUserPreferences = async preferences => {
+  try {
+    console.log('🔄 Actualizando preferencias del usuario')
+
+    const response = await api.put('/users/preferences', preferences)
+
+    console.log('✅ Preferencias actualizadas:', response.data)
+    return response.data
   } catch (error) {
-    console.error('Error revocando rol ADMIN:', error)
-    throw error
+    console.error('❌ Error actualizando preferencias:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    })
+
+    const structuredError = new Error(error.response?.data?.message || error.message || 'Error al actualizar las preferencias')
+
+    structuredError.response = error.response
+    structuredError.errorType = error.response?.data?.type || 'UPDATE_PREFERENCES_ERROR'
+
+    throw structuredError
   }
 }

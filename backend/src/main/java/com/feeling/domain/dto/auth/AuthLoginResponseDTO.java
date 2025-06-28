@@ -6,7 +6,8 @@ public record AuthLoginResponseDTO(
         String name,
         String lastName,
         String role,
-        String token,
+        String accessToken,
+        String refreshToken,
         Boolean verified,
         Boolean completeProfile
 ) {

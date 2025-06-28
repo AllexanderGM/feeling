@@ -23,8 +23,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +34,6 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 30;
-    private static final Map<String, String> tokenBlacklist = new ConcurrentHashMap<>();
 
     private final IUserTokenRepository tokenRepository;
     private final JwtService jwtService;
@@ -50,7 +51,7 @@ public class AuthService {
 
     /**
      * REGISTRO DE USUARIO
-     * Registra un usuario tradicional (MODIFICADO para validar Google)
+     * Registra un usuario tradicional (LOCAL)
      */
     @Transactional
     public MessageResponseDTO register(AuthRegisterRequestDTO newUser) {
@@ -203,26 +204,11 @@ public class AuthService {
                 logger.warn("Error al enviar email de bienvenida a usuario de Google: {}", emailError.getMessage());
             }
 
-            // 6. Generar JWT
-            String jwtToken = jwtService.generateToken(newUser);
-            saveUserToken(newUser, jwtToken);
-
-            // 7. Actualizar última actividad
-            newUser.setLastActive(LocalDateTime.now());
-            userRepository.save(newUser);
+            // 4. Generar tokens y crear respuesta
+            AuthLoginResponseDTO response = generateTokensAndCreateResponse(newUser);
 
             logger.info("Usuario registrado con Google correctamente: {}", googleUser.email());
-
-            return new AuthLoginResponseDTO(
-                    newUser.getMainImage(),
-                    newUser.getEmail(),
-                    newUser.getName(),
-                    newUser.getLastname(),
-                    newUser.getUserRole().getUserRoleList().name(),
-                    jwtToken,
-                    newUser.isVerified(),
-                    newUser.isProfileComplete()
-            );
+            return response;
 
         } catch (ExistEmailException e) {
             logger.error("Error: Usuario ya registrado con Google - {}", e.getMessage());
@@ -256,7 +242,6 @@ public class AuthService {
             Optional<User> existingUser = userRepository.findByEmail(googleUser.email().toLowerCase().trim());
 
             User user;
-            boolean isNewUser = false;
 
             if (existingUser.isPresent()) {
                 user = existingUser.get();
@@ -276,11 +261,6 @@ public class AuthService {
                             googleUser.email(),
                             googleUser.picture()
                     );
-
-                    // Opción 2: Lanzar excepción para requerir confirmación
-                    // throw new AuthMethodConflictException(
-                    //     AuthMethodConflictDTO.create(googleUser.email(), "LOCAL", "GOOGLE")
-                    // );
 
                 } else if (user.getUserAuthProvider() == UserAuthProvider.GOOGLE) {
                     // Usuario Google existente - actualizar información
@@ -302,7 +282,6 @@ public class AuthService {
             } else {
                 // 3. Crear nuevo usuario desde Google
                 logger.info("Creando nuevo usuario desde Google: {}", googleUser.email());
-                isNewUser = true;
 
                 // Obtener rol de cliente
                 UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
@@ -348,27 +327,11 @@ public class AuthService {
             // 4. Guardar usuario
             user = userRepository.save(user);
 
-            // 5. Generar JWT
-            String jwtToken = jwtService.generateToken(user);
-            revokeAllUserTokens(user);
-            saveUserToken(user, jwtToken);
-
-            // 6. Actualizar última actividad
-            user.setLastActive(LocalDateTime.now());
-            userRepository.save(user);
+            // 5. Generar tokens y crear respuesta
+            AuthLoginResponseDTO response = generateTokensAndCreateResponse(user);
 
             logger.info("Usuario autenticado con Google correctamente: {}", googleUser.email());
-
-            return new AuthLoginResponseDTO(
-                    user.getMainImage(),
-                    user.getEmail(),
-                    user.getName(),
-                    user.getLastname(),
-                    user.getUserRole().getUserRoleList().name(),
-                    jwtToken,
-                    user.isVerified(),
-                    user.isProfileComplete()
-            );
+            return response;
 
         } catch (UnauthorizedException e) {
             logger.error("Error de autorización con Google: {}", e.getMessage());
@@ -419,29 +382,11 @@ public class AuthService {
                 );
             }
 
-            // Generar token JWT
-            String jwtToken = jwtService.generateToken(user);
-
-            // Revocar tokens anteriores y guardar el nuevo
-            revokeAllUserTokens(user);
-            saveUserToken(user, jwtToken);
-
-            // Actualizar última actividad
-            user.setLastActive(LocalDateTime.now());
-            userRepository.save(user);
+            // Generar tokens y crear respuesta
+            AuthLoginResponseDTO response = generateTokensAndCreateResponse(user);
 
             logger.info("Usuario autenticado correctamente: {}", auth.email());
-
-            return new AuthLoginResponseDTO(
-                    user.getMainImage(),
-                    user.getEmail(),
-                    user.getName(),
-                    user.getLastname(),
-                    user.getUserRole().getUserRoleList().name(),
-                    jwtToken,
-                    user.isVerified(),
-                    user.isProfileComplete()
-            );
+            return response;
 
         } catch (BadCredentialsException e) {
             logger.error("Credenciales incorrectas para usuario: {}", auth.email());
@@ -628,26 +573,33 @@ public class AuthService {
             throw new RuntimeException("Error al reenviar código de verificación", e);
         }
     }
+
     // ==============================
     // GESTIÓN DE TOKENS JWT
     // ==============================
 
     /**
      * REFRESH TOKEN
-     * Refresca un token JWT
+     * Refresca un access token usando un refresh token válido
      */
-    public MessageResponseDTO refreshToken(final String authHeader) throws BadRequestException {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.error("Intento de refresh con token inválido");
-            throw new BadRequestException("Token no válido");
+    public RefreshTokenResponseDTO refreshToken(final RefreshTokenRequestDTO request) throws BadRequestException {
+        final String refreshToken = request.refreshToken();
+
+        if (refreshToken == null || refreshToken.trim().isEmpty()) {
+            logger.error("Intento de refresh con token vacío");
+            throw new BadRequestException("Refresh token requerido");
         }
 
-        final String refreshToken = authHeader.substring(7);
-        final String userEmail = jwtService.extractUsername(refreshToken);
+        // Verificar que es un REFRESH token
+        if (!jwtService.isRefreshToken(refreshToken)) {
+            logger.error("Token no es de tipo REFRESH");
+            throw new BadRequestException("Token inválido - se requiere refresh token");
+        }
 
+        final String userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail == null) {
-            logger.error("No se pudo extraer email del token");
-            throw new BadRequestException("Token no válido");
+            logger.error("No se pudo extraer email del refresh token");
+            throw new BadRequestException("Refresh token inválido");
         }
 
         final Optional<User> userOptional = userRepository.findByEmail(userEmail);
@@ -658,29 +610,77 @@ public class AuthService {
 
         User user = userOptional.get();
 
+        // Verificar que el refresh token es válido
         if (!jwtService.isTokenValid(refreshToken, user)) {
-            logger.error("Token inválido durante refresh: {}", userEmail);
-            throw new BadRequestException("Token no válido");
+            logger.error("Refresh token inválido para usuario: {}", userEmail);
+            throw new BadRequestException("Refresh token inválido");
         }
 
-        // Generar nuevo token
-        final String newToken = jwtService.generateToken(user);
-        revokeAllUserTokens(user);
-        saveUserToken(user, newToken);
+        // Verificar que el refresh token existe en BD y no está revocado
+        Optional<UserToken> storedToken = tokenRepository.findByToken(refreshToken);
+        if (storedToken.isEmpty() || storedToken.get().isRevoked() || storedToken.get().isExpired()) {
+            logger.error("Refresh token revocado o no encontrado en BD: {}", userEmail);
+            throw new BadRequestException("Refresh token inválido");
+        }
 
-        logger.info("Token refrescado correctamente para: {}", userEmail);
-        return new MessageResponseDTO(newToken);
+        // Generar nuevo ACCESS token (mantener el refresh token)
+        final String newAccessToken = jwtService.generateToken(user);
+
+        // Revocar todos los access tokens anteriores (pero mantener refresh tokens)
+        revokeAllAccessTokens(user);
+
+        // Guardar el nuevo access token
+        saveUserToken(user, newAccessToken, UserToken.TokenType.ACCESS);
+
+        logger.info("Access token refrescado correctamente para: {}", userEmail);
+        return new RefreshTokenResponseDTO(newAccessToken, "Token refrescado exitosamente");
+    }
+
+    // ==============================
+    // MÉTODOS PRIVADOS OPTIMIZADOS
+    // ==============================
+
+    /**
+     * GENERAR TOKENS Y CREAR RESPUESTA
+     * Método unificado para generar tokens y crear respuesta de login
+     */
+    private AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
+        // Generar tokens
+        String accessToken = jwtService.generateToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        // Revocar todos los tokens anteriores y guardar los nuevos
+        revokeAllUserTokens(user);
+        saveUserToken(user, accessToken, UserToken.TokenType.ACCESS);
+        saveUserToken(user, refreshToken, UserToken.TokenType.REFRESH);
+
+        // Actualizar última actividad
+        user.setLastActive(LocalDateTime.now());
+        userRepository.save(user);
+
+        // Crear y retornar respuesta
+        return new AuthLoginResponseDTO(
+                user.getMainImage(),
+                user.getEmail(),
+                user.getName(),
+                user.getLastname(),
+                user.getUserRole().getUserRoleList().name(),
+                accessToken,
+                refreshToken,
+                user.isVerified(),
+                user.isProfileComplete()
+        );
     }
 
     /**
-     * GUARDAR TOKEN
-     * Guarda un token para un usuario
+     * GUARDAR TOKEN ACTUALIZADO
+     * Guarda un token con su tipo específico
      */
-    private void saveUserToken(User user, String token) {
+    private void saveUserToken(User user, String token, UserToken.TokenType tokenType) {
         UserToken userToken = UserToken.builder()
                 .token(token)
                 .user(user)
-                .type(UserToken.TokenType.ACCESS)
+                .type(tokenType)
                 .expired(false)
                 .revoked(false)
                 .build();
@@ -689,12 +689,29 @@ public class AuthService {
     }
 
     /**
-     * REVOCAR TODOS LOS TOKENS DE USUARIO
-     * Revoca todos los tokens de un usuario
+     * REVOCAR SOLO ACCESS TOKENS
+     * Revoca solo los access tokens, mantiene los refresh tokens
+     */
+    private void revokeAllAccessTokens(User user) {
+        final List<UserToken> validAccessTokens = tokenRepository
+                .findAllValidAccessTokensByUserId(user.getId());
+
+        if (!validAccessTokens.isEmpty()) {
+            validAccessTokens.forEach(token -> {
+                token.setExpired(true);
+                token.setRevoked(true);
+            });
+            tokenRepository.saveAll(validAccessTokens);
+        }
+    }
+
+    /**
+     * REVOCAR TODOS LOS TOKENS
+     * Revoca tanto access como refresh tokens (para logout completo)
      */
     private void revokeAllUserTokens(User user) {
         final List<UserToken> validUserTokens = tokenRepository
-                .findAllValidIsFalseOrRevokedIsFalseByUserId(user.getId());
+                .findAllValidTokensByUserId(user.getId());
 
         if (!validUserTokens.isEmpty()) {
             validUserTokens.forEach(token -> {
