@@ -1,7 +1,6 @@
-import ErrorProvider from '@context/ErrorProvider'
+import { ErrorProvider } from '@context/ErrorContext'
 import { AuthProvider } from '@context/AuthContext'
-import ErrorDisplay from '@components/layout/ErrorDisplay'
-import { ErrorBoundary } from '@utils/ErrorBoundary'
+import { ErrorBoundary } from '@components/layout/ErrorBoundary'
 
 const GeneralProvider = ({ children }) => {
   return (
@@ -9,7 +8,6 @@ const GeneralProvider = ({ children }) => {
       <ErrorBoundary>
         <AuthProvider>{children}</AuthProvider>
       </ErrorBoundary>
-      <ErrorDisplay />
     </ErrorProvider>
   )
 }

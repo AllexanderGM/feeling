@@ -1,18 +1,13 @@
-// src/hooks/useApiStatus.js
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { API_URL } from '@config/config'
+import apiStatusService from '@services/apiStatusService.js'
+import { useErrorHandler } from '@hooks/useError.js'
 
 /**
  * Hook personalizado para obtener y manejar el estado completo de la API
- * @param {Object} options - Opciones de configuración
- * @returns {Object} - Estado y funciones para manejar el estado de la API
+ * Optimizado para evitar loops infinitos de re-render
  */
 const useApiStatus = (options = {}) => {
-  const {
-    autoRefresh = false,
-    refreshInterval = 30000, // 30 segundos
-    timeout = 5000
-  } = options
+  const { autoRefresh = false, refreshInterval = 30000, timeout = 5000, showErrors = false, useCache = false } = options
 
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -21,79 +16,52 @@ const useApiStatus = (options = {}) => {
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(autoRefresh)
 
   const intervalRef = useRef(null)
-  const abortControllerRef = useRef(null)
+  const { handleError } = useErrorHandler()
+
+  // Memoizar valores estables para evitar cambios en dependencias
+  const timeoutRef = useRef(timeout)
+  const showErrorsRef = useRef(showErrors)
+  const useCacheRef = useRef(useCache)
+
+  // Actualizar refs cuando cambien las props
+  useEffect(() => {
+    timeoutRef.current = timeout
+    showErrorsRef.current = showErrors
+    useCacheRef.current = useCache
+  }, [timeout, showErrors, useCache])
 
   /**
    * Realiza la petición al endpoint de estado
+   * Memoizada para evitar recreación en cada render
    */
   const fetchStatus = useCallback(
     async (silent = false) => {
-      // Cancelar petición anterior si existe
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-
-      // Medir tiempo de inicio de la petición
-      const startTime = Date.now()
-
-      // Crear nuevo AbortController
-      abortControllerRef.current = new AbortController()
-      const timeoutId = setTimeout(() => abortControllerRef.current.abort(), timeout)
-
       if (!silent) {
         setLoading(true)
         setError(null)
       }
 
       try {
-        const response = await fetch(`${API_URL}/`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          },
-          signal: abortControllerRef.current.signal
+        const result = await apiStatusService.getApiStatus({
+          timeout: timeoutRef.current,
+          useCache: silent ? true : useCacheRef.current
         })
 
-        clearTimeout(timeoutId)
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const responseData = await response.json()
-
-        // Enriquecer los datos con información adicional
-        const enrichedData = {
-          ...responseData,
-          timestamp: new Date().toISOString(),
-          responseTime: Date.now() - startTime,
-          apiUrl: API_URL
-        }
-
-        setData(enrichedData)
+        setData(result)
         setError(null)
         setLastUpdate(new Date())
 
-        return { success: true, data: enrichedData }
+        return { success: true, data: result }
       } catch (err) {
-        clearTimeout(timeoutId)
-
-        let errorMessage = 'Error desconocido'
-
-        if (err.name === 'AbortError') {
-          errorMessage = `Tiempo de espera agotado (${timeout}ms)`
-        } else if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-          errorMessage = 'Error de conexión - El servidor no está disponible'
-        } else if (err.message.includes('ECONNREFUSED')) {
-          errorMessage = 'Conexión rechazada - El servidor está desconectado'
-        } else {
-          errorMessage = err.message
-        }
+        const errorMessage = err.message || 'Error desconocido'
 
         if (!silent) {
           setError(errorMessage)
           setData(null)
+
+          if (showErrorsRef.current) {
+            handleError(err, { showToast: true })
+          }
         }
 
         return { success: false, error: errorMessage }
@@ -103,11 +71,11 @@ const useApiStatus = (options = {}) => {
         }
       }
     },
-    [timeout]
+    [handleError] // Solo handleError como dependencia
   )
 
   /**
-   * Inicia o detiene la actualización automática
+   * Alterna el estado del refresco automático
    */
   const toggleAutoRefresh = useCallback(() => {
     setIsAutoRefreshing(prev => !prev)
@@ -121,22 +89,49 @@ const useApiStatus = (options = {}) => {
   }, [fetchStatus])
 
   /**
-   * Realiza una verificación silenciosa (sin cambiar estado de loading)
+   * Realiza una verificación silenciosa
    */
   const checkSilent = useCallback(() => {
     return fetchStatus(true)
   }, [fetchStatus])
 
+  /**
+   * Realiza un ping rápido a la API
+   */
+  const ping = useCallback(async (pingTimeout = 2000) => {
+    try {
+      return await apiStatusService.ping(pingTimeout)
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        responseTime: null,
+        timestamp: new Date().toISOString()
+      }
+    }
+  }, [])
+
+  /**
+   * Limpia el cache del servicio
+   */
+  const clearCache = useCallback(() => {
+    apiStatusService.clearCache()
+  }, [])
+
   // Efecto para manejar la actualización automática
+  // Usar refs para evitar dependencias que cambian
+  const refreshIntervalRef = useRef(refreshInterval)
+  refreshIntervalRef.current = refreshInterval
+
   useEffect(() => {
     if (isAutoRefreshing) {
       // Ejecutar inmediatamente
       fetchStatus(false)
 
-      // Configurar intervalo
+      // Configurar intervalo con valor fijo
       intervalRef.current = setInterval(() => {
-        fetchStatus(true) // Silencioso para evitar parpadeo de loading
-      }, refreshInterval)
+        fetchStatus(true) // Silencioso para evitar parpadeo
+      }, refreshIntervalRef.current)
     } else {
       // Limpiar intervalo
       if (intervalRef.current) {
@@ -145,72 +140,76 @@ const useApiStatus = (options = {}) => {
       }
     }
 
+    // Cleanup function
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
     }
-  }, [isAutoRefreshing, refreshInterval, fetchStatus])
+  }, [isAutoRefreshing]) // REMOVIDO: fetchStatus y refreshInterval
 
-  // Cargar estado inicial
+  // Efecto para carga inicial - SEPARADO para evitar conflictos
   useEffect(() => {
+    // Solo cargar al montar si NO está en auto-refresh
     if (!isAutoRefreshing) {
       fetchStatus(false)
     }
-  }, [fetchStatus, isAutoRefreshing])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Array vacío - solo al montar
 
-  // Cleanup al desmontar
+  // Efecto de cleanup al desmontar
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
+        intervalRef.current = null
       }
     }
   }, [])
 
-  // Funciones de utilidad para analizar el estado
+  /**
+   * Analiza y devuelve el estado general de salud
+   * Memoizado para evitar recreación
+   */
   const getOverallHealth = useCallback(() => {
     if (loading) return { status: 'checking', color: 'default', text: 'Verificando...' }
     if (error) return { status: 'error', color: 'danger', text: 'Error' }
     if (data?.health === 'OK') return { status: 'healthy', color: 'success', text: 'Operativo' }
     return { status: 'unknown', color: 'warning', text: 'Desconocido' }
-  }, [loading, error, data])
+  }, [loading, error, data?.health])
 
+  /**
+   * Analiza y devuelve el estado de cada servicio
+   * Memoizado para evitar recreación
+   */
   const getServiceHealth = useCallback(() => {
     if (!data?.services) return {}
+    return apiStatusService.analyzeServiceHealth(data.services)
+  }, [data?.services])
 
-    const serviceStatus = {}
-    Object.entries(data.services).forEach(([serviceName, status]) => {
-      const statusLower = status.toLowerCase()
-
-      if (statusLower.includes('disponible') || statusLower.includes('available')) {
-        serviceStatus[serviceName] = { status: 'healthy', color: 'success', icon: 'check_circle' }
-      } else if (statusLower.includes('error') || statusLower.includes('failed')) {
-        serviceStatus[serviceName] = { status: 'error', color: 'danger', icon: 'error' }
-      } else {
-        serviceStatus[serviceName] = { status: 'warning', color: 'warning', icon: 'warning' }
-      }
-    })
-
-    return serviceStatus
-  }, [data])
-
+  /**
+   * Obtiene estadísticas generales de la API
+   * Memoizado para evitar recreación
+   */
   const getStats = useCallback(() => {
     if (!data) return null
 
     const services = data.services ? Object.keys(data.services) : []
-    const healthyServices = services.filter(service => data.services[service].toLowerCase().includes('disponible')).length
+    const healthyServices = services.filter(
+      service => data.services[service].toLowerCase().includes('disponible') || data.services[service].toLowerCase().includes('available')
+    ).length
 
     return {
       totalServices: services.length,
       healthyServices,
+      unhealthyServices: services.length - healthyServices,
       uptime: data.uptime,
       serverName: data.server,
       overallHealth: data.health,
-      lastCheck: lastUpdate
+      responseTime: data.metadata?.responseTime,
+      lastCheck: lastUpdate,
+      healthPercentage: services.length > 0 ? Math.round((healthyServices / services.length) * 100) : 0
     }
   }, [data, lastUpdate])
 
@@ -225,12 +224,14 @@ const useApiStatus = (options = {}) => {
     isAutoRefreshing,
     refreshInterval,
 
-    // Funciones
+    // Funciones principales
     refresh,
     checkSilent,
     toggleAutoRefresh,
+    ping,
+    clearCache,
 
-    // Análisis del estado
+    // Análisis del estado - valores memoizados
     overallHealth: getOverallHealth(),
     serviceHealth: getServiceHealth(),
     stats: getStats(),

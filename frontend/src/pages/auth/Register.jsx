@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema } from '@utils/formSchemas'
 import { useGoogleLogin } from '@react-oauth/google'
-import useError from '@hooks/useError'
+import { useNotification } from '@hooks/useNotification'
 import useAuth from '@hooks/useAuth'
 import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
@@ -14,7 +14,7 @@ import { APP_PATHS } from '@constants/paths.js'
 
 const FeelingRegister = () => {
   const navigate = useNavigate()
-  const { showErrorModal } = useError()
+  const { showError, showSuccess } = useNotification()
   const { register, registerWithGoogle, loading } = useAuth()
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -84,6 +84,8 @@ const FeelingRegister = () => {
     const result = await register(userData)
 
     if (result.success) {
+      showSuccess('¡Registro exitoso! Se ha enviado un correo de verificación.')
+
       // Redirigir al usuario a verificar su correo con el email como parámetro
       navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
         state: {
@@ -104,15 +106,15 @@ const FeelingRegister = () => {
         setServerErrors(fieldErrors)
       }
 
-      // Mostrar modal de error para errores generales o del servidor
+      // Mostrar notificación de error para errores generales o del servidor
       if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
         const errorMessage = getErrorMessage(error)
-        showErrorModal(errorMessage, 'Error de registro')
+        showError(errorMessage, 'Error de registro')
       }
     }
   }
 
-  // Implementación del registro con Google (sin cambios)
+  // Implementación del registro con Google
   const googleRegistration = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
@@ -121,6 +123,8 @@ const FeelingRegister = () => {
         const result = await registerWithGoogle(tokenResponse)
 
         if (result.success) {
+          showSuccess('¡Registro con Google exitoso! Tu email ya está verificado.')
+
           navigate(APP_PATHS.USER.COMPLETE_PROFILE, {
             state: {
               email: result.data.email,
@@ -137,18 +141,18 @@ const FeelingRegister = () => {
             errorMessage = result.error.response.data.error
           }
 
-          showErrorModal(errorMessage, 'Error de registro con Google')
+          showError(errorMessage, 'Error de registro con Google')
         }
       } catch (error) {
         console.error('Error en registro con Google:', error)
-        showErrorModal('No se pudo completar el registro con Google. Inténtalo de nuevo.', 'Error de registro')
+        showError('No se pudo completar el registro con Google. Inténtalo de nuevo.', 'Error de registro')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
     onError: error => {
       console.error('Google OAuth Error:', error)
-      showErrorModal('No se pudo completar la autenticación con Google', 'Error de autenticación')
+      showError('No se pudo completar la autenticación con Google', 'Error de autenticación')
       setIsGoogleAuthenticating(false)
     },
     flow: 'implicit'

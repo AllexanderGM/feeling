@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { ErrorManager } from '@utils/errorManager'
 
 const API_URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8081'
 
@@ -51,6 +52,9 @@ api.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+
+    error.errorType = ErrorManager.getErrorType(error)
+    error.formattedMessage = ErrorManager.getErrorMessage(error)
 
     return Promise.reject(error)
   }

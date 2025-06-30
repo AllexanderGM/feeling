@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
+import { useNotification } from '@hooks/useNotification'
 import { validateEmail, validateVerificationCode } from '@utils/validateInputs'
 import { getErrorMessage } from '@utils/errorHelpers'
-import useError from '@hooks/useError'
 import logo from '@assets/logo/logo-grey-dark.svg'
 
 const VerifyEmail = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { showErrorModal } = useError()
+  const { showError, showSuccess, showInfo } = useNotification()
   const { verifyEmailCode, resendVerificationCode } = useAuth()
 
   // Estado del componente
@@ -43,6 +43,9 @@ const VerifyEmail = () => {
       setStatus('success')
       setMessage(stateMessage || 'Tu cuenta de Google ha sido verificada exitosamente.')
 
+      // Solo mostrar toast para Google - eliminar mensaje interno
+      showSuccess('¡Tu cuenta de Google ha sido verificada exitosamente!')
+
       // Redirigir automáticamente después de 3 segundos
       const timer = setTimeout(() => {
         navigate('/complete-profile', { replace: true })
@@ -51,12 +54,13 @@ const VerifyEmail = () => {
       return () => clearTimeout(timer)
     }
 
-    // Si viene de registro, mostrar mensaje y comenzar countdown
+    // Si viene de registro, SOLO mostrar el mensaje interno, NO toast
     if (fromRegister && stateEmail) {
       setMessage('Se ha enviado un código de verificación a tu correo electrónico.')
+      // NO mostrar toast aquí - solo el mensaje visual
       startResendCountdown()
     }
-  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate])
+  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, showSuccess])
 
   // Función para iniciar el countdown de reenvío
   const startResendCountdown = () => {
@@ -128,6 +132,9 @@ const VerifyEmail = () => {
         setStatus('success')
         setMessage('¡Tu email ha sido verificado correctamente!')
 
+        // Solo toast para verificación exitosa
+        showSuccess('¡Tu email ha sido verificado correctamente!')
+
         // Redirigir después de 2 segundos
         setTimeout(() => {
           if (userType === 'google') {
@@ -151,6 +158,9 @@ const VerifyEmail = () => {
 
       const errorMessage = getErrorMessage(error)
       setMessage(errorMessage)
+
+      // Solo toast para errores
+      showError(errorMessage, 'Error de verificación')
 
       // Si el código es inválido, limpiar el campo
       if (errorMessage.toLowerCase().includes('código')) {
@@ -181,7 +191,9 @@ const VerifyEmail = () => {
       const result = await resendVerificationCode(email.toLowerCase().trim())
 
       if (result.success) {
+        // Actualizar mensaje interno Y mostrar toast
         setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
+        showSuccess('Código reenviado exitosamente')
         startResendCountdown()
       } else {
         throw result.error || new Error('Error al reenviar el código')
@@ -189,7 +201,7 @@ const VerifyEmail = () => {
     } catch (error) {
       console.error('Error al reenviar código:', error)
       const errorMessage = getErrorMessage(error)
-      showErrorModal(errorMessage, 'Error al reenviar código')
+      showError(errorMessage, 'Error al reenviar código')
     } finally {
       setResendLoading(false)
     }
@@ -250,7 +262,7 @@ const VerifyEmail = () => {
         <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit}>
           <h2 className="text-xl font-medium text-white mb-2">Verificar Email</h2>
 
-          {/* Mensajes de estado */}
+          {/* Mensajes de estado - SOLO mostrar cuando NO sea de registro inicial */}
           {status === 'error' && (
             <div className="bg-red-900/30 border border-red-800/50 text-red-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
               <div className="flex items-center gap-2">
@@ -260,7 +272,8 @@ const VerifyEmail = () => {
             </div>
           )}
 
-          {message && status !== 'error' && (
+          {/* Solo mostrar mensaje informativo si no es error y tiene mensaje */}
+          {message && status !== 'error' && status !== 'success' && (
             <div className="bg-blue-900/30 border border-blue-800/50 text-blue-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-blue-400">info</span>

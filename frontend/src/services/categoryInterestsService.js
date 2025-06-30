@@ -1,81 +1,69 @@
-import { API_URL } from '@config/config'
+import { BaseService } from '@services/baseService.js'
 
 /**
  * Servicio para manejo de categorías de interés
  */
-
-/**
- * Obtiene todas las categorías de interés disponibles
- * @returns {Promise<Array>} Lista de categorías de interés
- */
-export const getCategoryInterests = async () => {
-  try {
-    const response = await fetch(`${API_URL}/category-interests`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+class CategoryInterestsService extends BaseService {
+  /**
+   * Obtiene todas las categorías de interés disponibles
+   * @returns {Promise<Array>} Lista de categorías de interés
+   */
+  async getAllCategories() {
+    try {
+      const result = await BaseService.get('/category-interests')
+      return BaseService.handleServiceResponse(result, 'obtener categorías de interés')
+    } catch (error) {
+      console.error('❌ Error obteniendo categorías de interés:', {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation
+      })
+      throw error
     }
+  }
 
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error obteniendo categorías de interés:', error)
-    throw error
+  /**
+   * Obtiene una categoría específica por su enum
+   * @param {string} categoryEnum - El enum de la categoría (ESSENCE, ROUSE, SPIRIT)
+   * @returns {Promise<Object>} Datos de la categoría
+   */
+  async getCategoryByEnum(categoryEnum) {
+    try {
+      const result = await BaseService.get(`/category-interests/${categoryEnum}`)
+      return BaseService.handleServiceResponse(result, `obtener categoría ${categoryEnum}`)
+    } catch (error) {
+      console.error(`❌ Error obteniendo categoría ${categoryEnum}:`, {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Obtiene categorías activas solamente
+   * @returns {Promise<Array>} Lista de categorías activas
+   */
+  async getActiveCategories() {
+    try {
+      const result = await BaseService.get('/category-interests?active=true')
+      return BaseService.handleServiceResponse(result, 'obtener categorías activas')
+    } catch (error) {
+      console.error('❌ Error obteniendo categorías activas:', {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation
+      })
+      throw error
+    }
   }
 }
 
-/**
- * Obtiene una categoría específica por su enum
- * @param {string} categoryEnum - El enum de la categoría (ESSENCE, ROUSE, SPIRIT)
- * @returns {Promise<Object>} Datos de la categoría
- */
-export const getCategoryInterestByEnum = async categoryEnum => {
-  try {
-    const response = await fetch(`${API_URL}/category-interests/${categoryEnum}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+const categoryInterestsService = new CategoryInterestsService()
 
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
+export const getCategoryInterests = () => categoryInterestsService.getAllCategories()
+export const getCategoryInterestByEnum = categoryEnum => categoryInterestsService.getCategoryByEnum(categoryEnum)
+export const getActiveCategoryInterests = () => categoryInterestsService.getActiveCategories()
 
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error(`Error obteniendo categoría ${categoryEnum}:`, error)
-    throw error
-  }
-}
-
-/**
- * Obtiene categorías activas solamente
- * @returns {Promise<Array>} Lista de categorías activas
- */
-export const getActiveCategoryInterests = async () => {
-  try {
-    const response = await fetch(`${API_URL}/category-interests?active=true`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error obteniendo categorías activas:', error)
-    throw error
-  }
-}
+export default categoryInterestsService

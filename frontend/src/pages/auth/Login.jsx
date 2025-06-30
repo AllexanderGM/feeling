@@ -1,12 +1,11 @@
-// React y React Router
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
-import useError from '@hooks/useError'
 import useAuth from '@hooks/useAuth'
+import { useNotification } from '@hooks/useNotification'
 import { getErrorMessage, getFieldErrors } from '@utils/errorUtils'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
@@ -16,7 +15,7 @@ import { loginSchema } from '@utils/formSchemas'
 const FeelingLogin = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { showErrorModal } = useError()
+  const { showError, showSuccess } = useNotification()
   const { login, loginWithGoogle, loading } = useAuth()
 
   const [isVisible, setIsVisible] = useState(false)
@@ -64,6 +63,7 @@ const FeelingLogin = () => {
 
     if (result.success) {
       console.log('Login route:', fromPath)
+      showSuccess('¡Inicio de sesión exitoso!')
       navigate(fromPath, { replace: true })
     } else {
       const error = result.error
@@ -75,15 +75,15 @@ const FeelingLogin = () => {
         setServerErrors(fieldErrors)
       }
 
-      // Mostrar modal de error solo si no hay errores de campo o es error del servidor
+      // Mostrar notificación de error solo si no hay errores de campo o es error del servidor
       if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
         const errorMessage = getErrorMessage(error)
-        showErrorModal(errorMessage, 'Error de inicio de sesión')
+        showError(errorMessage, 'Error de inicio de sesión')
       }
     }
   }
 
-  // Implementación del login con Google (sin cambios)
+  // Implementación del login con Google
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
       try {
@@ -92,24 +92,25 @@ const FeelingLogin = () => {
         const result = await loginWithGoogle(tokenResponse)
 
         if (result.success) {
+          showSuccess('¡Inicio de sesión con Google exitoso!')
           navigate(fromPath, { replace: true })
         } else {
           if (result.error?.response?.status === 404 || result.error?.message?.toLowerCase().includes('no encontrado')) {
-            showErrorModal('No encontramos una cuenta con este email de Google. ¿Quieres registrarte?', 'Cuenta no encontrada')
+            showError('No encontramos una cuenta con este email de Google. ¿Quieres registrarte?', 'Cuenta no encontrada')
           } else {
             const errorMessage = getErrorMessage(result.error)
-            showErrorModal(errorMessage, 'Error de inicio de sesión')
+            showError(errorMessage, 'Error de inicio de sesión')
           }
         }
       } catch (error) {
         console.error('Error en login con Google:', error)
-        showErrorModal('No se pudo completar el inicio de sesión con Google', 'Error de autenticación')
+        showError('No se pudo completar el inicio de sesión con Google', 'Error de autenticación')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
     onError: () => {
-      showErrorModal('No se pudo completar la autenticación con Google', 'Error de autenticación')
+      showError('No se pudo completar la autenticación con Google', 'Error de autenticación')
       setIsGoogleAuthenticating(false)
     },
     flow: 'implicit'

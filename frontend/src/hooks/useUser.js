@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { completeUserProfile, updateProfile, getMyProfile, validateCompleteProfile } from '@services/profileService.js'
+import { completeUserProfile, updateProfile, getMyProfile, validateCompleteProfile } from '@services/userService.js'
 
 /**
  * Hook personalizado para la administración del usuario
@@ -63,7 +63,7 @@ const useUser = () => {
 
         // Validar datos antes de enviar
         const validation = validateCompleteProfile(profileData)
-        if (!validation.isValid) {
+        if (!validation.isComplete) {
           throw new Error(`Datos incompletos: ${validation.missingFields.join(', ')}`)
         }
 
@@ -203,6 +203,7 @@ const useUser = () => {
       if (!profileData) {
         return {
           isValid: false,
+          isComplete: false,
           missingFields: ['profile'],
           errors: { profile: 'No hay datos de perfil disponibles' },
           completionPercentage: 0
@@ -220,7 +221,7 @@ const useUser = () => {
    */
   const isProfileComplete = useCallback(() => {
     const validation = validateProfile()
-    return validation.isValid
+    return validation.isComplete
   }, [validateProfile])
 
   // ========================================
@@ -249,7 +250,7 @@ const useUser = () => {
     return {
       completionPercentage: validation.completionPercentage,
       missingFieldsCount: validation.missingFields.length,
-      isComplete: validation.isValid,
+      isComplete: validation.isComplete,
       hasImages: profile.images?.length > 0,
       imageCount: profile.images?.length || 0
     }

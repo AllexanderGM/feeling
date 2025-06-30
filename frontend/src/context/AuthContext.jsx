@@ -1,14 +1,14 @@
 import { createContext, useState, useEffect, useMemo } from 'react'
 import { useCookies } from 'react-cookie'
 import authService from '@services/authService'
-import useError from '@hooks/useError'
+import { useNotification } from '@hooks/useNotification'
 import { COOKIE_OPTIONS } from '@config/config'
 
 // Crear el contexto
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  const { handleError } = useError()
+  const { showError } = useNotification()
   const [cookies, setCookie, removeCookie] = useCookies(['access_token', 'refresh_token', 'user'])
   const [user, setUser] = useState(() => {
     const userCookie = cookies.user
@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }) => {
         removeCookie('access_token', { path: '/' })
         removeCookie('refresh_token', { path: '/' })
 
-        handleError(`Error al inicializar la autenticación: ${err.message}`)
+        showError(`Error al inicializar la autenticación: ${err.message}`, 'Error de inicialización')
       } finally {
         setLoading(false)
         setIsInitialized(true)
@@ -106,12 +106,10 @@ export const AuthProvider = ({ children }) => {
     if (authService.hasCookieHandler()) {
       initAuth()
     }
-  }, [cookies.user, cookies.access_token, handleError, removeCookie])
+  }, [cookies.user, cookies.access_token, showError, removeCookie])
 
   // Registro de usuario
   const register = async userData => {
-    console.log('🔄 Iniciando registro desde AuthProvider')
-
     if (!authService) {
       console.error('❌ authService no está disponible')
       return {
@@ -121,23 +119,9 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    if (typeof authService.register !== 'function') {
-      console.error(
-        '❌ authService.register no es una función. Métodos disponibles:',
-        Object.getOwnPropertyNames(Object.getPrototypeOf(authService))
-      )
-      return {
-        success: false,
-        error: new Error('Método de registro no disponible'),
-        errorInfo: { message: 'Método no disponible' }
-      }
-    }
-
     setLoading(true)
     try {
-      console.log('🔄 Llamando a authService.register')
       const result = await authService.register(userData)
-      console.log('✅ Registro exitoso:', result)
       return { success: true, data: result }
     } catch (err) {
       console.error('❌ Error en registro:', err)

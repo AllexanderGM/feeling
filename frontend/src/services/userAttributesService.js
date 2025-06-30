@@ -1,83 +1,115 @@
-import { API_URL } from '@config/config'
+import { BaseService } from '@services/baseService.js'
 
-export const getUserAttributes = async () => {
-  try {
-    const response = await fetch(`${API_URL}/user-attributes`)
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+/**
+ * Servicio para manejo de atributos de usuario
+ */
+class UserAttributesService extends BaseService {
+  /**
+   * Obtiene todos los atributos de usuario agrupados por tipo
+   * @returns {Promise<Object>} Atributos agrupados por tipo
+   */
+  async getAllAttributes() {
+    try {
+      const result = await BaseService.get('/user-attributes')
+      return BaseService.handleServiceResponse(result, 'obtener atributos de usuario')
+    } catch (error) {
+      console.error('❌ Error obteniendo atributos de usuario:', {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation
+      })
+      throw error
     }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Error obteniendo atributos de usuario:', error)
-    throw error
   }
-}
 
-export const getUserAttributesByType = async attributeType => {
-  try {
-    const response = await fetch(`${API_URL}/user-attributes/${attributeType}`)
-
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+  /**
+   * Obtiene atributos de un tipo específico
+   * @param {string} attributeType - Tipo de atributo
+   * @returns {Promise<Array>} Lista de atributos del tipo especificado
+   */
+  async getAttributesByType(attributeType) {
+    try {
+      const result = await BaseService.get(`/user-attributes/${attributeType}`)
+      return BaseService.handleServiceResponse(result, `obtener atributos de tipo ${attributeType}`)
+    } catch (error) {
+      console.error(`❌ Error obteniendo atributos de tipo ${attributeType}:`, {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation
+      })
+      throw error
     }
-
-    return await response.json()
-  } catch (error) {
-    console.error(`Error obteniendo atributos de tipo ${attributeType}:`, error)
-    throw error
   }
-}
 
-// Nueva función para crear atributos con mejor manejo de errores
-export const createUserAttribute = async (attributeType, attributeData) => {
-  try {
-    const response = await fetch(`${API_URL}/user-attributes/${attributeType}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(attributeData)
-    })
+  /**
+   * Crea un nuevo atributo de usuario
+   * @param {string} attributeType - Tipo de atributo (EYE_COLOR, HAIR_COLOR, etc.)
+   * @param {Object} attributeData - Datos del atributo {name, detail}
+   * @returns {Promise<Object>} Atributo creado
+   */
+  async createAttribute(attributeType, attributeData) {
+    try {
+      const result = await BaseService.post(`/user-attributes/${attributeType}`, attributeData)
+      return BaseService.handleServiceResponse(result, `crear atributo de tipo ${attributeType}`)
+    } catch (error) {
+      console.error(`❌ Error creando atributo de tipo ${attributeType}:`, {
+        type: error.errorType,
+        message: error.message,
+        operation: error.operation,
+        fieldErrors: error.fieldErrors
+      })
 
-    // Si la respuesta no es exitosa, extraer el mensaje de error del backend
-    if (!response.ok) {
-      let errorMessage = `Error ${response.status}: ${response.statusText}`
-
-      try {
-        const errorData = await response.json()
-
-        // Diferentes tipos de errores del backend
-        if (errorData.error === 'VALIDATION_ERROR' && errorData.details) {
-          const validationErrors = Object.entries(errorData.details)
-            .map(([field, message]) => `${field}: ${message}`)
-            .join(', ')
-          errorMessage = `Error de validación: ${validationErrors}`
-        } else if (errorData.error === 'DUPLICATE_ATTRIBUTE') {
-          errorMessage = 'Ya existe un atributo con ese nombre o código. Podrás añadirlo una vez sea aprobado.'
-        } else if (errorData.error === 'INVALID_ATTRIBUTE_TYPE') {
-          errorMessage = `Tipo de atributo no válido: ${attributeType}`
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        }
-      } catch (parseError) {
-        // Si no se puede parsear el JSON, usar mensaje genérico
-        console.warn('No se pudo parsear el error del servidor:', parseError)
+      // Enriquecer mensaje de error para casos específicos
+      if (error.errorType === 'VALIDATION_ERROR' && error.fieldErrors) {
+        const validationMessages = Object.entries(error.fieldErrors)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join(', ')
+        error.message = `Error de validación: ${validationMessages}`
       }
 
-      throw new Error(errorMessage)
+      throw error
     }
+  }
 
-    return await response.json()
-  } catch (error) {
-    console.error(`Error creando atributo de tipo ${attributeType}:`, error)
+  /**
+   * Obtiene sugerencias de tags por categoría
+   * @param {string} categoryInterest - Categoría de interés
+   * @param {number} limit - Límite de resultados (default: 15)
+   * @returns {Promise<Array>} Array de tags sugeridos
+   */
+  async getCategorySuggestions(categoryInterest, limit = 15) {
+    try {
+      if (!categoryInterest) {
+        console.warn('⚠️ No se proporcionó categoría de interés')
+        return []
+      }
 
-    // Re-lanzar con mensaje más descriptivo si es un error de red
-    if (error instanceof TypeError && error.message.includes('fetch')) {
-      throw new Error('Error de conexión. Verifica tu conexión a internet.')
+      const result = await BaseService.get(`/tags/popular/category/${categoryInterest}?limit=${limit}`)
+
+      if (!result.success) {
+        console.warn('⚠️ No se pudieron obtener sugerencias:', result.error.message)
+        return []
+      }
+
+      return result.data || []
+    } catch (error) {
+      console.error('❌ Error obteniendo sugerencias de categoría:', {
+        type: error.errorType,
+        message: error.message,
+        categoryInterest
+      })
+      // Para este caso específico, devolver array vacío en lugar de lanzar error
+      return []
     }
-
-    throw error
   }
 }
+
+// Crear instancia y exportar métodos
+const userAttributesService = new UserAttributesService()
+
+export const getUserAttributes = () => userAttributesService.getAllAttributes()
+export const getUserAttributesByType = attributeType => userAttributesService.getAttributesByType(attributeType)
+export const createUserAttribute = (attributeType, attributeData) => userAttributesService.createAttribute(attributeType, attributeData)
+export const getCategorySuggestions = (categoryInterest, limit) => userAttributesService.getCategorySuggestions(categoryInterest, limit)
+
+export default userAttributesService
