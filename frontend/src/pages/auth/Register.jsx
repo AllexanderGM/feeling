@@ -5,30 +5,22 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema } from '@utils/formSchemas'
 import { useGoogleLogin } from '@react-oauth/google'
-import { useNotification } from '@hooks/useNotification'
 import useAuth from '@hooks/useAuth'
-import { getErrorMessage, getFieldErrors } from '@utils/errorHelpers'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
 
-const FeelingRegister = () => {
+const Register = () => {
   const navigate = useNavigate()
-  const { showError, showSuccess } = useNotification()
   const { register, registerWithGoogle, loading } = useAuth()
 
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [serverErrors, setServerErrors] = useState({})
   const [termsError, setTermsError] = useState('')
 
-  // Configuración de React Hook Form
   const {
     control,
     handleSubmit,
-    clearErrors,
     formState: { errors, isValid }
   } = useForm({
     resolver: yupResolver(registerSchema),
@@ -42,37 +34,19 @@ const FeelingRegister = () => {
     mode: 'onChange'
   })
 
-  const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible)
-  const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
-
-  // Limpiar errores del servidor cuando el usuario empiece a escribir
-  const handleFieldChange = fieldName => {
-    if (serverErrors[fieldName]) {
-      setServerErrors(prev => ({ ...prev, [fieldName]: null }))
-    }
-    clearErrors(fieldName)
-  }
-
-  // Manejar cambios en términos y condiciones
   const handleTermsChange = accepted => {
     setTermsAccepted(accepted)
-    if (accepted && termsError) {
-      setTermsError('')
-    }
+    if (accepted && termsError) setTermsError('')
   }
 
   const onSubmit = async formData => {
-    // Validar términos y condiciones
     if (!termsAccepted) {
       setTermsError('Debes aceptar los términos y condiciones')
       return
     }
 
-    // Limpiar errores del servidor antes de enviar
-    setServerErrors({})
     setTermsError('')
 
-    // Preparar datos para el registro
     const userData = {
       name: formData.name.trim(),
       lastName: formData.lastName.trim(),
@@ -80,13 +54,8 @@ const FeelingRegister = () => {
       password: formData.password
     }
 
-    // Usar el servicio de autenticación
     const result = await register(userData)
-
     if (result.success) {
-      showSuccess('¡Registro exitoso! Se ha enviado un correo de verificación.')
-
-      // Redirigir al usuario a verificar su correo con el email como parámetro
       navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
         state: {
           email: formData.email.toLowerCase().trim(),
@@ -95,36 +64,15 @@ const FeelingRegister = () => {
         },
         replace: true
       })
-    } else {
-      const error = result.error
-      const { errorInfo } = result
-
-      // Manejar errores de campo específicos
-      const fieldErrors = getFieldErrors(error)
-
-      if (Object.keys(fieldErrors).length > 0) {
-        setServerErrors(fieldErrors)
-      }
-
-      // Mostrar notificación de error para errores generales o del servidor
-      if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
-        const errorMessage = getErrorMessage(error)
-        showError(errorMessage, 'Error de registro')
-      }
     }
   }
 
-  // Implementación del registro con Google
   const googleRegistration = useGoogleLogin({
     onSuccess: async tokenResponse => {
+      setIsGoogleAuthenticating(true)
       try {
-        setIsGoogleAuthenticating(true)
-
         const result = await registerWithGoogle(tokenResponse)
-
         if (result.success) {
-          showSuccess('¡Registro con Google exitoso! Tu email ya está verificado.')
-
           navigate(APP_PATHS.USER.COMPLETE_PROFILE, {
             state: {
               email: result.data.email,
@@ -134,38 +82,18 @@ const FeelingRegister = () => {
             },
             replace: true
           })
-        } else {
-          let errorMessage = 'No se pudo completar el registro con Google'
-
-          if (result.error?.response?.data?.error) {
-            errorMessage = result.error.response.data.error
-          }
-
-          showError(errorMessage, 'Error de registro con Google')
         }
-      } catch (error) {
-        console.error('Error en registro con Google:', error)
-        showError('No se pudo completar el registro con Google. Inténtalo de nuevo.', 'Error de registro')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
-    onError: error => {
-      console.error('Google OAuth Error:', error)
-      showError('No se pudo completar la autenticación con Google', 'Error de autenticación')
-      setIsGoogleAuthenticating(false)
-    },
+    onError: () => setIsGoogleAuthenticating(false),
     flow: 'implicit'
   })
 
   const handleGoogleSignIn = () => {
     setIsGoogleAuthenticating(true)
     googleRegistration()
-  }
-
-  // Combinar errores de validación y del servidor
-  const getFieldError = fieldName => {
-    return errors[fieldName]?.message || serverErrors[fieldName]
   }
 
   return (
@@ -226,13 +154,9 @@ const FeelingRegister = () => {
                 label="Nombre(s)"
                 placeholder="Tu(s) nombre(s)"
                 type="text"
-                isInvalid={!!getFieldError('name')}
-                errorMessage={getFieldError('name')}
+                isInvalid={!!errors.name}
+                errorMessage={errors.name?.message}
                 isDisabled={loading || isGoogleAuthenticating}
-                onChange={e => {
-                  field.onChange(e)
-                  handleFieldChange('name')
-                }}
               />
             )}
           />
@@ -248,13 +172,9 @@ const FeelingRegister = () => {
                 label="Apellido(s)"
                 placeholder="Tu(s) apellido(s)"
                 type="text"
-                isInvalid={!!getFieldError('lastName')}
-                errorMessage={getFieldError('lastName')}
+                isInvalid={!!errors.lastName}
+                errorMessage={errors.lastName?.message}
                 isDisabled={loading || isGoogleAuthenticating}
-                onChange={e => {
-                  field.onChange(e)
-                  handleFieldChange('lastName')
-                }}
               />
             )}
           />
@@ -272,14 +192,9 @@ const FeelingRegister = () => {
               placeholder="usuario@correo.com"
               type="email"
               autoComplete="email"
-              aria-label="Correo electrónico"
-              isInvalid={!!getFieldError('email')}
-              errorMessage={getFieldError('email')}
+              isInvalid={!!errors.email}
+              errorMessage={errors.email?.message}
               isDisabled={loading || isGoogleAuthenticating}
-              onChange={e => {
-                field.onChange(e)
-                handleFieldChange('email')
-              }}
             />
           )}
         />
@@ -294,30 +209,11 @@ const FeelingRegister = () => {
               isRequired
               label="Contraseña"
               placeholder="••••••••"
-              type={isPasswordVisible ? 'text' : 'password'}
+              type="password"
               autoComplete="new-password"
-              aria-label="Contraseña"
-              isInvalid={!!getFieldError('password')}
-              errorMessage={getFieldError('password')}
+              isInvalid={!!errors.password}
+              errorMessage={errors.password?.message}
               isDisabled={loading || isGoogleAuthenticating}
-              onChange={e => {
-                field.onChange(e)
-                handleFieldChange('password')
-              }}
-              endContent={
-                <button
-                  aria-label="toggle password visibility"
-                  className="focus:outline-none"
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  disabled={loading || isGoogleAuthenticating}>
-                  {isPasswordVisible ? (
-                    <span className="material-symbols-outlined">visibility_off</span>
-                  ) : (
-                    <span className="material-symbols-outlined">visibility</span>
-                  )}
-                </button>
-              }
             />
           )}
         />
@@ -332,30 +228,11 @@ const FeelingRegister = () => {
               isRequired
               label="Confirma tu contraseña"
               placeholder="••••••••"
-              type={isConfirmPasswordVisible ? 'text' : 'password'}
+              type="password"
               autoComplete="new-password"
-              aria-label="Confirma tu contraseña"
-              isInvalid={!!getFieldError('confirmPassword')}
-              errorMessage={getFieldError('confirmPassword')}
+              isInvalid={!!errors.confirmPassword}
+              errorMessage={errors.confirmPassword?.message}
               isDisabled={loading || isGoogleAuthenticating}
-              onChange={e => {
-                field.onChange(e)
-                handleFieldChange('confirmPassword')
-              }}
-              endContent={
-                <button
-                  aria-label="toggle password visibility"
-                  className="focus:outline-none"
-                  type="button"
-                  onClick={toggleConfirmPasswordVisibility}
-                  disabled={loading || isGoogleAuthenticating}>
-                  {isConfirmPasswordVisible ? (
-                    <span className="material-symbols-outlined">visibility_off</span>
-                  ) : (
-                    <span className="material-symbols-outlined">visibility</span>
-                  )}
-                </button>
-              }
             />
           )}
         />
@@ -364,7 +241,6 @@ const FeelingRegister = () => {
           <label className="flex items-start cursor-pointer">
             <Checkbox
               color="primary"
-              name="terms"
               isSelected={termsAccepted}
               onValueChange={handleTermsChange}
               isInvalid={!!termsError}
@@ -409,4 +285,4 @@ const FeelingRegister = () => {
   )
 }
 
-export default FeelingRegister
+export default Register

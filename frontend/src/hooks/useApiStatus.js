@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import apiStatusService from '@services/apiStatusService.js'
-import { useErrorHandler } from '@hooks/useError.js'
+import { useError } from '@hooks/useError.js'
 
 /**
  * Hook personalizado para obtener y manejar el estado completo de la API
@@ -16,7 +16,7 @@ const useApiStatus = (options = {}) => {
   const [isAutoRefreshing, setIsAutoRefreshing] = useState(autoRefresh)
 
   const intervalRef = useRef(null)
-  const { handleError } = useErrorHandler()
+  const { handleError } = useError()
 
   // Memoizar valores estables para evitar cambios en dependencias
   const timeoutRef = useRef(timeout)

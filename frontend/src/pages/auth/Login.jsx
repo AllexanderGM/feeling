@@ -5,114 +5,52 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import useAuth from '@hooks/useAuth'
-import { useNotification } from '@hooks/useNotification'
-import { getErrorMessage, getFieldErrors } from '@utils/errorUtils'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
 import { loginSchema } from '@utils/formSchemas'
 
-const FeelingLogin = () => {
+const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { showError, showSuccess } = useNotification()
   const { login, loginWithGoogle, loading } = useAuth()
 
-  const [isVisible, setIsVisible] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
-  const [serverErrors, setServerErrors] = useState({})
-  const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
 
-  // Configuración de React Hook Form
+  const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
+  const successMessage = location.state?.message
+
   const {
     control,
     handleSubmit,
-    clearErrors,
     formState: { errors, isValid }
   } = useForm({
     resolver: yupResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: ''
-    },
+    defaultValues: { email: '', password: '' },
     mode: 'onChange'
   })
 
-  // Si viene mensaje del estado (ej: desde verificación exitosa)
-  const successMessage = location.state?.message
-
-  const toggleVisibility = () => setIsVisible(!isVisible)
-
-  // Limpiar errores del servidor cuando el usuario empiece a escribir
-  const handleFieldChange = fieldName => {
-    if (serverErrors[fieldName]) {
-      setServerErrors(prev => ({ ...prev, [fieldName]: null }))
-    }
-    clearErrors(fieldName)
-  }
-
-  const onSubmit = async formData => {
-    const { email, password } = formData
-
-    // Limpiar errores del servidor antes de enviar
-    setServerErrors({})
-
-    const result = await login(email, password)
-    console.log('Login result:', result)
-
+  const onSubmit = async ({ email, password }) => {
+    const result = await login(email, password) // Notificaciones automáticas
     if (result.success) {
-      console.log('Login route:', fromPath)
-      showSuccess('¡Inicio de sesión exitoso!')
       navigate(fromPath, { replace: true })
-    } else {
-      const error = result.error
-      const { errorInfo } = result
-
-      const fieldErrors = getFieldErrors(error)
-
-      if (Object.keys(fieldErrors).length > 0) {
-        setServerErrors(fieldErrors)
-      }
-
-      // Mostrar notificación de error solo si no hay errores de campo o es error del servidor
-      if (Object.keys(fieldErrors).length === 0 || errorInfo.status >= 500) {
-        const errorMessage = getErrorMessage(error)
-        showError(errorMessage, 'Error de inicio de sesión')
-      }
     }
   }
 
-  // Implementación del login con Google
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
+      setIsGoogleAuthenticating(true)
       try {
-        setIsGoogleAuthenticating(true)
-
-        const result = await loginWithGoogle(tokenResponse)
-
+        const result = await loginWithGoogle(tokenResponse) // Notificaciones automáticas
         if (result.success) {
-          showSuccess('¡Inicio de sesión con Google exitoso!')
           navigate(fromPath, { replace: true })
-        } else {
-          if (result.error?.response?.status === 404 || result.error?.message?.toLowerCase().includes('no encontrado')) {
-            showError('No encontramos una cuenta con este email de Google. ¿Quieres registrarte?', 'Cuenta no encontrada')
-          } else {
-            const errorMessage = getErrorMessage(result.error)
-            showError(errorMessage, 'Error de inicio de sesión')
-          }
         }
-      } catch (error) {
-        console.error('Error en login con Google:', error)
-        showError('No se pudo completar el inicio de sesión con Google', 'Error de autenticación')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
-    onError: () => {
-      showError('No se pudo completar la autenticación con Google', 'Error de autenticación')
-      setIsGoogleAuthenticating(false)
-    },
+    onError: () => setIsGoogleAuthenticating(false),
     flow: 'implicit'
   })
 
@@ -121,18 +59,12 @@ const FeelingLogin = () => {
     googleLogin()
   }
 
-  // Combinar errores de validación y del servidor
-  const getFieldError = fieldName => {
-    return errors[fieldName]?.message || serverErrors[fieldName]
-  }
-
   return (
     <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
 
-      {/* Mensaje de éxito si viene de verificación */}
       {successMessage && (
         <div className="bg-green-900/30 border border-green-800 text-green-300 px-4 py-3 rounded mb-4 max-w-md w-full text-center">
           {successMessage}
@@ -154,14 +86,9 @@ const FeelingLogin = () => {
               placeholder="usuario@correo.com"
               type="email"
               autoComplete="email"
-              aria-label="Email"
-              isInvalid={!!getFieldError('email')}
-              errorMessage={getFieldError('email')}
+              isInvalid={!!errors.email}
+              errorMessage={errors.email?.message}
               isDisabled={loading || isGoogleAuthenticating}
-              onChange={e => {
-                field.onChange(e)
-                handleFieldChange('email')
-              }}
             />
           )}
         />
@@ -176,30 +103,11 @@ const FeelingLogin = () => {
               isRequired
               label="Contraseña"
               placeholder="••••••••"
-              type={isVisible ? 'text' : 'password'}
+              type="password"
               autoComplete="current-password"
-              aria-label="Contraseña"
-              isInvalid={!!getFieldError('password')}
-              errorMessage={getFieldError('password')}
+              isInvalid={!!errors.password}
+              errorMessage={errors.password?.message}
               isDisabled={loading || isGoogleAuthenticating}
-              onChange={e => {
-                field.onChange(e)
-                handleFieldChange('password')
-              }}
-              endContent={
-                <button
-                  aria-label="toggle password visibility"
-                  className="focus:outline-none"
-                  type="button"
-                  onClick={toggleVisibility}
-                  disabled={loading || isGoogleAuthenticating}>
-                  {isVisible ? (
-                    <span className="material-symbols-outlined">visibility_off</span>
-                  ) : (
-                    <span className="material-symbols-outlined">visibility</span>
-                  )}
-                </button>
-              }
             />
           )}
         />
@@ -207,9 +115,7 @@ const FeelingLogin = () => {
         <div className="flex items-center justify-between w-full pt-2">
           <label className="flex items-center cursor-pointer">
             <Checkbox
-              label="Recordar sesión"
               color="primary"
-              name="remember"
               isSelected={rememberMe}
               onValueChange={setRememberMe}
               isDisabled={loading || isGoogleAuthenticating}
@@ -270,4 +176,4 @@ const FeelingLogin = () => {
   )
 }
 
-export default FeelingLogin
+export default Login

@@ -186,6 +186,7 @@ export const resetPasswordSchema = yup.object().shape({
 
 // Esquema para verificación de email
 export const verifyEmailSchema = yup.object().shape({
+  email: baseValidations.email,
   code: baseValidations.verificationCode
 })
 

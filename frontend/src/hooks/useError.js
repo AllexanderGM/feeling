@@ -5,12 +5,12 @@ import { useNotification } from '@hooks/useNotification'
 /**
  * Hook unificado para manejo de errores que combina ErrorContext y sistema de Toast
  */
-export const useErrorHandler = () => {
+export const useError = () => {
   const errorContext = useContext(ErrorContext)
   const { showError, showSuccess, showWarning, showInfo } = useNotification()
 
   if (!errorContext) {
-    throw new Error('useErrorHandler debe ser usado dentro de ErrorProvider')
+    throw new Error('useError debe ser usado dentro de ErrorProvider')
   }
 
   /**
@@ -40,7 +40,7 @@ export const useErrorHandler = () => {
 
     // Log del error si está habilitado
     if (logError) {
-      console.error('Error capturado por useErrorHandler:', {
+      console.error('Error capturado por useError:', {
         error,
         message: finalMessage,
         errorType: error?.errorType,
@@ -137,4 +137,4 @@ export const useErrorHandler = () => {
 }
 
 // Export por defecto para compatibilidad
-export default useErrorHandler
+export default useError

@@ -1,77 +1,50 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import logo from '@assets/logo/logo-grey-dark.svg'
+import { resetPasswordSchema } from '@utils/formSchemas'
 
 const ResetPassword = () => {
   const { token } = useParams()
   const navigate = useNavigate()
-  const { resetPassword } = useAuth()
-
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  })
+  const { resetPassword, loading } = useAuth()
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
-  const [status, setStatus] = useState('idle') // idle, submitting, success, error
-  const [message, setMessage] = useState('')
-  const [errors, setErrors] = useState({})
+  const [status, setStatus] = useState('idle') // idle, success
 
-  const handleInputChange = (field, value) => {
-    setFormData({
-      ...formData,
-      [field]: value
-    })
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid }
+  } = useForm({
+    resolver: yupResolver(resetPasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: ''
+    },
+    mode: 'onChange'
+  })
 
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null })
-    }
-  }
+  const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible)
+  const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
-  const validate = () => {
-    const newErrors = {}
-
-    if (!formData.password) {
-      newErrors.password = 'La contraseña es requerida'
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres'
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async e => {
-    e.preventDefault()
-
-    if (!validate()) return
-
-    try {
-      setStatus('submitting')
-      await resetPassword(token, formData.password)
+  const onSubmit = async ({ password, confirmPassword }) => {
+    const result = await resetPassword(token, password, confirmPassword) // Notificaciones automáticas
+    if (result.success) {
       setStatus('success')
-      setMessage('Tu contraseña ha sido restablecida con éxito. Puedes iniciar sesión con tu nueva contraseña.')
-
-      // Redireccionar al login después de 3 segundos
       setTimeout(() => {
         navigate('/app/login', {
           state: { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' }
         })
       }, 3000)
-    } catch (error) {
-      setStatus('error')
-      setMessage(error.response?.data?.message || 'No se pudo restablecer tu contraseña. El enlace puede haber expirado.')
     }
   }
 
-  // Si no hay token, redirigir a la página de recuperación
+  // Si no hay token, redirigir
   if (!token) {
     navigate('/app/forgot-password')
     return null
@@ -91,72 +64,64 @@ const ResetPassword = () => {
             <div className="text-green-500 text-5xl mb-4">
               <span className="material-symbols-outlined text-6xl">check_circle</span>
             </div>
-            <p className="text-gray-300 mb-6">{message}</p>
+            <p className="text-gray-300 mb-6">
+              Tu contraseña ha sido restablecida con éxito. Puedes iniciar sesión con tu nueva contraseña.
+            </p>
             <div className="animate-pulse text-gray-400 text-sm">Redirigiendo al inicio de sesión...</div>
           </div>
         ) : (
           <>
-            {status === 'error' && <div className="bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded mb-4">{message}</div>}
-
             <p className="text-gray-400 mb-6">Crea una nueva contraseña segura para tu cuenta.</p>
 
-            <Form onSubmit={handleSubmit} validationBehavior="aria">
-              <Input
-                variant="underlined"
-                isRequired
-                label="Nueva contraseña"
+            <Form onSubmit={handleSubmit(onSubmit)} validationBehavior="aria">
+              <Controller
                 name="password"
-                placeholder="••••••••"
-                type={isPasswordVisible ? 'text' : 'password'}
-                autoComplete="new-password"
-                aria-label="Nueva contraseña"
-                value={formData.password}
-                onChange={e => handleInputChange('password', e.target.value)}
-                isInvalid={!!errors.password}
-                errorMessage={errors.password}
-                className="mb-4"
-                endContent={
-                  <button
-                    aria-label="toggle password visibility"
-                    className="focus:outline-none"
-                    type="button"
-                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}>
-                    {isPasswordVisible ? (
-                      <span className="material-symbols-outlined">visibility_off</span>
-                    ) : (
-                      <span className="material-symbols-outlined">visibility</span>
-                    )}
-                  </button>
-                }
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    variant="underlined"
+                    isRequired
+                    label="Nueva contraseña"
+                    placeholder="••••••••"
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    isInvalid={!!errors.password}
+                    errorMessage={errors.password?.message}
+                    isDisabled={loading}
+                    className="mb-4"
+                    endContent={
+                      <button type="button" onClick={togglePasswordVisibility} className="focus:outline-none">
+                        <span className="material-symbols-outlined">{isPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    }
+                  />
+                )}
               />
 
-              <Input
-                variant="underlined"
-                isRequired
-                label="Confirma tu nueva contraseña"
+              <Controller
                 name="confirmPassword"
-                placeholder="••••••••"
-                type={isConfirmPasswordVisible ? 'text' : 'password'}
-                autoComplete="new-password"
-                aria-label="Confirma tu nueva contraseña"
-                value={formData.confirmPassword}
-                onChange={e => handleInputChange('confirmPassword', e.target.value)}
-                isInvalid={!!errors.confirmPassword}
-                errorMessage={errors.confirmPassword}
-                className="mb-6"
-                endContent={
-                  <button
-                    aria-label="toggle password visibility"
-                    className="focus:outline-none"
-                    type="button"
-                    onClick={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
-                    {isConfirmPasswordVisible ? (
-                      <span className="material-symbols-outlined">visibility_off</span>
-                    ) : (
-                      <span className="material-symbols-outlined">visibility</span>
-                    )}
-                  </button>
-                }
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    variant="underlined"
+                    isRequired
+                    label="Confirma tu nueva contraseña"
+                    placeholder="••••••••"
+                    type={isConfirmPasswordVisible ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    isInvalid={!!errors.confirmPassword}
+                    errorMessage={errors.confirmPassword?.message}
+                    isDisabled={loading}
+                    className="mb-6"
+                    endContent={
+                      <button type="button" onClick={toggleConfirmPasswordVisibility} className="focus:outline-none">
+                        <span className="material-symbols-outlined">{isConfirmPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    }
+                  />
+                )}
               />
 
               <Button
@@ -164,9 +129,9 @@ const ResetPassword = () => {
                 radius="full"
                 color="default"
                 className="w-full py-3 mt-4"
-                isLoading={status === 'submitting'}
-                isDisabled={status === 'submitting'}>
-                {status === 'submitting' ? 'Actualizando...' : 'Restablecer contraseña'}
+                isLoading={loading}
+                isDisabled={loading || !isValid}>
+                {loading ? 'Actualizando...' : 'Restablecer contraseña'}
               </Button>
             </Form>
           </>

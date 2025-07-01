@@ -233,6 +233,22 @@ class AuthService extends BaseService {
   }
 
   /**
+   * Validar token de recuperación de contraseña
+   * @param {string} token - Token de recuperación
+   * @returns {Promise<Object>} Resultado de la validación
+   */
+  async validateResetToken(token) {
+    try {
+      const result = await BaseService.get(`/auth/validate-reset-token/${encodeURIComponent(token)}`)
+      return BaseService.handleServiceResponse(result, 'validación de token de recuperación')
+    } catch (error) {
+      this.logError('validación de token', error)
+      this.enrichAuthError(error, 'TOKEN_VALIDATION_ERROR')
+      throw error
+    }
+  }
+
+  /**
    * Recuperar contraseña
    * @param {string} email - Email del usuario
    * @returns {Promise<Object>} Datos de respuesta de recuperación
@@ -252,18 +268,32 @@ class AuthService extends BaseService {
   }
 
   /**
-   * Restablecer contraseña
+   * Restablecer contraseña (versión mejorada)
    * @param {string} token - Token de restablecimiento
    * @param {string} newPassword - Nueva contraseña
+   * @param {string} confirmPassword - Confirmación de contraseña (opcional)
    * @returns {Promise<Object>} Datos de respuesta del restablecimiento
    */
-  async resetPassword(token, newPassword) {
+  async resetPassword(token, newPassword, confirmPassword = null) {
     try {
-      const result = await BaseService.post('/auth/reset-password', {
+      // Preparar payload
+      const payload = {
         token,
         password: newPassword
-      })
-      return BaseService.handleServiceResponse(result, 'restablecimiento de contraseña')
+      }
+
+      // Agregar confirmPassword si se proporciona (validación extra)
+      if (confirmPassword) {
+        payload.confirmPassword = confirmPassword
+      }
+
+      const result = await BaseService.post('/auth/reset-password', payload)
+      const data = BaseService.handleServiceResponse(result, 'restablecimiento de contraseña')
+
+      // Limpiar autenticación local si había tokens previos
+      this.clearAuth()
+
+      return data
     } catch (error) {
       this.logError('restablecimiento de contraseña', error)
       this.enrichAuthError(error, 'RESET_PASSWORD_ERROR')

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -113,6 +114,67 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Error al enviar email de bienvenida para usuario local: {}", e.getMessage(), e);
             throw new MessagingException("Error al enviar el email de bienvenida", e);
+        }
+    }
+
+    // ==============================
+    // EMAILS DE RECUPERACIÓN DE CONTRASEÑA
+    // ==============================
+
+    /**
+     * Envía email de recuperación de contraseña con enlace de restablecimiento
+     */
+    @Async
+    public void sendPasswordResetEmail(String to, String name, String resetLink, int expirationMinutes) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("resetLink", resetLink);
+            context.setVariable("expirationMinutes", expirationMinutes);
+
+            String htmlContent = templateEngine.process("email-password-reset.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("Recupera tu contraseña - Feeling");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Email de recuperación de contraseña enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de recuperación de contraseña: {}", e.getMessage(), e);
+            throw new MessagingException("Error al enviar email de recuperación de contraseña", e);
+        }
+    }
+
+    /**
+     * Envía email de confirmación de cambio de contraseña
+     */
+    @Async
+    public void sendPasswordChangeConfirmationEmail(String to, String name) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("changeDate", LocalDateTime.now().format(
+                    DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")
+            ));
+
+            String htmlContent = templateEngine.process("email-password-changed.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("Contraseña actualizada - Feeling");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Email de confirmación de cambio de contraseña enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de confirmación de cambio de contraseña: {}", e.getMessage(), e);
+            // No lanzar excepción aquí porque el cambio de contraseña ya fue exitoso
         }
     }
 

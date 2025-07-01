@@ -1,68 +1,64 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import { useNotification } from '@hooks/useNotification'
-import { validateEmail, validateVerificationCode } from '@utils/validateInputs'
-import { getErrorMessage } from '@utils/errorHelpers'
+import { verifyEmailSchema } from '@utils/formSchemas'
 import logo from '@assets/logo/logo-grey-dark.svg'
+import { APP_PATHS } from '@constants/paths.js'
 
 const VerifyEmail = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { showError, showSuccess, showInfo } = useNotification()
-  const { verifyEmailCode, resendVerificationCode } = useAuth()
+  const { showInfo } = useNotification()
+  const { verifyEmailCode, resendVerificationCode, loading } = useAuth()
 
-  // Estado del componente
-  const [status, setStatus] = useState('idle') // idle, submitting, success, error
+  const [status, setStatus] = useState('idle') // idle, success
   const [message, setMessage] = useState('')
-  const [errors, setErrors] = useState({})
-
-  // Datos del formulario
-  const [email, setEmail] = useState('')
-  const [verificationCode, setVerificationCode] = useState('')
-
-  // Estado para reenvío de código
   const [resendLoading, setResendLoading] = useState(false)
   const [canResend, setCanResend] = useState(false)
-  const [resendCountdown, setResendCountdown] = useState(120) // 2 minutos = 120 segundos
+  const [resendCountdown, setResendCountdown] = useState(120)
 
-  // Información del estado (viene de navegación)
   const stateData = location.state || {}
   const { email: stateEmail, fromRegister, fromGoogle, autoVerified, message: stateMessage, userType = 'local' } = stateData
 
-  // Inicializar componente
-  useEffect(() => {
-    // Si viene email del estado, establecerlo
-    if (stateEmail) {
-      setEmail(stateEmail)
-    }
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors, isValid }
+  } = useForm({
+    resolver: yupResolver(verifyEmailSchema),
+    defaultValues: {
+      email: stateEmail || '',
+      code: ''
+    },
+    mode: 'onChange'
+  })
 
-    // Si es usuario de Google y ya está verificado
+  useEffect(() => {
+    if (stateEmail) setValue('email', stateEmail)
+
     if (fromGoogle && autoVerified) {
       setStatus('success')
       setMessage(stateMessage || 'Tu cuenta de Google ha sido verificada exitosamente.')
 
-      // Solo mostrar toast para Google - eliminar mensaje interno
-      showSuccess('¡Tu cuenta de Google ha sido verificada exitosamente!')
-
-      // Redirigir automáticamente después de 3 segundos
       const timer = setTimeout(() => {
-        navigate('/complete-profile', { replace: true })
+        navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
       }, 3000)
 
       return () => clearTimeout(timer)
     }
 
-    // Si viene de registro, SOLO mostrar el mensaje interno, NO toast
     if (fromRegister && stateEmail) {
       setMessage('Se ha enviado un código de verificación a tu correo electrónico.')
-      // NO mostrar toast aquí - solo el mensaje visual
       startResendCountdown()
     }
-  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, showSuccess])
+  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, setValue])
 
-  // Función para iniciar el countdown de reenvío
   const startResendCountdown = () => {
     setCanResend(false)
     setResendCountdown(120)
@@ -81,130 +77,52 @@ const VerifyEmail = () => {
     return () => clearInterval(interval)
   }
 
-  // Formatear tiempo del countdown
   const formatCountdown = seconds => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Validar formulario
-  const validateForm = () => {
-    const newErrors = {}
+  const onSubmit = async ({ email, code }) => {
+    const result = await verifyEmailCode(email.toLowerCase().trim(), code) // Notificaciones automáticas
 
-    const emailError = validateEmail(email)
-    if (emailError) newErrors.email = emailError
+    if (result.success) {
+      setStatus('success')
+      setMessage('¡Tu email ha sido verificado correctamente!')
 
-    const codeError = validateVerificationCode(verificationCode)
-    if (codeError) newErrors.code = codeError
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  // Limpiar errores cuando el usuario escribe
-  const handleInputChange = (field, value) => {
-    if (field === 'email') {
-      setEmail(value)
-    } else if (field === 'code') {
-      setVerificationCode(value)
-    }
-
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null })
-    }
-  }
-
-  // Enviar código de verificación
-  const handleSubmit = async e => {
-    e.preventDefault()
-
-    if (!validateForm()) return
-
-    try {
-      setStatus('submitting')
-      setErrors({})
-
-      // Usar el método del contexto de autenticación para verificar
-      const result = await verifyEmailCode(email.toLowerCase().trim(), verificationCode)
-
-      if (result.success) {
-        setStatus('success')
-        setMessage('¡Tu email ha sido verificado correctamente!')
-
-        // Solo toast para verificación exitosa
-        showSuccess('¡Tu email ha sido verificado correctamente!')
-
-        // Redirigir después de 2 segundos
-        setTimeout(() => {
-          if (userType === 'google') {
-            navigate('/complete-profile', { replace: true })
-          } else {
-            navigate('/login', {
-              state: {
-                message: 'Cuenta verificada correctamente. Ya puedes iniciar sesión.',
-                email: email
-              },
-              replace: true
-            })
-          }
-        }, 2000)
-      } else {
-        throw result.error || new Error('Error al verificar el código')
-      }
-    } catch (error) {
-      console.error('Error en verificación:', error)
-      setStatus('error')
-
-      const errorMessage = getErrorMessage(error)
-      setMessage(errorMessage)
-
-      // Solo toast para errores
-      showError(errorMessage, 'Error de verificación')
-
+      setTimeout(() => {
+        if (userType === 'google') {
+          navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
+        } else {
+          navigate(APP_PATHS.AUTH.LOGIN, {
+            state: {
+              message: 'Cuenta verificada correctamente. Ya puedes iniciar sesión.',
+              email: email
+            },
+            replace: true
+          })
+        }
+      }, 2000)
+    } else {
       // Si el código es inválido, limpiar el campo
-      if (errorMessage.toLowerCase().includes('código')) {
-        setVerificationCode('')
-        setErrors({ code: 'Código inválido. Inténtalo de nuevo.' })
-      }
+      setValue('code', '')
     }
   }
 
-  // Reenviar código de verificación
   const handleResendCode = async () => {
-    if (!email) {
-      setErrors({ email: 'Debes ingresar un email para reenviar el código' })
-      return
+    const email = getValues('email')
+    if (!email) return
+
+    setResendLoading(true)
+    const result = await resendVerificationCode(email.toLowerCase().trim()) // Notificaciones automáticas
+
+    if (result.success) {
+      setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
+      showInfo('Código reenviado exitosamente')
+      startResendCountdown()
     }
 
-    const emailError = validateEmail(email)
-    if (emailError) {
-      setErrors({ email: emailError })
-      return
-    }
-
-    try {
-      setResendLoading(true)
-      setErrors({})
-
-      // Usar el método del contexto para reenviar código
-      const result = await resendVerificationCode(email.toLowerCase().trim())
-
-      if (result.success) {
-        // Actualizar mensaje interno Y mostrar toast
-        setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
-        showSuccess('Código reenviado exitosamente')
-        startResendCountdown()
-      } else {
-        throw result.error || new Error('Error al reenviar el código')
-      }
-    } catch (error) {
-      console.error('Error al reenviar código:', error)
-      const errorMessage = getErrorMessage(error)
-      showError(errorMessage, 'Error al reenviar código')
-    } finally {
-      setResendLoading(false)
-    }
+    setResendLoading(false)
   }
 
   // Si es usuario de Google verificado automáticamente
@@ -224,7 +142,6 @@ const VerifyEmail = () => {
             <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
             <p className="text-sm text-gray-400 mb-4">Redirigiendo para completar tu perfil...</p>
 
-            {/* Barra de progreso animada */}
             <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
               <div className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse"></div>
             </div>
@@ -241,7 +158,6 @@ const VerifyEmail = () => {
       </figure>
 
       {status === 'success' ? (
-        // Estado de éxito
         <div className="flex flex-col w-full space-y-6 max-w-md">
           <div className="text-center">
             <div className="text-green-400 text-6xl mb-6">
@@ -251,29 +167,16 @@ const VerifyEmail = () => {
             <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
             <p className="text-sm text-gray-400 mb-4">Redirigiendo...</p>
 
-            {/* Barra de progreso animada */}
             <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
               <div className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse"></div>
             </div>
           </div>
         </div>
       ) : (
-        // Formulario de verificación
-        <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit}>
+        <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit(onSubmit)}>
           <h2 className="text-xl font-medium text-white mb-2">Verificar Email</h2>
 
-          {/* Mensajes de estado - SOLO mostrar cuando NO sea de registro inicial */}
-          {status === 'error' && (
-            <div className="bg-red-900/30 border border-red-800/50 text-red-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-red-400">error</span>
-                {message}
-              </div>
-            </div>
-          )}
-
-          {/* Solo mostrar mensaje informativo si no es error y tiene mensaje */}
-          {message && status !== 'error' && status !== 'success' && (
+          {message && (
             <div className="bg-blue-900/30 border border-blue-800/50 text-blue-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-blue-400">info</span>
@@ -288,26 +191,27 @@ const VerifyEmail = () => {
               : 'Ingresa tu email y el código de verificación que recibiste.'}
           </p>
 
-          {/* Campo de email - solo mostrar si no viene del estado */}
           {!stateEmail && (
-            <Input
-              variant="underlined"
-              isRequired
-              label="Correo electrónico"
+            <Controller
               name="email"
-              placeholder="usuario@correo.com"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={e => handleInputChange('email', e.target.value)}
-              isInvalid={!!errors.email}
-              errorMessage={errors.email}
-              className="mb-4 w-full"
-              isDisabled={status === 'submitting'}
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  variant="underlined"
+                  isRequired
+                  label="Correo electrónico"
+                  placeholder="usuario@correo.com"
+                  type="email"
+                  autoComplete="email"
+                  isInvalid={!!errors.email}
+                  errorMessage={errors.email?.message}
+                  isDisabled={loading}
+                />
+              )}
             />
           )}
 
-          {/* Mostrar email si viene del estado */}
           {stateEmail && (
             <div className="mb-4 p-4 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 w-full">
               <div className="flex items-center gap-3">
@@ -320,37 +224,41 @@ const VerifyEmail = () => {
             </div>
           )}
 
-          {/* Campo de código de verificación */}
-          <Input
-            variant="underlined"
-            isRequired
-            label="Código de verificación"
+          <Controller
             name="code"
-            placeholder="123456"
-            type="text"
-            maxLength={6}
-            value={verificationCode}
-            onChange={e => handleInputChange('code', e.target.value.replace(/\D/g, ''))}
-            isInvalid={!!errors.code}
-            errorMessage={errors.code}
-            className="mb-6"
-            isDisabled={status === 'submitting'}
-            description="Código de 6 dígitos numéricos"
-            startContent={<span className="material-symbols-outlined text-gray-400 text-sm">verified_user</span>}
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                isRequired
+                label="Código de verificación"
+                placeholder="123456"
+                type="text"
+                maxLength={6}
+                isInvalid={!!errors.code}
+                errorMessage={errors.code?.message}
+                isDisabled={loading}
+                description="Código de 6 dígitos numéricos"
+                startContent={<span className="material-symbols-outlined text-gray-400 text-sm">verified_user</span>}
+                onChange={e => {
+                  const value = e.target.value.replace(/\D/g, '')
+                  field.onChange(value)
+                }}
+              />
+            )}
           />
 
-          {/* Botón de verificar */}
           <Button
             type="submit"
             radius="full"
             color="default"
             className="w-full py-3 mt-4 font-semibold shadow-md transition-all hover:shadow-lg"
-            isLoading={status === 'submitting'}
-            isDisabled={status === 'submitting'}>
-            {status === 'submitting' ? 'Verificando...' : 'Verificar Código'}
+            isLoading={loading}
+            isDisabled={loading || !isValid}>
+            {loading ? 'Verificando...' : 'Verificar Código'}
           </Button>
 
-          {/* Sección de reenvío de código */}
           <div className="space-y-4 w-full">
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-gray-700"></div>
@@ -383,7 +291,6 @@ const VerifyEmail = () => {
             </div>
           </div>
 
-          {/* Enlaces adicionales */}
           <div className="pt-6 border-t border-gray-700 space-y-4 w-full">
             <div className="text-center text-xs text-gray-500">
               <p className="mb-3">¿Problemas con la verificación?</p>
@@ -398,7 +305,6 @@ const VerifyEmail = () => {
               </div>
             </div>
 
-            {/* Información adicional */}
             <div className="bg-gray-800/20 backdrop-blur-sm p-4 rounded-lg border border-gray-700/30">
               <div className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-yellow-400 text-sm mt-0.5">lightbulb</span>

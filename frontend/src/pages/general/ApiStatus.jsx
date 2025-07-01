@@ -17,7 +17,7 @@ import {
   useDisclosure
 } from '@heroui/react'
 import useApiStatus from '@hooks/useApiStatus.js'
-import { useErrorHandler } from '@hooks/useError.js'
+import { useError } from '@hooks/useError.js'
 import { API_URL } from '@config/config'
 
 const ApiStatus = () => {
@@ -29,7 +29,7 @@ const ApiStatus = () => {
   // Modal para detalles técnicos
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
-  const { handleSuccess, handleInfo, handleWarning } = useErrorHandler()
+  const { handleSuccess, handleInfo, handleWarning } = useError()
 
   // Memoizar opciones del hook para evitar re-renders
   const apiStatusOptions = useMemo(

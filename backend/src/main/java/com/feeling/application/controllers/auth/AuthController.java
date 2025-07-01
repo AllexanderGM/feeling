@@ -321,6 +321,72 @@ public class AuthController {
     }
 
     // ==============================
+    // RECUPERACIÓN DE CONTRASEÑA
+    // ==============================
+
+    @PostMapping("/forgot-password")
+    @Operation(
+            summary = "Solicitar recuperación de contraseña",
+            description = "Envía un enlace de recuperación de contraseña al email del usuario"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Enlace de recuperación enviado exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+            @ApiResponse(responseCode = "400", description = "Email inválido o usuario no verificado")
+    })
+    public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
+        try {
+            logger.info("Solicitud de recuperación de contraseña para: {}", request.email());
+            MessageResponseDTO response = authService.forgotPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error en recuperación de contraseña para {}: {}", request.email(), e.getMessage());
+            throw e;
+        }
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(
+            summary = "Restablecer contraseña",
+            description = "Restablece la contraseña del usuario usando el token enviado por email"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Contraseña restablecida exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Token inválido o expirado"),
+            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
+    public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
+        try {
+            logger.info("Intento de restablecimiento de contraseña con token");
+            MessageResponseDTO response = authService.resetPassword(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error en restablecimiento de contraseña: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    @GetMapping("/validate-reset-token/{token}")
+    @Operation(
+            summary = "Validar token de recuperación",
+            description = "Verifica si un token de recuperación de contraseña es válido"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token válido"),
+            @ApiResponse(responseCode = "400", description = "Token inválido o expirado")
+    })
+    public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
+        try {
+            logger.info("Validando token de recuperación de contraseña");
+            TokenValidationDTO response = authService.validateResetToken(token);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error validando token de recuperación: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    // ==============================
     // UTILIDADES
     // ==============================
 

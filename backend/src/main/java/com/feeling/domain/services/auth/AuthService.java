@@ -7,15 +7,13 @@ import com.feeling.exception.ExistEmailException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
-import com.feeling.infrastructure.repositories.user.IUserRepository;
-import com.feeling.infrastructure.repositories.user.IUserRoleRepository;
-import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
-import com.feeling.infrastructure.repositories.user.IUserVerificationCodeRepository;
+import com.feeling.infrastructure.repositories.user.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,10 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +29,9 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 30;
+
+    @Value("${cors.allowed.origins}")
+    private String frontendUrl;
 
     private final IUserTokenRepository tokenRepository;
     private final JwtService jwtService;
@@ -44,6 +42,7 @@ public class AuthService {
     private final IUserVerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
     private final GoogleOAuthService googleOAuthService;
+    private final IUserPasswordResetTokenRepository userPasswordResetTokenRepository;
 
     // ==============================
     // REGISTRO
@@ -575,6 +574,204 @@ public class AuthService {
     }
 
     // ==============================
+// RECUPERACIÓN DE CONTRASEÑA
+// ==============================
+
+    /**
+     * SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+     * Genera y envía un token de recuperación por email
+     */
+    @Transactional
+    public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request) {
+        try {
+            // Buscar usuario por email
+            User user = userRepository.findByEmail(request.email().toLowerCase().trim())
+                    .orElseThrow(() -> new NotFoundException("No encontramos ninguna cuenta asociada a este email"));
+
+            // Verificar que el usuario esté verificado
+            if (!user.isVerified()) {
+                throw new UnauthorizedException("Debes verificar tu correo electrónico antes de recuperar tu contraseña");
+            }
+
+            // Verificar que sea usuario LOCAL (no OAuth)
+            if (user.getUserAuthProvider() != UserAuthProvider.LOCAL) {
+                String message = switch (user.getUserAuthProvider()) {
+                    case GOOGLE ->
+                            "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
+                    case FACEBOOK ->
+                            "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
+                    default -> "Esta cuenta usa un método de autenticación externo.";
+                };
+                throw new UnauthorizedException(message);
+            }
+
+            // Generar token único
+            String resetToken = generatePasswordResetToken();
+            LocalDateTime expirationTime = LocalDateTime.now().plusHours(1); // 1 hora de validez
+
+            // Eliminar tokens anteriores si existen
+            userPasswordResetTokenRepository.deleteByUserId(user.getId());
+
+            // Crear nuevo token de recuperación
+            UserPasswordResetToken passwordResetToken = UserPasswordResetToken.builder()
+                    .token(resetToken)
+                    .user(user)
+                    .expirationTime(expirationTime)
+                    .used(false)
+                    .build();
+
+            userPasswordResetTokenRepository.save(passwordResetToken);
+
+            // Enviar email con el enlace de recuperación
+            String resetLink = frontendUrl + "/reset-password/" + resetToken;
+            emailService.sendPasswordResetEmail(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastname(),
+                    resetLink,
+                    60 // minutos de validez
+            );
+
+            logger.info("Token de recuperación creado y enviado para: {}", request.email());
+            return new MessageResponseDTO(
+                    "Hemos enviado un enlace de recuperación a tu correo electrónico. " +
+                            "Revisa tu bandeja de entrada y spam. El enlace expira en 1 hora."
+            );
+
+        } catch (NotFoundException | UnauthorizedException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado en recuperación de contraseña: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al procesar la solicitud de recuperación de contraseña");
+        }
+    }
+
+    /**
+     * RESTABLECER CONTRASEÑA
+     * Restablece la contraseña usando un token válido
+     */
+    @Transactional
+    public MessageResponseDTO resetPassword(ResetPasswordRequestDTO request) {
+        try {
+            // Validar que las contraseñas coincidan
+            if (!request.passwordsMatch()) {
+                throw new IllegalArgumentException("Las contraseñas no coinciden");
+            }
+
+            // Buscar y validar token
+            UserPasswordResetToken resetToken = userPasswordResetTokenRepository.findByToken(request.token())
+                    .orElseThrow(() -> new UnauthorizedException("Token de recuperación inválido"));
+
+            // Verificar expiración
+            if (resetToken.getExpirationTime().isBefore(LocalDateTime.now())) {
+                throw new UnauthorizedException("El token de recuperación ha expirado. Solicita uno nuevo.");
+            }
+
+            // Verificar que no se haya usado
+            if (resetToken.isUsed()) {
+                throw new UnauthorizedException("Este token de recuperación ya ha sido utilizado");
+            }
+
+            User user = resetToken.getUser();
+
+            // Verificar que el usuario siga siendo LOCAL
+            if (user.getUserAuthProvider() != UserAuthProvider.LOCAL) {
+                throw new UnauthorizedException("No puedes cambiar la contraseña de una cuenta OAuth");
+            }
+
+            // Actualizar contraseña
+            user.setPassword(passwordEncoder.encode(request.password()));
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            // Marcar token como usado
+            resetToken.setUsed(true);
+            userPasswordResetTokenRepository.save(resetToken);
+
+            // Revocar todas las sesiones activas por seguridad
+            revokeAllUserTokens(user);
+
+            // Enviar email de confirmación
+            try {
+                emailService.sendPasswordChangeConfirmationEmail(
+                        user.getEmail(),
+                        user.getName() + " " + user.getLastname()
+                );
+            } catch (Exception emailError) {
+                logger.warn("Error al enviar email de confirmación de cambio de contraseña: {}", emailError.getMessage());
+            }
+
+            logger.info("Contraseña restablecida exitosamente para usuario: {}", user.getEmail());
+            return new MessageResponseDTO(
+                    "Tu contraseña ha sido restablecida exitosamente. " +
+                            "Ya puedes iniciar sesión con tu nueva contraseña."
+            );
+
+        } catch (IllegalArgumentException | UnauthorizedException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error inesperado al restablecer contraseña: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al restablecer la contraseña");
+        }
+    }
+
+    /**
+     * VALIDAR TOKEN DE RECUPERACIÓN
+     * Verifica si un token de recuperación es válido
+     */
+    public TokenValidationDTO validateResetToken(String token) {
+        try {
+            Optional<UserPasswordResetToken> resetTokenOpt = userPasswordResetTokenRepository.findByToken(token);
+
+            if (resetTokenOpt.isEmpty()) {
+                return new TokenValidationDTO(
+                        false,
+                        null,
+                        "Token de recuperación inválido",
+                        null
+                );
+            }
+
+            UserPasswordResetToken resetToken = resetTokenOpt.get();
+
+            // Verificar si ya fue usado
+            if (resetToken.isUsed()) {
+                return new TokenValidationDTO(
+                        false,
+                        resetToken.getUser().getEmail(),
+                        "Este token ya ha sido utilizado",
+                        null
+                );
+            }
+
+            // Verificar expiración
+            LocalDateTime now = LocalDateTime.now();
+            if (resetToken.getExpirationTime().isBefore(now)) {
+                return new TokenValidationDTO(
+                        false,
+                        resetToken.getUser().getEmail(),
+                        "El token ha expirado",
+                        null
+                );
+            }
+
+            // Calcular tiempo restante
+            long minutesRemaining = java.time.Duration.between(now, resetToken.getExpirationTime()).toMinutes();
+
+            return new TokenValidationDTO(
+                    true,
+                    resetToken.getUser().getEmail(),
+                    "Token válido",
+                    minutesRemaining
+            );
+
+        } catch (Exception e) {
+            logger.error("Error validando token de recuperación: {}", e.getMessage(), e);
+            throw new RuntimeException("Error al validar token de recuperación");
+        }
+    }
+
+
+    // ==============================
     // GESTIÓN DE TOKENS JWT
     // ==============================
 
@@ -634,6 +831,15 @@ public class AuthService {
 
         logger.info("Access token refrescado correctamente para: {}", userEmail);
         return new RefreshTokenResponseDTO(newAccessToken, "Token refrescado exitosamente");
+    }
+
+    /**
+     * GENERAR TOKEN DE RECUPERACIÓN
+     * Genera un token único para recuperación de contraseña
+     */
+    private String generatePasswordResetToken() {
+        return UUID.randomUUID().toString().replace("-", "") +
+                System.currentTimeMillis();
     }
 
     // ==============================
