@@ -146,18 +146,10 @@ const CompleteProfile = () => {
     if (!validateCurrentStep()) return
 
     try {
-      console.log('📤 Iniciando completar perfil...')
-
       const result = await completeProfile(formData)
 
       if (result.success) {
-        console.log('✅ Perfil completado exitosamente:', result.data)
-
-        // Mostrar mensaje de éxito
-        alert('¡Perfil completado exitosamente!')
-
-        // Navegar al dashboard o perfil
-        navigate(APP_PATHS.USER.PROFILE, { replace: true })
+        navigate(APP_PATHS.ROOT, { replace: true })
       } else if (!result.cancelled) {
         // Solo mostrar error si no fue cancelado
         console.error('❌ Error al completar perfil:', result.error)

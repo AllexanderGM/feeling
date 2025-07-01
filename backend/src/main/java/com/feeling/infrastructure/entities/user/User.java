@@ -83,7 +83,7 @@ public class User implements UserDetails {
 
     private String document;
 
-    @Pattern(regexp = "\\d{9,15}", message = "El teléfono debe tener entre 9 y 15 dígitos")
+    @Pattern(regexp = "^\\+\\d{1,4}\\d{9,15}$", message = "El teléfono debe tener formato internacional +[código][número]")
     private String phone;
 
     private LocalDate dateOfBirth;

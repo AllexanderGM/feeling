@@ -67,21 +67,14 @@ const useUser = () => {
           throw new Error(`Datos incompletos: ${validation.missingFields.join(', ')}`)
         }
 
-        console.log('🚀 Iniciando completar perfil:', {
-          hasImages: profileData.images?.length > 0,
-          imageCount: profileData.images?.length || 0,
-          category: profileData.categoryInterest
-        })
-
         // Crear AbortController para cancelar si es necesario
         abortControllerRef.current = new AbortController()
 
         const result = await completeUserProfile(profileData)
+        console.log(result)
 
         // Actualizar estado local con el perfil completado
         setProfile(result)
-
-        console.log('✅ Perfil completado exitosamente')
 
         return {
           success: true,

@@ -1,9 +1,6 @@
 package com.feeling.domain.dto.user;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,7 +27,8 @@ public record UserModifyDTO(
         @Size(max = 20, message = "El documento no puede superar los 20 caracteres")
         String document,
 
-        @Pattern(regexp = "\\d{9,15}", message = "El teléfono debe tener entre 9 y 15 dígitos")
+        @NotBlank(message = "El teléfono es obligatorio")
+        @Pattern(regexp = "^\\+?\\d{1,4}\\d{9,15}$", message = "El teléfono debe incluir código de país y tener entre 9 y 15 dígitos")
         String phone,
 
         @Past(message = "La fecha de nacimiento debe ser en el pasado")

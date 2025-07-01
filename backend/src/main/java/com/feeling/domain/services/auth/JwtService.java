@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -110,6 +111,19 @@ public class JwtService {
 
     public boolean isTokenExpired(final String token) {
         return extractExpiration(token).before(new Date());
+    }
+
+    public String extractTokenFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
+    }
+
+    public boolean isValidAccessToken(HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        return token != null && isAccessToken(token) && !isTokenExpired(token);
     }
 
     // ==============================

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,13 +57,19 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+
+    /**
+     * Completa el perfil del usuario y retorna el usuario actualizado
+     *
+     * @param email       Email del usuario
+     * @param profileData Datos del perfil
+     * @param images      Imágenes del perfil
+     * @return Usuario completo actualizado
+     */
     @Transactional
-    public MessageResponseDTO completeProfile(String email, List<MultipartFile> profileImages,
-                                              UserProfileRequestDTO profileData) throws IOException {
-
+    public UserResponseDTO completeUser(String email, UserProfileRequestDTO profileData, List<MultipartFile> images) throws IOException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
-
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + email));
 
         // ========================================
         // PROCESAR DATOS PERSONALES BÁSICOS
@@ -71,9 +78,9 @@ public class UserService {
         List<String> imageUrls = new ArrayList<>();
 
         // Subir imágenes
-        if (profileImages != null && !profileImages.isEmpty()) {
+        if (images != null && !images.isEmpty()) {
             List<String> additionalImageUrls = storageService.uploadImages(
-                    profileImages.stream()
+                    images.stream()
                             .filter(file -> file != null && !file.isEmpty())
                             .collect(Collectors.toList()),
                     "profiles/" + user.getId() + "/images"
@@ -143,8 +150,7 @@ public class UserService {
         }
 
         if (profileData.hairColorId() != null) {
-            UserAttribute hairColor = userAttributeRepository.findById(profileData
-                            .hairColorId())
+            UserAttribute hairColor = userAttributeRepository.findById(profileData.hairColorId())
                     .orElseThrow(() -> new NotFoundException("Color de cabello no encontrado"));
             user.setHairColor(hairColor);
         }
@@ -211,7 +217,6 @@ public class UserService {
             user.setRelationshipType(relationshipStatus);
         }
 
-
         // ========================================
         // CONFIGURAR PREFERENCIAS DE MATCHING
         // ========================================
@@ -225,15 +230,19 @@ public class UserService {
             user.setLocationPreferenceRadius(profileData.locationPreferenceRadius());
         }
 
+        // MARCAR PERFIL COMO COMPLETO
+        user.setProfileComplete(true);
+        user.setUpdatedAt(LocalDateTime.now());
+
         // ========================================
         // GUARDAR Y RETORNAR
         // ========================================
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         logger.info("Perfil completado correctamente para el usuario {}: {} imágenes subidas, {} tags agregados",
                 email, imageUrls.size(), profileData.tags() != null ? profileData.tags().size() : 0);
 
-        return new MessageResponseDTO("Perfil completado correctamente para el usuario " + email);
+        return new UserResponseDTO(savedUser);
     }
 
     public UserResponseDTO update(String email, UserModifyDTO userRequestDTO) {

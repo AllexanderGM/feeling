@@ -269,28 +269,28 @@ class UserService extends BaseService {
 
       // Categoría y campos específicos
       categoryInterest: profileData.categoryInterest,
-      religionId: profileData.religionId || null,
+      religionId: profileData.religionId ? parseInt(profileData.religionId) : null,
       spiritualMoments: profileData.spiritualMoments || '',
       spiritualPractices: profileData.spiritualPractices || '',
-      sexualRoleId: profileData.sexualRoleId || null,
-      relationshipId: profileData.relationshipTypeId || null,
+      sexualRoleId: profileData.sexualRoleId ? parseInt(profileData.sexualRoleId) : null,
+      relationshipId: profileData.relationshipTypeId ? parseInt(profileData.relationshipTypeId) : null,
 
       // Características físicas y personales
-      genderId: profileData.genderId,
-      height: profileData.height,
-      eyeColorId: profileData.eyeColorId,
-      hairColorId: profileData.hairColorId,
-      bodyTypeId: profileData.bodyTypeId,
+      genderId: profileData.genderId ? parseInt(profileData.genderId) : null,
+      height: profileData.height ? parseInt(profileData.height) : null,
+      eyeColorId: profileData.eyeColorId ? parseInt(profileData.eyeColorId) : null,
+      hairColorId: profileData.hairColorId ? parseInt(profileData.hairColorId) : null,
+      bodyTypeId: profileData.bodyTypeId ? parseInt(profileData.bodyTypeId) : null,
       description: profileData.description,
-      maritalStatusId: profileData.maritalStatusId,
+      maritalStatusId: profileData.maritalStatusId ? parseInt(profileData.maritalStatusId) : null,
       profession: profileData.profession || '',
-      educationId: profileData.educationLevelId,
+      educationId: profileData.educationLevelId ? parseInt(profileData.educationLevelId) : null,
       tags: profileData.tags || [],
 
       // Preferencias
-      agePreferenceMin: profileData.agePreferenceMin,
-      agePreferenceMax: profileData.agePreferenceMax,
-      locationPreferenceRadius: profileData.locationPreferenceRadius,
+      agePreferenceMin: profileData.agePreferenceMin ? parseInt(profileData.agePreferenceMin) : 18,
+      agePreferenceMax: profileData.agePreferenceMax ? parseInt(profileData.agePreferenceMax) : 50,
+      locationPreferenceRadius: profileData.locationPreferenceRadius ? parseInt(profileData.locationPreferenceRadius) : 50,
 
       // Configuración de privacidad
       allowNotifications: profileData.allowNotifications !== false
@@ -324,15 +324,15 @@ class UserService extends BaseService {
         formData.append('profileImages', image)
       })
 
+      // Usar headers sin Content-Type para FormData
       const result = await BaseService.post('/users/complete-profile', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-          // No agregar Content-Type para FormData - Axios lo hace automáticamente
-        }
+        headers: { Authorization: `Bearer ${token}` }
       })
 
       return BaseService.handleServiceResponse(result, 'completar perfil con imágenes')
     } catch (error) {
+      console.error('❌ Error en submitProfileWithImages:', error)
+
       if (error.message?.includes('fetch')) {
         throw new Error('Error de conexión. Verifica tu conexión a internet.')
       }

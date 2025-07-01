@@ -47,40 +47,50 @@ public class UserController {
 
     @PostMapping(value = "/complete-profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<MessageResponseDTO> completeProfile(
-            @RequestPart("profileData") String profileDataJson, // ✅ Recibir como String
+    public ResponseEntity<?> completeProfile(
+            @RequestPart("profileData") String profileDataJson,
             @RequestPart(value = "profileImages", required = false) List<MultipartFile> profileImages,
             HttpServletRequest request) throws IOException {
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new UnauthorizedException("Token no encontrado");
-        }
-
-        String token = authHeader.substring(7);
-        String email = jwtService.extractUsername(token);
-
-        if (email == null) {
-            throw new UnauthorizedException("Email no encontrado en token");
-        }
-
-        // ✅ Deserializar manualmente el JSON
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        UserProfileRequestDTO profileData = objectMapper.readValue(profileDataJson, UserProfileRequestDTO.class);
-
-        // ✅ Validar manualmente
-        Set<ConstraintViolation<UserProfileRequestDTO>> violations = validator.validate(profileData);
-        if (!violations.isEmpty()) {
-            StringBuilder sb = new StringBuilder();
-            for (ConstraintViolation<UserProfileRequestDTO> violation : violations) {
-                sb.append(violation.getMessage()).append("; ");
+        try {
+            // Validar token de acceso
+            if (!jwtService.isValidAccessToken(request)) {
+                throw new UnauthorizedException("Token inválido o expirado");
             }
-            throw new IllegalArgumentException("Errores de validación: " + sb.toString());
-        }
 
-        MessageResponseDTO response = userService.completeProfile(email, profileImages, profileData);
-        return ResponseEntity.ok(response);
+            String token = jwtService.extractTokenFromRequest(request);
+
+            // Extraer email del usuario
+            String userEmail = jwtService.extractUsername(token);
+            if (userEmail == null) {
+                throw new UnauthorizedException("No se pudo extraer el usuario del token");
+            }
+
+            // Parsear JSON de los datos del perfil
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+            UserProfileRequestDTO profileRequest = objectMapper.readValue(profileDataJson, UserProfileRequestDTO.class);
+
+            // Validar los datos
+            Set<ConstraintViolation<UserProfileRequestDTO>> violations = validator.validate(profileRequest);
+            if (!violations.isEmpty()) {
+                StringBuilder sb = new StringBuilder();
+                for (ConstraintViolation<UserProfileRequestDTO> violation : violations) {
+                    sb.append(violation.getMessage()).append("; ");
+                }
+                return ResponseEntity.badRequest().body(new MessageResponseDTO(sb.toString()));
+            }
+
+            // Completar perfil del usuario
+            var updatedUser = userService.completeUser(userEmail, profileRequest, profileImages);
+
+            return ResponseEntity.ok(updatedUser);
+
+        } catch (UnauthorizedException e) {
+            return ResponseEntity.status(401).body(new MessageResponseDTO(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new MessageResponseDTO("Error al completar perfil: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{email}")

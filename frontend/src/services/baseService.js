@@ -20,7 +20,9 @@ export class BaseService {
         status: response.status
       }
     } catch (error) {
-      const formattedError = ErrorManager.formatError(error)
+      const backendMessage = ErrorManager.extractBackendMessage(error)
+      const formattedError = ErrorManager.formatError(error, backendMessage)
+
       return {
         success: false,
         error: formattedError,

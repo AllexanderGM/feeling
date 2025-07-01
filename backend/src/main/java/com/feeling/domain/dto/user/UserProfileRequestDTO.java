@@ -14,7 +14,7 @@ public record UserProfileRequestDTO(
         String document,
 
         @NotBlank(message = "El teléfono es obligatorio")
-        @Pattern(regexp = "\\d{9,15}", message = "El teléfono debe tener entre 9 y 15 dígitos")
+        @Pattern(regexp = "^\\+?\\d{1,4}\\d{9,15}$", message = "El teléfono debe incluir código de país y tener entre 9 y 15 dígitos")
         String phone,
 
         @NotNull(message = "La fecha de nacimiento es obligatoria")

@@ -9,6 +9,11 @@ export class ErrorManager {
     UNKNOWN: 'UNKNOWN_ERROR'
   }
 
+  /**
+   * Obtiene el tipo de error basado en la respuesta del servidor
+   * @param {Error} error - Error original
+   * @returns {string} Tipo de error
+   * */
   static getErrorType(error) {
     if (!error.response) return this.ERROR_TYPES.NETWORK
 
@@ -22,16 +27,32 @@ export class ErrorManager {
     return this.ERROR_TYPES.UNKNOWN
   }
 
-  static formatError(error) {
+  /**
+   * Formatea error preservando mensajes específicos del backend
+   * @param {Error} error - Error original
+   * @param {string} backendMessage - Mensaje específico del backend
+   * @returns {Object} Error formateado
+   */
+  static formatError(error, backendMessage = null) {
+    const status = error.response?.status
+
+    // Usar el mensaje del backend si está disponible, sino usar getErrorMessage
+    let message = backendMessage || this.getErrorMessage(error)
+
     return {
       type: this.getErrorType(error),
-      message: this.getErrorMessage(error),
+      message,
+      status,
       fieldErrors: this.getFieldErrors(error),
-      status: error.response?.status,
-      timestamp: new Date().toISOString()
+      operation: error.operation || 'operación'
     }
   }
 
+  /**
+   * Obtiene un mensaje de error genérico basado en el error recibido
+   * @param {Error} error - Error original
+   * @returns {string} Mensaje de error genérico
+   */
   static getErrorMessage(error) {
     if (typeof error === 'string') return error
 
@@ -39,10 +60,13 @@ export class ErrorManager {
     if (error.response) {
       const { status, data } = error.response
 
-      // Si el servidor envía mensaje específico
+      // PRIORIDAD 1: Mensaje específico del backend en campo 'error'
+      if (data?.error) return data.error
+
+      // PRIORIDAD 2: Mensaje específico del backend en campo 'message'
       if (data?.message) return data.message
 
-      // Mensajes por código de estado
+      // PRIORIDAD 3: Mensajes genéricos por código de estado
       const statusMessages = {
         400: 'Solicitud inválida. Verifica los datos enviados.',
         401: 'No estás autorizado. Inicia sesión nuevamente.',
@@ -67,6 +91,11 @@ export class ErrorManager {
     return error.message || 'Error inesperado'
   }
 
+  /**
+   * Extrae errores específicos de campo del error del servidor
+   * @param {Error} error - Error original
+   * @returns {Object} Objeto con errores de campo
+   * */
   static getFieldErrors(error) {
     if (!error.response?.data) return {}
 
@@ -89,6 +118,11 @@ export class ErrorManager {
     return fieldErrors
   }
 
+  /**
+   * Verifica si el error es de red (sin respuesta del servidor)
+   * @param {Error} error - Error original
+   * @returns {boolean} Verdadero si es un error de red
+   */
   static isNetworkError(error) {
     return (
       !error.response &&
@@ -97,5 +131,19 @@ export class ErrorManager {
         error.message?.includes('timeout') ||
         error.message?.includes('conexión'))
     )
+  }
+
+  /**
+   * Método de utilidad para extraer mensaje del backend
+   * @param {Error} error - Error original
+   * @returns {string|null} Mensaje del backend o null
+   */
+  static extractBackendMessage(error) {
+    if (error.response?.data) {
+      const data = error.response.data
+      // Buscar en orden de prioridad: error, message, msg
+      return data.error || data.message || data.msg || null
+    }
+    return null
   }
 }

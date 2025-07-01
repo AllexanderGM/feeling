@@ -57,7 +57,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/register/google")
+    @PostMapping("/google/register")
     @Operation(
             summary = "Registrarse con Google",
             description = "Registra un nuevo usuario específicamente usando Google OAuth2. " +
@@ -156,7 +156,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/login/google")
+    @PostMapping("/google/login")
     @Operation(
             summary = "Iniciar sesión con Google",
             description = "Autentica un usuario usando Google OAuth2. Crea una cuenta automáticamente si no existe."
