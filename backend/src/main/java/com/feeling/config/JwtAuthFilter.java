@@ -46,13 +46,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Obtener path de la petición para logging
             final String requestPath = request.getRequestURI();
 
-            // Verificar si es una ruta que no requiere autenticación
-            if (isPublicEndpoint(requestPath)) {
-                logger.debug("📂 Ruta pública: {}", requestPath);
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             // Extraer token del header Authorization
             final String authHeader = request.getHeader("Authorization");
 
@@ -189,36 +182,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             logger.error("❌ Error inesperado en JwtAuthFilter: {}", e.getMessage(), e);
             setErrorResponse(response, "Error interno del servidor");
         }
-    }
-
-    /**
-     * Verificar si el endpoint es público (no requiere autenticación)
-     */
-    private boolean isPublicEndpoint(String path) {
-        String[] publicPaths = {
-                "/auth/login",
-                "/auth/register",
-                "/auth/google/login",
-                "/auth/google/register",
-                "/auth/verify-email",
-                "/auth/resend-verification",
-                "/auth/forgot-password",
-                "/auth/reset-password",
-                "/auth/check-email",
-                "/auth/check-method",
-                "/auth/refresh-token",  // Refresh token es público
-                "/swagger-ui",
-                "/v3/api-docs",
-                "/actuator/health",
-                "/error"
-        };
-
-        for (String publicPath : publicPaths) {
-            if (path.startsWith(publicPath)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

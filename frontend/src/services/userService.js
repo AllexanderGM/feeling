@@ -1,71 +1,44 @@
-import { BaseService } from './baseService.js'
-import authService from './authService.js'
+import { ServiceREST } from '@services/serviceREST.js'
+import { ErrorManager } from '@utils/errorManager.js'
 
 /**
- * Servicio unificado para manejar operaciones de usuario y perfil
+ * Servicio de usuario simplificado - Solo comunicación con API
  */
-class UserService extends BaseService {
+class UserService extends ServiceREST {
   constructor() {
     super()
-    this.verboseLogging = false // Sin logs verbosos por defecto
   }
 
   // ========================================
   // OPERACIONES BÁSICAS DE USUARIO
   // ========================================
 
-  /**
-   * Obtiene la lista de todos los usuarios
-   * @returns {Promise<Array>} Lista de usuarios
-   */
   async getAllUsers() {
     try {
-      const result = await BaseService.get('/users')
-      return BaseService.handleServiceResponse(result, 'obtener lista de usuarios')
+      const result = await ServiceREST.get('/users')
+      return ServiceREST.handleServiceResponse(result, 'obtener lista de usuarios')
     } catch (error) {
-      console.error('❌ Error obteniendo usuarios:', {
-        type: error.errorType,
-        message: error.message,
-        status: error.response?.status
-      })
+      this.logError('obtener usuarios', error)
       throw error
     }
   }
 
-  /**
-   * Obtiene un usuario específico por email
-   * @param {string} email - Email del usuario
-   * @returns {Promise<Object>} Datos del usuario
-   */
   async getUserByEmail(email) {
     try {
-      const result = await BaseService.get(`/users/${encodeURIComponent(email)}`)
-      return BaseService.handleServiceResponse(result, 'obtener usuario por email')
+      const result = await ServiceREST.get(`/users/${encodeURIComponent(email)}`)
+      return ServiceREST.handleServiceResponse(result, 'obtener usuario por email')
     } catch (error) {
-      console.error('❌ Error obteniendo usuario por email:', {
-        type: error.errorType,
-        message: error.message,
-        email
-      })
+      this.logError('obtener usuario por email', error)
       throw error
     }
   }
 
-  /**
-   * Elimina un usuario
-   * @param {string} email - Email del usuario
-   * @returns {Promise<Object>} Mensaje de confirmación
-   */
   async deleteUser(email) {
     try {
-      const result = await BaseService.delete(`/users/${encodeURIComponent(email)}`)
-      return BaseService.handleServiceResponse(result, 'eliminar usuario')
+      const result = await ServiceREST.delete(`/users/${encodeURIComponent(email)}`)
+      return ServiceREST.handleServiceResponse(result, 'eliminar usuario')
     } catch (error) {
-      console.error('❌ Error eliminando usuario:', {
-        type: error.errorType,
-        message: error.message,
-        email
-      })
+      this.logError('eliminar usuario', error)
       throw error
     }
   }
@@ -74,111 +47,53 @@ class UserService extends BaseService {
   // OPERACIONES DE PERFIL
   // ========================================
 
-  /**
-   * Obtiene el perfil del usuario autenticado
-   * @returns {Promise<Object>} Datos del perfil del usuario
-   */
-  async getMyProfile() {
+  async getMyUser() {
     try {
-      const result = await BaseService.get('/users/profile')
-      return BaseService.handleServiceResponse(result, 'obtener perfil del usuario')
+      const result = await ServiceREST.get('/users/profile')
+      return ServiceREST.handleServiceResponse(result, 'obtener perfil del usuario')
     } catch (error) {
-      console.error('❌ Error obteniendo perfil:', {
-        type: error.errorType,
-        message: error.message
-      })
+      this.logError('obtener perfil', error)
       throw error
     }
   }
 
-  /**
-   * Actualiza el perfil del usuario autenticado
-   * @param {Object} profileData - Datos del perfil a actualizar
-   * @returns {Promise<Object>} Perfil actualizado
-   */
-  async updateProfile(profileData) {
+  async updateUser(profileData) {
     try {
-      const result = await BaseService.put('/users/profile', profileData)
-      return BaseService.handleServiceResponse(result, 'actualizar perfil del usuario')
+      const result = await ServiceREST.put('/users/profile', profileData)
+      return ServiceREST.handleServiceResponse(result, 'actualizar perfil del usuario')
     } catch (error) {
-      console.error('❌ Error actualizando perfil:', {
-        type: error.errorType,
-        message: error.message,
-        fieldErrors: error.fieldErrors
-      })
+      this.logError('actualizar perfil', error)
       throw error
     }
   }
 
-  /**
-   * Completa el perfil del usuario con toda la información e imágenes
-   * @param {Object} profileData - Datos completos del perfil
-   * @returns {Promise<Object>} Perfil completado
-   */
-  async completeUserProfile(profileData) {
+  async completeUser(profileData, images = []) {
     try {
-      const token = authService.getToken()
-
-      if (!token) {
-        throw new Error('No se encontró token de autenticación. Inicia sesión nuevamente.')
+      if (!images || images.length === 0) {
+        const result = await ServiceREST.post('/users/complete-profile', profileData)
+        return ServiceREST.handleServiceResponse(result, 'completar perfil del usuario')
       }
 
-      // Preparar datos para el backend
-      const formattedData = this.formatProfileData(profileData)
+      const formData = new FormData()
+      formData.append('profileData', JSON.stringify(profileData))
 
-      // Manejar envío con o sin imágenes
-      if (profileData.images && profileData.images.length > 0) {
-        return await this.submitProfileWithImages(formattedData, profileData.images, token)
-      } else {
-        return await this.submitProfileData(formattedData)
-      }
-    } catch (error) {
-      console.error('❌ Error completando perfil:', {
-        type: error.errorType,
-        message: error.message,
-        fieldErrors: error.fieldErrors
+      const validImages = images.filter(image => image && image instanceof File)
+      validImages.forEach(image => {
+        formData.append('profileImages', image)
       })
+
+      const result = await ServiceREST.post('/users/complete-profile', formData)
+      return ServiceREST.handleServiceResponse(result, 'completar perfil del usuario')
+    } catch (error) {
+      this.logError('Completar perfil', error)
       throw error
     }
-  }
-
-  /**
-   * Completa el perfil del usuario (versión simple sin imágenes)
-   * @param {Object} completeProfileData - Datos para completar el perfil
-   * @returns {Promise<Object>} Perfil completado
-   */
-  async completeProfile(completeProfileData) {
-    try {
-      const result = await BaseService.post('/users/complete-profile', completeProfileData)
-      return BaseService.handleServiceResponse(result, 'completar perfil del usuario')
-    } catch (error) {
-      console.error('❌ Error completando perfil:', {
-        type: error.errorType,
-        message: error.message,
-        fieldErrors: error.fieldErrors
-      })
-      throw error
-    }
-  }
-
-  /**
-   * Alias para mantener compatibilidad con código existente
-   * @param {Object} profileData - Datos completos del perfil incluyendo imágenes
-   * @returns {Promise<Object>} Perfil completado
-   */
-  async completeProfileWithImages(profileData) {
-    return await this.completeUserProfile(profileData)
   }
 
   // ========================================
   // OPERACIONES DE IMÁGENES
   // ========================================
 
-  /**
-   * Sube una imagen de perfil
-   * @param {File} imageFile - Archivo de imagen
-   * @returns {Promise<Object>} URL de la imagen subida
-   */
   async uploadProfileImage(imageFile) {
     try {
       if (!imageFile || !(imageFile instanceof File)) {
@@ -188,18 +103,15 @@ class UserService extends BaseService {
       const formData = new FormData()
       formData.append('profileImage', imageFile)
 
-      const result = await BaseService.post('/users/upload-image', formData, {
+      const result = await ServiceREST.post('/users/upload-image', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
-      return BaseService.handleServiceResponse(result, 'subir imagen de perfil')
+      return ServiceREST.handleServiceResponse(result, 'subir imagen de perfil')
     } catch (error) {
-      console.error('❌ Error subiendo imagen de perfil:', {
-        type: error.errorType,
-        message: error.message
-      })
+      this.logError('subir imagen de perfil', error)
       throw error
     }
   }
@@ -208,242 +120,37 @@ class UserService extends BaseService {
   // OPERACIONES DE PREFERENCIAS
   // ========================================
 
-  /**
-   * Obtiene las preferencias del usuario
-   * @returns {Promise<Object>} Preferencias del usuario
-   */
   async getUserPreferences() {
     try {
-      const result = await BaseService.get('/users/preferences')
-      return BaseService.handleServiceResponse(result, 'obtener preferencias del usuario')
+      const result = await ServiceREST.get('/users/preferences')
+      return ServiceREST.handleServiceResponse(result, 'obtener preferencias del usuario')
     } catch (error) {
-      console.error('❌ Error obteniendo preferencias:', {
-        type: error.errorType,
-        message: error.message
-      })
+      this.logError('obtener preferencias', error)
       throw error
     }
   }
 
-  /**
-   * Actualiza las preferencias del usuario
-   * @param {Object} preferences - Nuevas preferencias
-   * @returns {Promise<Object>} Preferencias actualizadas
-   */
   async updateUserPreferences(preferences) {
     try {
-      const result = await BaseService.put('/users/preferences', preferences)
-      return BaseService.handleServiceResponse(result, 'actualizar preferencias del usuario')
+      const result = await ServiceREST.put('/users/preferences', preferences)
+      return ServiceREST.handleServiceResponse(result, 'actualizar preferencias del usuario')
     } catch (error) {
-      console.error('❌ Error actualizando preferencias:', {
-        type: error.errorType,
-        message: error.message,
-        fieldErrors: error.fieldErrors
-      })
+      this.logError('actualizar preferencias', error)
       throw error
     }
   }
 
   // ========================================
-  // MÉTODOS PRIVADOS DE UTILIDAD
+  // MÉTODOS PRIVADOS
   // ========================================
 
-  /**
-   * Formatea los datos del perfil para el backend
-   * @param {Object} profileData - Datos del perfil
-   * @returns {Object} Datos formateados
-   * @private
-   */
-  formatProfileData(profileData) {
-    return {
-      // Información básica
-      document: profileData.document,
-      phone: profileData.fullPhoneNumber || `${profileData.phoneCode}${profileData.phone}`,
-      dateOfBirth: profileData.birthDate,
-
-      // Ubicación
-      country: profileData.country,
-      city: profileData.city,
-      department: profileData.department || profileData.state || '',
-      locality: profileData.locality || '',
-
-      // Categoría y campos específicos
-      categoryInterest: profileData.categoryInterest,
-      religionId: profileData.religionId ? parseInt(profileData.religionId) : null,
-      spiritualMoments: profileData.spiritualMoments || '',
-      spiritualPractices: profileData.spiritualPractices || '',
-      sexualRoleId: profileData.sexualRoleId ? parseInt(profileData.sexualRoleId) : null,
-      relationshipId: profileData.relationshipTypeId ? parseInt(profileData.relationshipTypeId) : null,
-
-      // Características físicas y personales
-      genderId: profileData.genderId ? parseInt(profileData.genderId) : null,
-      height: profileData.height ? parseInt(profileData.height) : null,
-      eyeColorId: profileData.eyeColorId ? parseInt(profileData.eyeColorId) : null,
-      hairColorId: profileData.hairColorId ? parseInt(profileData.hairColorId) : null,
-      bodyTypeId: profileData.bodyTypeId ? parseInt(profileData.bodyTypeId) : null,
-      description: profileData.description,
-      maritalStatusId: profileData.maritalStatusId ? parseInt(profileData.maritalStatusId) : null,
-      profession: profileData.profession || '',
-      educationId: profileData.educationLevelId ? parseInt(profileData.educationLevelId) : null,
-      tags: profileData.tags || [],
-
-      // Preferencias
-      agePreferenceMin: profileData.agePreferenceMin ? parseInt(profileData.agePreferenceMin) : 18,
-      agePreferenceMax: profileData.agePreferenceMax ? parseInt(profileData.agePreferenceMax) : 50,
-      locationPreferenceRadius: profileData.locationPreferenceRadius ? parseInt(profileData.locationPreferenceRadius) : 50,
-
-      // Configuración de privacidad
-      allowNotifications: profileData.allowNotifications !== false
-    }
-  }
-
-  /**
-   * Envía perfil con imágenes usando FormData
-   * @param {Object} formattedData - Datos formateados del perfil
-   * @param {Array} images - Array de imágenes
-   * @param {string} token - Token de autenticación
-   * @returns {Promise<Object>} Respuesta del servidor
-   * @private
-   */
-  async submitProfileWithImages(formattedData, images, token) {
-    try {
-      const formData = new FormData()
-
-      // Agregar datos del perfil como JSON string
-      formData.append('profileData', JSON.stringify(formattedData))
-
-      // Agregar imágenes válidas
-      const validImages = images.filter(image => image && image instanceof File)
-
-      if (validImages.length === 0) {
-        console.warn('⚠️ No se encontraron imágenes válidas')
-        return await this.submitProfileData(formattedData)
-      }
-
-      validImages.forEach(image => {
-        formData.append('profileImages', image)
-      })
-
-      // Usar headers sin Content-Type para FormData
-      const result = await BaseService.post('/users/complete-profile', formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-
-      return BaseService.handleServiceResponse(result, 'completar perfil con imágenes')
-    } catch (error) {
-      console.error('❌ Error en submitProfileWithImages:', error)
-
-      if (error.message?.includes('fetch')) {
-        throw new Error('Error de conexión. Verifica tu conexión a internet.')
-      }
-      throw error
-    }
-  }
-
-  /**
-   * Envía perfil sin imágenes
-   * @param {Object} formattedData - Datos formateados del perfil
-   * @returns {Promise<Object>} Respuesta del servidor
-   * @private
-   */
-  async submitProfileData(formattedData) {
-    const result = await BaseService.post('/users/complete-profile', formattedData)
-    return BaseService.handleServiceResponse(result, 'completar perfil')
-  }
-
-  // ========================================
-  // VALIDACIONES
-  // ========================================
-
-  /**
-   * Valida si el perfil está completo
-   * @param {Object} profileData - Datos del perfil a validar
-   * @returns {Object} Resultado de la validación
-   */
-  validateCompleteProfile(profileData) {
-    const requiredFields = [
-      'name',
-      'lastName',
-      'document',
-      'phone',
-      'birthDate',
-      'country',
-      'city',
-      'categoryInterest',
-      'genderId',
-      'description'
-    ]
-
-    const missingFields = []
-    const errors = {}
-
-    // Validar campos requeridos
-    requiredFields.forEach(field => {
-      if (!profileData[field] || (typeof profileData[field] === 'string' && !profileData[field].trim())) {
-        missingFields.push(field)
-        errors[field] = `${field} es requerido`
-      }
-    })
-
-    // Validaciones específicas por categoría
-    if (profileData.categoryInterest === 'SPIRIT' && !profileData.religionId) {
-      missingFields.push('religionId')
-      errors.religionId = 'Religión es requerida para la categoría Spirit'
-    }
-
-    if (profileData.categoryInterest === 'ROUSE') {
-      if (!profileData.sexualRoleId) {
-        missingFields.push('sexualRoleId')
-        errors.sexualRoleId = 'Rol sexual es requerido para la categoría Rouse'
-      }
-
-      if (!profileData.relationshipTypeId) {
-        missingFields.push('relationshipTypeId')
-        errors.relationshipTypeId = 'Tipo de relación es requerido para la categoría Rouse'
-      }
-    }
-
-    const isComplete = missingFields.length === 0
-
-    return {
-      isComplete,
-      isValid: isComplete,
-      missingFields,
-      errors,
-      completionPercentage: Math.round(((requiredFields.length - missingFields.length) / requiredFields.length) * 100)
-    }
+  logError(operation, error) {
+    error.operation = operation
+    console.error(`❌ Error en ${operation}:`, ErrorManager.formatError(error))
   }
 }
 
-// Crear instancia singleton
+// Crear instancia única
 const userService = new UserService()
 
-// ========================================
-// EXPORTS PARA COMPATIBILIDAD
-// ========================================
-
-// Operaciones básicas de usuario
-export const getAllUsers = () => userService.getAllUsers()
-export const getUserByEmail = email => userService.getUserByEmail(email)
-export const deleteUser = email => userService.deleteUser(email)
-
-// Operaciones de perfil
-export const getMyProfile = () => userService.getMyProfile()
-export const updateProfile = profileData => userService.updateProfile(profileData)
-export const completeUserProfile = profileData => userService.completeUserProfile(profileData)
-export const completeProfile = completeProfileData => userService.completeProfile(completeProfileData)
-export const completeProfileWithImages = profileData => userService.completeProfileWithImages(profileData)
-
-// Operaciones de imágenes
-export const uploadProfileImage = imageFile => userService.uploadProfileImage(imageFile)
-
-// Operaciones de preferencias
-export const getUserPreferences = () => userService.getUserPreferences()
-export const updateUserPreferences = preferences => userService.updateUserPreferences(preferences)
-
-// Validaciones
-export const validateCompleteProfile = profileData => userService.validateCompleteProfile(profileData)
-
-// Export default de la instancia
-export { userService }
 export default userService

@@ -1,9 +1,9 @@
-import { BaseService } from '@services/baseService.js'
+import { ServiceREST } from '@services/serviceREST.js'
 
 /**
  * Servicio para manejo de datos geográficos con cache optimizado
  */
-class GeographicService extends BaseService {
+class GeographicService extends ServiceREST {
   constructor() {
     super()
     this.cache = new Map()
@@ -119,8 +119,8 @@ class GeographicService extends BaseService {
 
     try {
       this.isLoadingAll = true
-      const result = await BaseService.get('/geographic/all')
-      const data = BaseService.handleServiceResponse(result, 'obtener datos geográficos completos')
+      const result = await ServiceREST.get('/geographic/all')
+      const data = ServiceREST.handleServiceResponse(result, 'obtener datos geográficos completos')
 
       // Cache principal
       this.setCachedData('all-geographic-data', data)
@@ -166,7 +166,7 @@ class GeographicService extends BaseService {
     if (cities) return cities
 
     try {
-      const result = await BaseService.get(`/geographic/countries/${encodeURIComponent(countryName)}/cities`)
+      const result = await ServiceREST.get(`/geographic/countries/${encodeURIComponent(countryName)}/cities`)
 
       if (result.success) {
         cities = result.data || []
@@ -198,7 +198,7 @@ class GeographicService extends BaseService {
 
     try {
       // Cargar desde servidor solo si es necesario
-      const result = await BaseService.get(`/geographic/cities/${encodeURIComponent(cityName)}/localities`)
+      const result = await ServiceREST.get(`/geographic/cities/${encodeURIComponent(cityName)}/localities`)
 
       if (result.success) {
         localities = result.data || []

@@ -119,13 +119,13 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Solicitud demasiado frecuente"),
             @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
-    public ResponseEntity<MessageResponseDTO> resendVerificationCode(@RequestParam String email) {
+    public ResponseEntity<MessageResponseDTO> resendVerificationCode(@Valid @RequestBody AuthResendCodeRequestDTO request) {
         try {
-            logger.info("Reenvío de código solicitado para: {}", email);
-            MessageResponseDTO response = authService.resendCode(email);
+            logger.info("Reenvío de código solicitado para: {}", request.email());
+            MessageResponseDTO response = authService.resendCode(request.email());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error en reenvío de código para {}: {}", email, e.getMessage());
+            logger.error("Error en reenvío de código para {}: {}", request.email(), e.getMessage());
             throw e;
         }
     }

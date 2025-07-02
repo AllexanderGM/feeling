@@ -5,10 +5,10 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import useAuth from '@hooks/useAuth'
+import { loginSchema } from '@utils/formSchemas'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
-import { loginSchema } from '@utils/formSchemas'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -32,20 +32,16 @@ const Login = () => {
   })
 
   const onSubmit = async ({ email, password }) => {
-    const result = await login(email, password) // Notificaciones automáticas
-    if (result.success) {
-      navigate(fromPath, { replace: true })
-    }
+    const result = await login(email, password)
+    if (result.success) navigate(fromPath, { replace: true })
   }
 
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
       try {
-        const result = await loginWithGoogle(tokenResponse) // Notificaciones automáticas
-        if (result.success) {
-          navigate(fromPath, { replace: true })
-        }
+        const result = await loginWithGoogle(tokenResponse)
+        if (result.success) navigate(fromPath, { replace: true })
       } finally {
         setIsGoogleAuthenticating(false)
       }

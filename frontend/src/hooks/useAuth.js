@@ -1,202 +1,274 @@
-import { useContext } from 'react'
+import { useContext, useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthContext from '@context/AuthContext.jsx'
-import { useNotification } from '@hooks/useNotification'
+import authService from '@services/authService'
 import { useError } from '@hooks/useError'
+import { ErrorManager } from '@utils/errorManager'
 
 const useAuth = () => {
   const context = useContext(AuthContext)
-  const { showInfo } = useNotification()
-  const { handleError, handleSuccess, handleValidationErrors } = useError()
+  const navigate = useNavigate()
 
-  if (!context) {
-    throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
-  }
+  // Pasar el contexto de auth al hook de error para usar clearAllAuth
+  const { handleApiResponse, handleAuthError } = useError(context)
+
+  // Estados locales
+  const [loading, setLoading] = useState(false)
+
+  if (context.loading) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
 
   const {
+    // Estados principales
     user,
-    loading,
     isAuthenticated,
     isInitialized,
-    register: contextRegister,
-    login: contextLogin,
-    loginWithGoogle: contextLoginWithGoogle,
-    registerWithGoogle: contextRegisterWithGoogle,
-    logout: contextLogout,
-    verifyEmailCode: contextVerifyEmailCode,
-    resendVerificationCode: contextResendVerificationCode,
-    forgotPassword: contextForgotPassword,
-    resetPassword: contextResetPassword,
-    validateResetToken: contextValidateResetToken,
-    updateProfile: contextUpdateProfile,
-    checkEmailAvailability,
-    checkAuthMethod
+    accessToken,
+    refreshToken,
+
+    // Métodos de usuario
+    updateUser,
+    updateUserField,
+    updateUserFields,
+    updateUserPreferences,
+    updateUserMetadata,
+    clearUser,
+
+    // Métodos de tokens
+    updateAccessToken,
+    updateRefreshToken,
+    updateTokens,
+    clearTokens,
+    clearAllAuth
   } = context
 
-  // Helper para procesar respuestas con notificaciones
-  const processResponse = (result, successMessage, showNotifications = true) => {
-    if (!showNotifications) return result
-
-    if (result.success) {
-      handleSuccess(successMessage)
+  // Función para manejar redirección después del login
+  const handlePostLoginRedirect = useCallback(() => {
+    const redirectPath = localStorage.getItem('redirectAfterLogin')
+    if (redirectPath && redirectPath !== '/login') {
+      localStorage.removeItem('redirectAfterLogin')
+      navigate(redirectPath, { replace: true })
     } else {
-      if (result.errorInfo?.fieldErrors && Object.keys(result.errorInfo.fieldErrors).length > 0) {
-        handleValidationErrors(result.errorInfo.fieldErrors)
-      } else {
-        handleError(result.error, {
-          customMessage: result.errorInfo?.message || 'Error desconocido'
+      navigate('/', { replace: true })
+    }
+  }, [navigate])
+
+  // ========================================
+  // HELPERS INTERNOS SIMPLIFICADOS
+  // ========================================
+
+  const withLoading = useCallback(
+    async (asyncFn, operation = 'operación') => {
+      setLoading(true)
+      try {
+        const result = await asyncFn()
+        return {
+          success: true,
+          data: result,
+          message: null,
+          errors: null
+        }
+      } catch (error) {
+        console.error(`❌ Error en ${operation}:`, error)
+
+        // Si es error de autenticación, usar el manejador específico
+        if (error?.response?.status === 401 || error?.status === 401 || error?.errorType === 'AUTHENTICATION_ERROR') {
+          handleAuthError(error)
+        }
+
+        return {
+          success: false,
+          ...ErrorManager.formatError(error),
+          data: null,
+          operation
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [setLoading, handleAuthError]
+  )
+
+  // ========================================
+  // MÉTODOS DE AUTENTICACIÓN
+  // ========================================
+
+  const register = useCallback(
+    async (userData, showNotifications = true) => {
+      const result = await withLoading(() => authService.register(userData), 'Registro')
+      return handleApiResponse(result, '¡Registro exitoso! Revisa tu email para verificar tu cuenta.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const login = useCallback(
+    async (email, password, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        const data = await authService.login(email, password)
+        updateTokens(data.accessToken, data.refreshToken)
+        updateUser(data)
+
+        // Manejar redirección automática después del login exitoso
+        setTimeout(() => {
+          handlePostLoginRedirect()
+        }, 100)
+
+        return data
+      }, 'Inicio de sesión')
+
+      return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
+    },
+    [withLoading, updateUser, updateTokens, handleApiResponse, handlePostLoginRedirect]
+  )
+
+  const loginWithGoogle = useCallback(
+    async (tokenResponse, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        const data = await authService.loginWithGoogle(tokenResponse)
+        updateTokens(data.accessToken, data.refreshToken)
+        updateUser(data)
+
+        // Manejar redirección automática después del login exitoso
+        setTimeout(() => {
+          handlePostLoginRedirect()
+        }, 100)
+
+        return data
+      }, 'Inicio de sesión con Google')
+
+      return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
+    },
+    [withLoading, updateUser, handleApiResponse, updateTokens, handlePostLoginRedirect]
+  )
+
+  const registerWithGoogle = useCallback(
+    async (tokenResponse, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        const data = await authService.registerWithGoogle(tokenResponse)
+        updateTokens(data.accessToken, data.refreshToken)
+        updateUser({
+          ...data,
+          verified: true,
+          profileComplete: false
         })
-      }
+
+        // Después del registro con Google, ir al completar perfil
+        setTimeout(() => {
+          navigate('/complete-profile', { replace: true })
+        }, 100)
+
+        return data
+      }, 'Registro con Google')
+      return handleApiResponse(result, '¡Registro exitoso con Google! Ya puedes usar todas las funcionalidades.', { showNotifications })
+    },
+    [withLoading, updateUser, handleApiResponse, updateTokens, navigate]
+  )
+
+  const verifyEmailCode = useCallback(
+    async (email, code, showNotifications = true) => {
+      const result = await withLoading(async () => await authService.verifyEmailCode(email, code), 'Verificación de email')
+      return handleApiResponse(result, '¡Email verificado exitosamente! Ya puedes iniciar sesión.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const resendVerificationCode = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withLoading(() => authService.resendVerificationCode(email), 'Reenvío de código')
+      return handleApiResponse(result, 'Código de verificación reenviado. Revisa tu email.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const forgotPassword = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withLoading(() => authService.forgotPassword(email), 'Recuperación de contraseña')
+      return handleApiResponse(result, 'Enlace de recuperación enviado. Revisa tu email.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const resetPassword = useCallback(
+    async (token, newPassword, showNotifications = true) => {
+      const result = await withLoading(() => authService.resetPassword(token, newPassword), 'Restablecimiento de contraseña')
+      if (result.success) clearAllAuth()
+      return handleApiResponse(result, '¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.', showNotifications)
+    },
+    [withLoading, handleApiResponse, clearAllAuth]
+  )
+
+  const validateResetToken = useCallback(
+    async (token, showNotifications = false) => {
+      const result = await withLoading(() => authService.validateResetToken(token), 'Validación de token de acceso')
+      return handleApiResponse(result, 'Token válido', showNotifications)
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const refreshTokens = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => {
+        const data = await authService.refreshToken(refreshToken)
+        if (data.success) {
+          updateAccessToken(data.accessToken)
+        } else {
+          // Si falla el refresh, limpiar todo y manejar como error de auth
+          clearAllAuth()
+          throw new Error('Session expired')
+        }
+        return data
+      }, 'Renovación de token')
+      return handleApiResponse(result, 'Token renovado correctamente', { showNotifications })
+    },
+    [withLoading, updateAccessToken, clearAllAuth, handleApiResponse, refreshToken]
+  )
+
+  const logout = useCallback(
+    async (showNotifications = true) => {
+      const result = await withLoading(async () => {
+        try {
+          // Intentar hacer logout en el servidor
+          const data = await authService.logout(accessToken)
+          return data
+        } catch (error) {
+          // Aunque falle el logout del servidor, limpiar localmente
+          console.warn('Error al hacer logout en el servidor:', error.message)
+          return { success: true, message: 'Sesión cerrada localmente' }
+        } finally {
+          // Siempre limpiar el estado local
+          clearAllAuth()
+
+          // Limpiar cualquier redirección pendiente
+          localStorage.removeItem('redirectAfterLogin')
+
+          // Redirigir al login después del logout
+          setTimeout(() => {
+            navigate('/login', { replace: true })
+          }, 100)
+        }
+      }, 'Cierre de sesión')
+      return handleApiResponse(result, 'Sesión cerrada correctamente.', { showNotifications })
+    },
+    [withLoading, clearAllAuth, handleApiResponse, accessToken, navigate]
+  )
+
+  const isTokenExpiringSoon = useCallback(() => {
+    if (!accessToken) return true
+
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]))
+      const now = Date.now() / 1000
+      const timeLeft = payload.exp - now
+
+      return timeLeft < 300 // 5 minutos
+    } catch (error) {
+      console.warn('⚠️ Error al verificar expiración del token:', error.message)
+      return true
     }
+  }, [accessToken])
 
-    return result
-  }
-
-  // === MÉTODOS CON NOTIFICACIONES AUTOMÁTICAS ===
-
-  const register = async (userData, showNotifications = true) => {
-    const result = await contextRegister(userData)
-    return processResponse(result, '¡Registro exitoso! Revisa tu email para verificar tu cuenta.', showNotifications)
-  }
-
-  const login = async (email, password, showNotifications = true) => {
-    const result = await contextLogin(email, password)
-    const successMessage = `¡Bienvenido${result.user?.name ? ` ${result.user.name}` : ''}!`
-    return processResponse(result, successMessage, showNotifications)
-  }
-
-  const loginWithGoogle = async (tokenResponse, showNotifications = true) => {
-    const result = await contextLoginWithGoogle(tokenResponse)
-    const successMessage = `¡Bienvenido${result.user?.name ? ` ${result.user.name}` : ''}!`
-    return processResponse(result, successMessage, showNotifications)
-  }
-
-  const registerWithGoogle = async (tokenResponse, showNotifications = true) => {
-    const result = await contextRegisterWithGoogle(tokenResponse)
-    return processResponse(result, '¡Registro exitoso con Google! Ya puedes usar todas las funcionalidades.', showNotifications)
-  }
-
-  const verifyEmailCode = async (email, code, showNotifications = true) => {
-    const result = await contextVerifyEmailCode(email, code)
-    return processResponse(result, '¡Email verificado exitosamente! Ya puedes iniciar sesión.', showNotifications)
-  }
-
-  const resendVerificationCode = async (email, showNotifications = true) => {
-    const result = await contextResendVerificationCode(email)
-    if (result.success && showNotifications) {
-      showInfo('Código de verificación reenviado. Revisa tu email.')
-    } else if (!result.success && showNotifications) {
-      handleError(result.error, {
-        customMessage: result.errorInfo?.message || 'Error al reenviar código'
-      })
-    }
-    return result
-  }
-
-  const forgotPassword = async (email, showNotifications = true) => {
-    const result = await contextForgotPassword(email)
-    return processResponse(result, 'Enlace de recuperación enviado. Revisa tu email.', showNotifications)
-  }
-
-  const resetPassword = async (token, newPassword, confirmPassword = null, showNotifications = true) => {
-    const result = await contextResetPassword(token, newPassword, confirmPassword)
-    return processResponse(result, '¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.', showNotifications)
-  }
-
-  const validateResetToken = async (token, showNotifications = false) => {
-    const result = await contextValidateResetToken(token)
-    if (!result.success && showNotifications) {
-      handleError(result.error, {
-        customMessage: result.errorInfo?.message || 'Token de recuperación inválido'
-      })
-    }
-    return result
-  }
-
-  const updateProfile = async (userData, showNotifications = true) => {
-    const result = await contextUpdateProfile(userData)
-    return processResponse(result, 'Perfil actualizado exitosamente.', showNotifications)
-  }
-
-  const logout = (showNotifications = true) => {
-    contextLogout()
-    if (showNotifications) {
-      showInfo('Sesión cerrada correctamente.')
-    }
-  }
-
-  // === ESTADOS DERIVADOS ===
-
-  const userEmail = user?.email || null
-  const userName = user?.name || null
-  const userFullName = user ? `${user.name} ${user.lastName || ''}`.trim() : null
-  const userImage = user?.image || null
-  const userRole = user?.role || null
-  const isVerified = user?.verified || false
-  const isProfileComplete = user?.completeProfile || false
-
-  const needsEmailVerification = isAuthenticated && !isVerified
-  const needsProfileCompletion = isAuthenticated && isVerified && !isProfileComplete
-  const canUseApp = isAuthenticated && isVerified && isProfileComplete
-
-  // === HELPERS ===
-
-  const hasRole = role => {
-    if (!user?.role) return false
-    return user.role === role || user.role === 'ADMIN'
-  }
-
-  const getOnboardingStep = () => {
-    if (!isAuthenticated) return 'login'
-    if (!isVerified) return 'verify-email'
-    if (!isProfileComplete) return 'complete-profile'
-    return 'completed'
-  }
-
-  const getUserDisplayInfo = () => {
-    if (!user) return null
-
-    return {
-      name: userFullName || userEmail,
-      email: userEmail,
-      image: userImage,
-      initials: getUserInitials(),
-      verified: isVerified,
-      profileComplete: isProfileComplete
-    }
-  }
-
-  const getUserInitials = () => {
-    if (!user) return ''
-
-    const firstName = user.name || ''
-    const lastName = user.lastName || ''
-    const firstInitial = firstName.charAt(0).toUpperCase()
-    const lastInitial = lastName.charAt(0).toUpperCase()
-
-    return `${firstInitial}${lastInitial}` || userEmail?.charAt(0).toUpperCase() || '?'
-  }
-
-  const needsAction = () => needsEmailVerification || needsProfileCompletion
-
-  const getNextRequiredAction = () => {
-    if (needsEmailVerification) {
-      return {
-        action: 'verify-email',
-        message: 'Verifica tu correo electrónico para continuar',
-        path: '/app/verify-email'
-      }
-    }
-
-    if (needsProfileCompletion) {
-      return {
-        action: 'complete-profile',
-        message: 'Completa tu perfil para usar todas las funciones',
-        path: '/app/complete-profile'
-      }
-    }
-
-    return null
-  }
+  // ========================================
+  // API PÚBLICA DEL HOOK
+  // ========================================
 
   return {
     // Estados principales
@@ -205,17 +277,9 @@ const useAuth = () => {
     isAuthenticated,
     isInitialized,
 
-    // Estados derivados
-    userEmail,
-    userName,
-    userFullName,
-    userImage,
-    userRole,
-    isVerified,
-    isProfileComplete,
-    needsEmailVerification,
-    needsProfileCompletion,
-    canUseApp,
+    // Estados de tokens
+    accessToken,
+    refreshToken,
 
     // Métodos con notificaciones automáticas
     register,
@@ -228,29 +292,30 @@ const useAuth = () => {
     forgotPassword,
     resetPassword,
     validateResetToken,
-    updateProfile,
 
-    // Métodos sin notificaciones automáticas
-    checkEmailAvailability,
-    checkAuthMethod,
-    hasRole,
-    getOnboardingStep,
-    getUserDisplayInfo,
-    getUserInitials,
-    needsAction,
-    getNextRequiredAction,
+    // Métodos de gestión de tokens
+    refreshTokens,
+    isTokenExpiringSoon,
+    // Métodos de actualización de tokens
+    updateAccessToken,
+    updateRefreshToken,
+    updateTokens,
+    clearTokens,
 
-    // Acceso directo a métodos sin notificaciones
-    registerRaw: contextRegister,
-    loginRaw: contextLogin,
-    loginWithGoogleRaw: contextLoginWithGoogle,
-    registerWithGoogleRaw: contextRegisterWithGoogle,
-    verifyEmailCodeRaw: contextVerifyEmailCode,
-    resendVerificationCodeRaw: contextResendVerificationCode,
-    forgotPasswordRaw: contextForgotPassword,
-    resetPasswordRaw: contextResetPassword,
-    validateResetTokenRaw: contextValidateResetToken,
-    updateProfileRaw: contextUpdateProfile
+    // Métodos de usuario
+    updateUser,
+    updateUserField,
+    updateUserFields,
+    updateUserPreferences,
+    updateUserMetadata,
+    clearUser,
+    clearAllAuth,
+
+    // Método para manejo de redirección
+    handlePostLoginRedirect,
+
+    // Método para forzar limpieza de auth en caso de error
+    handleAuthError
   }
 }
 

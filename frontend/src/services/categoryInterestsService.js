@@ -1,17 +1,17 @@
-import { BaseService } from '@services/baseService.js'
+import { ServiceREST } from '@services/serviceREST.js'
 
 /**
  * Servicio para manejo de categorías de interés
  */
-class CategoryInterestsService extends BaseService {
+class CategoryInterestsService extends ServiceREST {
   /**
    * Obtiene todas las categorías de interés disponibles
    * @returns {Promise<Array>} Lista de categorías de interés
    */
   async getAllCategories() {
     try {
-      const result = await BaseService.get('/category-interests')
-      return BaseService.handleServiceResponse(result, 'obtener categorías de interés')
+      const result = await ServiceREST.get('/category-interests')
+      return ServiceREST.handleServiceResponse(result, 'obtener categorías de interés')
     } catch (error) {
       console.error('❌ Error obteniendo categorías de interés:', {
         type: error.errorType,
@@ -29,8 +29,8 @@ class CategoryInterestsService extends BaseService {
    */
   async getCategoryByEnum(categoryEnum) {
     try {
-      const result = await BaseService.get(`/category-interests/${categoryEnum}`)
-      return BaseService.handleServiceResponse(result, `obtener categoría ${categoryEnum}`)
+      const result = await ServiceREST.get(`/category-interests/${categoryEnum}`)
+      return ServiceREST.handleServiceResponse(result, `obtener categoría ${categoryEnum}`)
     } catch (error) {
       console.error(`❌ Error obteniendo categoría ${categoryEnum}:`, {
         type: error.errorType,
@@ -47,8 +47,8 @@ class CategoryInterestsService extends BaseService {
    */
   async getActiveCategories() {
     try {
-      const result = await BaseService.get('/category-interests?active=true')
-      return BaseService.handleServiceResponse(result, 'obtener categorías activas')
+      const result = await ServiceREST.get('/category-interests?active=true')
+      return ServiceREST.handleServiceResponse(result, 'obtener categorías activas')
     } catch (error) {
       console.error('❌ Error obteniendo categorías activas:', {
         type: error.errorType,

@@ -1,9 +1,9 @@
-import { BaseService } from './baseService.js'
+import { ServiceREST } from './serviceREST.js'
 
 /**
  * Servicio para monitoreo del estado de la API con manejo de errores optimizado
  */
-class ApiStatusService extends BaseService {
+class ApiStatusService extends ServiceREST {
   constructor() {
     super()
     this.cache = new Map()
@@ -57,8 +57,8 @@ class ApiStatusService extends BaseService {
       }
     }
 
-    // Usar BaseService - manejo de errores automático
-    const result = await BaseService.get('/', {
+    // Usar ServiceREST - manejo de errores automático
+    const result = await ServiceREST.get('/', {
       timeout,
       headers: {
         'Content-Type': 'application/json',
@@ -66,8 +66,8 @@ class ApiStatusService extends BaseService {
       }
     })
 
-    // BaseService ya maneja errores, solo procesamos éxito
-    const data = BaseService.handleServiceResponse(result, 'obtener estado de la API')
+    // ServiceREST ya maneja errores, solo procesamos éxito
+    const data = ServiceREST.handleServiceResponse(result, 'obtener estado de la API')
 
     // Enriquecer datos con metadatos
     const enrichedData = {
@@ -97,8 +97,8 @@ class ApiStatusService extends BaseService {
   async checkHealth(options = {}) {
     const { timeout = 3000 } = options
 
-    // Intentar obtener estado - si falla, BaseService maneja el error
-    const result = await BaseService.get('/', { timeout })
+    // Intentar obtener estado - si falla, ServiceREST maneja el error
+    const result = await ServiceREST.get('/', { timeout })
 
     if (result.success) {
       const status = result.data
@@ -108,11 +108,11 @@ class ApiStatusService extends BaseService {
         status: status.health,
         timestamp: new Date().toISOString(),
         services: this.analyzeServiceHealth(status.services),
-        responseTime: Date.now() - Date.now(), // Se calcularía en el BaseService
+        responseTime: Date.now() - Date.now(), // Se calcularía en el ServiceREST
         uptime: status.uptime
       }
     } else {
-      // BaseService ya formateó el error
+      // ServiceREST ya formateó el error
       return {
         isHealthy: false,
         status: 'ERROR',
@@ -151,14 +151,14 @@ class ApiStatusService extends BaseService {
   }
 
   /**
-   * Realiza un ping simple a la API (optimizado con BaseService)
+   * Realiza un ping simple a la API (optimizado con ServiceREST)
    * @param {number} [timeout=2000] - Tiempo máximo de espera en milisegundos
    * @returns {Promise<Object>} Resultado del ping
    */
   async ping(timeout = 2000) {
     const startTime = Date.now()
 
-    const result = await BaseService.get('/', { timeout })
+    const result = await ServiceREST.get('/', { timeout })
 
     return {
       success: result.success,

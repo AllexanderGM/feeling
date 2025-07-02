@@ -5,7 +5,18 @@ import api from './api.js'
 /**
  * Servicio base con manejo estandarizado de errores
  */
-export class BaseService {
+export class ServiceREST {
+  /**
+   * Emite evento personalizado para errores de autenticación
+   * @param {Error} error - Error de autenticación
+   */
+  static emitAuthError(error) {
+    const authErrorEvent = new CustomEvent('authError', {
+      detail: error
+    })
+    window.dispatchEvent(authErrorEvent)
+  }
+
   /**
    * Realiza petición HTTP con manejo de errores estándar
    * @param {Object} config - Configuración de la petición
@@ -20,6 +31,11 @@ export class BaseService {
         status: response.status
       }
     } catch (error) {
+      // Si es error de autenticación, emitir evento
+      if (error?.errorType === 'AUTHENTICATION_ERROR' || error?.response?.status === 401) {
+        this.emitAuthError(error)
+      }
+
       const backendMessage = ErrorManager.extractBackendMessage(error)
       const formattedError = ErrorManager.formatError(error, backendMessage)
 
@@ -36,10 +52,40 @@ export class BaseService {
   }
 
   static async post(url, data, config = {}) {
+    // Si data es FormData, no establecer Content-Type
+    if (data instanceof FormData) {
+      const { headers = {}, ...restConfig } = config
+      const cleanHeaders = { ...headers }
+      delete cleanHeaders['Content-Type']
+
+      return this.request({
+        ...restConfig,
+        method: 'POST',
+        url,
+        data,
+        headers: cleanHeaders
+      })
+    }
+
     return this.request({ ...config, method: 'POST', url, data })
   }
 
   static async put(url, data, config = {}) {
+    // Si data es FormData, no establecer Content-Type
+    if (data instanceof FormData) {
+      const { headers = {}, ...restConfig } = config
+      const cleanHeaders = { ...headers }
+      delete cleanHeaders['Content-Type']
+
+      return this.request({
+        ...restConfig,
+        method: 'PUT',
+        url,
+        data,
+        headers: cleanHeaders
+      })
+    }
+
     return this.request({ ...config, method: 'PUT', url, data })
   }
 
@@ -64,6 +110,11 @@ export class BaseService {
     error.errorType = result.error.type
     error.fieldErrors = result.error.fieldErrors
     error.operation = operation
+
+    // Si es error de autenticación, emitir evento también aquí
+    if (error.errorType === 'AUTHENTICATION_ERROR' || error.response?.status === 401) {
+      this.emitAuthError(error)
+    }
 
     throw error
   }

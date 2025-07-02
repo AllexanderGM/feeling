@@ -1,17 +1,146 @@
-import { useContext } from 'react'
+import { useContext, useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import ErrorContext from '@context/ErrorContext.jsx'
 import { useNotification } from '@hooks/useNotification'
 
 /**
  * Hook unificado para manejo de errores que combina ErrorContext y sistema de Toast
  */
-export const useError = () => {
+export const useError = (authContext = null) => {
   const errorContext = useContext(ErrorContext)
   const { showError, showSuccess, showWarning, showInfo } = useNotification()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   if (!errorContext) {
     throw new Error('useError debe ser usado dentro de ErrorProvider')
   }
+
+  /**
+   * Maneja errores de autenticación (401) con redirección automática
+   * @param {Error|Object} error - Error de autenticación
+   * @param {string} customMessage - Mensaje personalizado opcional
+   */
+  const handleAuthError = useCallback(
+    (error, customMessage) => {
+      console.error('❌ Error de autenticación:', error)
+
+      // Si se pasó un contexto de auth, usar su método clearAllAuth
+      if (authContext?.clearAllAuth) {
+        authContext.clearAllAuth()
+      }
+
+      // Guardar ruta actual para redireccionar después del login
+      // Solo usar localStorage para esto ya que es información temporal
+      const currentPath = location.pathname + location.search
+      const authPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password']
+
+      if (!authPaths.some(path => currentPath.includes(path))) {
+        localStorage.setItem('redirectAfterLogin', currentPath)
+      }
+
+      // Mensaje de error para mostrar al usuario
+      const message = customMessage || error?.message || 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+
+      // Mostrar error con Toast
+      showError(message, 'Sesión expirada')
+
+      // Redirigir al login después de un pequeño delay
+      setTimeout(() => {
+        navigate('/login', {
+          replace: true,
+          state: {
+            message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+            from: currentPath
+          }
+        })
+      }, 1500)
+    },
+    [navigate, location, showError, authContext]
+  )
+
+  /**
+   * Verifica si un error es de tipo autenticación
+   * @param {Error|Object} error - Error a verificar
+   * @returns {boolean} True si es error de autenticación
+   */
+  const isAuthenticationError = useCallback(error => {
+    return (
+      error?.response?.status === 401 ||
+      error?.status === 401 ||
+      error?.errorType === 'AUTHENTICATION_ERROR' ||
+      error?.type === 'AUTHENTICATION_ERROR'
+    )
+  }, [])
+
+  /**
+   * Extrae mensaje de error de diferentes tipos de objeto error
+   * @param {Error|string|Object} error - Error a procesar
+   * @returns {string} Mensaje de error extraído
+   */
+  const extractErrorMessage = useCallback(
+    error => {
+      if (typeof error === 'string') {
+        return error
+      }
+
+      if (error?.message) {
+        return error.message
+      }
+
+      // Para errores de axios/fetch
+      if (error?.response?.data?.message) {
+        return error.response.data.message
+      }
+
+      // Para errores de axios con campo error
+      if (error?.response?.data?.error) {
+        return error.response.data.error
+      }
+
+      // Para errores de network
+      if (error?.name === 'NetworkError' || error?.code === 'NETWORK_ERROR') {
+        return 'Error de conexión. Verifica tu internet.'
+      }
+
+      // Para errores de timeout
+      if (error?.name === 'TimeoutError' || error?.code === 'TIMEOUT') {
+        return 'La operación tardó demasiado. Inténtalo de nuevo.'
+      }
+
+      // Para errores de autenticación específicos
+      if (isAuthenticationError(error)) {
+        return 'Tu sesión ha expirado. Serás redirigido al login.'
+      }
+
+      return 'Ha ocurrido un error inesperado'
+    },
+    [isAuthenticationError]
+  )
+
+  /**
+   * Extrae errores de validación de campo
+   * @param {Error|Object} error - Error que puede contener errores de campo
+   * @returns {Object} Objeto con errores por campo
+   */
+  const extractFieldErrors = useCallback(error => {
+    // Errores directos de validación
+    if (error?.fieldErrors && typeof error.fieldErrors === 'object') {
+      return error.fieldErrors
+    }
+
+    // Errores de axios con estructura errors
+    if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+      return error.response.data.errors
+    }
+
+    // Errores de validación en formato Laravel/similar
+    if (error?.response?.data?.fieldErrors && typeof error.response.data.fieldErrors === 'object') {
+      return error.response.data.fieldErrors
+    }
+
+    return null
+  }, [])
 
   /**
    * Maneja errores con diferentes opciones de visualización
@@ -21,102 +150,192 @@ export const useError = () => {
    * @param {boolean} [options.showToast=true] - Mostrar notificación toast
    * @param {boolean} [options.logError=true] - Registrar error en consola
    * @param {string} [options.customMessage=null] - Mensaje personalizado
+   * @param {string} [options.customTitle='Error'] - Título personalizado
+   * @param {boolean} [options.autoRedirectAuth=true] - Redirigir automáticamente en errores 401
    */
-  const handleError = (error, options = {}) => {
-    const { showModal = false, showToast = true, logError = true, customMessage = null } = options
+  const handleError = useCallback(
+    (error, options = {}) => {
+      const {
+        showModal = false,
+        showToast = true,
+        logError = true,
+        customMessage = null,
+        customTitle = 'Error',
+        autoRedirectAuth = true
+      } = options
 
-    // Extraer mensaje del error
-    let errorMessage = 'Ha ocurrido un error inesperado'
+      // Verificar si es error de autenticación PRIMERO
+      if (isAuthenticationError(error) && autoRedirectAuth) {
+        handleAuthError(error, customMessage)
+        return {
+          message: customMessage || extractErrorMessage(error),
+          type: 'AUTHENTICATION_ERROR',
+          fieldErrors: null,
+          handled: true,
+          redirected: true
+        }
+      }
 
-    if (typeof error === 'string') {
-      errorMessage = error
-    } else if (error?.message) {
-      errorMessage = error.message
-    } else if (error?.response?.data?.message) {
-      errorMessage = error.response.data.message
-    }
+      const errorMessage = customMessage || extractErrorMessage(error)
+      const fieldErrors = extractFieldErrors(error)
 
-    const finalMessage = customMessage || errorMessage
+      // Log del error si está habilitado
+      if (logError) {
+        console.error('Error capturado por useError:', {
+          error,
+          message: errorMessage,
+          errorType: error?.errorType || error?.type,
+          fieldErrors,
+          stack: error?.stack
+        })
+      }
 
-    // Log del error si está habilitado
-    if (logError) {
-      console.error('Error capturado por useError:', {
-        error,
-        message: finalMessage,
-        errorType: error?.errorType,
-        fieldErrors: error?.fieldErrors
-      })
-    }
+      // Mostrar modal si se requiere
+      if (showModal) {
+        errorContext.showErrorModal(errorMessage, customTitle, error)
+      }
 
-    // Mostrar modal si se requiere
-    if (showModal) {
-      errorContext.showErrorModal(finalMessage, 'Error', error)
-    }
+      // Mostrar toast
+      if (showToast) {
+        showError(errorMessage, customTitle)
+      }
 
-    // Mostrar toast usando HeroUI Toast
-    if (showToast) {
-      showError(finalMessage, 'Error')
-    }
-
-    return {
-      message: finalMessage,
-      type: error?.errorType,
-      fieldErrors: error?.fieldErrors
-    }
-  }
+      return {
+        message: errorMessage,
+        type: error?.errorType || error?.type,
+        fieldErrors,
+        handled: true
+      }
+    },
+    [extractErrorMessage, extractFieldErrors, errorContext, showError, isAuthenticationError, handleAuthError]
+  )
 
   /**
    * Maneja mensajes de éxito
    * @param {string} message - Mensaje de éxito
    * @param {Object} options - Opciones de configuración
    * @param {boolean} [options.showToast=true] - Mostrar notificación toast
-   * @param {number} [options.duration=3000] - Duración del toast
+   * @param {number} [options.duration=5000] - Duración del toast
+   * @param {string} [options.title='Éxito'] - Título personalizado
    */
-  const handleSuccess = (message, options = {}) => {
-    const { showToast = true, duration = 3000 } = options
+  const handleSuccess = useCallback(
+    (message, options = {}) => {
+      const { showToast = true, duration = 5000, title = 'Éxito' } = options
 
-    if (showToast) {
-      showSuccess(message, 'Éxito', duration)
-    }
-  }
+      if (showToast) {
+        showSuccess(message, title, duration)
+      }
+
+      return { message, type: 'success', handled: true }
+    },
+    [showSuccess]
+  )
 
   /**
-   * Maneja errores de validación de campos
+   * Maneja errores de validación de campos de forma mejorada
    * @param {Object} fieldErrors - Objeto con errores por campo
+   * @param {Object} options - Opciones de configuración
+   * @param {boolean} [options.showToast=true] - Mostrar notificaciones toast
+   * @param {boolean} [options.groupedMessage=false] - Agrupar errores en un solo mensaje
+   * @param {string} [options.title='Error de validación'] - Título personalizado
    */
-  const handleValidationErrors = fieldErrors => {
-    if (!fieldErrors || typeof fieldErrors !== 'object') return
+  const handleValidationErrors = useCallback(
+    (fieldErrors, options = {}) => {
+      if (!fieldErrors || typeof fieldErrors !== 'object') return
 
-    Object.entries(fieldErrors).forEach(([field, message]) => {
-      showError(`${field}: ${message}`, 'Error de validación')
-    })
-  }
+      const { showToast = true, groupedMessage = false, title = 'Error de validación' } = options
+      const errors = Object.entries(fieldErrors)
+
+      if (!errors.length) return
+
+      if (!showToast) return
+
+      if (groupedMessage) {
+        // Mostrar un solo toast con todos los errores
+        const errorList = errors.map(([field, message]) => `• ${field}: ${message}`).join('\n')
+        showError(errorList, title)
+      } else {
+        // Mostrar toast individual para cada error (máximo 3 para evitar spam)
+        const maxErrors = 3
+        errors.slice(0, maxErrors).forEach(([field, message]) => {
+          showError(`${field}: ${message}`, title)
+        })
+
+        // Si hay más errores, mostrar un mensaje indicativo
+        if (errors.length > maxErrors) {
+          showWarning(`Y ${errors.length - maxErrors} errores más...`, 'Errores adicionales')
+        }
+      }
+
+      return { fieldErrors, count: errors.length, handled: true }
+    },
+    [showError, showWarning]
+  )
 
   /**
    * Maneja mensajes de advertencia
    * @param {string} message - Mensaje de advertencia
    * @param {Object} options - Opciones de configuración
    */
-  const handleWarning = (message, options = {}) => {
-    const { showToast = true, duration = 4000 } = options
+  const handleWarning = useCallback(
+    (message, options = {}) => {
+      const { showToast = true, duration = 6000, title = 'Advertencia' } = options
 
-    if (showToast) {
-      showWarning(message, 'Advertencia', duration)
-    }
-  }
+      if (showToast) {
+        showWarning(message, title, duration)
+      }
+
+      return { message, type: 'warning', handled: true }
+    },
+    [showWarning]
+  )
 
   /**
    * Maneja mensajes informativos
    * @param {string} message - Mensaje informativo
    * @param {Object} options - Opciones de configuración
    */
-  const handleInfo = (message, options = {}) => {
-    const { showToast = true, duration = 3000 } = options
+  const handleInfo = useCallback(
+    (message, options = {}) => {
+      const { showToast = true, duration = 5000, title = 'Información' } = options
 
-    if (showToast) {
-      showInfo(message, 'Información', duration)
-    }
-  }
+      if (showToast) {
+        showInfo(message, title, duration)
+      }
+
+      return { message, type: 'info', handled: true }
+    },
+    [showInfo]
+  )
+
+  /**
+   * Método conveniente para manejar respuestas de API
+   * @param {Object} response - Respuesta de la API
+   * @param {string} successMessage - Mensaje de éxito
+   * @param {Object} options - Opciones adicionales
+   */
+  const handleApiResponse = useCallback(
+    (response, successMessage, options = {}) => {
+      const { showNotifications = true } = options
+
+      if (!showNotifications) return response
+
+      if (response?.success) {
+        if (successMessage) handleSuccess(successMessage)
+      } else {
+        const fieldErrors = extractFieldErrors(response?.error || response)
+
+        if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+          handleValidationErrors(fieldErrors)
+        } else {
+          handleError(response?.error || response?.message || 'Error desconocido')
+        }
+      }
+
+      return response
+    },
+    [handleSuccess, handleError, handleValidationErrors, extractFieldErrors]
+  )
 
   return {
     handleError,
@@ -124,11 +343,22 @@ export const useError = () => {
     handleValidationErrors,
     handleWarning,
     handleInfo,
+    handleApiResponse,
+
+    // Nuevos métodos para autenticación
+    handleAuthError,
+    isAuthenticationError,
+
+    // Utilidades de extracción
+    extractErrorMessage,
+    extractFieldErrors,
+
     // Acceso directo a contextos si se necesita
     errorContext,
     showErrorModal: errorContext.showErrorModal,
     showErrorAlert: errorContext.showErrorAlert,
-    // Acceso directo a métodos de toast
+
+    // Acceso directo a métodos de toast (para casos especiales)
     showError,
     showSuccess,
     showWarning,
@@ -136,5 +366,4 @@ export const useError = () => {
   }
 }
 
-// Export por defecto para compatibilidad
 export default useError

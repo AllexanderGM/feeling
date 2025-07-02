@@ -16,73 +16,78 @@ import Step2Characteristics from './components/StepPreferences.jsx'
 import StepCharacteristics from './components/StepCharacteristics.jsx'
 import Step4PreferencesAndConfig from './components/StepConfiguration.jsx'
 
-// Configuración inicial del formulario
-const INITIAL_FORM_DATA = {
-  // Step 1 - Información básica
-  images: [],
-  name: '',
-  lastName: '',
-  document: '',
-  phoneCode: '+57',
-  phone: '',
-  birthDate: '',
-  country: 'Colombia',
-  city: 'Bogotá',
-  locality: '',
-
-  // Step 2 - Características
-  description: '',
-  tags: [],
-  genderId: '',
-  maritalStatusId: '',
-  educationLevelId: '',
-  profession: '',
-  bodyTypeId: '',
-  height: 170,
-  eyeColorId: '',
-  hairColorId: '',
-
-  // Step 3 - Preferencias
-  categoryInterest: '',
-  agePreferenceMin: 18,
-  agePreferenceMax: 50,
-  locationPreferenceRadius: 50,
-  // SPIRIT
-  religionId: '',
-  church: '',
-  spiritualMoments: '',
-  spiritualPractices: '',
-  //  ROUSE
-  sexualRoleId: '',
-  relationshipTypeId: '',
-
-  // Step 4 - Configuración
-  showAge: true,
-  showLocation: true,
-  allowNotifications: true,
-  showMeInSearch: true
-}
-
 const TOTAL_STEPS = 4
+
 const CompleteProfile = () => {
-  // ========================================
-  // Hooks y estados
-  // ========================================
-
   const navigate = useNavigate()
+
+  // Hooks básicos
+  const { user, loading: authLoading } = useAuth()
+  const { submitting, completeUser } = useUser()
+
+  // ========================================
+  // ESTADO INICIAL OPTIMIZADO
   // ========================================
 
-  const { user, loading: authLoading } = useAuth()
-  const location = useLocation({ defaultCountry: INITIAL_FORM_DATA.country, defaultCity: INITIAL_FORM_DATA.city })
-  const userAttributes = useUserAttributes()
-  const userTags = useUserTags()
-  const { submitting, completeProfile } = useUser()
+  // Inicializar formData solo una vez, sin depender de user directamente
   const [formData, setFormData] = useState({
-    ...INITIAL_FORM_DATA,
+    // Step 1 - Información básica
+    images: user.images?.[0] || [],
     name: user.name || '',
-    lastName: user.lastName || ''
+    lastName: user.lastName || '',
+    document: user.document || '',
+    phoneCode: '+57',
+    phone: user.phone || '',
+    birthDate: user.birthDate || '',
+    country: user.country || 'Colombia',
+    city: user.city || 'Bogotá',
+    department: user.department || '',
+    locality: user.locality || '',
+
+    // Step 2 - Características
+    description: user.description || '',
+    tags: user.tags || [],
+    genderId: user.genderId || '',
+    maritalStatusId: user.maritalStatusId || '',
+    educationLevelId: user.educationLevelId || '',
+    profession: user.profession || '',
+    bodyTypeId: user.bodyTypeId || '',
+    height: user.height || 170,
+    eyeColorId: user.eyeColorId || '',
+    hairColorId: user.hairColorId || '',
+
+    // Step 3 - Preferencias
+    categoryInterest: user.categoryInterest || '',
+    agePreferenceMin: user.agePreferenceMin || 18,
+    agePreferenceMax: user.agePreferenceMax || 50,
+    locationPreferenceRadius: user.locationPreferenceRadius || 50,
+    // Spirit
+    religionId: user.religionId || '',
+    church: user.church || '',
+    spiritualMoments: user.spiritualMoments || '',
+    spiritualPractices: user.spiritualPractices || '',
+    // Rose
+    sexualRoleId: user.sexualRoleId || '',
+    relationshipTypeId: user.relationshipTypeId || '',
+
+    // Step 4 - Configuración
+    showAge: user.showAge || true,
+    showLocation: user.showLocation || true,
+    allowNotifications: user.allowNotifications || true,
+    showMeInSearch: user.showMeInSearch || true
   })
 
+  console.log(formData)
+
+  // ========================================
+  // HOOKS CON CONFIGURACIÓN ESTÁTICA
+  // ========================================
+
+  const location = useLocation({ defaultCountry: user.country, defaultCity: user.city })
+  const userAttributes = useUserAttributes()
+  const userTags = useUserTags()
+
+  // useForm con formData estabilizado
   const {
     errors,
     currentStep,
@@ -97,38 +102,31 @@ const CompleteProfile = () => {
   } = useForm(TOTAL_STEPS, formData)
 
   // ========================================
-  // FUNCIONES DE ACTUALIZACIÓN DE DATOS
+  // FUNCIONES OPTIMIZADAS
   // ========================================
 
-  // Actualizar campo del formulario
   const updateFormData = useCallback(
     (field, value) => {
       setFormData(prev => ({ ...prev, [field]: value }))
-      clearFieldError(field) // Limpiar error del campo automáticamente
+      clearFieldError(field)
     },
     [clearFieldError]
   )
 
-  // Actualizar múltiples campos
   const updateMultipleFields = useCallback(
     updates => {
       setFormData(prev => ({ ...prev, ...updates }))
-      clearFieldErrors(Object.keys(updates)) // Limpiar errores de los campos actualizados
+      clearFieldErrors(Object.keys(updates))
     },
     [clearFieldErrors]
   )
 
-  // Actualizar errores manualmente
   const updateErrors = useCallback(
     newErrors => {
       setErrors(newErrors)
     },
     [setErrors]
   )
-
-  // ========================================
-  // VALIDACIÓN Y NAVEGACIÓN
-  // ========================================
 
   const nextStep = useCallback(() => {
     goToNextStep(true)
@@ -138,34 +136,17 @@ const CompleteProfile = () => {
     goToPrevStep()
   }, [goToPrevStep])
 
-  // ========================================
-  // ENVÍO DEL FORMULARIO
-  // ========================================
-
   const handleSubmit = useCallback(async () => {
     if (!validateCurrentStep()) return
-
-    try {
-      const result = await completeProfile(formData)
-
-      if (result.success) {
-        navigate(APP_PATHS.ROOT, { replace: true })
-      } else if (!result.cancelled) {
-        // Solo mostrar error si no fue cancelado
-        console.error('❌ Error al completar perfil:', result.error)
-        alert(`Error: ${result.error}`)
-      }
-    } catch (error) {
-      console.error('❌ Error inesperado:', error)
-      alert('Error inesperado al completar el perfil. Por favor intenta de nuevo.')
-    }
-  }, [formData, validateCurrentStep, completeProfile, navigate])
+    const result = await completeUser(formData)
+    if (result.success) navigate(APP_PATHS.ROOT, { replace: true })
+  }, [formData, validateCurrentStep, completeUser, navigate])
 
   // ========================================
-  // PROPS PARA COMPONENTES
+  // PROPS MEMORIZADAS
   // ========================================
 
-  // Props comunes para los pasos
+  // Props comunes memorizadas correctamente
   const commonStepProps = useMemo(
     () => ({
       user,
@@ -179,49 +160,44 @@ const CompleteProfile = () => {
     [user, formData, errors, updateFormData, updateErrors, updateMultipleFields, location]
   )
 
-  // Renderizar contenido del paso
+  // Contenido del paso memorizado
   const renderStepContent = useMemo(() => {
     switch (currentStep) {
       case 1:
         return <StepBasicInfo {...commonStepProps} />
-
       case 2:
         return <StepCharacteristics {...commonStepProps} userAttributes={userAttributes} userTags={userTags} />
-
       case 3:
         return <Step2Characteristics {...commonStepProps} />
-
       case 4:
         return <Step4PreferencesAndConfig {...commonStepProps} />
-
       default:
         return null
     }
   }, [currentStep, commonStepProps, userAttributes, userTags])
 
-  // Calcular progreso usando el hook
+  // Progreso memorizado
   const progress = useMemo(
     () => ({
       percentage: stepInfo.progress,
       isLastStep: stepInfo.isLast
     }),
-    [stepInfo]
+    [stepInfo.progress, stepInfo.isLast]
   )
 
   // ========================================
-  // LOADING Y ERROR STATES
+  // LOADING STATES OPTIMIZADOS
   // ========================================
 
-  if (authLoading && location.loading && userAttributes.loading && userTags.loading) return <LoadData>Cargando datos...</LoadData>
+  // Verificar todos los loadings de una vez
+  const isLoading = authLoading || location.loading || userAttributes.loading || userTags.loading
+
+  if (isLoading) return <LoadData>Cargando datos...</LoadData>
 
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
   if (location.error) return <LoadDataError>Error al cargar datos geográficos</LoadDataError>
   if (userAttributes.error) return <LoadDataError>Error al cargar atributos del usuario</LoadDataError>
   if (userTags.error) return <LoadDataError>Error al cargar tags populares</LoadDataError>
-
-  // ========================================
-  // RENDER PRINCIPAL
-  // ========================================
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-8 max-w-3xl mx-auto w-full">

@@ -30,19 +30,15 @@ export class ErrorManager {
   /**
    * Formatea error preservando mensajes específicos del backend
    * @param {Error} error - Error original
-   * @param {string} backendMessage - Mensaje específico del backend
+   * @param {string} message - Mensaje específico del backend
    * @returns {Object} Error formateado
    */
-  static formatError(error, backendMessage = null) {
-    const status = error.response?.status
-
-    // Usar el mensaje del backend si está disponible, sino usar getErrorMessage
-    let message = backendMessage || this.getErrorMessage(error)
-
+  static formatError(error, message = null) {
     return {
+      success: false,
       type: this.getErrorType(error),
-      message,
-      status,
+      message: message || this.getErrorMessage(error) || 'Error desconocido',
+      status: error.response?.status,
       fieldErrors: this.getFieldErrors(error),
       operation: error.operation || 'operación'
     }

@@ -1,17 +1,17 @@
-import { BaseService } from '@services/baseService.js'
+import { ServiceREST } from '@services/serviceREST.js'
 
 /**
  * Servicio para manejo de atributos de usuario
  */
-class UserAttributesService extends BaseService {
+class UserAttributesService extends ServiceREST {
   /**
    * Obtiene todos los atributos de usuario agrupados por tipo
    * @returns {Promise<Object>} Atributos agrupados por tipo
    */
   async getAllAttributes() {
     try {
-      const result = await BaseService.get('/user-attributes')
-      return BaseService.handleServiceResponse(result, 'obtener atributos de usuario')
+      const result = await ServiceREST.get('/user-attributes')
+      return ServiceREST.handleServiceResponse(result, 'obtener atributos de usuario')
     } catch (error) {
       console.error('❌ Error obteniendo atributos de usuario:', {
         type: error.errorType,
@@ -29,8 +29,8 @@ class UserAttributesService extends BaseService {
    */
   async getAttributesByType(attributeType) {
     try {
-      const result = await BaseService.get(`/user-attributes/${attributeType}`)
-      return BaseService.handleServiceResponse(result, `obtener atributos de tipo ${attributeType}`)
+      const result = await ServiceREST.get(`/user-attributes/${attributeType}`)
+      return ServiceREST.handleServiceResponse(result, `obtener atributos de tipo ${attributeType}`)
     } catch (error) {
       console.error(`❌ Error obteniendo atributos de tipo ${attributeType}:`, {
         type: error.errorType,
@@ -49,8 +49,8 @@ class UserAttributesService extends BaseService {
    */
   async createAttribute(attributeType, attributeData) {
     try {
-      const result = await BaseService.post(`/user-attributes/${attributeType}`, attributeData)
-      return BaseService.handleServiceResponse(result, `crear atributo de tipo ${attributeType}`)
+      const result = await ServiceREST.post(`/user-attributes/${attributeType}`, attributeData)
+      return ServiceREST.handleServiceResponse(result, `crear atributo de tipo ${attributeType}`)
     } catch (error) {
       console.error(`❌ Error creando atributo de tipo ${attributeType}:`, {
         type: error.errorType,
@@ -84,7 +84,7 @@ class UserAttributesService extends BaseService {
         return []
       }
 
-      const result = await BaseService.get(`/tags/popular/category/${categoryInterest}?limit=${limit}`)
+      const result = await ServiceREST.get(`/tags/popular/category/${categoryInterest}?limit=${limit}`)
 
       if (!result.success) {
         console.warn('⚠️ No se pudieron obtener sugerencias:', result.error.message)

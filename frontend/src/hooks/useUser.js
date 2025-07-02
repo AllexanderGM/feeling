@@ -1,154 +1,162 @@
-import { useState, useCallback, useRef } from 'react'
-import { completeUserProfile, updateProfile, getMyProfile, validateCompleteProfile } from '@services/userService.js'
+import { useState, useCallback } from 'react'
+import useAuth from '@hooks/useAuth'
+import userService from '@services/userService.js'
+import { useError } from '@hooks/useError'
+import { ErrorManager } from '@utils/errorManager'
 
-/**
- * Hook personalizado para la administración del usuario
- * Proporciona funcionalidades para completar, actualizar y obtener perfil del usuario
- */
 const useUser = () => {
-  // Estados
+  const { user, updateUser: updateAuthUser } = useAuth()
+  const { handleApiResponse } = useError()
+
+  // Estados locales
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [profile, setProfile] = useState(null)
-  const [error, setError] = useState(null)
 
-  // Ref para cancelar operaciones si el componente se desmonta
-  const abortControllerRef = useRef(null)
+  const profile = user
 
   // ========================================
-  // FUNCIONES AUXILIARES
+  // HELPERS INTERNOS
   // ========================================
 
-  /**
-   * Resetea el estado de error
-   */
-  const clearError = useCallback(() => {
-    setError(null)
+  const withLoading = useCallback(async (asyncFn, operation = 'operación') => {
+    setLoading(true)
+    try {
+      const result = await asyncFn()
+      return {
+        success: true,
+        data: result,
+        message: null
+      }
+    } catch (error) {
+      console.error(`❌ Error en ${operation}:`, error)
+      return {
+        success: false,
+        ...ErrorManager.formatError(error),
+        message: error.message || 'Error desconocido',
+        operation
+      }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  /**
-   * Maneja errores de forma consistente
-   */
-  const handleError = useCallback((error, customMessage) => {
-    console.error('❌ Error en useUser:', error)
-    const errorMessage = customMessage || error?.message || 'Error desconocido'
-    setError(errorMessage)
-    return { success: false, error: errorMessage }
+  const withSubmitting = useCallback(async (asyncFn, operation = 'operación') => {
+    setSubmitting(true)
+    try {
+      const result = await asyncFn()
+      return {
+        success: true,
+        data: result,
+        message: null
+      }
+    } catch (error) {
+      console.error(`❌ Error en ${operation}:`, error)
+      return {
+        success: false,
+        error,
+        message: error.message || 'Error desconocido',
+        operation
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }, [])
 
-  /**
-   * Cancela operaciones en curso
-   */
-  const cancelOperations = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
+  const formatFormDataToApi = useCallback(formData => {
+    return {
+      document: formData.document,
+      phone: formData.phoneCode && formData.phone ? `${formData.phoneCode}${formData.phone}` : formData.phone,
+      dateOfBirth: formData.birthDate,
+      description: formData.description,
+      country: formData.country,
+      city: formData.city,
+      department: formData.department || '',
+      locality: formData.locality || '',
+      categoryInterest: formData.categoryInterest,
+      religionId: formData.religionId ? parseInt(formData.religionId) : null,
+      spiritualMoments: formData.spiritualMoments || '',
+      spiritualPractices: formData.spiritualPractices || '',
+      sexualRoleId: formData.sexualRoleId ? parseInt(formData.sexualRoleId) : null,
+      relationshipId: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
+      genderId: formData.genderId ? parseInt(formData.genderId) : null,
+      height: formData.height ? parseInt(formData.height) : null,
+      eyeColorId: formData.eyeColorId ? parseInt(formData.eyeColorId) : null,
+      hairColorId: formData.hairColorId ? parseInt(formData.hairColorId) : null,
+      bodyTypeId: formData.bodyTypeId ? parseInt(formData.bodyTypeId) : null,
+      maritalStatusId: formData.maritalStatusId ? parseInt(formData.maritalStatusId) : null,
+      profession: formData.profession || '',
+      educationId: formData.educationLevelId ? parseInt(formData.educationLevelId) : null,
+      tags: formData.tags || [],
+      agePreferenceMin: formData.agePreferenceMin ? parseInt(formData.agePreferenceMin) : 18,
+      agePreferenceMax: formData.agePreferenceMax ? parseInt(formData.agePreferenceMax) : 50,
+      locationPreferenceRadius: formData.locationPreferenceRadius ? parseInt(formData.locationPreferenceRadius) : 50,
+      allowNotifications: formData.allowNotifications !== false,
+      showAge: formData.showAge !== false,
+      showLocation: formData.showLocation !== false,
+      showMeInSearch: formData.showMeInSearch !== false
     }
   }, [])
 
   // ========================================
-  // COMPLETAR PERFIL
+  // MÉTODOS PRINCIPALES
   // ========================================
 
-  /**
-   * Completa el perfil del usuario con datos e imágenes
-   * @param {Object} profileData - Datos completos del perfil
-   * @returns {Promise<Object>} Resultado de la operación
-   */
-  const completeProfile = useCallback(
-    async profileData => {
-      try {
-        setSubmitting(true)
-        setError(null)
+  const completeUser = useCallback(
+    async (formData, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        if (!formData) throw new Error('Los datos del perfil son requeridos')
 
-        // Validar datos antes de enviar
-        const validation = validateCompleteProfile(profileData)
-        if (!validation.isComplete) {
-          throw new Error(`Datos incompletos: ${validation.missingFields.join(', ')}`)
-        }
+        const images = formData.images ? formData.images.filter(img => img instanceof File) : []
+        const userFormData = formatFormDataToApi(formData)
+        const data = await userService.completeUser(userFormData, images)
+        updateAuthUser(data)
 
-        // Crear AbortController para cancelar si es necesario
-        abortControllerRef.current = new AbortController()
+        return data
+      }, 'Completar perfil')
 
-        const result = await completeUserProfile(profileData)
-        console.log(result)
-
-        // Actualizar estado local con el perfil completado
-        setProfile(result)
-
-        return {
-          success: true,
-          data: result,
-          message: 'Perfil completado exitosamente'
-        }
-      } catch (error) {
-        // Si fue cancelado, no mostrar error
-        if (error.name === 'AbortError') {
-          return { success: false, cancelled: true }
-        }
-
-        return handleError(error, 'Error al completar el perfil')
-      } finally {
-        setSubmitting(false)
-        abortControllerRef.current = null
-      }
+      return handleApiResponse(result, '¡Perfil completado exitosamente! Ya puedes usar todas las funciones.', { showNotifications })
     },
-    [handleError]
+    [withSubmitting, updateAuthUser, formatFormDataToApi, handleApiResponse]
   )
 
-  // ========================================
-  // ACTUALIZAR PERFIL
-  // ========================================
+  const updateUser = useCallback(
+    async (formData, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        console.log('🔄 Actualizando perfil:', formData)
 
-  /**
-   * Actualiza el perfil existente del usuario
-   * @param {Object} updateData - Datos a actualizar
-   * @returns {Promise<Object>} Resultado de la operación
-   */
-  const updateUserProfile = useCallback(
-    async updateData => {
-      try {
-        setLoading(true)
-        setError(null)
+        let images = []
+        let updateData = formData
 
-        console.log('🔄 Actualizando perfil:', updateData)
+        if (formData.images) {
+          images = formData.images.filter(img => img instanceof File)
+          updateData = formatFormDataToApi(formData)
+        }
 
-        const updatedProfile = await updateProfile(updateData)
+        let updatedProfile
 
-        // Actualizar estado local
-        setProfile(prevProfile => ({
-          ...prevProfile,
-          ...updatedProfile
-        }))
+        if (images && images.length > 0) {
+          const formDataToSend = new FormData()
+          formDataToSend.append('profileData', JSON.stringify(updateData))
+          images.forEach(image => {
+            formDataToSend.append('profileImages', image)
+          })
+          updatedProfile = await userService.updateUser(formDataToSend)
+        } else {
+          updatedProfile = await userService.updateUser(updateData)
+        }
 
+        updateAuthUser(updatedProfile)
         console.log('✅ Perfil actualizado exitosamente')
+        return updatedProfile
+      }, 'actualizar perfil')
 
-        return {
-          success: true,
-          data: updatedProfile,
-          message: 'Perfil actualizado exitosamente'
-        }
-      } catch (error) {
-        return handleError(error, 'Error al actualizar el perfil')
-      } finally {
-        setLoading(false)
-      }
+      return handleApiResponse(result, 'Perfil actualizado exitosamente.', { showNotifications })
     },
-    [handleError]
+    [withLoading, updateAuthUser, formatFormDataToApi, handleApiResponse]
   )
 
-  // ========================================
-  // OBTENER PERFIL
-  // ========================================
-
-  /**
-   * Obtiene el perfil actual del usuario
-   * @param {boolean} forceRefresh - Forzar recarga desde servidor
-   * @returns {Promise<Object>} Resultado de la operación
-   */
   const fetchProfile = useCallback(
-    async (forceRefresh = false) => {
-      // Si ya tenemos el perfil y no se fuerza refresh, devolver el cached
+    async (forceRefresh = false, showNotifications = false) => {
       if (profile && !forceRefresh) {
         return {
           success: true,
@@ -157,123 +165,132 @@ const useUser = () => {
         }
       }
 
-      try {
-        setLoading(true)
-        setError(null)
+      const result = await withLoading(async () => {
+        console.log('📥 Obteniendo perfil del usuario desde servidor')
+        const profileData = await userService.getMyUser()
+        updateAuthUser(profileData)
+        console.log('✅ Perfil obtenido y sincronizado exitosamente')
+        return profileData
+      }, 'obtener perfil')
 
-        console.log('📥 Obteniendo perfil del usuario')
-
-        const profileData = await getMyProfile()
-        setProfile(profileData)
-
-        console.log('✅ Perfil obtenido exitosamente')
-
-        return {
-          success: true,
-          data: profileData,
-          fromCache: false
-        }
-      } catch (error) {
-        return handleError(error, 'Error al obtener el perfil')
-      } finally {
-        setLoading(false)
+      if (showNotifications) {
+        return handleApiResponse(result, 'Perfil sincronizado correctamente.', { showNotifications: true })
       }
+
+      return result
     },
-    [profile, handleError]
+    [profile, withLoading, updateAuthUser, handleApiResponse]
+  )
+
+  const uploadProfileImage = useCallback(
+    async (imageFile, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        console.log('📤 Subiendo imagen de perfil')
+        const uploadResult = await userService.uploadProfileImage(imageFile)
+
+        if (uploadResult && uploadResult.imageUrl) {
+          updateAuthUser({
+            image: uploadResult.imageUrl,
+            images: [...(profile?.images || []), uploadResult.imageUrl]
+          })
+        }
+
+        console.log('✅ Imagen subida exitosamente')
+        return uploadResult
+      }, 'subir imagen')
+
+      return handleApiResponse(result, 'Imagen subida exitosamente.', { showNotifications })
+    },
+    [withLoading, updateAuthUser, profile?.images, handleApiResponse]
+  )
+
+  const updateUserPreferences = useCallback(
+    async (preferences, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        const updatedPreferences = await userService.updateUserPreferences(preferences)
+        updateAuthUser({ preferences: updatedPreferences })
+        return updatedPreferences
+      }, 'actualizar preferencias')
+
+      return handleApiResponse(result, 'Preferencias actualizadas exitosamente.', { showNotifications })
+    },
+    [withLoading, updateAuthUser, handleApiResponse]
   )
 
   // ========================================
-  // VALIDACIONES
+  // VALIDACIONES Y ESTADÍSTICAS
   // ========================================
 
-  /**
-   * Valida si el perfil actual está completo
-   * @param {Object} profileData - Datos del perfil a validar (opcional, usa el estado si no se proporciona)
-   * @returns {Object} Resultado de la validación
-   */
-  const validateProfile = useCallback(
-    (profileData = profile) => {
-      if (!profileData) {
-        return {
-          isValid: false,
-          isComplete: false,
-          missingFields: ['profile'],
-          errors: { profile: 'No hay datos de perfil disponibles' },
-          completionPercentage: 0
-        }
-      }
-
-      return validateCompleteProfile(profileData)
-    },
-    [profile]
-  )
-
-  /**
-   * Verifica si el perfil está completo
-   * @returns {boolean}
-   */
-  const isProfileComplete = useCallback(() => {
-    const validation = validateProfile()
-    return validation.isComplete
-  }, [validateProfile])
-
-  // ========================================
-  // UTILIDADES
-  // ========================================
-
-  /**
-   * Resetea todo el estado del hook
-   */
-  const resetState = useCallback(() => {
-    setProfile(null)
-    setError(null)
-    setLoading(false)
-    setSubmitting(false)
-    cancelOperations()
-  }, [cancelOperations])
-
-  /**
-   * Obtiene estadísticas del perfil
-   */
   const getProfileStats = useCallback(() => {
     if (!profile) return null
 
-    const validation = validateProfile()
+    const requiredFields = [
+      'name',
+      'lastName',
+      'email',
+      'phone',
+      'document',
+      'dateOfBirth',
+      'city',
+      'country',
+      'categoryInterest',
+      'description'
+    ]
+
+    const completedFields = requiredFields.filter(field => {
+      const value = profile[field]
+      return value && value.toString().trim() !== ''
+    })
+
+    const completionPercentage = Math.round((completedFields.length / requiredFields.length) * 100)
 
     return {
-      completionPercentage: validation.completionPercentage,
-      missingFieldsCount: validation.missingFields.length,
-      isComplete: validation.isComplete,
+      completionPercentage,
+      completedFieldsCount: completedFields.length,
+      totalFieldsCount: requiredFields.length,
+      missingFieldsCount: requiredFields.length - completedFields.length,
       hasImages: profile.images?.length > 0,
-      imageCount: profile.images?.length || 0
+      imageCount: profile.images?.length || 0,
+      isVerified: profile.verified || false,
+      hasCompleteProfile: profile.profileComplete || false
     }
-  }, [profile, validateProfile])
+  }, [profile])
+
+  const isProfileComplete = useCallback(() => {
+    if (!profile) return false
+    const stats = getProfileStats()
+    return stats ? stats.completionPercentage >= 80 : false
+  }, [profile, getProfileStats])
+
+  const needsProfileCompletion = useCallback(() => {
+    if (!profile) return true
+    return !profile.profileComplete || !isProfileComplete()
+  }, [profile, isProfileComplete])
 
   // ========================================
-  // RETURN DEL HOOK
+  // API PÚBLICA DEL HOOK
   // ========================================
 
   return {
     // Estados
     loading,
     submitting,
-    profile,
-    error,
+    user,
 
-    // Funciones principales
-    completeProfile,
-    updateUserProfile,
+    // Métodos principales
+    completeUser,
+    updateUser,
     fetchProfile,
+    uploadProfileImage,
+    updateUserPreferences,
 
-    // Validaciones
-    validateProfile,
-    isProfileComplete,
+    // Validaciones y estadísticas
     getProfileStats,
+    isProfileComplete,
+    needsProfileCompletion,
 
     // Utilidades
-    clearError,
-    resetState,
-    cancelOperations
+    formatFormDataToApi
   }
 }
 
