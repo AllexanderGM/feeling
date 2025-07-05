@@ -76,7 +76,7 @@ const createUserStructure = (userData = {}) => {
 
     // DATOS PARA ROUSE
     sexualRoleId: userData.sexualRoleId || null,
-    relationshipTypeId: userData.relationshipTypeId || null,
+    relationshipType: userData.relationshipType || null,
 
     // PREFERENCIAS DE MATCHING
     agePreferenceMin: userData.agePreferenceMin || null,

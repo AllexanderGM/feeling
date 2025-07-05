@@ -1,66 +1,21 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import useAuth from '@hooks/useAuth'
 import userService from '@services/userService.js'
 import { useError } from '@hooks/useError'
-import { ErrorManager } from '@utils/errorManager'
+import useAsyncOperation from '@hooks/useAsyncOperation'
 
 const useUser = () => {
   const { user, updateUser: updateAuthUser } = useAuth()
   const { handleApiResponse } = useError()
 
-  // Estados locales
-  const [loading, setLoading] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  // Hook centralizado para operaciones asíncronas
+  const { loading, submitting, withLoading, withSubmitting } = useAsyncOperation()
 
   const profile = user
 
   // ========================================
   // HELPERS INTERNOS
   // ========================================
-
-  const withLoading = useCallback(async (asyncFn, operation = 'operación') => {
-    setLoading(true)
-    try {
-      const result = await asyncFn()
-      return {
-        success: true,
-        data: result,
-        message: null
-      }
-    } catch (error) {
-      console.error(`❌ Error en ${operation}:`, error)
-      return {
-        success: false,
-        ...ErrorManager.formatError(error),
-        message: error.message || 'Error desconocido',
-        operation
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const withSubmitting = useCallback(async (asyncFn, operation = 'operación') => {
-    setSubmitting(true)
-    try {
-      const result = await asyncFn()
-      return {
-        success: true,
-        data: result,
-        message: null
-      }
-    } catch (error) {
-      console.error(`❌ Error en ${operation}:`, error)
-      return {
-        success: false,
-        error,
-        message: error.message || 'Error desconocido',
-        operation
-      }
-    } finally {
-      setSubmitting(false)
-    }
-  }, [])
 
   const formatFormDataToApi = useCallback(formData => {
     return {
@@ -77,7 +32,7 @@ const useUser = () => {
       spiritualMoments: formData.spiritualMoments || '',
       spiritualPractices: formData.spiritualPractices || '',
       sexualRoleId: formData.sexualRoleId ? parseInt(formData.sexualRoleId) : null,
-      relationshipId: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
+      relationshipType: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
       genderId: formData.genderId ? parseInt(formData.genderId) : null,
       height: formData.height ? parseInt(formData.height) : null,
       eyeColorId: formData.eyeColorId ? parseInt(formData.eyeColorId) : null,

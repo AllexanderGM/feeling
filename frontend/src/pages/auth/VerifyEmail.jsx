@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import { useNotification } from '@hooks/useNotification'
 import { verifyEmailSchema } from '@utils/formSchemas'
@@ -15,7 +15,7 @@ const VerifyEmail = () => {
   const { showInfo } = useNotification()
   const { verifyEmailCode, resendVerificationCode, loading } = useAuth()
 
-  const [status, setStatus] = useState('idle') // idle, success
+  const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [canResend, setCanResend] = useState(false)
@@ -84,7 +84,7 @@ const VerifyEmail = () => {
   }
 
   const onSubmit = async ({ email, code }) => {
-    const result = await verifyEmailCode(email.toLowerCase().trim(), code) // Notificaciones automáticas
+    const result = await verifyEmailCode(email.toLowerCase().trim(), code)
 
     if (result.success) {
       setStatus('success')
@@ -104,7 +104,6 @@ const VerifyEmail = () => {
         }
       }, 2000)
     } else {
-      // Si el código es inválido, limpiar el campo
       setValue('code', '')
     }
   }
@@ -114,7 +113,7 @@ const VerifyEmail = () => {
     if (!email) return
 
     setResendLoading(true)
-    const result = await resendVerificationCode(email.toLowerCase().trim()) // Notificaciones automáticas
+    const result = await resendVerificationCode(email.toLowerCase().trim())
 
     if (result.success) {
       setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
@@ -295,13 +294,13 @@ const VerifyEmail = () => {
             <div className="text-center text-xs text-gray-500">
               <p className="mb-3">¿Problemas con la verificación?</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <button onClick={() => navigate('/login')} className="text-gray-400 hover:text-gray-300 underline transition-colors">
+                <Link href={APP_PATHS.AUTH.LOGIN} className="text-gray-400 hover:text-gray-300 underline transition-colors">
                   Volver al inicio de sesión
-                </button>
+                </Link>
                 <span className="hidden sm:inline text-gray-600">•</span>
-                <button onClick={() => navigate('/register')} className="text-gray-400 hover:text-gray-300 underline transition-colors">
+                <Link href={APP_PATHS.AUTH.REGISTER} className="text-gray-400 hover:text-gray-300 underline transition-colors">
                   Crear nueva cuenta
-                </button>
+                </Link>
               </div>
             </div>
 

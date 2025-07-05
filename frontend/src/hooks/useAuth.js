@@ -1,9 +1,9 @@
-import { useContext, useCallback, useState } from 'react'
+import { useContext, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthContext from '@context/AuthContext.jsx'
 import authService from '@services/authService'
 import { useError } from '@hooks/useError'
-import { ErrorManager } from '@utils/errorManager'
+import useAsyncOperation from '@hooks/useAsyncOperation'
 
 const useAuth = () => {
   const context = useContext(AuthContext)
@@ -12,10 +12,19 @@ const useAuth = () => {
   // Pasar el contexto de auth al hook de error para usar clearAllAuth
   const { handleApiResponse, handleAuthError } = useError(context)
 
-  // Estados locales
-  const [loading, setLoading] = useState(false)
+  // Hook centralizado para operaciones asíncronas con configuración estable
+  const asyncOptions = useMemo(
+    () => ({
+      authContext: context,
+      showNotifications: true,
+      autoHandleAuth: true
+    }),
+    [context]
+  )
 
-  if (context.loading) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
+  const { loading, withLoading } = useAsyncOperation(asyncOptions)
+
+  if (!context) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
 
   const {
     // Estados principales
@@ -51,42 +60,6 @@ const useAuth = () => {
       navigate('/', { replace: true })
     }
   }, [navigate])
-
-  // ========================================
-  // HELPERS INTERNOS SIMPLIFICADOS
-  // ========================================
-
-  const withLoading = useCallback(
-    async (asyncFn, operation = 'operación') => {
-      setLoading(true)
-      try {
-        const result = await asyncFn()
-        return {
-          success: true,
-          data: result,
-          message: null,
-          errors: null
-        }
-      } catch (error) {
-        console.error(`❌ Error en ${operation}:`, error)
-
-        // Si es error de autenticación, usar el manejador específico
-        if (error?.response?.status === 401 || error?.status === 401 || error?.errorType === 'AUTHENTICATION_ERROR') {
-          handleAuthError(error)
-        }
-
-        return {
-          success: false,
-          ...ErrorManager.formatError(error),
-          data: null,
-          operation
-        }
-      } finally {
-        setLoading(false)
-      }
-    },
-    [setLoading, handleAuthError]
-  )
 
   // ========================================
   // MÉTODOS DE AUTENTICACIÓN

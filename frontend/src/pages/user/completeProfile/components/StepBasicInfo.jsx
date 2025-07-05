@@ -1,6 +1,7 @@
-import { useRef, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useEffect, useCallback, useMemo, memo } from 'react'
 import { Input, DatePicker, Autocomplete, AutocompleteItem, Chip, Accordion, AccordionItem } from '@heroui/react'
-import { today, getLocalTimeZone } from '@internationalized/date'
+import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
+import { Controller, useController } from 'react-hook-form'
 
 import useImageManager from '../hooks/useImageManager.js'
 
@@ -13,14 +14,17 @@ const PHOTO_TIPS = [
   { label: 'Autenticidad', tip: 'Evita fotos grupales o con lentes de sol en todas' }
 ]
 
-const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, updateMultipleFields, location }) => {
+const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, setError, clearErrors }) => {
   // ========================================
-  // Hooks, estados y referencias
+  // Hooks y referencias básicas
   // ========================================
   const fileInputRefs = useRef({})
 
-  const { images, name, lastName, document, phone, phoneCode, country, city, locality } = formData
-  const { formattedCountries, formattedCities, formattedLocalities, loadLocalitiesByCity, loadCitiesByCountry } = location
+  const { field: imagesField } = useController({
+    name: 'images',
+    control
+  })
+
   const {
     getImageStats,
     processImageFile,
@@ -35,30 +39,35 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
   } = useImageManager(MAX_IMAGES)
 
   // ========================================
-  // DATOS DERIVADOS Y MEMOIZADOS
+  // Datos del formulario y ubicación
+  // ========================================
+  const formValues = watch()
+  const { images, country, city, phoneCode } = formValues
+  const { formattedCountries, formattedCities, formattedLocalities, loadLocalitiesByCity, loadCitiesByCountry } = locationData
+
+  // ========================================
+  // Datos optimizados y memoizados
   // ========================================
 
-  // Normalizar imágenes una sola vez
+  // Imágenes normalizadas
   const normalizedImages = useMemo(() => {
     const normalized = [...(images || [])]
     while (normalized.length < MAX_IMAGES) normalized.push(null)
     return normalized.slice(0, MAX_IMAGES)
   }, [images])
 
-  // Lookup de países optimizado para evitar búsquedas repetidas
+  // Lookup de países optimizado
   const countryLookup = useMemo(() => {
     const byPhone = new Map()
     const byName = new Map()
-
     formattedCountries.forEach(country => {
       byPhone.set(country.phone, country)
       byName.set(country.name, country)
     })
-
     return { byPhone, byName }
   }, [formattedCountries])
 
-  // Datos derivados memoizados
+  // Datos derivados
   const derivedData = useMemo(
     () => ({
       shouldShowLocalities: city && formattedLocalities.length > 0,
@@ -70,147 +79,125 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
     [city, formattedLocalities, normalizedImages, countryLookup, phoneCode, country, user, getImageStats]
   )
 
-  // Función helper para obtener clave de error
+  // ========================================
+  // Manejadores de ubicación
+  // ========================================
+  const locationHandlers = useMemo(
+    () => ({
+      handleCountryChange: key => {
+        if (!key) return
+        setValue('country', key)
+        setValue('city', '')
+        setValue('locality', '')
+        loadCitiesByCountry(key)
+      },
+
+      handleCityChange: key => {
+        if (!key) return
+        setValue('city', key)
+        setValue('locality', '')
+        loadLocalitiesByCity(key)
+      }
+    }),
+    [setValue, loadCitiesByCountry, loadLocalitiesByCity]
+  )
+
+  // ========================================
+  // Manejadores de imágenes optimizados
+  // ========================================
   const getImageErrorKey = useCallback(position => {
     return position === MAIN_IMAGE_POSITION ? 'profileImage' : `image${position}`
   }, [])
 
-  // ========================================
-  // MANEJADORES
-  // ========================================
+  const imageHandlers = useMemo(
+    () => ({
+      handleFileChange: async (position, event) => {
+        const file = event.target.files[0]
+        if (!file) return
 
-  const handleDateChange = useCallback(
-    date => {
-      const formattedDate = date ? `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}` : null
-      updateFormData('birthDate', formattedDate)
-    },
-    [updateFormData]
-  )
+        const result = await processImageFile(file, position)
+        const errorKey = getImageErrorKey(position)
 
-  const handlePhoneCountryChange = useCallback(
-    key => {
-      key && updateFormData('phoneCode', key)
-    },
-    [updateFormData]
-  )
-
-  const handleCountryChange = useCallback(
-    key => {
-      if (!key) return
-      updateMultipleFields({ country: key, city: '', locality: '' })
-      loadCitiesByCountry(key)
-    },
-    [updateMultipleFields, loadCitiesByCountry]
-  )
-
-  const handleCityChange = useCallback(
-    key => {
-      if (!key) return
-      updateMultipleFields({ city: key, locality: '' })
-      loadLocalitiesByCity(key)
-    },
-    [updateMultipleFields, loadLocalitiesByCity]
-  )
-
-  // ========================================
-  // MANEJADORES DE IMÁGENES
-  // ========================================
-
-  const handleFileChange = useCallback(
-    async (position, event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      const result = await processImageFile(file, position)
-      const errorKey = getImageErrorKey(position)
-
-      if (result.success) {
-        const newImages = [...normalizedImages]
-        newImages[position] = result.file
-        updateFormData('images', newImages)
-
-        // Limpiar error si existe
-        if (errors[errorKey]) {
-          updateErrors({ ...errors, [errorKey]: null })
+        if (result.success) {
+          const newImages = [...normalizedImages]
+          newImages[position] = result.file
+          imagesField.onChange(newImages)
+          clearErrors(errorKey)
+        } else {
+          setError(errorKey, {
+            type: 'manual',
+            message: result.error
+          })
+          if (fileInputRefs.current[position]) {
+            fileInputRefs.current[position].value = ''
+          }
         }
-      } else {
-        updateErrors({ ...errors, [errorKey]: result.error })
-        // Limpiar input
+      },
+
+      handleImageDrop: async (position, e) => {
+        const result = await handleDrop(position, e)
+        const errorKey = getImageErrorKey(position)
+
+        if (result.success) {
+          const newImages = [...normalizedImages]
+          newImages[position] = result.file
+          imagesField.onChange(newImages)
+          clearErrors(errorKey)
+        } else {
+          setError(errorKey, {
+            type: 'manual',
+            message: result.error
+          })
+        }
+      },
+
+      handleSwapToMain: async position => {
+        if (position === MAIN_IMAGE_POSITION) return
+        const newImages = swapImages(normalizedImages, MAIN_IMAGE_POSITION, position)
+        imagesField.onChange(newImages)
+      },
+
+      handleRemoveImage: (position, e) => {
+        e.stopPropagation()
+        const newImages = removeImage(normalizedImages, position)
+        imagesField.onChange(newImages)
         if (fileInputRefs.current[position]) {
           fileInputRefs.current[position].value = ''
         }
       }
-    },
-    [processImageFile, normalizedImages, updateFormData, errors, updateErrors, getImageErrorKey]
-  )
-
-  const handleImageDrop = useCallback(
-    async (position, e) => {
-      const result = await handleDrop(position, e)
-      const errorKey = getImageErrorKey(position)
-
-      if (result.success) {
-        const newImages = [...normalizedImages]
-        newImages[position] = result.file
-        updateFormData('images', newImages)
-
-        if (errors[errorKey]) {
-          updateErrors({ ...errors, [errorKey]: null })
-        }
-      } else {
-        updateErrors({ ...errors, [errorKey]: result.error })
-      }
-    },
-    [handleDrop, normalizedImages, updateFormData, errors, updateErrors, getImageErrorKey]
-  )
-
-  const handleSwapToMain = useCallback(
-    async position => {
-      if (position === MAIN_IMAGE_POSITION) return
-
-      const newImages = swapImages(normalizedImages, MAIN_IMAGE_POSITION, position)
-      updateFormData('images', newImages)
-    },
-    [swapImages, normalizedImages, updateFormData]
-  )
-
-  const handleRemoveImage = useCallback(
-    (position, e) => {
-      e.stopPropagation()
-
-      const newImages = removeImage(normalizedImages, position)
-      updateFormData('images', newImages)
-
-      // Limpiar error e input
-      const errorKey = getImageErrorKey(position)
-      if (errors[errorKey]) {
-        updateErrors({ ...errors, [errorKey]: null })
-      }
-
-      if (fileInputRefs.current[position]) {
-        fileInputRefs.current[position].value = ''
-      }
-    },
-    [removeImage, normalizedImages, updateFormData, errors, updateErrors, getImageErrorKey]
+    }),
+    [normalizedImages, imagesField, processImageFile, handleDrop, swapImages, removeImage, getImageErrorKey, setError, clearErrors]
   )
 
   // ========================================
-  // COMPONENTES DE RENDERIZADO
+  // Utilidades de fecha
   // ========================================
+  const getParsedDate = useCallback(value => {
+    try {
+      if (!value) return null
+      const date = new Date(value)
+      if (isNaN(date.getTime())) return null
+      return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
+    } catch {
+      return null
+    }
+  }, [])
 
+  // ========================================
+  // Componente de imagen optimizado
+  // ========================================
   const renderImageSlot = useCallback(
     position => {
       const image = normalizedImages[position]
       const imageUrl = getImageUrl(image)
       const hasImage = !!imageUrl
       const errorKey = getImageErrorKey(position)
-      const error = errors[errorKey]
+      const error = errors[errorKey]?.message
       const isMainImage = position === MAIN_IMAGE_POSITION
       const isDraggingImage = isDragging[position]
 
-      // Error especial para imagen principal
-      const hasMainImageError = isMainImage && (errors.images || errors.profileImage)
-      const displayError = error || (isMainImage && hasMainImageError)
+      const hasMainImageError = isMainImage && (errors.images?.message || errors.profileImage?.message)
+      const displayError = error || hasMainImageError
 
       const containerClasses = `
       relative cursor-pointer transition-all duration-300 group
@@ -220,7 +207,6 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
       ${displayError ? 'ring-2 ring-red-500/30' : ''}
     `
 
-      // Generar IDs únicos para aria-describedby
       const imageId = `image-slot-${position}`
       const errorId = displayError ? `${imageId}-error` : undefined
 
@@ -231,7 +217,7 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
               className={containerClasses}
               onDragOver={e => handleDragOver(position, e)}
               onDragLeave={e => handleDragLeave(position, e)}
-              onDrop={e => handleImageDrop(position, e)}
+              onDrop={e => imageHandlers.handleImageDrop(position, e)}
               onClick={() => fileInputRefs.current[position]?.click()}
               role="button"
               tabIndex="0"
@@ -257,7 +243,9 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
                     {isDraggingImage
                       ? 'Soltar aquí'
                       : displayError
-                        ? 'Imagen requerida'
+                        ? isMainImage
+                          ? 'Imagen requerida'
+                          : `Foto ${position}`
                         : isMainImage
                           ? 'Foto principal'
                           : `Foto ${position}`}
@@ -269,7 +257,7 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
               {hasImage && (
                 <button
                   type="button"
-                  onClick={e => handleRemoveImage(position, e)}
+                  onClick={e => imageHandlers.handleRemoveImage(position, e)}
                   className={`absolute bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-all hover:scale-110 shadow-lg ${isMainImage ? 'w-8 h-8 -top-1 -right-1' : 'w-6 h-6 -top-2 -right-2 opacity-0 group-hover:opacity-100'}`}
                   aria-label={`Eliminar ${isMainImage ? 'imagen principal' : `imagen ${position}`}`}>
                   <span aria-hidden="true">✕</span>
@@ -282,7 +270,7 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
                   type="button"
                   onClick={e => {
                     e.stopPropagation()
-                    handleSwapToMain(position)
+                    imageHandlers.handleSwapToMain(position)
                   }}
                   className="absolute -bottom-2 -left-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-label={`Hacer imagen ${position} la imagen principal`}>
@@ -306,16 +294,14 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
               ref={el => (fileInputRefs.current[position] = el)}
               type="file"
               accept="image/*"
-              onChange={e => handleFileChange(position, e)}
+              onChange={e => imageHandlers.handleFileChange(position, e)}
               className="sr-only"
               id={`image-input-${position}`}
               name={`image-${position}`}
               aria-label={`Seleccionar imagen ${position === MAIN_IMAGE_POSITION ? 'principal' : `número ${position}`}`}
-              title={`Seleccionar imagen ${position === MAIN_IMAGE_POSITION ? 'principal' : `número ${position}`}`}
             />
           </div>
 
-          {/* Error individual con ID único */}
           {!isMainImage && error && (
             <p
               id={errorId}
@@ -327,101 +313,113 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
         </div>
       )
     },
-    [
-      normalizedImages,
-      errors,
-      getImageErrorKey,
-      handleImageDrop,
-      handleRemoveImage,
-      handleSwapToMain,
-      handleFileChange,
-      getImageUrl,
-      handleDragLeave,
-      handleDragOver,
-      isDragging
-    ]
+    [normalizedImages, errors, getImageErrorKey, imageHandlers, getImageUrl, handleDragLeave, handleDragOver, isDragging]
   )
 
-  const renderPhoneSection = () => (
-    <div className="space-y-2">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Autocomplete
-          isRequired
-          label="Código de teléfono"
-          variant="underlined"
-          selectedKey={phoneCode}
-          defaultItems={formattedCountries}
-          onSelectionChange={handlePhoneCountryChange}
-          isInvalid={!!errors.phoneCode}
-          errorMessage={errors.phoneCode}
-          inputProps={{
-            id: 'phone-code-select',
-            name: 'phoneCode',
-            'aria-label': 'Seleccionar código de país para teléfono',
-            autoComplete: 'tel-country-code'
-          }}
-          startContent={
-            phoneCode && (
-              <img
-                className="w-5 h-5 rounded-full object-cover"
-                src={derivedData.phoneCountryData.image}
-                alt={`Bandera de ${derivedData.phoneCountryData.name}`}
+  // ========================================
+  // Componente de teléfono optimizado
+  // ========================================
+  const renderPhoneSection = useMemo(
+    () => (
+      <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Controller
+            name="phoneCode"
+            control={control}
+            render={({ field }) => (
+              <Autocomplete
+                isRequired
+                label="Código de teléfono"
+                variant="underlined"
+                selectedKey={field.value}
+                defaultItems={formattedCountries}
+                onSelectionChange={field.onChange}
+                isInvalid={!!errors.phoneCode}
+                errorMessage={errors.phoneCode?.message}
+                inputProps={{
+                  id: 'phone-code-select',
+                  name: 'phoneCode',
+                  'aria-label': 'Seleccionar código de país para teléfono',
+                  autoComplete: 'tel-country-code'
+                }}
+                startContent={
+                  field.value && (
+                    <img
+                      className="w-5 h-5 rounded-full object-cover"
+                      src={derivedData.phoneCountryData.image}
+                      alt={`Bandera de ${derivedData.phoneCountryData.name}`}
+                    />
+                  )
+                }>
+                {country => (
+                  <AutocompleteItem
+                    key={country.phone}
+                    textValue={`${country.phone} ${country.name}`}
+                    className={country.priority && 'bg-blue-500/10'}>
+                    <div className="flex items-center gap-2">
+                      <img src={country.image} alt={`Bandera de ${country.name}`} className="w-5 h-5 rounded-full object-cover" />
+                      <span className="font-medium">{country.phone}</span>
+                      <span className="text-gray-400 ml-1">{country.name}</span>
+                    </div>
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+            )}
+          />
+
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                label="Número de teléfono"
+                variant="underlined"
+                placeholder="123 456 789"
+                isInvalid={!!errors.phone}
+                errorMessage={errors.phone?.message}
+                id="phone-number"
+                type="tel"
+                aria-label="Número de teléfono"
+                autoComplete="tel-national"
+                onChange={e => {
+                  const cleanedPhone = e.target.value.replace(/\D/g, '')
+                  field.onChange(cleanedPhone)
+                }}
               />
-            )
-          }>
-          {country => (
-            <AutocompleteItem
-              key={country.phone}
-              textValue={`${country.phone} ${country.name}`}
-              className={country.priority && 'bg-blue-500/10'}>
-              <div className="flex items-center gap-2">
-                <img src={country.image} alt={`Bandera de ${country.name}`} className="w-5 h-5 rounded-full object-cover" />
-                <span className="font-medium">{country.phone}</span>
-                <span className="text-gray-400 ml-1">{country.name}</span>
-              </div>
-            </AutocompleteItem>
-          )}
-        </Autocomplete>
-
-        <Input
-          isRequired
-          label="Número de teléfono"
-          variant="underlined"
-          placeholder="123 456 789"
-          value={phone || ''}
-          onChange={e => updateFormData('phone', e.target.value.replace(/\D/g, ''))}
-          isInvalid={!!errors.phone}
-          errorMessage={errors.phone}
-          id="phone-number"
-          name="phone"
-          type="tel"
-          aria-label="Número de teléfono"
-          autoComplete="tel-national"
-        />
-      </div>
-
-      {phoneCode && phone && (
-        <div className="bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2" role="status">
-          <span className="text-xs text-gray-400">Número completo:</span>
-          <span className="text-xs text-gray-300 font-mono">
-            {phoneCode} {phone}
-          </span>
+            )}
+          />
         </div>
-      )}
-    </div>
+
+        {phoneCode && formValues.phone && (
+          <div className="bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2" role="status">
+            <span className="text-xs text-gray-400">Número completo:</span>
+            <span className="text-xs text-gray-300 font-mono">
+              {phoneCode} {formValues.phone}
+            </span>
+          </div>
+        )}
+      </div>
+    ),
+    [control, errors, formattedCountries, derivedData.phoneCountryData, phoneCode, formValues.phone]
   )
 
-  // Cleanup automático de URLs
+  // ========================================
+  // Efectos para carga inicial
+  // ========================================
+
   useEffect(() => () => cleanupImageUrls(normalizedImages), [cleanupImageUrls, normalizedImages])
 
-  // ============= RENDER PRINCIPAL =============
-
+  // ========================================
+  // Render principal
+  // ========================================
   return (
     <div className="space-y-4">
       {/* Header */}
       <header className="text-center">
         <h1 className="text-xl font-bold text-gray-200">Completa tu perfil</h1>
-        <p className="text-gray-400 mt-2">{name} Ayúdanos a conocerte mejor</p>
+        <p className="text-gray-400 mt-2">Ayúdanos a conocerte mejor</p>
         <p className="text-gray-500 text-xs">
           Usuario asociado al correo: <span className="font-bold">{derivedData.email}</span>
         </p>
@@ -437,13 +435,12 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
           <p className="text-gray-300">Foto de perfil</p>
           {renderImageSlot(MAIN_IMAGE_POSITION)}
 
-          {/* Error específico para imagen principal */}
           {(errors.images || errors.profileImage) && (
             <p
               className="text-red-400 text-sm font-medium bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
               role="alert"
               id="main-image-error">
-              {errors.images || errors.profileImage}
+              {errors.images?.message || errors.profileImage?.message}
             </p>
           )}
         </div>
@@ -498,70 +495,88 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            variant="underlined"
-            isRequired
-            label="Nombre(s)"
-            placeholder="Tus nombre(s)"
-            value={name || ''}
-            onChange={e => updateFormData('name', e.target.value)}
-            isInvalid={!!errors.name}
-            errorMessage={errors.name}
-            id="first-name"
-            name="firstName"
-            type="text"
-            aria-label="Nombres"
-            autoComplete="given-name"
+          <Controller
+            name="name"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                isRequired
+                label="Nombre(s)"
+                placeholder="Tus nombre(s)"
+                isInvalid={!!errors.name}
+                errorMessage={errors.name?.message}
+                id="first-name"
+                type="text"
+                aria-label="Nombres"
+                autoComplete="given-name"
+              />
+            )}
           />
 
-          <Input
-            variant="underlined"
-            isRequired
-            label="Apellidos"
-            placeholder="Tus apellidos"
-            value={lastName || ''}
-            onChange={e => updateFormData('lastName', e.target.value)}
-            isInvalid={!!errors.lastName}
-            errorMessage={errors.lastName}
-            id="last-name"
+          <Controller
             name="lastName"
-            type="text"
-            aria-label="Apellidos"
-            autoComplete="family-name"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                isRequired
+                label="Apellidos"
+                placeholder="Tus apellidos"
+                isInvalid={!!errors.lastName}
+                errorMessage={errors.lastName?.message}
+                id="last-name"
+                type="text"
+                aria-label="Apellidos"
+                autoComplete="family-name"
+              />
+            )}
           />
         </div>
 
-        <Input
-          variant="underlined"
-          isRequired
-          label="Documento de identidad"
-          placeholder="Número de documento"
-          value={document || ''}
-          onChange={e => updateFormData('document', e.target.value)}
-          isInvalid={!!errors.document}
-          errorMessage={errors.document}
-          id="document-id"
+        <Controller
           name="document"
-          type="text"
-          aria-label="Documento de identidad"
-          autoComplete="off"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              isRequired
+              label="Documento de identidad"
+              placeholder="Número de documento"
+              isInvalid={!!errors.document}
+              errorMessage={errors.document?.message}
+              id="document-id"
+              type="text"
+              aria-label="Documento de identidad"
+              autoComplete="off"
+            />
+          )}
         />
 
-        <DatePicker
-          variant="underlined"
-          isRequired
-          label="Fecha de nacimiento"
-          onChange={handleDateChange}
-          isInvalid={!!errors.birthDate}
-          errorMessage={errors.birthDate}
-          maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
-          showMonthAndYearPickers
-          granularity="day"
-          placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
-          description="Debes ser mayor de 18 años"
-          id="birth-date"
+        <Controller
           name="birthDate"
-          aria-label="Fecha de nacimiento"
+          control={control}
+          render={({ field }) => (
+            <DatePicker
+              value={field.value ? getParsedDate(field.value) : null}
+              onChange={date => {
+                const formattedDate = date ? `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}` : ''
+                field.onChange(formattedDate)
+              }}
+              isInvalid={!!errors.birthDate}
+              errorMessage={errors.birthDate?.message}
+              maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
+              showMonthAndYearPickers
+              granularity="day"
+              placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
+              description="Debes ser mayor de 18 años"
+              id="birth-date"
+              aria-label="Fecha de nacimiento"
+            />
+          )}
         />
       </section>
 
@@ -570,7 +585,7 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
         <h2 id="contact-section" className="sr-only">
           Información de contacto
         </h2>
-        {renderPhoneSection()}
+        {renderPhoneSection}
       </section>
 
       {/* Ubicación */}
@@ -580,64 +595,86 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Autocomplete
-            variant="underlined"
-            isRequired
-            label="País"
-            placeholder="Buscar tu país..."
-            defaultItems={formattedCountries}
-            selectedKey={country}
-            onSelectionChange={handleCountryChange}
-            isInvalid={!!errors.country}
-            errorMessage={errors.country}
-            inputProps={{
-              id: 'country-select',
-              name: 'country',
-              'aria-label': 'Seleccionar país',
-              autoComplete: 'country-name'
-            }}
-            startContent={
-              country && (
-                <img
-                  className="w-5 h-5 rounded-full object-cover"
-                  src={derivedData.locationCountryData.image}
-                  alt={`Bandera de ${derivedData.locationCountryData.name}`}
-                />
-              )
-            }>
-            {country => (
-              <AutocompleteItem key={country.name} textValue={country.name} className={country.priority && 'bg-blue-500/10'}>
-                <div className="flex items-center gap-2">
-                  <img className="w-5 h-5 rounded-full object-cover" src={country.image} alt={`Bandera de ${country.name}`} />
-                  <span className={country.priority ? 'font-semibold' : ''}>{country.name}</span>
-                </div>
-              </AutocompleteItem>
+          <Controller
+            name="country"
+            control={control}
+            render={({ field }) => (
+              <Autocomplete
+                variant="underlined"
+                isRequired
+                label="País"
+                placeholder="Buscar tu país..."
+                defaultItems={formattedCountries}
+                selectedKey={field.value}
+                onSelectionChange={key => {
+                  field.onChange(key)
+                  if (key) {
+                    locationHandlers.handleCountryChange(key)
+                  }
+                }}
+                isInvalid={!!errors.country}
+                errorMessage={errors.country?.message}
+                inputProps={{
+                  id: 'country-select',
+                  name: 'country',
+                  'aria-label': 'Seleccionar país',
+                  autoComplete: 'country-name'
+                }}
+                startContent={
+                  field.value && (
+                    <img
+                      className="w-5 h-5 rounded-full object-cover"
+                      src={derivedData.locationCountryData.image}
+                      alt={`Bandera de ${derivedData.locationCountryData.name}`}
+                    />
+                  )
+                }>
+                {country => (
+                  <AutocompleteItem key={country.name} textValue={country.name} className={country.priority && 'bg-blue-500/10'}>
+                    <div className="flex items-center gap-2">
+                      <img className="w-5 h-5 rounded-full object-cover" src={country.image} alt={`Bandera de ${country.name}`} />
+                      <span className={country.priority ? 'font-semibold' : ''}>{country.name}</span>
+                    </div>
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
             )}
-          </Autocomplete>
+          />
 
           {country && (
-            <Autocomplete
-              variant="underlined"
-              isRequired
-              label="Ciudad"
-              placeholder="Buscar tu ciudad..."
-              defaultItems={formattedCities}
-              selectedKey={city}
-              onSelectionChange={handleCityChange}
-              isInvalid={!!errors.city}
-              errorMessage={errors.city}
-              inputProps={{
-                id: 'city-select',
-                name: 'city',
-                'aria-label': 'Seleccionar ciudad',
-                autoComplete: 'address-level2'
-              }}>
-              {city => (
-                <AutocompleteItem key={city.name} textValue={city.name} className={city.priority && 'bg-blue-500/10'}>
-                  <span className={city.priority ? 'font-semibold' : ''}>{city.name}</span>
-                </AutocompleteItem>
+            <Controller
+              name="city"
+              control={control}
+              render={({ field }) => (
+                <Autocomplete
+                  variant="underlined"
+                  isRequired
+                  label="Ciudad"
+                  placeholder="Buscar tu ciudad..."
+                  defaultItems={formattedCities}
+                  selectedKey={field.value}
+                  onSelectionChange={key => {
+                    field.onChange(key)
+                    if (key) {
+                      locationHandlers.handleCityChange(key)
+                    }
+                  }}
+                  isInvalid={!!errors.city}
+                  errorMessage={errors.city?.message}
+                  inputProps={{
+                    id: 'city-select',
+                    name: 'city',
+                    'aria-label': 'Seleccionar ciudad',
+                    autoComplete: 'address-level2'
+                  }}>
+                  {city => (
+                    <AutocompleteItem key={city.name} textValue={city.name} className={city.priority && 'bg-blue-500/10'}>
+                      <span className={city.priority ? 'font-semibold' : ''}>{city.name}</span>
+                    </AutocompleteItem>
+                  )}
+                </Autocomplete>
               )}
-            </Autocomplete>
+            />
           )}
         </div>
 
@@ -649,25 +686,31 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
               </span>
             </div>
 
-            <Autocomplete
-              variant="underlined"
-              label="Localidad (opcional)"
-              placeholder="Buscar localidad..."
-              defaultItems={formattedLocalities}
-              selectedKey={locality || ''}
-              onSelectionChange={key => updateFormData('locality', key || '')}
-              inputProps={{
-                id: 'locality-select',
-                name: 'locality',
-                'aria-label': 'Seleccionar localidad (opcional)',
-                autoComplete: 'address-level3'
-              }}>
-              {locality => (
-                <AutocompleteItem key={locality.name} textValue={locality.name}>
-                  {locality.name}
-                </AutocompleteItem>
+            <Controller
+              name="locality"
+              control={control}
+              render={({ field }) => (
+                <Autocomplete
+                  variant="underlined"
+                  label="Localidad (opcional)"
+                  placeholder="Buscar localidad..."
+                  defaultItems={formattedLocalities}
+                  selectedKey={field.value || ''}
+                  onSelectionChange={key => field.onChange(key || '')}
+                  inputProps={{
+                    id: 'locality-select',
+                    name: 'locality',
+                    'aria-label': 'Seleccionar localidad (opcional)',
+                    autoComplete: 'address-level3'
+                  }}>
+                  {locality => (
+                    <AutocompleteItem key={locality.name} textValue={locality.name}>
+                      {locality.name}
+                    </AutocompleteItem>
+                  )}
+                </Autocomplete>
               )}
-            </Autocomplete>
+            />
           </div>
         )}
       </section>
@@ -675,4 +718,4 @@ const StepBasicInfo = ({ user, formData, errors, updateFormData, updateErrors, u
   )
 }
 
-export default StepBasicInfo
+export default memo(StepBasicInfo)

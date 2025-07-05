@@ -1,66 +1,137 @@
+import { useCallback, useMemo, memo } from 'react'
 import { Switch, Avatar, Card, CardBody, Chip, Divider } from '@heroui/react'
-import { useCategoryInterests } from '@hooks/useCategoryInterests'
+import { Controller } from 'react-hook-form'
 
-const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) => {
-  const { categoryOptions } = useCategoryInterests()
+const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, categoryOptions }) => {
+  // ========================================
+  // Datos del formulario
+  // ========================================
+  const formValues = watch()
+  const {
+    showAge,
+    showLocation,
+    categoryInterest,
+    agePreferenceMin,
+    agePreferenceMax,
+    locationPreferenceRadius,
+    church,
+    spiritualMoments,
+    images,
+    selectedProfileImageIndex,
+    birthDate,
+    name,
+    lastName,
+    city,
+    country,
+    description,
+    profession,
+    height,
+    tags
+  } = formValues
 
-  // Manejador de cambio con limpieza de errores
-  const handleInputChange = (field, value) => {
-    updateFormData(field, value)
+  // ========================================
+  // Manejadores de formulario optimizados
+  // ========================================
+  const formHandlers = useMemo(
+    () => ({
+      handleInputChange: (field, value) => {
+        setValue(field, value, { shouldValidate: true })
+        if (errors[field]) {
+          clearErrors(field)
+        }
+      }
+    }),
+    [setValue, clearErrors, errors]
+  )
 
-    // Limpiar error del campo si existe
-    if (errors[field]) {
-      updateErrors({ ...errors, [field]: null })
-    }
-  }
+  // ========================================
+  // Funciones de utilidad memoizadas
+  // ========================================
+  const imageUtils = useMemo(
+    () => ({
+      // Función para obtener la URL de una imagen (maneja Files y URLs)
+      getImageUrl: image => {
+        if (!image) return null
 
-  // Función para obtener la URL de una imagen (maneja Files y URLs)
-  const getImageUrl = image => {
-    if (!image) return null
+        // String directo (URL)
+        if (typeof image === 'string') return image
 
-    // String directo (URL)
-    if (typeof image === 'string') return image
+        // File o Blob - crear URL temporal
+        if (image instanceof File || image instanceof Blob) {
+          return URL.createObjectURL(image)
+        }
 
-    // File o Blob - crear URL temporal
-    if (image instanceof File || image instanceof Blob) {
-      return URL.createObjectURL(image)
-    }
+        // Objeto con url
+        if (image?.url) return image.url
 
-    // Objeto con url
-    if (image?.url) return image.url
+        return null
+      }
+    }),
+    []
+  )
 
-    return null
-  }
+  // ========================================
+  // Renderizador de Switch optimizado
+  // ========================================
+  const renderSwitch = useCallback(
+    (fieldName, config = {}) => {
+      const { icon, label, description, defaultValue = true } = config
+
+      return (
+        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-gray-400">{icon}</span>
+            <div>
+              <span className="text-gray-200 font-medium">{label}</span>
+              <p className="text-xs text-gray-400">{description}</p>
+            </div>
+          </div>
+          <Controller
+            name={fieldName}
+            control={control}
+            render={({ field }) => (
+              <Switch
+                isSelected={field.value ?? defaultValue}
+                onValueChange={value => formHandlers.handleInputChange(fieldName, value)}
+                color="primary"
+              />
+            )}
+          />
+        </div>
+      )
+    },
+    [control, formHandlers]
+  )
 
   // Función para obtener la imagen principal del perfil
-  const getCurrentProfileImageUrl = () => {
-    if (formData.images && formData.images.length > 0) {
+  const getCurrentProfileImageUrl = useCallback(() => {
+    if (images && images.length > 0) {
       // Si hay un índice seleccionado específicamente
-      if (formData.selectedProfileImageIndex !== undefined && formData.images[formData.selectedProfileImageIndex]) {
-        return getImageUrl(formData.images[formData.selectedProfileImageIndex])
+      if (selectedProfileImageIndex !== undefined && images[selectedProfileImageIndex]) {
+        return imageUtils.getImageUrl(images[selectedProfileImageIndex])
       }
       // Si no, usar la primera imagen
-      return getImageUrl(formData.images[0])
+      return imageUtils.getImageUrl(images[0])
     }
     return null
-  }
+  }, [images, selectedProfileImageIndex, imageUtils])
 
   // Función para obtener todas las imágenes con sus URLs procesadas
-  const getAllImages = () => {
-    if (!formData.images || formData.images.length === 0) return []
+  const getAllImages = useCallback(() => {
+    if (!images || images.length === 0) return []
 
-    return formData.images
+    return images
       .map((image, index) => ({
-        url: getImageUrl(image),
+        url: imageUtils.getImageUrl(image),
         index: index,
-        isMain: index === (formData.selectedProfileImageIndex || 0),
-        original: image // Guardamos la referencia original por si la necesitamos
+        isMain: index === (selectedProfileImageIndex || 0),
+        original: image
       }))
-      .filter(img => img.url) // Solo incluir imágenes que tienen URL válida
-  }
+      .filter(img => img.url)
+  }, [images, selectedProfileImageIndex, imageUtils])
 
   // Función para calcular la edad
-  const calculateAge = birthDate => {
+  const calculateAge = useCallback(birthDate => {
     if (!birthDate) return null
     const today = new Date()
     const birth = new Date(birthDate)
@@ -70,39 +141,49 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
       age--
     }
     return age
-  }
+  }, [])
 
   // Función para obtener la categoría seleccionada
-  const getSelectedCategory = () => {
-    if (!formData.categoryInterest || !categoryOptions || categoryOptions.length === 0) {
+  const getSelectedCategory = useCallback(() => {
+    if (!categoryInterest || !categoryOptions || categoryOptions.length === 0) {
       return null
     }
-    return categoryOptions.find(item => item.key === formData.categoryInterest)
-  }
+    return categoryOptions.find(item => item.key === categoryInterest)
+  }, [categoryInterest, categoryOptions])
 
-  // Función para obtener el nombre de la categoría (fallback)
-  const getCategoryName = categoryKey => {
-    const categories = {
-      ESSENCE: 'Essence',
-      ROUSE: 'Rouse',
-      SPIRIT: 'Spirit'
-    }
-    return categories[categoryKey] || categoryKey
-  }
+  // Funciones de categorías memoizadas
+  const categoryUtils = useMemo(
+    () => ({
+      // Función para obtener el nombre de la categoría (fallback)
+      getCategoryName: categoryKey => {
+        const categories = {
+          ESSENCE: 'Essence',
+          ROUSE: 'Rouse',
+          SPIRIT: 'Spirit'
+        }
+        return categories[categoryKey] || categoryKey
+      },
 
-  // Función para obtener el ícono de la categoría (fallback)
-  const getCategoryIcon = categoryKey => {
-    const icons = {
-      ESSENCE: '💝',
-      ROUSE: '🏳️‍🌈',
-      SPIRIT: '✝️'
-    }
-    return icons[categoryKey] || '💫'
-  }
+      // Función para obtener el ícono de la categoría (fallback)
+      getCategoryIcon: categoryKey => {
+        const icons = {
+          ESSENCE: '💝',
+          ROUSE: '🏳️‍🌈',
+          SPIRIT: '✝️'
+        }
+        return icons[categoryKey] || '💫'
+      }
+    }),
+    []
+  )
 
-  const userAge = calculateAge(formData.birthDate)
-  const allImages = getAllImages()
-  const selectedCategory = getSelectedCategory()
+  // ========================================
+  // Datos computados memoizados
+  // ========================================
+  const userAge = useMemo(() => calculateAge(birthDate), [calculateAge, birthDate])
+  const allImages = useMemo(() => getAllImages(), [getAllImages])
+  const selectedCategory = useMemo(() => getSelectedCategory(), [getSelectedCategory])
+  const profileImageUrl = useMemo(() => getCurrentProfileImageUrl(), [getCurrentProfileImageUrl])
 
   return (
     <div className="space-y-6">
@@ -119,14 +200,14 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
           <div className="flex items-start gap-4 mb-4">
             <div className="relative">
               <Avatar
-                src={getCurrentProfileImageUrl()}
+                src={profileImageUrl}
                 className="w-20 h-20 ring-2 ring-primary-500"
                 isBordered
                 fallback={<span className="material-symbols-outlined text-4xl text-gray-400">account_circle</span>}
               />
-              {formData.categoryInterest && selectedCategory && (
+              {categoryInterest && selectedCategory && (
                 <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center border-2 border-gray-600">
-                  <span className="text-lg">{selectedCategory.icon || getCategoryIcon(formData.categoryInterest)}</span>
+                  <span className="text-lg">{selectedCategory.icon || categoryUtils.getCategoryIcon(categoryInterest)}</span>
                 </div>
               )}
             </div>
@@ -134,16 +215,16 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h4 className="text-xl font-bold text-white truncate">
-                  {formData.name} {formData.lastName}
+                  {name} {lastName}
                 </h4>
-                {formData.showAge && userAge && <span className="text-gray-400">{userAge}</span>}
+                {showAge && userAge && <span className="text-gray-400">{userAge}</span>}
               </div>
 
-              {formData.showLocation && formData.city && (
+              {showLocation && city && (
                 <div className="flex items-center gap-1 text-gray-400 text-sm mb-2">
                   <span className="material-symbols-outlined text-sm">location_on</span>
                   <span>
-                    {formData.city}, {formData.country}
+                    {city}, {country}
                   </span>
                 </div>
               )}
@@ -153,17 +234,17 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
                   size="sm"
                   variant="flat"
                   color="primary"
-                  startContent={<span>{selectedCategory.icon || getCategoryIcon(formData.categoryInterest)}</span>}>
-                  {selectedCategory.label || getCategoryName(formData.categoryInterest)}
+                  startContent={<span>{selectedCategory.icon || categoryUtils.getCategoryIcon(categoryInterest)}</span>}>
+                  {selectedCategory.label || categoryUtils.getCategoryName(categoryInterest)}
                 </Chip>
               )}
             </div>
           </div>
 
           {/* Descripción */}
-          {formData.description && (
+          {description && (
             <div className="mb-4">
-              <p className="text-gray-300 text-sm leading-relaxed">{formData.description}</p>
+              <p className="text-gray-300 text-sm leading-relaxed">{description}</p>
             </div>
           )}
 
@@ -183,34 +264,34 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
 
           {/* Información básica */}
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-            {formData.profession && (
+            {profession && (
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-gray-400 text-sm">business_center</span>
-                <span className="text-gray-300">{formData.profession}</span>
+                <span className="text-gray-300">{profession}</span>
               </div>
             )}
 
-            {formData.height && (
+            {height && (
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-gray-400 text-sm">straighten</span>
-                <span className="text-gray-300">{formData.height} cm</span>
+                <span className="text-gray-300">{height} cm</span>
               </div>
             )}
           </div>
 
           {/* Tags de intereses */}
-          {formData.tags && formData.tags.length > 0 && (
+          {tags && tags.length > 0 && (
             <div className="mb-4">
               <p className="text-gray-400 text-xs mb-2">Intereses</p>
               <div className="flex flex-wrap gap-1">
-                {formData.tags.slice(0, 6).map((tag, index) => (
+                {tags.slice(0, 6).map((tag, index) => (
                   <Chip key={index} size="sm" variant="bordered" className="text-xs">
                     {tag}
                   </Chip>
                 ))}
-                {formData.tags.length > 6 && (
+                {tags.length > 6 && (
                   <Chip size="sm" variant="bordered" className="text-xs">
-                    +{formData.tags.length - 6} más
+                    +{tags.length - 6} más
                   </Chip>
                 )}
               </div>
@@ -218,16 +299,16 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
           )}
 
           {/* Información específica por categoría */}
-          {formData.categoryInterest === 'SPIRIT' && (formData.church || formData.spiritualMoments) && (
+          {categoryInterest === 'SPIRIT' && (church || spiritualMoments) && (
             <div className="border-t border-gray-700 pt-4">
               <p className="text-gray-400 text-xs mb-2">Información espiritual</p>
-              {formData.church && (
+              {church && (
                 <div className="flex items-center gap-2 mb-2 text-sm">
                   <span className="material-symbols-outlined text-gray-400 text-sm">account_balance</span>
-                  <span className="text-gray-300">{formData.church}</span>
+                  <span className="text-gray-300">{church}</span>
                 </div>
               )}
-              {formData.spiritualMoments && <p className="text-gray-300 text-xs">{formData.spiritualMoments.slice(0, 100)}...</p>}
+              {spiritualMoments && <p className="text-gray-300 text-xs">{spiritualMoments.slice(0, 100)}...</p>}
             </div>
           )}
 
@@ -238,12 +319,12 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-gray-400 text-xs">calendar_today</span>
                 <span className="text-gray-300">
-                  {formData.agePreferenceMin || 18} - {formData.agePreferenceMax || 50} años
+                  {agePreferenceMin || 18} - {agePreferenceMax || 50} años
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-gray-400 text-xs">location_on</span>
-                <span className="text-gray-300">{formData.locationPreferenceRadius || 50} km</span>
+                <span className="text-gray-300">{locationPreferenceRadius || 50} km</span>
               </div>
             </div>
           </div>
@@ -270,61 +351,29 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-gray-400">calendar_today</span>
-              <div>
-                <span className="text-gray-200 font-medium">Mostrar mi edad</span>
-                <p className="text-xs text-gray-400">Otros usuarios podrán ver tu edad</p>
-              </div>
-            </div>
-            <Switch isSelected={formData.showAge ?? true} onValueChange={value => handleInputChange('showAge', value)} color="primary" />
-          </div>
+          {renderSwitch('showAge', {
+            icon: 'calendar_today',
+            label: 'Mostrar mi edad',
+            description: 'Otros usuarios podrán ver tu edad'
+          })}
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-gray-400">location_on</span>
-              <div>
-                <span className="text-gray-200 font-medium">Mostrar mi ubicación</span>
-                <p className="text-xs text-gray-400">Otros usuarios podrán ver tu ciudad</p>
-              </div>
-            </div>
-            <Switch
-              isSelected={formData.showLocation ?? true}
-              onValueChange={value => handleInputChange('showLocation', value)}
-              color="primary"
-            />
-          </div>
+          {renderSwitch('showLocation', {
+            icon: 'location_on',
+            label: 'Mostrar mi ubicación',
+            description: 'Otros usuarios podrán ver tu ciudad'
+          })}
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-gray-400">search</span>
-              <div>
-                <span className="text-gray-200 font-medium">Aparecer en búsquedas</span>
-                <p className="text-xs text-gray-400">Tu perfil aparecerá en los resultados de búsqueda</p>
-              </div>
-            </div>
-            <Switch
-              isSelected={formData.showMeInSearch ?? true}
-              onValueChange={value => handleInputChange('showMeInSearch', value)}
-              color="primary"
-            />
-          </div>
+          {renderSwitch('showMeInSearch', {
+            icon: 'search',
+            label: 'Aparecer en búsquedas',
+            description: 'Tu perfil aparecerá en los resultados de búsqueda'
+          })}
 
-          <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800/50 border border-gray-700">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-gray-400">notifications</span>
-              <div>
-                <span className="text-gray-200 font-medium">Recibir notificaciones</span>
-                <p className="text-xs text-gray-400">Notificaciones de matches, mensajes y actividad</p>
-              </div>
-            </div>
-            <Switch
-              isSelected={formData.allowNotifications ?? true}
-              onValueChange={value => handleInputChange('allowNotifications', value)}
-              color="primary"
-            />
-          </div>
+          {renderSwitch('allowNotifications', {
+            icon: 'notifications',
+            label: 'Recibir notificaciones',
+            description: 'Notificaciones de matches, mensajes y actividad'
+          })}
         </div>
       </section>
 
@@ -344,4 +393,4 @@ const StepConfiguration = ({ formData, errors, updateFormData, updateErrors }) =
   )
 }
 
-export default StepConfiguration
+export default memo(StepConfiguration)

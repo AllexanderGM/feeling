@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, memo } from 'react'
 import {
   Textarea,
   Input,
@@ -19,8 +19,8 @@ import {
   Autocomplete,
   AutocompleteItem
 } from '@heroui/react'
+import { Controller } from 'react-hook-form'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
-import { API_URL } from '@config/config'
 
 const PROFILE_TIPS = [
   { label: 'Descripción auténtica', tip: 'Sé auténtico en tu descripción - muestra tu personalidad real' },
@@ -31,181 +31,124 @@ const PROFILE_TIPS = [
   { label: 'Evita negatividad', tip: 'Enfócate en lo que te gusta, no en lo que no quieres' }
 ]
 
-const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, userAttributes, userTags }) => {
+const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, userAttributes, userTags }) => {
   // ========================================
-  // Hooks y estado local
+  // Datos de atributos y tags
   // ========================================
   const {
-    maritalStatusOptions,
-    educationLevelOptions,
-    genderOptions,
-    eyeColorOptions,
-    hairColorOptions,
-    bodyTypeOptions,
+    maritalStatusOptions = [],
+    educationLevelOptions = [],
+    genderOptions = [],
+    eyeColorOptions = [],
+    hairColorOptions = [],
+    bodyTypeOptions = [],
+    getSelectOptions,
     isColor,
     createAttribute
   } = userAttributes
-  const { popularTags, searchTags, searchResults } = userTags
-  const {
-    height,
-    tags,
-    categoryInterest,
-    description,
-    genderId,
-    maritalStatusId,
-    educationLevelId,
-    profession,
-    bodyTypeId,
-    eyeColorId,
-    hairColorId
-  } = formData
 
-  // Estados locales para gestión de tags
-  const [categorySuggestions, setCategorySuggestions] = useState([])
+  const { popularTags, searchTags, searchResults, searchLoading, clearSearchResults, hasPopularTags, hasSearchResults } = userTags
+
+  // ========================================
+  // Estados locales
+  // ========================================
   const [tagQuery, setTagQuery] = useState('')
   const [showingSuggestions, setShowingSuggestions] = useState(true)
-
-  // Estado para la estatura
-  const [heightInput, setHeightInput] = useState(height?.toString() || '')
-
-  // Estado para el modal de agregar atributo
+  const [heightInput, setHeightInput] = useState('')
   const [addAttributeModal, setAddAttributeModal] = useState({
     isOpen: false,
     type: null,
     isLoading: false,
     error: null,
-    data: {
-      name: '',
-      detail: '#000000'
-    }
+    data: { name: '', detail: '#000000' }
   })
 
   // ========================================
-  // Funciones auxiliares y memoizados
+  // Datos del formulario
   // ========================================
+  const formValues = watch()
+  const { tags, height } = formValues
 
-  // Obtener token de autenticación
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
-  }, [])
+  // Sincronizar height input
+  useEffect(() => {
+    setHeightInput(height?.toString() || '')
+  }, [height])
 
-  // Función helper para validar keys de Select
-  const getValidSelectedKeys = useCallback((value, collection) => {
-    if (!value) return []
-    const exists = collection.some(item => item.key === value)
-    return exists ? [value] : []
-  }, [])
+  // ========================================
+  // Tags y sugerencias optimizados
+  // ========================================
+  const tagData = useMemo(() => {
+    const currentTags = tags || []
 
-  // Tags sugeridos combinando backend y categoría específica
-  const suggestedTags = useMemo(() => {
-    // Priorizar sugerencias por categoría si están disponibles
-    const categoryTags = categorySuggestions.map(tag => tag.name || tag.tagName || tag)
+    // Solo usar tags populares del backend
+    const backendTags = hasPopularTags ? popularTags.slice(0, 15).map(tag => tag.name || tag.tagName || tag.label || tag) : []
 
-    // Tags hardcodeados como fallback
-    const fallbackTagsByCategory = {
-      romantic: ['Romance', 'Citas', 'Relación seria', 'Compromiso', 'Amor', 'Fidelidad', 'Matrimonio'],
-      friendship: ['Amistad', 'Compañerismo', 'Conversación', 'Actividades', 'Hobbies', 'Socializar'],
-      professional: ['Networking', 'Carrera', 'Negocios', 'Emprendimiento', 'Mentor', 'Colaboración'],
-      casual: ['Diversión', 'Sin compromiso', 'Flexibilidad', 'Aventura', 'Espontáneo']
-    }
+    // Filtrar duplicados
+    const filteredSuggestions = backendTags.filter(tag => !currentTags.includes(tag))
 
-    const fallbackTags = fallbackTagsByCategory[categoryInterest] || []
-
-    // Combinar con tags populares del backend
-    const backendTags = popularTags.slice(0, 10).map(tag => tag.name || tag.tagName || tag.label || tag)
-
-    // Priorizar: categoría del backend > fallback de categoría > populares
-    const allSuggestions = [...new Set([...categoryTags, ...fallbackTags, ...backendTags])]
-
-    // Filtrar tags ya seleccionados
-    return allSuggestions.filter(tag => !tags.includes(tag))
-  }, [categoryInterest, popularTags, tags, categorySuggestions])
-
-  // Opciones de tags para el autocomplete
-
-  const getSuggestedTagOptions = useCallback(() => {
-    return suggestedTags.slice(0, 15).map(tag => ({
+    // Opciones para autocomplete
+    const suggestedOptions = filteredSuggestions.slice(0, 15).map(tag => ({
       key: tag,
       name: tag,
       label: tag
     }))
-  }, [suggestedTags])
 
-  const getSearchResultTagOptions = useCallback(() => {
-    return (searchResults || []).map(tag => ({
-      key: tag.id || tag.name || tag.tagName || tag,
-      name: tag.name || tag.tagName || tag.label || tag,
-      label: tag.name || tag.tagName || tag.label || tag
-    }))
-  }, [searchResults])
+    let searchOptions = []
 
-  const tagOptions = useMemo(() => {
-    return showingSuggestions ? getSuggestedTagOptions() : getSearchResultTagOptions()
-  }, [showingSuggestions, getSuggestedTagOptions, getSearchResultTagOptions])
+    if (hasSearchResults) {
+      searchOptions = searchResults.map(tag => ({
+        key: tag.id || tag.name || tag.tagName || tag,
+        name: tag.name || tag.tagName || tag.label || tag,
+        label: tag.name || tag.tagName || tag.label || tag
+      }))
+    }
+
+    return {
+      suggested: filteredSuggestions,
+      options: showingSuggestions ? suggestedOptions : searchOptions,
+      currentTags
+    }
+  }, [tags, popularTags, searchResults, hasPopularTags, hasSearchResults, showingSuggestions])
 
   // ========================================
-  // Manejadores principales
+  // Manejadores de formulario
   // ========================================
-
-  // Manejador de cambio con limpieza de errores
-  const handleInputChange = useCallback(
-    (field, value) => {
-      updateFormData(field, value)
-
-      // Limpiar error del campo si existe
-      if (errors[field]) {
-        updateErrors({ ...errors, [field]: null })
+  const formHandlers = useMemo(
+    () => ({
+      handleInputChange: (field, value) => {
+        setValue(field, value, { shouldValidate: true })
+        if (errors[field]) {
+          clearErrors(field)
+        }
       }
-    },
-    [updateFormData, updateErrors, errors]
-  )
-
-  // Manejador específico para la estatura desde input
-  const handleHeightInputChange = useCallback(
-    value => {
-      setHeightInput(value)
-      const numValue = parseInt(value)
-      if (!isNaN(numValue) && numValue >= 140 && numValue <= 220) {
-        handleInputChange('height', numValue)
-      }
-    },
-    [handleInputChange]
-  )
-
-  // Manejador específico para la estatura desde slider
-  const handleHeightSliderChange = useCallback(
-    value => {
-      setHeightInput(value.toString())
-      handleInputChange('height', value)
-    },
-    [handleInputChange]
+    }),
+    [setValue, clearErrors, errors]
   )
 
   // ========================================
-  // Manejadores de tags
+  // Manejadores de tags optimizados - funciones independientes
   // ========================================
-
   const addTag = useCallback(
     tag => {
       const trimmedTag = tag.trim()
-      if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
-        updateFormData('tags', [...tags, trimmedTag])
+      const currentTags = tags || []
+      if (trimmedTag && !currentTags.includes(trimmedTag) && currentTags.length < 10) {
+        const newTags = [...currentTags, trimmedTag]
+        setValue('tags', newTags, { shouldValidate: true, shouldDirty: true })
       }
     },
-    [tags, updateFormData]
+    [tags, setValue]
   )
 
   const removeTag = useCallback(
     tagToRemove => {
-      updateFormData(
-        'tags',
-        tags.filter(tag => tag !== tagToRemove)
-      )
+      const currentTags = tags || []
+      const newTags = currentTags.filter(tag => tag !== tagToRemove)
+      setValue('tags', newTags, { shouldValidate: true, shouldDirty: true })
     },
-    [tags, updateFormData]
+    [tags, setValue]
   )
 
-  // Buscar tags cuando cambia el query
   const handleTagSearch = useCallback(
     async query => {
       setTagQuery(query)
@@ -214,250 +157,185 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
         await searchTags(query, 20)
       } else {
         setShowingSuggestions(true)
+        clearSearchResults()
       }
     },
-    [searchTags]
+    [searchTags, clearSearchResults]
   )
 
-  // Agregar tag desde autocomplete o sugerencia
   const handleAddTag = useCallback(
     tagValue => {
       const trimmedTag =
         typeof tagValue === 'string' ? tagValue.trim() : (tagValue?.name || tagValue?.tagName || tagValue?.label || '').trim()
 
-      if (trimmedTag && !tags.includes(trimmedTag) && tags.length < 10) {
+      if (trimmedTag) {
         addTag(trimmedTag)
-        setTagQuery('') // Limpiar input
-
-        // Limpiar error de tags si existe
+        setTagQuery('')
         if (errors.tags) {
-          updateErrors({ ...errors, tags: null })
+          clearErrors('tags')
         }
       }
     },
-    [tags, addTag, errors, updateErrors]
+    [addTag, errors.tags, clearErrors]
   )
 
-  // Remover tag
-  const handleRemoveTag = useCallback(
-    tagToRemove => {
-      removeTag(tagToRemove)
-    },
-    [removeTag]
-  )
+  // Handlers ya definidos arriba como funciones independientes
 
   // ========================================
   // Manejadores del modal de atributos
   // ========================================
-
-  const openAddAttributeModal = useCallback(type => {
-    setAddAttributeModal({
-      isOpen: true,
-      type,
-      isLoading: false,
-      error: null,
-      data: {
-        name: '',
-        detail: type === 'eye' || type === 'hair' ? '#000000' : ''
-      }
-    })
-  }, [])
-
-  const closeAddAttributeModal = useCallback(() => {
-    setAddAttributeModal({
-      isOpen: false,
-      type: null,
-      isLoading: false,
-      error: null,
-      data: {
-        name: '',
-        detail: '#000000'
-      }
-    })
-  }, [])
-
-  const handleAddAttributeInputChange = useCallback((field, value) => {
-    setAddAttributeModal(prev => ({
-      ...prev,
-      data: {
-        ...prev.data,
-        [field]: value
-      }
-    }))
-  }, [])
-
-  const handleSubmitNewAttribute = useCallback(async () => {
-    const { type, data } = addAttributeModal
-
-    // Limpiar errores previos
-    setAddAttributeModal(prev => ({ ...prev, error: null }))
-
-    // Validaciones básicas en el frontend
-    if (!data.name.trim()) {
-      setAddAttributeModal(prev => ({
-        ...prev,
-        error: 'El nombre es requerido'
-      }))
-      return
-    }
-
-    if (data.name.trim().length < 2) {
-      setAddAttributeModal(prev => ({
-        ...prev,
-        error: 'El nombre debe tener al menos 2 caracteres'
-      }))
-      return
-    }
-
-    if (!data.detail.trim()) {
-      setAddAttributeModal(prev => ({
-        ...prev,
-        error: 'El color es requerido'
-      }))
-      return
-    }
-
-    setAddAttributeModal(prev => ({ ...prev, isLoading: true }))
-
-    try {
-      // Determinar el tipo de atributo para el API
-      const attributeType = type === 'eye' ? 'EYE_COLOR' : 'HAIR_COLOR'
-
-      // Crear el atributo usando el hook
-      const newAttribute = await createAttribute(attributeType, {
-        name: data.name.trim(),
-        detail: data.detail.trim()
-      })
-
-      console.log('✅ Atributo creado exitosamente:', newAttribute)
-
-      // Seleccionar automáticamente el nuevo atributo temporal
-      const fieldName = type === 'eye' ? 'eyeColorId' : 'hairColorId'
-      handleInputChange(fieldName, newAttribute.id)
-
-      // Cerrar modal
-      closeAddAttributeModal()
-
-      // Mostrar mensaje de éxito
-      console.log('🎉 Atributo agregado temporalmente y seleccionado')
-    } catch (error) {
-      console.error('❌ Error creando atributo:', error)
-
-      // Mostrar error específico en el modal
-      setAddAttributeModal(prev => ({
-        ...prev,
-        error: error.message || 'Error inesperado al crear el atributo'
-      }))
-    } finally {
-      setAddAttributeModal(prev => ({ ...prev, isLoading: false }))
-    }
-  }, [addAttributeModal, createAttribute, handleInputChange, closeAddAttributeModal])
-
-  // ========================================
-  // Efectos
-  // ========================================
-
-  // Cargar sugerencias por categoría si hay token
-  useEffect(() => {
-    const fetchCategorySuggestions = async () => {
-      const token = getAuthToken()
-
-      if (!token || !categoryInterest) {
-        setCategorySuggestions([])
-        return
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/tags/popular/category/${categoryInterest}?limit=15`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+  const modalHandlers = useMemo(
+    () => ({
+      openModal: type => {
+        setAddAttributeModal({
+          isOpen: true,
+          type,
+          isLoading: false,
+          error: null,
+          data: { name: '', detail: type === 'eye' || type === 'hair' ? '#000000' : '' }
         })
+      },
 
-        if (response.ok) {
-          const data = await response.json()
-          setCategorySuggestions(data || [])
+      closeModal: () => {
+        setAddAttributeModal({
+          isOpen: false,
+          type: null,
+          isLoading: false,
+          error: null,
+          data: { name: '', detail: '#000000' }
+        })
+      },
+
+      updateModalData: (field, value) => {
+        setAddAttributeModal(prev => ({
+          ...prev,
+          data: { ...prev.data, [field]: value }
+        }))
+      },
+
+      submitAttribute: async () => {
+        const { type, data } = addAttributeModal
+
+        setAddAttributeModal(prev => ({ ...prev, error: null }))
+
+        // Validaciones
+        if (!data.name.trim()) {
+          setAddAttributeModal(prev => ({ ...prev, error: 'El nombre es requerido' }))
+          return
         }
-      } catch (error) {
-        console.error('Error fetching category suggestions:', error)
-        setCategorySuggestions([])
+        if (data.name.trim().length < 2) {
+          setAddAttributeModal(prev => ({ ...prev, error: 'El nombre debe tener al menos 2 caracteres' }))
+          return
+        }
+        if (!data.detail.trim()) {
+          setAddAttributeModal(prev => ({ ...prev, error: 'El color es requerido' }))
+          return
+        }
+
+        setAddAttributeModal(prev => ({ ...prev, isLoading: true }))
+
+        try {
+          const attributeType = type === 'eye' ? 'EYE_COLOR' : 'HAIR_COLOR'
+          const newAttribute = await createAttribute(attributeType, {
+            name: data.name.trim(),
+            detail: data.detail.trim()
+          })
+
+          const fieldName = type === 'eye' ? 'eyeColorId' : 'hairColorId'
+          formHandlers.handleInputChange(fieldName, newAttribute.id)
+          modalHandlers.closeModal()
+        } catch (error) {
+          setAddAttributeModal(prev => ({
+            ...prev,
+            error: error.message || 'Error inesperado al crear el atributo'
+          }))
+        } finally {
+          setAddAttributeModal(prev => ({ ...prev, isLoading: false }))
+        }
       }
-    }
-
-    fetchCategorySuggestions()
-  }, [categoryInterest, getAuthToken])
+    }),
+    [addAttributeModal, createAttribute, formHandlers]
+  )
 
   // ========================================
-  // Funciones de renderizado repetidas
+  // Selector de colores optimizado
   // ========================================
-
   const renderColorSelector = useCallback(
-    (options, selectedId, fieldName, type, label) => {
+    (options, fieldName, type, label) => {
+      const selectedId = watch(fieldName)
+
+      if (!options || options.length === 0) {
+        return (
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">{label}</label>
+            <p className="text-sm text-red-400">No hay opciones disponibles para {label}</p>
+          </div>
+        )
+      }
+
       return (
         <div className="space-y-2">
           <label className="text-sm text-gray-400">{label}</label>
           <div className="flex flex-wrap gap-2">
-            {options.map(option => (
-              <Badge
-                key={option.key}
-                content={<span className="text-white text-xs">✓</span>}
-                shape="circle"
-                isInvisible={selectedId !== parseInt(option.key)}>
-                <Tooltip
-                  content={
-                    <div className="flex items-center gap-2">
-                      <span>{option.label}</span>
-                      {option.isPending && (
-                        <Badge color="warning" variant="solid" size="sm">
-                          Pendiente
-                        </Badge>
-                      )}
-                    </div>
-                  }
-                  placement="bottom"
-                  className="capitalize"
-                  color="primary">
-                  <Button
-                    size="sm"
-                    onPress={() => handleInputChange(fieldName, parseInt(option.key))}
-                    aria-label={`Seleccionar ${label.toLowerCase()} ${option.label}`}
-                    radius={type === 'eye' ? 'full' : 'lg'}
-                    isIconOnly
-                    color="neutral"
-                    className={`
-                    relative group transition-all duration-200 border-2 shadow-md
-                    ${selectedId === parseInt(option.key) ? 'scale-110' : 'hover:scale-105'}
-                    ${selectedId === parseInt(option.key) ? 'border-gray-300' : 'border-gray-600 hover:border-gray-500'}
-                    ${option.isPending ? 'opacity-70' : ''}
-                  `}
-                    style={isColor(option.detail) ? { backgroundColor: option.detail } : { backgroundColor: '#374151' }}>
-                    {/* Si no es color, mostrar icono */}
-                    {!isColor(option.detail) && option.detail && (
-                      <span
-                        className="material-symbols-outlined text-white"
-                        style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
-                        {option.detail}
-                      </span>
-                    )}
-                    {option.isPending && <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />}
-                  </Button>
-                </Tooltip>
-              </Badge>
-            ))}
+            {options.map(option => {
+              const isSelected = selectedId === parseInt(option.key)
 
-            {/* Botón para agregar nuevo */}
+              return (
+                <Badge key={option.key} content={<span className="text-white text-xs">✓</span>} shape="circle" isInvisible={!isSelected}>
+                  <Tooltip
+                    content={
+                      <div className="flex items-center gap-2">
+                        <span>{option.label}</span>
+                        {option.isPending && (
+                          <Badge color="warning" variant="solid" size="sm">
+                            Pendiente
+                          </Badge>
+                        )}
+                      </div>
+                    }
+                    placement="bottom"
+                    className="capitalize"
+                    color="primary">
+                    <Button
+                      size="sm"
+                      onPress={() => formHandlers.handleInputChange(fieldName, parseInt(option.key))}
+                      aria-label={`Seleccionar ${label.toLowerCase()} ${option.label}`}
+                      radius={type === 'eye' ? 'full' : 'lg'}
+                      isIconOnly
+                      color="neutral"
+                      className={`
+                      relative group transition-all duration-200 border-2 shadow-md
+                      ${isSelected ? 'scale-110' : 'hover:scale-105'}
+                      ${isSelected ? 'border-gray-300' : 'border-gray-600 hover:border-gray-500'}
+                      ${option.isPending ? 'opacity-70' : ''}
+                    `}
+                      style={isColor(option.detail) ? { backgroundColor: option.detail } : { backgroundColor: '#374151' }}>
+                      {!isColor(option.detail) && option.detail && (
+                        <span
+                          className="material-symbols-outlined text-white"
+                          style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
+                          {option.detail}
+                        </span>
+                      )}
+                      {option.isPending && <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />}
+                    </Button>
+                  </Tooltip>
+                </Badge>
+              )
+            })}
+
+            {/* Botón agregar nuevo */}
             <Button
               size="sm"
               variant="bordered"
-              onPress={() => openAddAttributeModal(type)}
+              onPress={() => modalHandlers.openModal(type)}
               radius={type === 'eye' ? 'full' : 'lg'}
               color="primary"
               isIconOnly
               aria-label={`Agregar nuevo ${label.toLowerCase()}`}
               className="border-2 border-dashed border-gray-600 flex items-center justify-center
-                hover:border-primary-500 transition-all duration-200
-                hover:bg-primary-500/10 group">
+              hover:border-primary-500 transition-all duration-200
+              hover:bg-primary-500/10 group">
               <span className="text-gray-500 group-hover:text-primary-400 text-lg pb-1">+</span>
             </Button>
           </div>
@@ -465,13 +343,12 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
         </div>
       )
     },
-    [handleInputChange, openAddAttributeModal, isColor, errors]
+    [watch, formHandlers, modalHandlers, isColor, errors]
   )
 
   // ========================================
   // Render principal
   // ========================================
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -482,24 +359,28 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
 
       <section className="space-y-4">
         {/* Descripción personal */}
-        <Textarea
-          variant="bordered"
-          isRequired
-          label="Descripción personal"
-          placeholder="Cuéntanos sobre ti, tus intereses, lo que buscas y qué te hace único..."
-          value={description || ''}
-          onChange={e => handleInputChange('description', e.target.value)}
-          isInvalid={!!errors.description}
-          errorMessage={errors.description}
-          data-invalid={!!errors.description}
-          minRows={3}
-          maxRows={6}
-          maxLength={500}
-          description={`${(description || '').length}/500 caracteres`}
-          classNames={{
-            input: 'text-gray-200',
-            inputWrapper: 'bg-gray-800/30'
-          }}
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <Textarea
+              {...field}
+              variant="bordered"
+              isRequired
+              label="Descripción personal"
+              placeholder="Cuéntanos sobre ti, tus intereses, lo que buscas y qué te hace único..."
+              isInvalid={!!errors.description}
+              errorMessage={errors.description?.message}
+              minRows={3}
+              maxRows={6}
+              maxLength={500}
+              description={`${(field.value || '').length}/500 caracteres`}
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/30'
+              }}
+            />
+          )}
         />
 
         {/* Tips para el perfil */}
@@ -536,15 +417,16 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
             onInputChange={handleTagSearch}
             onSelectionChange={key => {
               if (key) {
-                const selectedTag = tagOptions.find(option => option.key === key)
+                const selectedTag = tagData.options.find(option => option.key === key)
                 if (selectedTag) {
                   handleAddTag(selectedTag.name)
                 }
               }
             }}
             isInvalid={!!errors.tags}
-            errorMessage={errors.tags}
+            errorMessage={errors.tags?.message}
             allowsCustomValue={true}
+            isLoading={searchLoading}
             onKeyDown={e => {
               if (e.key === 'Enter' && tagQuery.trim()) {
                 e.preventDefault()
@@ -557,7 +439,7 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
               listboxWrapper: 'max-h-72',
               popoverContent: 'w-full'
             }}>
-            {tagOptions.map(tag => (
+            {tagData.options.map(tag => (
               <AutocompleteItem key={tag.key} textValue={tag.name} className="text-gray-200 data-[hover=true]:bg-gray-700">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary-400 text-sm">tag</span>
@@ -568,10 +450,10 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
           </Autocomplete>
 
           {/* Tags seleccionados */}
-          {tags && tags.length > 0 && (
+          {tagData.currentTags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {tags.map((tag, index) => (
-                <Chip key={index} onClose={() => handleRemoveTag(tag)} variant="flat" color="primary" className="cursor-pointer">
+              {tagData.currentTags.map((tag, index) => (
+                <Chip key={`${tag}-${index}`} onClose={() => removeTag(tag)} variant="flat" color="primary" className="cursor-pointer">
                   {tag}
                 </Chip>
               ))}
@@ -579,18 +461,17 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
           )}
 
           {/* Tags sugeridos */}
-          {suggestedTags.length > 0 && tags.length < 10 && showingSuggestions && (
+          {tagData.suggested.length > 0 && tagData.currentTags.length < 10 && showingSuggestions && !searchLoading && (
             <div className="space-y-2 mt-4">
-              <p className="text-xs text-gray-400">Sugerencias {categoryInterest ? `para tu categoría` : 'populares'}:</p>
+              <p className="text-xs text-gray-400">Sugerencias populares:</p>
               <div className="flex flex-wrap gap-2">
-                {suggestedTags.slice(0, 7).map(tag => (
-                  <Chip
+                {tagData.suggested.slice(0, 7).map(tag => (
+                  <div
                     key={tag}
                     onClick={() => handleAddTag(tag)}
-                    variant="bordered"
-                    className="cursor-pointer hover:bg-primary-500/10 hover:border-primary-500/50 transition-colors">
+                    className="px-3 py-1 text-sm border border-gray-600 rounded-full cursor-pointer hover:bg-primary-500/10 hover:border-primary-500/50 transition-colors text-gray-300">
                     + {tag}
-                  </Chip>
+                  </div>
                 ))}
               </div>
             </div>
@@ -598,230 +479,285 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
 
           {/* Contador de tags */}
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">{tags.length}/10 intereses</span>
+            <span className="text-xs text-gray-500">{tagData.currentTags.length}/10 intereses</span>
           </div>
         </div>
 
         {/* Información básica */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Género */}
-          <Select
-            label="Seleccionar género"
-            placeholder="Selecciona tu género"
-            isRequired
-            selectedKeys={getValidSelectedKeys(genderId, genderOptions)}
-            onSelectionChange={keys => {
-              const selectedKey = Array.from(keys)[0]
-              handleInputChange('genderId', selectedKey)
-            }}
-            isInvalid={!!errors.genderId}
-            errorMessage={errors.genderId}
-            variant="underlined"
-            renderValue={items => {
-              return items.map(item => {
-                const option = genderOptions.find(opt => opt.key === item.key)
-                return (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                    <span>{option?.label}</span>
-                  </div>
-                )
-              })
-            }}>
-            {genderOptions.map(option => (
-              <SelectItem
-                key={option.key}
-                value={option.key}
-                textValue={option.label}
-                classNames={{
-                  base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+          <Controller
+            name="genderId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Seleccionar género"
+                placeholder="Selecciona tu género"
+                isRequired
+                selectedKeys={field.value ? [field.value.toString()] : []}
+                onSelectionChange={keys => {
+                  const selectedKey = Array.from(keys)[0]
+                  field.onChange(selectedKey ? parseInt(selectedKey) : null)
+                }}
+                isInvalid={!!errors.genderId}
+                errorMessage={errors.genderId?.message}
+                variant="underlined"
+                renderValue={items => {
+                  return items.map(item => {
+                    const option = genderOptions.find(opt => opt.key === item.key)
+                    return (
+                      <div key={item.key} className="flex items-center gap-2">
+                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                        <span>{option?.label}</span>
+                      </div>
+                    )
+                  })
                 }}>
-                <div className="flex items-center gap-3">
-                  <AttributeDetailRenderer detail={option.detail} size="md" />
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </Select>
+                {genderOptions.map(option => (
+                  <SelectItem
+                    key={option.key}
+                    value={option.key}
+                    textValue={option.label}
+                    classNames={{
+                      base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+                    }}>
+                    <div className="flex items-center gap-3">
+                      <AttributeDetailRenderer detail={option.detail} size="md" />
+                      <span>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+          />
 
           {/* Estado civil */}
-          <Select
-            variant="underlined"
-            label="Estado civil"
-            placeholder="Selecciona tu estado civil"
-            selectedKeys={getValidSelectedKeys(maritalStatusId, maritalStatusOptions)}
-            onSelectionChange={keys => handleInputChange('maritalStatusId', Array.from(keys)[0])}
-            isInvalid={!!errors.maritalStatusId}
-            errorMessage={errors.maritalStatusId}
-            data-invalid={!!errors.maritalStatusId}
-            startContent={<span className="material-symbols-outlined text-sm">person_heart</span>}
-            renderValue={items => {
-              return items.map(item => {
-                const option = maritalStatusOptions.find(opt => opt.key === item.key)
-                return (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                    <span>{option?.label}</span>
-                  </div>
-                )
-              })
-            }}>
-            {maritalStatusOptions.map(option => (
-              <SelectItem
-                key={option.key}
-                value={option.key}
-                textValue={option.label}
-                classNames={{
-                  base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+          <Controller
+            name="maritalStatusId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                variant="underlined"
+                label="Estado civil"
+                placeholder="Selecciona tu estado civil"
+                selectedKeys={field.value ? [field.value.toString()] : []}
+                onSelectionChange={keys => {
+                  const selectedKey = Array.from(keys)[0]
+                  field.onChange(selectedKey ? parseInt(selectedKey) : null)
+                }}
+                isInvalid={!!errors.maritalStatusId}
+                errorMessage={errors.maritalStatusId?.message}
+                startContent={<span className="material-symbols-outlined text-sm">person_heart</span>}
+                renderValue={items => {
+                  return items.map(item => {
+                    const option = maritalStatusOptions.find(opt => opt.key === item.key)
+                    return (
+                      <div key={item.key} className="flex items-center gap-2">
+                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                        <span>{option?.label}</span>
+                      </div>
+                    )
+                  })
                 }}>
-                <div className="flex items-center gap-3">
-                  <AttributeDetailRenderer detail={option.detail} size="sm" />
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </Select>
+                {maritalStatusOptions.map(option => (
+                  <SelectItem
+                    key={option.key}
+                    value={option.key}
+                    textValue={option.label}
+                    classNames={{
+                      base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+                    }}>
+                    <div className="flex items-center gap-3">
+                      <AttributeDetailRenderer detail={option.detail} size="sm" />
+                      <span>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Nivel de estudios */}
-          <Select
-            variant="underlined"
-            label="Nivel de estudios"
-            placeholder="Selecciona tu nivel educativo"
-            selectedKeys={getValidSelectedKeys(educationLevelId, educationLevelOptions)}
-            onSelectionChange={keys => handleInputChange('educationLevelId', Array.from(keys)[0])}
-            isInvalid={!!errors.educationLevelId}
-            errorMessage={errors.educationLevelId}
-            data-invalid={!!errors.educationLevelId}
-            startContent={<span className="material-symbols-outlined text-sm">school</span>}
-            renderValue={items => {
-              return items.map(item => {
-                const option = educationLevelOptions.find(opt => opt.key === item.key)
-                return (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                    <span>{option?.label}</span>
-                  </div>
-                )
-              })
-            }}>
-            {educationLevelOptions.map(option => (
-              <SelectItem
-                key={option.key}
-                value={option.key}
-                textValue={option.label}
-                classNames={{
-                  base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+          <Controller
+            name="educationLevelId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                variant="underlined"
+                label="Nivel de estudios"
+                placeholder="Selecciona tu nivel educativo"
+                selectedKeys={field.value ? [field.value.toString()] : []}
+                onSelectionChange={keys => {
+                  const selectedKey = Array.from(keys)[0]
+                  field.onChange(selectedKey ? parseInt(selectedKey) : null)
+                }}
+                isInvalid={!!errors.educationLevelId}
+                errorMessage={errors.educationLevelId?.message}
+                startContent={<span className="material-symbols-outlined text-sm">school</span>}
+                renderValue={items => {
+                  return items.map(item => {
+                    const option = educationLevelOptions.find(opt => opt.key === item.key)
+                    return (
+                      <div key={item.key} className="flex items-center gap-2">
+                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                        <span>{option?.label}</span>
+                      </div>
+                    )
+                  })
                 }}>
-                <div className="flex items-center gap-3">
-                  <AttributeDetailRenderer detail={option.detail} size="sm" />
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </Select>
+                {educationLevelOptions.map(option => (
+                  <SelectItem
+                    key={option.key}
+                    value={option.key}
+                    textValue={option.label}
+                    classNames={{
+                      base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+                    }}>
+                    <div className="flex items-center gap-3">
+                      <AttributeDetailRenderer detail={option.detail} size="sm" />
+                      <span>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+          />
 
           {/* Profesión */}
-          <Input
-            variant="underlined"
-            label="Profesión"
-            placeholder="Tu profesión u ocupación"
-            value={profession || ''}
-            onChange={e => handleInputChange('profession', e.target.value)}
-            isInvalid={!!errors.profession}
-            errorMessage={errors.profession}
-            data-invalid={!!errors.profession}
-            startContent={<span className="material-symbols-outlined text-sm">business_center</span>}
+          <Controller
+            name="profession"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                variant="underlined"
+                label="Profesión"
+                placeholder="Tu profesión u ocupación"
+                value={field.value || ''}
+                isInvalid={!!errors.profession}
+                errorMessage={errors.profession?.message}
+                startContent={<span className="material-symbols-outlined text-sm">business_center</span>}
+              />
+            )}
           />
         </div>
 
-        {/* Información física */}
         {/* Tipo de cuerpo */}
-        <Select
-          variant="underlined"
-          label="Seleccionar tipo de cuerpo"
-          placeholder="Selecciona tu tipo de cuerpo"
-          selectedKeys={getValidSelectedKeys(bodyTypeId?.toString(), bodyTypeOptions)}
-          onSelectionChange={keys => {
-            const selectedKey = Array.from(keys)[0]
-            if (selectedKey) {
-              handleInputChange('bodyTypeId', parseInt(selectedKey))
-            }
-          }}
-          isInvalid={!!errors.bodyTypeId}
-          errorMessage={errors.bodyTypeId}
-          startContent={<span className="material-symbols-outlined text-sm">accessibility</span>}
-          renderValue={items => {
-            return items.map(item => {
-              const option = bodyTypeOptions.find(opt => opt.key === item.key)
-              return (
-                <div key={item.key} className="flex items-center gap-2">
-                  <AttributeDetailRenderer detail={option?.detail} size="md" />
-                  <span>{option?.label}</span>
-                </div>
-              )
-            })
-          }}>
-          {bodyTypeOptions.map(option => (
-            <SelectItem
-              key={option.key}
-              value={option.key}
-              textValue={option.label}
-              classNames={{
-                base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+        <Controller
+          name="bodyTypeId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              variant="underlined"
+              label="Seleccionar tipo de cuerpo"
+              placeholder="Selecciona tu tipo de cuerpo"
+              selectedKeys={field.value ? [field.value.toString()] : []}
+              onSelectionChange={keys => {
+                const selectedKey = Array.from(keys)[0]
+                field.onChange(selectedKey ? parseInt(selectedKey) : null)
+              }}
+              isInvalid={!!errors.bodyTypeId}
+              errorMessage={errors.bodyTypeId?.message}
+              startContent={<span className="material-symbols-outlined text-sm">accessibility</span>}
+              renderValue={items => {
+                return items.map(item => {
+                  const option = bodyTypeOptions.find(opt => opt.key === item.key)
+                  return (
+                    <div key={item.key} className="flex items-center gap-2">
+                      <AttributeDetailRenderer detail={option?.detail} size="md" />
+                      <span>{option?.label}</span>
+                    </div>
+                  )
+                })
               }}>
-              <div className="flex items-center gap-3">
-                <AttributeDetailRenderer detail={option.detail} size="lg" />
-                <span>{option.label}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </Select>
+              {(getSelectOptions ? getSelectOptions('BODY_TYPE') : bodyTypeOptions).map(option => (
+                <SelectItem
+                  key={option.key}
+                  value={option.key}
+                  textValue={option.label}
+                  classNames={{
+                    base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+                  }}>
+                  <div className="flex items-center gap-3">
+                    <AttributeDetailRenderer detail={option.detail} size="lg" />
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </Select>
+          )}
+        />
 
-        {/* Estatura con input y slider */}
+        {/* Estatura */}
         <div className="space-y-4">
-          {/* Input de texto para la estatura */}
-          <Input
-            type="number"
-            placeholder="Ingresa tu estatura"
-            value={heightInput}
-            onChange={e => handleHeightInputChange(e.target.value)}
-            min={140}
-            max={220}
-            variant="underlined"
-            isInvalid={!!errors.height}
-            errorMessage={errors.height}
-            startContent={
-              <div className="flex text-gray-400">
-                <span className="material-symbols-outlined">straighten</span>
-                <span className="ml-2">Estatura: </span>
-              </div>
-            }
-            endContent={<span className="text-gray-500 text-sm">cm</span>}
+          <Controller
+            name="height"
+            control={control}
+            render={({ field }) => (
+              <Input
+                type="number"
+                placeholder="Ingresa tu estatura"
+                value={heightInput}
+                onChange={e => {
+                  const value = e.target.value
+                  setHeightInput(value)
+                  const numValue = parseInt(value)
+                  if (!isNaN(numValue) && numValue >= 140 && numValue <= 220) {
+                    field.onChange(numValue)
+                  }
+                }}
+                min={140}
+                max={220}
+                variant="underlined"
+                isInvalid={!!errors.height}
+                errorMessage={errors.height?.message}
+                startContent={
+                  <div className="flex text-gray-400">
+                    <span className="material-symbols-outlined">straighten</span>
+                    <span className="ml-2">Estatura: </span>
+                  </div>
+                }
+                endContent={<span className="text-gray-500 text-sm">cm</span>}
+              />
+            )}
           />
 
-          {/* Slider para la estatura */}
-          <Slider
-            color="primary"
-            minValue={140}
-            maxValue={220}
-            value={height || 170}
-            onChange={handleHeightSliderChange}
-            aria-label="Seleccionar estatura en centímetros"
-            showTooltip={true}
+          <Controller
+            name="height"
+            control={control}
+            render={({ field }) => (
+              <Slider
+                color="primary"
+                minValue={140}
+                maxValue={220}
+                value={field.value || 170}
+                onChange={value => {
+                  setHeightInput(value.toString())
+                  field.onChange(value)
+                }}
+                aria-label="Seleccionar estatura en centímetros"
+                showTooltip={true}
+              />
+            )}
           />
         </div>
 
-        {/* Colores de ojos y cabello */}
-        {renderColorSelector(eyeColorOptions, eyeColorId, 'eyeColorId', 'eye', 'Color de ojos')}
-        {renderColorSelector(hairColorOptions, hairColorId, 'hairColorId', 'hair', 'Color de cabello')}
+        {/* Colores */}
+        {renderColorSelector(getSelectOptions ? getSelectOptions('EYE_COLOR') : eyeColorOptions, 'eyeColorId', 'eye', 'Color de ojos')}
+        {renderColorSelector(
+          getSelectOptions ? getSelectOptions('HAIR_COLOR') : hairColorOptions,
+          'hairColorId',
+          'hair',
+          'Color de cabello'
+        )}
       </section>
 
       {/* Modal para agregar nuevo atributo */}
       <Modal
         isOpen={addAttributeModal.isOpen}
-        onClose={closeAddAttributeModal}
+        onClose={modalHandlers.closeModal}
         size="lg"
         placement="center"
         isDismissable={!addAttributeModal.isLoading}
@@ -853,7 +789,6 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
                   </div>
                 </div>
 
-                {/* Mostrar error si existe */}
                 {addAttributeModal.error && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
                     <div className="flex gap-2">
@@ -883,7 +818,7 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
                     label="Nombre"
                     placeholder={`Ej: ${addAttributeModal.type === 'eye' ? 'Verde esmeralda' : 'Castaño claro'}`}
                     value={addAttributeModal.data.name}
-                    onChange={e => handleAddAttributeInputChange('name', e.target.value)}
+                    onChange={e => modalHandlers.updateModalData('name', e.target.value)}
                     variant="bordered"
                     isDisabled={addAttributeModal.isLoading}
                     classNames={{
@@ -900,14 +835,14 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
                       <input
                         type="color"
                         value={addAttributeModal.data.detail}
-                        onChange={e => handleAddAttributeInputChange('detail', e.target.value)}
+                        onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
                         disabled={addAttributeModal.isLoading}
                         className="w-12 h-12 rounded-lg border-2 border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       />
                       <Input
                         placeholder="#000000"
                         value={addAttributeModal.data.detail}
-                        onChange={e => handleAddAttributeInputChange('detail', e.target.value)}
+                        onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
                         variant="bordered"
                         isDisabled={addAttributeModal.isLoading}
                         className="flex-1"
@@ -923,12 +858,12 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="light" onPress={closeAddAttributeModal} isDisabled={addAttributeModal.isLoading}>
+                <Button variant="light" onPress={modalHandlers.closeModal} isDisabled={addAttributeModal.isLoading}>
                   Cancelar
                 </Button>
                 <Button
                   color="primary"
-                  onPress={handleSubmitNewAttribute}
+                  onPress={modalHandlers.submitAttribute}
                   isDisabled={!addAttributeModal.data.name.trim() || !addAttributeModal.data.detail.trim()}
                   isLoading={addAttributeModal.isLoading}
                   className="bg-gradient-to-r from-primary-600 to-primary-700">
@@ -943,4 +878,4 @@ const StepCharacteristics = ({ formData, errors, updateFormData, updateErrors, u
   )
 }
 
-export default StepCharacteristics
+export default memo(StepCharacteristics)

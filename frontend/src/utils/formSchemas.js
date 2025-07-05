@@ -37,8 +37,18 @@ export const baseValidations = {
     .required('El teléfono es requerido'),
 
   birthDate: yup
-    .date()
-    .max(new Date(), 'La fecha no puede ser futura')
+    .string()
+    .required('La fecha de nacimiento es requerida')
+    .test('valid-date', 'Ingresa una fecha válida', function (value) {
+      if (!value) return false
+      const date = new Date(value)
+      return !isNaN(date.getTime())
+    })
+    .test('not-future', 'La fecha no puede ser futura', function (value) {
+      if (!value) return false
+      const date = new Date(value)
+      return date <= new Date()
+    })
     .test('age', 'Debes ser mayor de 18 años', function (value) {
       if (!value) return false
       const today = new Date()
@@ -50,8 +60,7 @@ export const baseValidations = {
         return age - 1 >= 18
       }
       return age >= 18
-    })
-    .required('La fecha de nacimiento es requerida'),
+    }),
 
   country: yup.string().required('Selecciona un país'),
 
@@ -145,14 +154,24 @@ export const registerSchema = yup.object().shape({
 })
 
 // Esquemas para CompleteProfile por pasos
-export const step1Schema = yup.object().shape({
+export const stepBasicInfoSchema = yup.object().shape({
   name: baseValidations.name,
   lastName: baseValidations.lastName,
   document: baseValidations.document,
   phone: baseValidations.phone,
+  phoneCode: yup.string().required('Selecciona el código de país'),
   birthDate: baseValidations.birthDate,
   country: baseValidations.country,
-  city: baseValidations.city
+  city: baseValidations.city,
+  images: yup
+    .array()
+    .test('images-required', 'Debes subir al menos una foto de perfil', function (value) {
+      if (!value || value.length === 0) return false
+      // Verificar que al menos hay una imagen válida (no null/undefined)
+      const validImages = value.filter(img => img != null && img !== '')
+      return validImages.length >= 1
+    })
+    .required('Las imágenes son requeridas')
 })
 
 export const step2Schema = yup.object().shape({
@@ -236,7 +255,44 @@ export const combineSchemas = (...schemas) => {
 // ========================================
 
 // Para registro completo (registro + primer paso del perfil)
-export const fullRegistrationSchema = combineSchemas(registerSchema, step1Schema)
+export const fullRegistrationSchema = combineSchemas(registerSchema, stepBasicInfoSchema)
+
+// Esquema completo para todo el flujo de CompleteProfile
+export const completeProfileSchema = yup.object().shape({
+  // Step 1 - Información básica
+  ...stepBasicInfoSchema.fields,
+
+  // Step 2 - Características
+  ...step2Schema.fields,
+
+  // Step 3 - Preferencias
+  ...step3Schema.fields,
+
+  // Step 4 - Configuración (sin validaciones obligatorias por ahora)
+  showAge: yup.boolean(),
+  showLocation: yup.boolean(),
+  allowNotifications: yup.boolean(),
+  showMeInSearch: yup.boolean()
+})
+
+// Función para obtener los campos a validar según el paso
+export const getFieldsForStep = step => {
+  const stepFields = {
+    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'birthDate', 'country', 'city', 'images'],
+    2: ['description', 'genderId', 'height', 'tags'],
+    3: [
+      'categoryInterest',
+      'agePreferenceMin',
+      'agePreferenceMax',
+      'locationPreferenceRadius',
+      'religionId',
+      'sexualRoleId',
+      'relationshipTypeId'
+    ],
+    4: [] // No hay validaciones obligatorias en el paso 4
+  }
+  return stepFields[step] || []
+}
 
 // Para edición de perfil básico
 export const basicProfileEditSchema = createCustomSchema({

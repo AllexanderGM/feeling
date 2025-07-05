@@ -240,7 +240,19 @@ export const validateForm = (data, validators) => {
 // ========================================
 
 export const validators = {
-  // Step 1 - Información básica
+  // StepBasicInfo - Información básica
+  stepBasicInfo: {
+    images: validateProfileImage,
+    name: validateName,
+    lastName: validateLastName,
+    document: validateDocument,
+    phoneCode: validatePhoneCode,
+    phone: validatePhone,
+    birthDate: validateBirthDate,
+    country: value => (!value ? 'Selecciona un país' : null),
+    city: value => (!value?.trim() ? 'Selecciona una ciudad' : null)
+  },
+  // Para mantener compatibilidad con el número de paso
   step1: {
     images: validateProfileImage,
     name: validateName,

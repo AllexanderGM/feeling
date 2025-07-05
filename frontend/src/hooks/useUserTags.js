@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { API_URL } from '@config/config'
+import userTagsService from '@services/userTagsService'
+import useAsyncOperation from '@hooks/useAsyncOperation'
 
 /**
  * Hook para manejar tags/intereses de usuario
@@ -8,71 +9,34 @@ import { API_URL } from '@config/config'
 const useUserTags = () => {
   const [popularTags, setPopularTags] = useState([])
   const [searchResults, setSearchResults] = useState([])
-  const [loading, setLoading] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Obtener token de autenticación
-  const getAuthToken = useCallback(() => {
-    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
-  }, [])
+  // Hook centralizado para operaciones asíncronas - con configuración estable
+  const asyncOptions = useMemo(
+    () => ({
+      showNotifications: false,
+      autoHandleAuth: true
+    }),
+    []
+  )
 
-  // Cargar tags populares al montar el componente
-  useEffect(() => {
-    loadPopularTags()
-  }, [])
+  const { loading, executeOperation, withLoading } = useAsyncOperation(asyncOptions)
+
+  // ========================================
+  // FUNCIONES PRINCIPALES
+  // ========================================
 
   // Función para cargar tags populares
   const loadPopularTags = useCallback(
     async (limit = 20) => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const token = getAuthToken()
-        const headers = {
-          'Content-Type': 'application/json'
-        }
-
-        if (token) {
-          headers.Authorization = `Bearer ${token}`
-        }
-
-        const response = await fetch(`${API_URL}/tags/popular?limit=${limit}`, {
-          headers
-        })
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        setPopularTags(data || [])
-      } catch (err) {
-        console.error('Error cargando tags populares:', err)
-        setError(err.message || 'Error al cargar tags populares')
-
-        // Fallback a tags hardcodeados
-        setPopularTags([
-          { name: 'Música', tagName: 'Música' },
-          { name: 'Deportes', tagName: 'Deportes' },
-          { name: 'Lectura', tagName: 'Lectura' },
-          { name: 'Cine', tagName: 'Cine' },
-          { name: 'Viajes', tagName: 'Viajes' },
-          { name: 'Cocina', tagName: 'Cocina' },
-          { name: 'Arte', tagName: 'Arte' },
-          { name: 'Tecnología', tagName: 'Tecnología' },
-          { name: 'Naturaleza', tagName: 'Naturaleza' },
-          { name: 'Fotografía', tagName: 'Fotografía' }
-        ])
-      } finally {
-        setLoading(false)
-      }
+      const result = await withLoading(() => userTagsService.getPopularTags(limit), 'cargar tags populares')
+      setPopularTags(result.success ? result.data : [])
     },
-    [getAuthToken]
+    [withLoading]
   )
 
-  // Función para buscar tags
+  // Función para buscar tags - simplificada para evitar recreaciones
   const searchTags = useCallback(
     async (query, limit = 15) => {
       if (!query || query.trim().length < 2) {
@@ -82,75 +46,84 @@ const useUserTags = () => {
 
       try {
         setSearchLoading(true)
-        setError(null)
-
-        const token = getAuthToken()
-        const headers = {
-          'Content-Type': 'application/json'
-        }
-
-        if (token) {
-          headers.Authorization = `Bearer ${token}`
-        }
-
-        const response = await fetch(`${API_URL}/tags/search?q=${encodeURIComponent(query.trim())}&limit=${limit}`, { headers })
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const data = await response.json()
-        const results = data || []
-
-        setSearchResults(results)
-        return results
-      } catch (err) {
-        console.error('Error buscando tags:', err)
-        setError(err.message || 'Error al buscar tags')
-
-        // Fallback a filtro local de tags populares
-        const localResults = popularTags.filter(tag => (tag.name || tag.tagName || '').toLowerCase().includes(query.toLowerCase()))
-
-        setSearchResults(localResults)
-        return localResults
+        const results = await userTagsService.searchTags(query.trim(), limit)
+        setSearchResults(results || [])
+        return results || []
+      } catch (error) {
+        console.error('Error buscando tags:', error)
+        setSearchResults([])
+        return []
       } finally {
         setSearchLoading(false)
       }
     },
-    [getAuthToken, popularTags]
+    [] // Sin dependencias para evitar recreaciones
   )
 
   // Función para obtener tags por categoría
   const getTagsByCategory = useCallback(
     async (categoryInterest, limit = 15) => {
-      try {
-        const token = getAuthToken()
+      if (!categoryInterest) return []
 
-        if (!token || !categoryInterest) {
-          return []
-        }
+      const result = await withLoading(
+        () => userTagsService.getPopularTagsByCategory(categoryInterest, limit),
+        `obtener tags para categoría ${categoryInterest}`
+      )
 
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        }
-
-        const response = await fetch(`${API_URL}/tags/popular/category/${categoryInterest}?limit=${limit}`, { headers })
-
-        if (!response.ok) {
-          console.warn(`No se pudieron cargar tags para categoría ${categoryInterest}`)
-          return []
-        }
-
-        const data = await response.json()
-        return data || []
-      } catch (err) {
-        console.error(`Error obteniendo tags para categoría ${categoryInterest}:`, err)
-        return []
-      }
+      return result.success ? result.data || [] : []
     },
-    [getAuthToken]
+    [withLoading]
   )
+
+  // Función para crear un nuevo tag
+  const createTag = useCallback(
+    tagName => {
+      const trimmedName = tagName?.trim()
+      if (!trimmedName) return Promise.reject(new Error('El nombre del tag es requerido'))
+      return executeOperation(() => userTagsService.addTagToMyProfile(trimmedName), 'crear tag')
+    },
+    [executeOperation]
+  )
+
+  // Función para obtener mis tags
+  const getMyTags = useCallback(async () => {
+    const result = await withLoading(() => userTagsService.getMyTags(), 'obtener mis tags')
+    return result.success ? result.data || [] : []
+  }, [withLoading])
+
+  // Función para actualizar mis tags
+  const updateMyTags = useCallback(
+    tags => executeOperation(() => userTagsService.updateMyTags(tags), 'actualizar mis tags'),
+    [executeOperation]
+  )
+
+  // Función para remover un tag
+  const removeTag = useCallback(
+    tagName => executeOperation(() => userTagsService.removeTagFromMyProfile(tagName), 'remover tag'),
+    [executeOperation]
+  )
+
+  // Función para obtener sugerencias de tags
+  const getTagSuggestions = useCallback(
+    async (limit = 10) => {
+      const result = await withLoading(() => userTagsService.getTagSuggestions(limit), 'obtener sugerencias de tags')
+      return result.success ? result.data || [] : []
+    },
+    [withLoading]
+  )
+
+  // Función para obtener tags en tendencia
+  const getTrendingTags = useCallback(
+    async (limit = 15) => {
+      const result = await withLoading(() => userTagsService.getTrendingTags(limit), 'obtener tags en tendencia')
+      return result.success ? result.data || [] : []
+    },
+    [withLoading]
+  )
+
+  // ========================================
+  // DATOS FORMATEADOS
+  // ========================================
 
   // Tags formateados para uso en componentes
   const formattedPopularTags = useMemo(() => {
@@ -173,40 +146,28 @@ const useUserTags = () => {
     }))
   }, [searchResults])
 
-  // Función para crear un nuevo tag
-  const createTag = useCallback(
-    async tagName => {
+  // ========================================
+  // CARGA INICIAL DE TAGS POPULARES
+  // ========================================
+  useEffect(() => {
+    const loadInitialTags = async () => {
       try {
-        const token = getAuthToken()
-
-        if (!token) {
-          throw new Error('Token de autenticación requerido')
-        }
-
-        const response = await fetch(`${API_URL}/tags`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ name: tagName.trim() })
-        })
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`)
-        }
-
-        const newTag = await response.json()
-        console.log('✅ Tag creado:', newTag)
-
-        return newTag
+        setError(null)
+        const data = await userTagsService.getPopularTags(20)
+        setPopularTags(data || [])
       } catch (err) {
-        console.error('Error creando tag:', err)
-        throw err
+        console.error('Error loading popular tags:', err)
+        setError(err)
+        setPopularTags([])
       }
-    },
-    [getAuthToken]
-  )
+    }
+
+    loadInitialTags()
+  }, []) // Solo ejecutar una vez al montar
+
+  // ========================================
+  // UTILIDADES
+  // ========================================
 
   // Limpiar resultados de búsqueda
   const clearSearchResults = useCallback(() => {
@@ -221,14 +182,21 @@ const useUserTags = () => {
     searchLoading,
     error,
 
-    // Funciones
+    // Funciones principales
     searchTags,
     loadPopularTags,
     getTagsByCategory,
     createTag,
-    clearSearchResults,
+    getMyTags,
+    updateMyTags,
+    removeTag,
+    getTagSuggestions,
+    getTrendingTags,
 
     // Utilidades
+    clearSearchResults,
+
+    // Getters de conveniencia
     hasPopularTags: formattedPopularTags.length > 0,
     hasSearchResults: formattedSearchResults.length > 0,
     totalPopularTags: formattedPopularTags.length,

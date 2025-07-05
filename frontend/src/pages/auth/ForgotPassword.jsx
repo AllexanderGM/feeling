@@ -1,15 +1,15 @@
 import { useState } from 'react'
+import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Form, Input, Button, Link } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
-import logo from '@assets/logo/logo-grey-dark.svg'
 import { forgotPasswordSchema } from '@utils/formSchemas'
+import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
 
 const ForgotPassword = () => {
   const { forgotPassword, loading } = useAuth()
-  const [status, setStatus] = useState('idle') // idle, success
+  const [status, setStatus] = useState('idle')
 
   const {
     control,
@@ -29,25 +29,32 @@ const ForgotPassword = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center gap-8 min-h-screen p-6">
-      <figure className="text-center">
-        <img src={logo} alt="Logo Feeling" className="w-40" />
+    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+      <figure className="text-center pb-8">
+        <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
 
-      <div className="p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-xl font-medium text-white mb-4">Recuperar contraseña</h2>
+      <div className="flex flex-col w-full space-y-6 max-w-md">
+        <h2 className="text-xl font-medium text-white mb-6">Recuperar contraseña</h2>
 
         {status === 'success' ? (
           <div className="text-center">
-            <div className="text-green-500 text-5xl mb-4">
-              <span className="material-symbols-outlined text-6xl">check_circle</span>
+            <div className="text-green-400 text-6xl mb-6">
+              <span className="material-symbols-outlined text-8xl drop-shadow-lg">check_circle</span>
             </div>
-            <p className="text-gray-300 mb-6">Te hemos enviado un correo con instrucciones para restablecer tu contraseña.</p>
-            <Link
+            <h3 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Correo enviado!</h3>
+            <p className="text-gray-300 mb-6 leading-relaxed">
+              Te hemos enviado un correo con instrucciones para restablecer tu contraseña.
+            </p>
+            <Button
+              as={Link}
               href={APP_PATHS.AUTH.LOGIN}
-              className="inline-block bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded-full transition-colors">
+              variant="bordered"
+              color="default"
+              radius="full"
+              className="w-full mt-4 transition-colors">
               Volver al inicio de sesión
-            </Link>
+            </Button>
           </div>
         ) : (
           <>
@@ -55,7 +62,7 @@ const ForgotPassword = () => {
               Ingresa tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.
             </p>
 
-            <Form onSubmit={handleSubmit(onSubmit)} validationBehavior="aria">
+            <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit(onSubmit)}>
               <Controller
                 name="email"
                 control={control}
@@ -71,25 +78,27 @@ const ForgotPassword = () => {
                     isInvalid={!!errors.email}
                     errorMessage={errors.email?.message}
                     isDisabled={loading}
-                    className="mb-6"
                   />
                 )}
               />
 
-              <Button
-                type="submit"
-                radius="full"
-                color="default"
-                className="w-full py-3 mt-4"
-                isLoading={loading}
-                isDisabled={loading || !isValid}>
-                {loading ? 'Enviando...' : 'Enviar instrucciones'}
-              </Button>
+              <div className="pt-6 space-y-6 w-full">
+                <Button
+                  type="submit"
+                  radius="full"
+                  color="default"
+                  className="w-full py-3 transition-colors"
+                  isLoading={loading}
+                  isDisabled={loading || !isValid}>
+                  {loading ? 'Enviando...' : 'Enviar instrucciones'}
+                </Button>
 
-              <div className="mt-6 text-center">
-                <Link href={APP_PATHS.AUTH.LOGIN} className="text-gray-400 hover:text-gray-300 text-sm">
-                  Volver al inicio de sesión
-                </Link>
+                <div className="w-full text-center text-xs text-gray-500 mt-6">
+                  ¿Recordaste tu contraseña?
+                  <Link href={APP_PATHS.AUTH.LOGIN} className="text-gray-300 hover:text-white transition-colors underline ml-2">
+                    Inicia sesión aquí
+                  </Link>
+                </div>
               </div>
             </Form>
           </>

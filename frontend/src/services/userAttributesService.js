@@ -1,9 +1,18 @@
 import { ServiceREST } from '@services/serviceREST.js'
+import { ErrorManager } from '@utils/errorManager.js'
 
 /**
  * Servicio para manejo de atributos de usuario
  */
 class UserAttributesService extends ServiceREST {
+  constructor() {
+    super()
+  }
+
+  // ========================================
+  // OPERACIONES PRINCIPALES DE ATRIBUTOS
+  // ========================================
+
   /**
    * Obtiene todos los atributos de usuario agrupados por tipo
    * @returns {Promise<Object>} Atributos agrupados por tipo
@@ -13,11 +22,7 @@ class UserAttributesService extends ServiceREST {
       const result = await ServiceREST.get('/user-attributes')
       return ServiceREST.handleServiceResponse(result, 'obtener atributos de usuario')
     } catch (error) {
-      console.error('❌ Error obteniendo atributos de usuario:', {
-        type: error.errorType,
-        message: error.message,
-        operation: error.operation
-      })
+      this.logError('obtener atributos de usuario', error)
       throw error
     }
   }
@@ -32,11 +37,21 @@ class UserAttributesService extends ServiceREST {
       const result = await ServiceREST.get(`/user-attributes/${attributeType}`)
       return ServiceREST.handleServiceResponse(result, `obtener atributos de tipo ${attributeType}`)
     } catch (error) {
-      console.error(`❌ Error obteniendo atributos de tipo ${attributeType}:`, {
-        type: error.errorType,
-        message: error.message,
-        operation: error.operation
-      })
+      this.logError(`obtener atributos de tipo ${attributeType}`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Obtiene solo los tipos de atributos disponibles
+   * @returns {Promise<Array>} Lista de tipos de atributos
+   */
+  async getAttributeTypes() {
+    try {
+      const result = await ServiceREST.get('/user-attributes/types')
+      return ServiceREST.handleServiceResponse(result, 'obtener tipos de atributos')
+    } catch (error) {
+      this.logError('obtener tipos de atributos', error)
       throw error
     }
   }
@@ -52,13 +67,6 @@ class UserAttributesService extends ServiceREST {
       const result = await ServiceREST.post(`/user-attributes/${attributeType}`, attributeData)
       return ServiceREST.handleServiceResponse(result, `crear atributo de tipo ${attributeType}`)
     } catch (error) {
-      console.error(`❌ Error creando atributo de tipo ${attributeType}:`, {
-        type: error.errorType,
-        message: error.message,
-        operation: error.operation,
-        fieldErrors: error.fieldErrors
-      })
-
       // Enriquecer mensaje de error para casos específicos
       if (error.errorType === 'VALIDATION_ERROR' && error.fieldErrors) {
         const validationMessages = Object.entries(error.fieldErrors)
@@ -67,49 +75,33 @@ class UserAttributesService extends ServiceREST {
         error.message = `Error de validación: ${validationMessages}`
       }
 
+      this.logError(`crear atributo de tipo ${attributeType}`, error)
       throw error
     }
   }
 
+  // ========================================
+  // MÉTODOS PRIVADOS
+  // ========================================
+
   /**
-   * Obtiene sugerencias de tags por categoría
-   * @param {string} categoryInterest - Categoría de interés
-   * @param {number} limit - Límite de resultados (default: 15)
-   * @returns {Promise<Array>} Array de tags sugeridos
+   * Registra errores con información contextual
+   * @param {string} operation - Operación que falló
+   * @param {Error} error - Error ocurrido
    */
-  async getCategorySuggestions(categoryInterest, limit = 15) {
-    try {
-      if (!categoryInterest) {
-        console.warn('⚠️ No se proporcionó categoría de interés')
-        return []
-      }
-
-      const result = await ServiceREST.get(`/tags/popular/category/${categoryInterest}?limit=${limit}`)
-
-      if (!result.success) {
-        console.warn('⚠️ No se pudieron obtener sugerencias:', result.error.message)
-        return []
-      }
-
-      return result.data || []
-    } catch (error) {
-      console.error('❌ Error obteniendo sugerencias de categoría:', {
-        type: error.errorType,
-        message: error.message,
-        categoryInterest
-      })
-      // Para este caso específico, devolver array vacío en lugar de lanzar error
-      return []
-    }
+  logError(operation, error) {
+    error.operation = operation
+    console.error(`❌ Error en ${operation}:`, ErrorManager.formatError(error))
   }
 }
 
-// Crear instancia y exportar métodos
+// Crear instancia única
 const userAttributesService = new UserAttributesService()
 
+// Exportar métodos individuales para mayor flexibilidad
 export const getUserAttributes = () => userAttributesService.getAllAttributes()
 export const getUserAttributesByType = attributeType => userAttributesService.getAttributesByType(attributeType)
+export const getAttributeTypes = () => userAttributesService.getAttributeTypes()
 export const createUserAttribute = (attributeType, attributeData) => userAttributesService.createAttribute(attributeType, attributeData)
-export const getCategorySuggestions = (categoryInterest, limit) => userAttributesService.getCategorySuggestions(categoryInterest, limit)
 
 export default userAttributesService

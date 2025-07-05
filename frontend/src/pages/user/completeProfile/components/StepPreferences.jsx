@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useCallback, useMemo, memo } from 'react'
+import { Controller } from 'react-hook-form'
 import {
   Select,
   SelectItem,
@@ -14,81 +15,230 @@ import {
   Slider,
   Divider
 } from '@heroui/react'
-import { useCategoryInterests } from '@hooks/useCategoryInterests'
-import useUserAttributes from '@hooks/useUserAttributes.js'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
 
-const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => {
-  const { categoryOptions, loading: categoriesLoading, error: categoriesError } = useCategoryInterests()
-  const { religionOptions, sexualRoleOptions, relationshipTypeOptions, loading: attributesLoading } = useUserAttributes()
-
-  // Estado para el modal
+const StepPreferences = ({
+  control,
+  errors,
+  watch,
+  setValue,
+  clearErrors,
+  categoryOptions,
+  categoriesLoading,
+  categoriesError,
+  religionOptions,
+  sexualRoleOptions,
+  relationshipTypeOptions,
+  attributesLoading
+}) => {
+  // ========================================
+  // Estados locales
+  // ========================================
   const [selectedCategoryForModal, setSelectedCategoryForModal] = useState(null)
-  const [selectedCategoryCard, setSelectedCategoryCard] = useState(formData.categoryInterest || null)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
-  // Manejador de cambio con limpieza de errores
-  const handleInputChange = (field, value) => {
-    updateFormData(field, value)
+  // ========================================
+  // Datos del formulario
+  // ========================================
+  const formValues = watch()
+  const { categoryInterest, agePreferenceMin, agePreferenceMax, locationPreferenceRadius } = formValues
+  const selectedCategoryCard = categoryInterest || null
 
-    // Limpiar error del campo si existe
-    if (errors[field]) {
-      updateErrors({ ...errors, [field]: null })
-    }
-  }
+  // ========================================
+  // Manejadores de formulario optimizados
+  // ========================================
+  const formHandlers = useMemo(
+    () => ({
+      handleInputChange: (field, value) => {
+        setValue(field, value, { shouldValidate: true })
+        if (errors[field]) {
+          clearErrors(field)
+        }
+      }
+    }),
+    [setValue, clearErrors, errors]
+  )
 
-  // Función helper para validar keys de Select
-  const getValidSelectedKeys = (value, collection) => {
-    if (!value) return []
-    const exists = collection.some(item => item.key === value)
-    return exists ? [value] : []
-  }
+  // ========================================
+  // Manejadores de categorías optimizados
+  // ========================================
+  const handleCategoryCardSelect = useCallback(
+    categoryKey => {
+      formHandlers.handleInputChange('categoryInterest', categoryKey)
 
-  // Manejador para seleccionar categoría desde las cards
-  const handleCategoryCardSelect = categoryKey => {
-    setSelectedCategoryCard(categoryKey)
-    handleInputChange('categoryInterest', categoryKey)
+      // Limpiar campos específicos cuando cambia la categoría
+      if (categoryKey !== 'SPIRIT') {
+        formHandlers.handleInputChange('religionId', '')
+        formHandlers.handleInputChange('church', '')
+        formHandlers.handleInputChange('spiritualMoments', '')
+        formHandlers.handleInputChange('spiritualPractices', '')
+      }
 
-    // Limpiar campos específicos cuando cambia la categoría
-    if (categoryKey !== 'SPIRIT') {
-      handleInputChange('religionId', '')
-      handleInputChange('church', '')
-      handleInputChange('spiritualMoments', '')
-      handleInputChange('spiritualPractices', '')
-    }
+      if (categoryKey !== 'ROUSE') {
+        formHandlers.handleInputChange('sexualRoleId', '')
+        formHandlers.handleInputChange('relationshipTypeId', '')
+      }
+    },
+    [formHandlers]
+  )
 
-    if (categoryKey !== 'ROUSE') {
-      handleInputChange('sexualRoleId', '')
-      handleInputChange('relationshipTypeId', '')
-    }
-  }
+  const handleCategoryInfo = useCallback(
+    categoryKey => {
+      const category = categoryOptions.find(cat => cat.key === categoryKey)
+      if (category) {
+        setSelectedCategoryForModal(category)
+        onOpen()
+      }
+    },
+    [categoryOptions, onOpen]
+  )
 
-  // Manejador del modal de categoría
-  const handleCategoryInfo = categoryKey => {
-    const category = categoryOptions.find(cat => cat.key === categoryKey)
-    if (category) {
-      setSelectedCategoryForModal(category)
-      onOpen()
-    }
-  }
-
-  // Manejador de selección de categoría después del modal
-  const handleCategorySelectFromModal = () => {
+  const handleCategorySelectFromModal = useCallback(() => {
     if (selectedCategoryForModal) {
       handleCategoryCardSelect(selectedCategoryForModal.key)
       onClose()
     }
-  }
+  }, [selectedCategoryForModal, handleCategoryCardSelect, onClose])
 
-  // Verificar si la categoría seleccionada es SPIRIT
-  const isSpiritCategory = () => {
-    return selectedCategoryCard === 'SPIRIT' || formData.categoryInterest === 'SPIRIT'
-  }
+  // ========================================
+  // Funciones de utilidad memoizadas
+  // ========================================
+  const categoryUtils = useMemo(
+    () => ({
+      isSpiritCategory: selectedCategoryCard === 'SPIRIT' || categoryInterest === 'SPIRIT',
+      isRoueCategory: selectedCategoryCard === 'ROUSE' || categoryInterest === 'ROUSE'
+    }),
+    [selectedCategoryCard, categoryInterest]
+  )
 
-  // Verificar si la categoría seleccionada es ROUSE
-  const isRoueCategory = () => {
-    return selectedCategoryCard === 'ROUSE' || formData.categoryInterest === 'ROUSE'
-  }
+  // ========================================
+  // Renderizador de Select optimizado
+  // ========================================
+  const renderSelect = useCallback(
+    (fieldName, options, config = {}) => {
+      const { label, placeholder, isRequired = false, startContent = null, ariaLabel = label } = config
+
+      return (
+        <Controller
+          name={fieldName}
+          control={control}
+          render={({ field }) => (
+            <Select
+              variant="underlined"
+              label={label}
+              aria-label={ariaLabel}
+              placeholder={placeholder}
+              isRequired={isRequired}
+              selectedKeys={field.value ? [field.value.toString()] : []}
+              onSelectionChange={keys => {
+                const selectedKey = Array.from(keys)[0]
+                field.onChange(selectedKey ? parseInt(selectedKey) : null)
+              }}
+              isInvalid={!!errors[fieldName]}
+              errorMessage={errors[fieldName]?.message}
+              startContent={startContent}
+              renderValue={items => {
+                return items.map(item => {
+                  const option = options.find(opt => opt.key === item.key)
+                  return (
+                    <div key={item.key} className="flex items-center gap-2">
+                      <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                      <span>{option?.label}</span>
+                    </div>
+                  )
+                })
+              }}>
+              {options.map(option => (
+                <SelectItem
+                  key={option.key}
+                  value={option.key}
+                  textValue={option.label}
+                  classNames={{
+                    base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
+                  }}>
+                  <div className="flex items-center gap-3">
+                    <AttributeDetailRenderer detail={option.detail} size="sm" />
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </Select>
+          )}
+        />
+      )
+    },
+    [control, errors]
+  )
+
+  // ========================================
+  // Renderizador de Textarea optimizado
+  // ========================================
+  const renderTextarea = useCallback(
+    (fieldName, config = {}) => {
+      const { label, placeholder, isRequired = false, maxLength = 300, minRows = 2, maxRows = 4 } = config
+
+      return (
+        <Controller
+          name={fieldName}
+          control={control}
+          render={({ field }) => (
+            <Textarea
+              {...field}
+              variant="bordered"
+              label={label}
+              placeholder={placeholder}
+              isRequired={isRequired}
+              value={field.value || ''}
+              isInvalid={!!errors[fieldName]}
+              errorMessage={errors[fieldName]?.message}
+              minRows={minRows}
+              maxRows={maxRows}
+              maxLength={maxLength}
+              description={`${(field.value || '').length}/${maxLength} caracteres`}
+              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/30'
+              }}
+            />
+          )}
+        />
+      )
+    },
+    [control, errors, formHandlers]
+  )
+
+  // ========================================
+  // Renderizador de Input optimizado
+  // ========================================
+  const renderInput = useCallback(
+    (fieldName, config = {}) => {
+      const { label, placeholder, isRequired = false, startContent = null, ariaLabel = label } = config
+
+      return (
+        <Controller
+          name={fieldName}
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              variant="underlined"
+              label={label}
+              aria-label={ariaLabel}
+              placeholder={placeholder}
+              isRequired={isRequired}
+              value={field.value || ''}
+              isInvalid={!!errors[fieldName]}
+              errorMessage={errors[fieldName]?.message}
+              startContent={startContent}
+              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
+            />
+          )}
+        />
+      )
+    },
+    [control, errors, formHandlers]
+  )
 
   if (categoriesLoading || attributesLoading) {
     return (
@@ -176,11 +326,11 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
         )}
 
         {/* Error de categoría */}
-        {errors.categoryInterest && <p className="text-red-400 text-sm text-center">{errors.categoryInterest}</p>}
+        {errors.categoryInterest && <p className="text-red-400 text-sm text-center">{errors.categoryInterest?.message}</p>}
       </section>
 
       {/* CAMPOS ESPECÍFICOS PARA SPIRIT */}
-      {isSpiritCategory() && (
+      {categoryUtils.isSpiritCategory && (
         <section className="space-y-4">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-200">Información espiritual</h3>
@@ -188,98 +338,37 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
           </div>
 
           {/* Religión */}
-          <Select
-            variant="underlined"
-            aria-label="Religión"
-            placeholder="Selecciona tu religión"
-            isRequired
-            selectedKeys={getValidSelectedKeys(formData.religionId, religionOptions)}
-            onSelectionChange={keys => handleInputChange('religionId', Array.from(keys)[0])}
-            isInvalid={!!errors.religionId}
-            errorMessage={errors.religionId}
-            data-invalid={!!errors.religionId}
-            startContent={<span className="material-symbols-outlined">church</span>}
-            renderValue={items => {
-              return items.map(item => {
-                const option = religionOptions.find(opt => opt.key === item.key)
-                return (
-                  <div key={item.key} className="flex items-center gap-2">
-                    <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                    <span>{option?.label}</span>
-                  </div>
-                )
-              })
-            }}>
-            {religionOptions.map(option => (
-              <SelectItem
-                key={option.key}
-                value={option.key}
-                textValue={option.label}
-                classNames={{
-                  base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
-                }}>
-                <div className="flex items-center gap-3">
-                  <AttributeDetailRenderer detail={option.detail} size="sm" />
-                  <span>{option.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </Select>
+          {renderSelect('religionId', religionOptions, {
+            label: 'Religión',
+            placeholder: 'Selecciona tu religión',
+            isRequired: true,
+            startContent: <span className="material-symbols-outlined">church</span>,
+            ariaLabel: 'Religión'
+          })}
 
           {/* Iglesia */}
-          <Input
-            variant="underlined"
-            aria-label="Iglesia"
-            placeholder="Nombre de tu iglesia o congregación (opcional)"
-            value={formData.church || ''}
-            onChange={e => handleInputChange('church', e.target.value)}
-            isInvalid={!!errors.church}
-            errorMessage={errors.church}
-            startContent={<span className="material-symbols-outlined">account_balance</span>}
-          />
+          {renderInput('church', {
+            placeholder: 'Nombre de tu iglesia o congregación (opcional)',
+            startContent: <span className="material-symbols-outlined">account_balance</span>,
+            ariaLabel: 'Iglesia'
+          })}
 
           {/* Momentos espirituales */}
-          <Textarea
-            variant="bordered"
-            label="Momentos espirituales significativos (opcional)"
-            placeholder="Comparte experiencias especiales en tu vida espiritual..."
-            value={formData.spiritualMoments || ''}
-            onChange={e => handleInputChange('spiritualMoments', e.target.value)}
-            isInvalid={!!errors.spiritualMoments}
-            errorMessage={errors.spiritualMoments}
-            minRows={2}
-            maxRows={4}
-            maxLength={300}
-            description={`${(formData.spiritualMoments || '').length}/300 caracteres`}
-            classNames={{
-              input: 'text-gray-200',
-              inputWrapper: 'bg-gray-800/30'
-            }}
-          />
+          {renderTextarea('spiritualMoments', {
+            label: 'Momentos espirituales significativos (opcional)',
+            placeholder: 'Comparte experiencias especiales en tu vida espiritual...'
+          })}
 
           {/* Prácticas espirituales */}
-          <Textarea
-            variant="bordered"
-            label="Prácticas espirituales (opcional)"
-            placeholder="Describe tus prácticas de fe (oración, lectura bíblica, servicio, etc.)"
-            value={formData.spiritualPractices || ''}
-            onChange={e => handleInputChange('spiritualPractices', e.target.value)}
-            isInvalid={!!errors.spiritualPractices}
-            errorMessage={errors.spiritualPractices}
-            minRows={2}
-            maxRows={4}
-            maxLength={300}
-            description={`${(formData.spiritualPractices || '').length}/300 caracteres`}
-            classNames={{
-              input: 'text-gray-200',
-              inputWrapper: 'bg-gray-800/30'
-            }}
-          />
+          {renderTextarea('spiritualPractices', {
+            label: 'Prácticas espirituales (opcional)',
+            placeholder: 'Describe tus prácticas de fe (oración, lectura bíblica, servicio, etc.)'
+          })}
         </section>
       )}
 
       {/* CAMPOS ESPECÍFICOS PARA ROUSE */}
-      {isRoueCategory() && (
+      {categoryUtils.isRoueCategory && (
         <section className="space-y-4">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-200">Preferencias personales</h3>
@@ -288,80 +377,20 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Rol sexual */}
-            <Select
-              variant="underlined"
-              aria-label="Rol sexual"
-              placeholder="Selecciona tu preferencia"
-              isRequired
-              selectedKeys={getValidSelectedKeys(formData.sexualRoleId, sexualRoleOptions)}
-              onSelectionChange={keys => handleInputChange('sexualRoleId', Array.from(keys)[0])}
-              isInvalid={!!errors.sexualRoleId}
-              errorMessage={errors.sexualRoleId}
-              data-invalid={!!errors.sexualRoleId}
-              renderValue={items => {
-                return items.map(item => {
-                  const option = sexualRoleOptions.find(opt => opt.key === item.key)
-                  return (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                      <span>{option?.label}</span>
-                    </div>
-                  )
-                })
-              }}>
-              {sexualRoleOptions.map(option => (
-                <SelectItem
-                  key={option.key}
-                  value={option.key}
-                  textValue={option.label}
-                  classNames={{
-                    base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
-                  }}>
-                  <div className="flex items-center gap-3">
-                    <AttributeDetailRenderer detail={option.detail} size="sm" />
-                    <span>{option.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </Select>
+            {renderSelect('sexualRoleId', sexualRoleOptions, {
+              label: 'Rol sexual',
+              placeholder: 'Selecciona tu preferencia',
+              isRequired: true,
+              ariaLabel: 'Rol sexual'
+            })}
 
             {/* Tipo de relación */}
-            <Select
-              variant="underlined"
-              aria-label="Tipo de relación"
-              placeholder="Tipo de relación que buscas"
-              isRequired
-              selectedKeys={getValidSelectedKeys(formData.relationshipTypeId, relationshipTypeOptions)}
-              onSelectionChange={keys => handleInputChange('relationshipTypeId', Array.from(keys)[0])}
-              isInvalid={!!errors.relationshipTypeId}
-              errorMessage={errors.relationshipTypeId}
-              data-invalid={!!errors.relationshipTypeId}
-              renderValue={items => {
-                return items.map(item => {
-                  const option = relationshipTypeOptions.find(opt => opt.key === item.key)
-                  return (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <AttributeDetailRenderer detail={option?.detail} size="sm" />
-                      <span>{option?.label}</span>
-                    </div>
-                  )
-                })
-              }}>
-              {relationshipTypeOptions.map(option => (
-                <SelectItem
-                  key={option.key}
-                  value={option.key}
-                  textValue={option.label}
-                  classNames={{
-                    base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
-                  }}>
-                  <div className="flex items-center gap-3">
-                    <AttributeDetailRenderer detail={option.detail} size="sm" />
-                    <span>{option.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </Select>
+            {renderSelect('relationshipTypeId', relationshipTypeOptions, {
+              label: 'Tipo de relación',
+              placeholder: 'Tipo de relación que buscas',
+              isRequired: true,
+              ariaLabel: 'Tipo de relación'
+            })}
           </div>
         </section>
       )}
@@ -373,42 +402,54 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
             <label className="text-gray-300 text-sm block">
               Rango de edad:{' '}
               <span className="text-primary-400 font-semibold">
-                {formData.agePreferenceMin || 18} - {formData.agePreferenceMax || 50} años
+                {agePreferenceMin || 18} - {agePreferenceMax || 50} años
               </span>
             </label>
-            <Slider
-              label="Rango de edad que te interesa para hacer conexiones"
-              color="primary"
-              minValue={18}
-              maxValue={80}
-              value={[formData.agePreferenceMin || 18, formData.agePreferenceMax || 50]}
-              onChange={value => {
-                handleInputChange('agePreferenceMin', value[0])
-                handleInputChange('agePreferenceMax', value[1])
-              }}
-              className="max-w-full"
-              showTooltip={true}
-              formatOptions={{
-                style: 'unit',
-                unit: 'year',
-                unitDisplay: 'short'
-              }}
-              aria-label="Rango de edad que te interesa para hacer conexiones"
-              marks={[
-                { value: 18, label: '18' },
-                { value: 30, label: '30 años' },
-                { value: 50, label: '50 años' },
-                { value: 65, label: '65 años' },
-                { value: 80, label: '80' }
-              ]}
+            <Controller
+              name="agePreferenceMin"
+              control={control}
+              render={({ field: minField }) => (
+                <Controller
+                  name="agePreferenceMax"
+                  control={control}
+                  render={({ field: maxField }) => (
+                    <Slider
+                      label="Rango de edad que te interesa para hacer conexiones"
+                      color="primary"
+                      minValue={18}
+                      maxValue={80}
+                      value={[minField.value || 18, maxField.value || 50]}
+                      onChange={value => {
+                        formHandlers.handleInputChange('agePreferenceMin', value[0])
+                        formHandlers.handleInputChange('agePreferenceMax', value[1])
+                      }}
+                      className="max-w-full"
+                      showTooltip={true}
+                      formatOptions={{
+                        style: 'unit',
+                        unit: 'year',
+                        unitDisplay: 'short'
+                      }}
+                      aria-label="Rango de edad que te interesa para hacer conexiones"
+                      marks={[
+                        { value: 18, label: '18' },
+                        { value: 30, label: '30 años' },
+                        { value: 50, label: '50 años' },
+                        { value: 65, label: '65 años' },
+                        { value: 80, label: '80' }
+                      ]}
+                    />
+                  )}
+                />
+              )}
             />
           </div>
         </div>
 
         {(errors.agePreferenceMin || errors.agePreferenceMax) && (
           <div className="text-red-400 text-sm">
-            {errors.agePreferenceMin && <p>{errors.agePreferenceMin}</p>}
-            {errors.agePreferenceMax && <p>{errors.agePreferenceMax}</p>}
+            {errors.agePreferenceMin && <p>{errors.agePreferenceMin?.message}</p>}
+            {errors.agePreferenceMax && <p>{errors.agePreferenceMax?.message}</p>}
           </div>
         )}
       </section>
@@ -419,30 +460,36 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
       <section className="space-y-4">
         <div className="space-y-3">
           <label className="text-gray-300 text-sm block">
-            Radio de búsqueda: <span className="text-primary-400 font-semibold">{formData.locationPreferenceRadius || 50} km</span>
+            Radio de búsqueda: <span className="text-primary-400 font-semibold">{locationPreferenceRadius || 50} km</span>
           </label>
-          <Slider
-            label="Seleccionar radio de búsqueda"
-            step={10}
-            color="primary"
-            minValue={5}
-            maxValue={200}
-            value={formData.locationPreferenceRadius || 50}
-            onChange={value => handleInputChange('locationPreferenceRadius', value)}
-            className="max-w-full"
-            showTooltip={true}
-            aria-label="Radio de búsqueda en kilómetros"
-            marks={[
-              { value: 5, label: '5 km' },
-              { value: 50, label: '50 km' },
-              { value: 100, label: '100 km' },
-              { value: 150, label: '150 km' },
-              { value: 200, label: '200 km' }
-            ]}
+          <Controller
+            name="locationPreferenceRadius"
+            control={control}
+            render={({ field }) => (
+              <Slider
+                label="Seleccionar radio de búsqueda"
+                step={10}
+                color="primary"
+                minValue={5}
+                maxValue={200}
+                value={field.value || 50}
+                onChange={value => formHandlers.handleInputChange('locationPreferenceRadius', value)}
+                className="max-w-full"
+                showTooltip={true}
+                aria-label="Radio de búsqueda en kilómetros"
+                marks={[
+                  { value: 5, label: '5 km' },
+                  { value: 50, label: '50 km' },
+                  { value: 100, label: '100 km' },
+                  { value: 150, label: '150 km' },
+                  { value: 200, label: '200 km' }
+                ]}
+              />
+            )}
           />
         </div>
 
-        {errors.locationPreferenceRadius && <p className="text-red-400 text-sm">{errors.locationPreferenceRadius}</p>}
+        {errors.locationPreferenceRadius && <p className="text-red-400 text-sm">{errors.locationPreferenceRadius?.message}</p>}
       </section>
 
       {/* Información sobre el paso */}
@@ -452,9 +499,9 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
           <div className="text-sm">
             <h4 className="text-blue-400 font-medium mb-2">¿Por qué estos datos?</h4>
             <p className="text-blue-300/80">
-              {isSpiritCategory()
+              {categoryUtils.isSpiritCategory
                 ? 'Esta información nos ayuda a conectarte con personas que comparten tu fe, valores espirituales y están en tu rango de edad y ubicación preferidos.'
-                : isRoueCategory()
+                : categoryUtils.isRoueCategory
                   ? 'Esta información nos ayuda a conectarte con personas compatibles dentro de la comunidad LGBTI+ en tu área y rango de edad.'
                   : 'Esta información nos ayuda a conectarte con personas que buscan el mismo tipo de relación, comparten valores similares y están en tu zona de preferencia.'}
             </p>
@@ -542,4 +589,4 @@ const StepPreferences = ({ formData, errors, updateFormData, updateErrors }) => 
   )
 }
 
-export default StepPreferences
+export default memo(StepPreferences)
