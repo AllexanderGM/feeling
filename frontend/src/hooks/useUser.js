@@ -20,7 +20,8 @@ const useUser = () => {
   const formatFormDataToApi = useCallback(formData => {
     return {
       document: formData.document,
-      phone: formData.phoneCode && formData.phone ? `${formData.phoneCode}${formData.phone}` : formData.phone,
+      phone: formData.phone,
+      phoneCode: formData.phoneCode,
       dateOfBirth: formData.birthDate,
       description: formData.description,
       country: formData.country,
@@ -32,7 +33,7 @@ const useUser = () => {
       spiritualMoments: formData.spiritualMoments || '',
       spiritualPractices: formData.spiritualPractices || '',
       sexualRoleId: formData.sexualRoleId ? parseInt(formData.sexualRoleId) : null,
-      relationshipType: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
+      relationshipId: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
       genderId: formData.genderId ? parseInt(formData.genderId) : null,
       height: formData.height ? parseInt(formData.height) : null,
       eyeColorId: formData.eyeColorId ? parseInt(formData.eyeColorId) : null,

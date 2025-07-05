@@ -83,8 +83,12 @@ public class User implements UserDetails {
 
     private String document;
 
-    @Pattern(regexp = "^\\+\\d{1,4}\\d{9,15}$", message = "El teléfono debe tener formato internacional +[código][número]")
+    @Pattern(regexp = "^$|^\\d{7,15}$", message = "El teléfono debe contener entre 7 y 15 dígitos")
     private String phone;
+
+    @Pattern(regexp = "^$|^\\+\\d{1,4}$", message = "El código de país debe tener formato +XX")
+    @Column(name = "phone_code")
+    private String phoneCode;
 
     private LocalDate dateOfBirth;
 
@@ -393,7 +397,8 @@ public class User implements UserDetails {
                 dateOfBirth != null && gender != null &&
                 userCategoryInterest != null &&
                 images != null && !images.isEmpty() &&
-                description != null && !description.trim().isEmpty();
+                description != null && !description.trim().isEmpty() &&
+                phone != null && phoneCode != null;
     }
 
     public String getMainImage() {

@@ -256,7 +256,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {allImages.slice(1, 5).map((image, index) => (
-                  <img key={index} src={image.url} alt={`Foto ${index + 1}`} className="w-full h-16 object-cover rounded-lg" />
+                  <img key={index} src={image.url} alt={`Foto ${index + 1}`} className="w-full h-40 object-cover rounded-lg" />
                 ))}
               </div>
             </div>

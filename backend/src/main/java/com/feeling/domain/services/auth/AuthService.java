@@ -8,7 +8,7 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
 import com.feeling.infrastructure.repositories.user.*;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
@@ -229,7 +229,7 @@ public class AuthService {
      * LOGIN CON GOOGLE
      * Autentica o registra un usuario usando Google OAuth
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public AuthLoginResponseDTO loginWithGoogle(GoogleTokenRequestDTO request) {
         try {
             logger.info("Iniciando autenticación con Google");
@@ -282,9 +282,12 @@ public class AuthService {
                 // 3. Crear nuevo usuario desde Google
                 logger.info("Creando nuevo usuario desde Google: {}", googleUser.email());
 
-                // Obtener rol de cliente
+                // Obtener rol de cliente - usar transacción separada para evitar conflictos
                 UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
-                        .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
+                        .orElseGet(() -> {
+                            UserRole newRole = new UserRole(UserRoleList.CLIENT);
+                            return roleUserRepository.save(newRole);
+                        });
 
                 // Crear usuario
                 user = User.builder()
@@ -326,7 +329,22 @@ public class AuthService {
             // 4. Guardar usuario
             user = userRepository.save(user);
 
-            // 5. Generar tokens y crear respuesta
+            // 5. Enviar email de bienvenida (fuera de la transacción crítica)
+            if (existingUser.isEmpty()) {
+                try {
+                    emailService.sendWelcomeEmailForGoogleUser(
+                            user.getEmail(),
+                            user.getName() + " " + user.getLastname(),
+                            googleUser.picture()
+                    );
+                    logger.info("Email de bienvenida enviado a usuario de Google: {}", user.getEmail());
+                } catch (Exception emailError) {
+                    logger.warn("Error al enviar email de bienvenida a usuario de Google: {}", emailError.getMessage());
+                    // No lanzar excepción - el usuario ya fue creado exitosamente
+                }
+            }
+
+            // 6. Generar tokens y crear respuesta
             AuthLoginResponseDTO response = generateTokensAndCreateResponse(user);
 
             logger.info("Usuario autenticado con Google correctamente: {}", googleUser.email());
@@ -850,32 +868,50 @@ public class AuthService {
      * GENERAR TOKENS Y CREAR RESPUESTA
      * Método unificado para generar tokens y crear respuesta de login
      */
+    @Transactional
     private AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
-        // Generar tokens
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
+        try {
+            logger.debug("Generando tokens para usuario: {}", user.getEmail());
+            
+            // Validar que el usuario tenga rol asignado
+            if (user.getUserRole() == null) {
+                throw new IllegalStateException("Usuario no tiene rol asignado");
+            }
+            
+            // Generar tokens
+            String accessToken = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
 
-        // Revocar todos los tokens anteriores y guardar los nuevos
-        revokeAllUserTokens(user);
-        saveUserToken(user, accessToken, UserToken.TokenType.ACCESS);
-        saveUserToken(user, refreshToken, UserToken.TokenType.REFRESH);
+            logger.debug("Tokens generados, revocando tokens anteriores para usuario: {}", user.getEmail());
+            
+            // Revocar todos los tokens anteriores y guardar los nuevos
+            revokeAllUserTokens(user);
+            
+            logger.debug("Guardando nuevos tokens para usuario: {}", user.getEmail());
+            saveUserToken(user, accessToken, UserToken.TokenType.ACCESS);
+            saveUserToken(user, refreshToken, UserToken.TokenType.REFRESH);
 
-        // Actualizar última actividad
-        user.setLastActive(LocalDateTime.now());
-        userRepository.save(user);
+            // Actualizar última actividad
+            updateUserLastActive(user);
 
-        // Crear y retornar respuesta
-        return new AuthLoginResponseDTO(
-                user.getMainImage(),
-                user.getEmail(),
-                user.getName(),
-                user.getLastname(),
-                user.getUserRole().getUserRoleList().name(),
-                accessToken,
-                refreshToken,
-                user.isVerified(),
-                user.isProfileComplete()
-        );
+            logger.debug("Tokens y usuario guardados exitosamente para: {}", user.getEmail());
+
+            // Crear y retornar respuesta
+            return new AuthLoginResponseDTO(
+                    user.getMainImage(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getLastname(),
+                    user.getUserRole().getUserRoleList().name(),
+                    accessToken,
+                    refreshToken,
+                    user.isVerified(),
+                    user.isProfileComplete()
+            );
+        } catch (Exception e) {
+            logger.error("Error al generar tokens para usuario {}: {}", user.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Error al generar tokens de autenticación: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -883,15 +919,21 @@ public class AuthService {
      * Guarda un token con su tipo específico
      */
     private void saveUserToken(User user, String token, UserToken.TokenType tokenType) {
-        UserToken userToken = UserToken.builder()
-                .token(token)
-                .user(user)
-                .type(tokenType)
-                .expired(false)
-                .revoked(false)
-                .build();
+        try {
+            UserToken userToken = UserToken.builder()
+                    .token(token)
+                    .user(user)
+                    .type(tokenType)
+                    .expired(false)
+                    .revoked(false)
+                    .build();
 
-        tokenRepository.save(userToken);
+            tokenRepository.save(userToken);
+            logger.debug("Token {} guardado exitosamente para usuario: {}", tokenType, user.getEmail());
+        } catch (Exception e) {
+            logger.error("Error al guardar token {} para usuario {}: {}", tokenType, user.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Error al guardar token " + tokenType + ": " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -916,15 +958,24 @@ public class AuthService {
      * Revoca tanto access como refresh tokens (para logout completo)
      */
     private void revokeAllUserTokens(User user) {
-        final List<UserToken> validUserTokens = tokenRepository
-                .findAllValidTokensByUserId(user.getId());
+        try {
+            final List<UserToken> validUserTokens = tokenRepository
+                    .findAllValidTokensByUserId(user.getId());
 
-        if (!validUserTokens.isEmpty()) {
-            validUserTokens.forEach(token -> {
-                token.setExpired(true);
-                token.setRevoked(true);
-            });
-            tokenRepository.saveAll(validUserTokens);
+            if (!validUserTokens.isEmpty()) {
+                logger.debug("Revocando {} tokens existentes para usuario: {}", validUserTokens.size(), user.getEmail());
+                validUserTokens.forEach(token -> {
+                    token.setExpired(true);
+                    token.setRevoked(true);
+                });
+                tokenRepository.saveAll(validUserTokens);
+                logger.debug("Tokens revocados exitosamente para usuario: {}", user.getEmail());
+            } else {
+                logger.debug("No hay tokens válidos para revocar para usuario: {}", user.getEmail());
+            }
+        } catch (Exception e) {
+            logger.error("Error al revocar tokens para usuario {}: {}", user.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Error al revocar tokens existentes: " + e.getMessage(), e);
         }
     }
 
@@ -979,5 +1030,25 @@ public class AuthService {
      */
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email.toLowerCase().trim());
+    }
+
+    /**
+     * ACTUALIZAR ÚLTIMA ACTIVIDAD
+     * Actualiza solo el campo lastActive sin activar validaciones
+     */
+    @Transactional
+    private void updateUserLastActive(User user) {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            int updated = userRepository.updateLastActive(user.getId(), now, now);
+            if (updated > 0) {
+                user.setLastActive(now);
+                user.setUpdatedAt(now);
+                logger.debug("Última actividad actualizada para usuario: {}", user.getEmail());
+            }
+        } catch (Exception e) {
+            logger.warn("Error al actualizar última actividad para usuario {}: {}", user.getEmail(), e.getMessage());
+            // No lanzar excepción - esto es opcional y no debe afectar el login
+        }
     }
 }

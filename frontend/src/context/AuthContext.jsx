@@ -265,7 +265,7 @@ export const AuthProvider = ({ children }) => {
       // Recalcular completitud del perfil
       const profileCompleteness = calculateProfileCompleteness(updatedUser)
       updatedUser.metadata.profileCompleteness = profileCompleteness
-      updatedUser.profileComplete = userData.profileComplete !== undefined ? userData.profileComplete : profileCompleteness >= 80
+      updatedUser.profileComplete = userData.completeProfile ?? userData.profileComplete ?? profileCompleteness >= 80
 
       setUser(updatedUser)
       cookieHandler.set('user', updatedUser)

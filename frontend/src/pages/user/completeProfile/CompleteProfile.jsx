@@ -182,7 +182,7 @@ const CompleteProfile = () => {
 
       onSubmit: async data => {
         const result = await completeUser(data)
-        if (result.success) navigate(APP_PATHS.ROOT, { replace: true })
+        if (result.success) navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
       }
     }),
     [currentStep, formMethods, completeUser, navigate]

@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface IUserTokenRepository extends JpaRepository<UserToken, Long> {
-    List<UserToken> findAllValidIsFalseOrRevokedIsFalseByUserId(Long id);
-
     Optional<UserToken> findByToken(String jwtToken);
 
     List<UserToken> findByUser(User user);

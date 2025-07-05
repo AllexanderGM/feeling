@@ -99,9 +99,11 @@ class AuthService extends ServiceREST {
     }
   }
 
-  async resetPassword(token, password) {
+  async resetPassword(token, password, confirmPassword) {
     try {
-      const result = await ServiceREST.post('/auth/reset-password', { token, password })
+      const payload = { token, password, confirmPassword }
+      console.log('🔍 Datos enviados al backend:', payload)
+      const result = await ServiceREST.post('/auth/reset-password', payload)
       return ServiceREST.handleServiceResponse(result, 'restablecimiento de contraseña')
     } catch (error) {
       this.logError('restablecimiento de contraseña', error)

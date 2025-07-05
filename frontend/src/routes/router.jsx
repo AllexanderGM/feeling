@@ -14,16 +14,26 @@ import ForgotPassword from '@pages/auth/ForgotPassword'
 import ResetPassword from '@pages/auth/ResetPassword'
 // Páginas del flujo de registro
 import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
+import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
-import Home from '@pages/app/Home'
+import Home from '@pages/home/Home.jsx'
+// Constantes
+import { APP_PATHS } from '@constants/paths.js'
 
 // Componentes de protección
-import { RequireVerifiedUser, RequireCompleteProfile, RequireAdmin, RedirectIfAuthenticated } from './RequireAuth.jsx'
+import {
+  RequireAuthOnly,
+  RequireVerifiedUser,
+  RequireCompleteProfile,
+  RequireAdmin,
+  RedirectIfAuthenticated,
+  RedirectIfProfileComplete
+} from './RequireAuth.jsx'
 
 // Crear el router con todas las rutas
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: APP_PATHS.ROOT,
     element: <App />,
     errorElement: <NotFound />,
     children: [
@@ -47,54 +57,65 @@ const router = createBrowserRouter([
           // RUTAS PÚBLICAS
           // ========================================
           {
-            path: 'welcome',
+            path: APP_PATHS.PUBLIC.WELCOME.slice(1),
             element: (
-              <RedirectIfAuthenticated redirectTo="/">
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.ROOT}>
                 <Welcome />
               </RedirectIfAuthenticated>
             )
           },
-          { path: 'api-status', element: <ApiStatus /> },
+          {
+            path: APP_PATHS.PUBLIC.API_STATUS.slice(1),
+            element: <ApiStatus />
+          },
 
           // ========================================
           // RUTAS DE AUTENTICACIÓN
           // ========================================
           {
-            path: 'login',
+            path: APP_PATHS.AUTH.LOGIN.slice(1),
             element: (
-              <RedirectIfAuthenticated redirectTo="/">
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.ROOT}>
                 <Login />
               </RedirectIfAuthenticated>
             )
           },
           {
-            path: 'register',
+            path: APP_PATHS.AUTH.REGISTER.slice(1),
             element: (
-              <RedirectIfAuthenticated redirectTo="/">
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.AUTH.VERIFY_EMAIL}>
                 <Register />
               </RedirectIfAuthenticated>
             )
           },
           {
-            path: 'verify-email',
-            element: <VerifyEmail />
-          },
-          {
-            path: 'verify-email/:token',
-            element: <VerifyEmail />
-          },
-          {
-            path: 'forgot-password',
+            path: APP_PATHS.AUTH.VERIFY_EMAIL.slice(1),
             element: (
-              <RedirectIfAuthenticated redirectTo="/">
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.ROOT}>
+                <VerifyEmail />
+              </RedirectIfAuthenticated>
+            )
+          },
+          {
+            path: APP_PATHS.AUTH.VERIFY_EMAIL_TOKEN.slice(1),
+            element: (
+              <RequireAuthOnly>
+                <VerifyEmail />
+              </RequireAuthOnly>
+            )
+          },
+          {
+            path: APP_PATHS.AUTH.FORGOT_PASSWORD.slice(1),
+            element: (
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.ROOT}>
                 <ForgotPassword />
               </RedirectIfAuthenticated>
             )
           },
           {
-            path: 'reset-password/:token',
+            path: APP_PATHS.AUTH.RESET_PASSWORD.slice(1),
             element: (
-              <RedirectIfAuthenticated redirectTo="/">
+              <RedirectIfAuthenticated redirectTo={APP_PATHS.ROOT}>
                 <ResetPassword />
               </RedirectIfAuthenticated>
             )
@@ -104,20 +125,29 @@ const router = createBrowserRouter([
           // RUTAS DEL FLUJO DE REGISTRO
           // ========================================
           {
-            path: 'complete-profile',
-            element: <CompleteProfile />
-            /* element: (
+            path: APP_PATHS.USER.COMPLETE_PROFILE.slice(1),
+            element: (
               <RequireVerifiedUser>
-                <CompleteProfile />
+                <RedirectIfProfileComplete>
+                  <CompleteProfile />
+                </RedirectIfProfileComplete>
               </RequireVerifiedUser>
-            ) */
+            )
+          },
+          {
+            path: APP_PATHS.USER.WELCOME_ONBOARDING.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <WelcomeOnboarding />
+              </RequireCompleteProfile>
+            )
           },
 
           // ========================================
           // RUTAS DE MATCHING Y FUNCIONALIDADES PRINCIPALES
           // ========================================
           {
-            path: 'matches',
+            path: APP_PATHS.USER.MATCHES.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Página de Matches - Por implementar</div>
@@ -125,7 +155,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'search',
+            path: APP_PATHS.USER.SEARCH.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Búsqueda de Usuarios - Por implementar</div>
@@ -133,7 +163,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'events',
+            path: APP_PATHS.USER.EVENTS.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Eventos - Por implementar</div>
@@ -141,7 +171,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'profile',
+            path: APP_PATHS.USER.PROFILE.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Mi Perfil - Por implementar</div>
@@ -149,7 +179,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'profile/:userId',
+            path: APP_PATHS.USER.PROFILE_BY_ID.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Ver Perfil de Usuario - Por implementar</div>
@@ -157,10 +187,18 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'settings',
+            path: APP_PATHS.USER.SETTINGS.slice(1),
             element: (
               <RequireCompleteProfile>
                 <div>Configuración - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.FAVORITES.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Favoritos - Por implementar</div>
               </RequireCompleteProfile>
             )
           },
@@ -169,7 +207,7 @@ const router = createBrowserRouter([
           // RUTAS ADMINISTRATIVAS
           // ========================================
           {
-            path: 'admin',
+            path: APP_PATHS.ADMIN.ROOT.slice(1),
             element: (
               <RequireAdmin>
                 <div>Panel de Administración - Por implementar</div>
@@ -177,7 +215,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'admin/users',
+            path: APP_PATHS.ADMIN.USERS.slice(1),
             element: (
               <RequireAdmin>
                 <div>Gestión de Usuarios - Por implementar</div>
@@ -185,7 +223,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'admin/events',
+            path: APP_PATHS.ADMIN.EVENTS.slice(1),
             element: (
               <RequireAdmin>
                 <div>Gestión de Eventos - Por implementar</div>
@@ -193,7 +231,7 @@ const router = createBrowserRouter([
             )
           },
           {
-            path: 'admin/statistics',
+            path: APP_PATHS.ADMIN.STATS.slice(1),
             element: (
               <RequireAdmin>
                 <div>Estadísticas - Por implementar</div>
@@ -205,15 +243,15 @@ const router = createBrowserRouter([
           // RUTAS DE PÁGINAS LEGALES
           // ========================================
           {
-            path: 'terminos',
+            path: APP_PATHS.LEGAL.TERMS.slice(1),
             element: <div>Términos y Condiciones - Por implementar</div>
           },
           {
-            path: 'privacidad',
+            path: APP_PATHS.LEGAL.PRIVACY.slice(1),
             element: <div>Política de Privacidad - Por implementar</div>
           },
           {
-            path: 'soporte',
+            path: APP_PATHS.LEGAL.SUPPORT.slice(1),
             element: <div>Centro de Soporte - Por implementar</div>
           },
 
@@ -221,7 +259,7 @@ const router = createBrowserRouter([
           // RUTA 404
           // ========================================
           {
-            path: '*',
+            path: APP_PATHS.NOT_FOUND,
             element: <NotFound />
           }
         ]

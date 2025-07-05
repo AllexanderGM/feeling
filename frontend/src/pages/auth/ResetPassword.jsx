@@ -6,6 +6,7 @@ import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { resetPasswordSchema } from '@utils/formSchemas'
+import { APP_PATHS } from '@constants/paths.js'
 
 const ResetPassword = () => {
   const { token } = useParams()
@@ -33,11 +34,12 @@ const ResetPassword = () => {
   const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
   const onSubmit = async ({ password, confirmPassword }) => {
+    console.log('📝 Datos del formulario:', { token, password, confirmPassword })
     const result = await resetPassword(token, password, confirmPassword) // Notificaciones automáticas
     if (result.success) {
       setStatus('success')
       setTimeout(() => {
-        navigate('/app/login', {
+        navigate(APP_PATHS.AUTH.LOGIN, {
           state: { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' }
         })
       }, 3000)
@@ -46,7 +48,7 @@ const ResetPassword = () => {
 
   // Si no hay token, redirigir
   if (!token) {
-    navigate('/app/forgot-password')
+    navigate(APP_PATHS.AUTH.FORGOT_PASSWORD)
     return null
   }
 

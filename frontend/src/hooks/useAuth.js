@@ -161,8 +161,11 @@ const useAuth = () => {
   )
 
   const resetPassword = useCallback(
-    async (token, newPassword, showNotifications = true) => {
-      const result = await withLoading(() => authService.resetPassword(token, newPassword), 'Restablecimiento de contraseña')
+    async (token, newPassword, confirmPassword, showNotifications = true) => {
+      const result = await withLoading(
+        () => authService.resetPassword(token, newPassword, confirmPassword),
+        'Restablecimiento de contraseña'
+      )
       if (result.success) clearAllAuth()
       return handleApiResponse(result, '¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.', showNotifications)
     },

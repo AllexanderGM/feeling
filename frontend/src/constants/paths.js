@@ -20,6 +20,7 @@ export const APP_PATHS = {
     PROFILE: '/profile',
     PROFILE_BY_ID: '/profile/:userId',
     COMPLETE_PROFILE: '/complete-profile',
+    WELCOME_ONBOARDING: '/welcome-onboarding',
     SETTINGS: '/settings',
     EVENTS: '/events',
     MATCHES: '/matches',

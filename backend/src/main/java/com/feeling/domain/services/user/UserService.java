@@ -92,6 +92,7 @@ public class UserService {
         if (!imageUrls.isEmpty()) user.setImages(imageUrls);
         if (profileData.document() != null) user.setDocument(profileData.document());
         if (profileData.phone() != null) user.setPhone(profileData.phone());
+        if (profileData.phoneCode() != null) user.setPhoneCode(profileData.phoneCode());
         if (profileData.dateOfBirth() != null) user.setDateOfBirth(profileData.dateOfBirth());
         if (profileData.description() != null) user.setDescription(profileData.description());
 
@@ -228,6 +229,22 @@ public class UserService {
         }
         if (profileData.locationPreferenceRadius() != null) {
             user.setLocationPreferenceRadius(profileData.locationPreferenceRadius());
+        }
+
+        // ========================================
+        // CONFIGURAR PRIVACIDAD
+        // ========================================
+        if (profileData.allowNotifications() != null) {
+            user.setAllowNotifications(profileData.allowNotifications());
+        }
+        if (profileData.showAge() != null) {
+            user.setShowAge(profileData.showAge());
+        }
+        if (profileData.showLocation() != null) {
+            user.setShowLocation(profileData.showLocation());
+        }
+        if (profileData.showMeInSearch() != null) {
+            user.setShowMeInSearch(profileData.showMeInSearch());
         }
 
         // MARCAR PERFIL COMO COMPLETO

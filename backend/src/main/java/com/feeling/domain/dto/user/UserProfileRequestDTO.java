@@ -14,8 +14,12 @@ public record UserProfileRequestDTO(
         String document,
 
         @NotBlank(message = "El teléfono es obligatorio")
-        @Pattern(regexp = "^\\+?\\d{1,4}\\d{9,15}$", message = "El teléfono debe incluir código de país y tener entre 9 y 15 dígitos")
+        @Pattern(regexp = "^\\d{7,15}$", message = "El teléfono debe contener entre 7 y 15 dígitos sin espacios ni símbolos")
         String phone,
+
+        @NotBlank(message = "El código de país es obligatorio")
+        @Pattern(regexp = "^\\+\\d{1,4}$", message = "El código de país debe tener formato +XX (ej: +57, +1)")
+        String phoneCode,
 
         @NotNull(message = "La fecha de nacimiento es obligatoria")
         @Past(message = "La fecha de nacimiento debe ser en el pasado")
@@ -75,10 +79,19 @@ public record UserProfileRequestDTO(
         Long sexualRoleId,
         Long relationshipId,
 
+        // ========================================
+        // CONFIGURACIÓN y PRIVACIDAD
+        // ========================================
+
         // Preferencias de matching
         Integer agePreferenceMin,
         Integer agePreferenceMax,
         Integer locationPreferenceRadius,
-        Boolean allowNotifications
+        Boolean allowNotifications,
+
+        // Configuración de privacidad
+        Boolean showAge,
+        Boolean showLocation,
+        Boolean showMeInSearch
 ) {
 }

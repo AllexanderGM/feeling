@@ -1,6 +1,8 @@
 {
   "permissions": {
-    "allow": ["Bash(sed:*)", "Bash(grep:*)"],
+    "allow": [
+      "Bash(rm:*)"
+    ],
     "deny": []
   }
 }
