@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback, useMemo, memo } from 'react'
 import { Input, DatePicker, Autocomplete, AutocompleteItem, Chip, Accordion, AccordionItem } from '@heroui/react'
 import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 import { Controller, useController } from 'react-hook-form'
+import { Camera } from 'lucide-react'
 
 import useImageManager from '../hooks/useImageManager.js'
 
@@ -465,11 +466,7 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
           <AccordionItem
             key="photo-tips"
             aria-label="Tips para mejores resultados"
-            startContent={
-              <span className="material-symbols-outlined text-blue-400 text-xl pt-1" aria-hidden="true">
-                photo_camera
-              </span>
-            }
+            startContent={<Camera className="text-blue-400 text-xl pt-1" aria-hidden="true" />}
             title="Tips para mejores resultados"
             classNames={{
               trigger: 'p-1',

@@ -869,7 +869,7 @@ public class AuthService {
      * Método unificado para generar tokens y crear respuesta de login
      */
     @Transactional
-    private AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
+    AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
         try {
             logger.debug("Generando tokens para usuario: {}", user.getEmail());
             
@@ -898,15 +898,34 @@ public class AuthService {
 
             // Crear y retornar respuesta
             return new AuthLoginResponseDTO(
-                    user.getMainImage(),
-                    user.getEmail(),
+                    user.getId(),
                     user.getName(),
                     user.getLastname(),
+                    user.getEmail(),
                     user.getUserRole().getUserRoleList().name(),
                     accessToken,
                     refreshToken,
                     user.isVerified(),
-                    user.isProfileComplete()
+                    user.isProfileComplete(),
+                    user.getDateOfBirth(),
+                    user.getAge(),
+                    user.getDocument(),
+                    user.getPhone(),
+                    user.getCity(),
+                    user.getDepartment(),
+                    user.getCountry(),
+                    user.getDescription(),
+                    user.getImages(),
+                    user.getMainImage(),
+                    user.getUserCategoryInterest() != null ?
+                            user.getUserCategoryInterest().getCategoryInterestEnum().name() : null,
+                    user.getCreatedAt(),
+                    user.getLastActive(),
+                    user.getAvailableAttempts(),
+                    user.getProfileViews(),
+                    user.getLikesReceived(),
+                    user.getMatchesCount(),
+                    user.getTagNames()
             );
         } catch (Exception e) {
             logger.error("Error al generar tokens para usuario {}: {}", user.getEmail(), e.getMessage(), e);
@@ -1037,7 +1056,7 @@ public class AuthService {
      * Actualiza solo el campo lastActive sin activar validaciones
      */
     @Transactional
-    private void updateUserLastActive(User user) {
+    void updateUserLastActive(User user) {
         try {
             LocalDateTime now = LocalDateTime.now();
             int updated = userRepository.updateLastActive(user.getId(), now, now);

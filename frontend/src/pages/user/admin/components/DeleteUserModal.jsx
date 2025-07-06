@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
-import { useAuth } from '@context/AuthContext'
-import { deleteUser } from '@services/userService'
+import useAuth from '@hooks/useAuth.js'
+import useUser from '@hooks/useUser.js'
 
 const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
   const { user: currentUser } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
+  const { deleteUser, submitting } = useUser()
   const [error, setError] = useState(null)
 
   // Verificar si se puede eliminar el usuario
@@ -32,27 +32,18 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     }
 
     try {
-      setIsLoading(true)
       setError(null)
 
-      await deleteUser(userData.email)
-      onSuccess?.()
-      onClose()
+      const result = await deleteUser(userData.email)
+      if (result.success) {
+        onSuccess?.()
+        onClose()
+      } else {
+        setError(result.error || 'Error al eliminar el usuario')
+      }
     } catch (error) {
       console.error('Error al eliminar usuario:', error)
-      let errorMessage = 'Error al eliminar el usuario'
-
-      if (error.message.includes('foreign key constraint fails')) {
-        errorMessage = 'No se puede eliminar el usuario porque tiene datos asociados. Por favor, inténtelo de nuevo.'
-      } else if (error.message.includes('después de múltiples intentos')) {
-        errorMessage = 'No se pudo eliminar el usuario. Por favor, inténtelo más tarde.'
-      } else {
-        errorMessage = error.message
-      }
-
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
+      setError(error.message || 'Error al eliminar el usuario')
     }
   }
 
@@ -79,10 +70,10 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
           {error && <p className="text-danger text-sm mt-2">{error}</p>}
         </ModalBody>
         <ModalFooter>
-          <Button color="default" variant="light" onPress={onClose} disabled={isLoading}>
+          <Button color="default" variant="light" onPress={onClose} disabled={submitting}>
             Cancelar
           </Button>
-          <Button color="danger" onPress={handleDelete} disabled={isLoading || !canDeleteUser()} isLoading={isLoading}>
+          <Button color="danger" onPress={handleDelete} disabled={submitting || !canDeleteUser()} isLoading={submitting}>
             Eliminar
           </Button>
         </ModalFooter>

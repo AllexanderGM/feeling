@@ -16,6 +16,7 @@ import LoadData from '@components/layout/LoadData.jsx'
 // Utils
 import { completeProfileSchema, getFieldsForStep } from '@utils/formSchemas.js'
 import { APP_PATHS } from '@constants/paths.js'
+import { ArrowLeft, Check, ArrowRight } from 'lucide-react'
 
 import StepBasicInfo from './components/StepBasicInfo.jsx'
 import StepPreferences from './components/StepPreferences.jsx'
@@ -272,7 +273,7 @@ const CompleteProfile = () => {
             onPress={stepActions.prevStep}
             isDisabled={stepInfo.isFirst}
             radius="full"
-            startContent={<span className="material-symbols-outlined">arrow_back</span>}>
+            startContent={<ArrowLeft />}>
             Anterior
           </Button>
 
@@ -295,15 +296,11 @@ const CompleteProfile = () => {
               isLoading={submitting}
               isDisabled={!isValid && import.meta.env.MODE === 'production'}
               radius="full"
-              endContent={!submitting && <span className="material-symbols-outlined">check</span>}>
+              endContent={!submitting && <Check />}>
               {submitting ? 'Completando...' : 'Completar'}
             </Button>
           ) : (
-            <Button
-              color="default"
-              onPress={stepActions.nextStep}
-              radius="full"
-              endContent={<span className="material-symbols-outlined">arrow_forward</span>}>
+            <Button color="default" onPress={stepActions.nextStep} radius="full" endContent={<ArrowRight />}>
               Siguiente
             </Button>
           )}

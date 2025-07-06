@@ -402,7 +402,26 @@ public class User implements UserDetails {
     }
 
     public String getMainImage() {
-        return images != null && !images.isEmpty() ? images.get(0) : null;
+        // Prioritize user-uploaded images over external avatar URL
+        if (images != null && !images.isEmpty()) {
+            // If there's an external avatar URL, skip it and look for user-uploaded images
+            if (externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty()) {
+                // Find the first image that is not the external avatar
+                for (String image : images) {
+                    if (!image.equals(externalAvatarUrl)) {
+                        return image; // Return first user-uploaded image
+                    }
+                }
+                // If all images are external avatars, return the external avatar
+                return externalAvatarUrl;
+            } else {
+                // No external avatar, return first image
+                return images.get(0);
+            }
+        }
+        
+        // Fallback to external avatar URL if no user-uploaded images
+        return externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty() ? externalAvatarUrl : null;
     }
 
     public boolean hasActiveAttempts() {

@@ -1,8 +1,23 @@
 import { useState } from 'react'
 import { Card, CardHeader, CardBody, CardFooter, Button, Input, Textarea, Accordion, AccordionItem, Spinner } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { FaFacebookF, FaInstagram, FaWhatsapp, FaGithub } from 'react-icons/fa'
-import { MdOutlineMailOutline, MdOutlinePhone } from 'react-icons/md'
+import {
+  Facebook,
+  Instagram,
+  MessageCircle,
+  Github,
+  Mail,
+  Phone,
+  User,
+  FileText,
+  Send,
+  CheckCircle,
+  AlertCircle,
+  Contact,
+  Share,
+  Headphones,
+  HelpCircle
+} from 'lucide-react'
 
 import './contactPage.scss'
 
@@ -130,12 +145,12 @@ const ContactPage = () => {
 
   const contactInfo = [
     {
-      icon: <MdOutlinePhone className="text-2xl text-red-500" />,
+      icon: <Phone className="text-2xl text-red-500" />,
       title: 'Teléfono',
       content: '+57 305 332 8285'
     },
     {
-      icon: <MdOutlineMailOutline className="text-2xl text-red-500" />,
+      icon: <Mail className="text-2xl text-red-500" />,
       title: 'Email',
       content: 'preguntepues.glocal@gmail.com'
     }
@@ -183,7 +198,7 @@ const ContactPage = () => {
                     isInvalid={!!errors.name}
                     errorMessage={errors.name}
                     variant="bordered"
-                    startContent={<span className="material-symbols-outlined text-gray-400">person</span>}
+                    startContent={<User className="text-gray-400" />}
                   />
 
                   <Input
@@ -196,7 +211,7 @@ const ContactPage = () => {
                     isInvalid={!!errors.email}
                     errorMessage={errors.email}
                     variant="bordered"
-                    startContent={<span className="material-symbols-outlined text-gray-400">mail</span>}
+                    startContent={<Mail className="text-gray-400" />}
                   />
 
                   <Input
@@ -209,7 +224,7 @@ const ContactPage = () => {
                     isInvalid={!!errors.subject}
                     errorMessage={errors.subject}
                     variant="bordered"
-                    startContent={<span className="material-symbols-outlined text-gray-400">subject</span>}
+                    startContent={<FileText className="text-gray-400" />}
                   />
 
                   <Textarea
@@ -230,18 +245,13 @@ const ContactPage = () => {
                         submitStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                       }`}>
                       <div className="flex items-start gap-2">
-                        <span className="material-symbols-outlined">{submitStatus.type === 'success' ? 'check_circle' : 'error'}</span>
+                        {submitStatus.type === 'success' ? <CheckCircle /> : <AlertCircle />}
                         <span>{submitStatus.message}</span>
                       </div>
                     </div>
                   )}
 
-                  <Button
-                    type="submit"
-                    color="primary"
-                    className="w-full"
-                    disabled={isSubmitting}
-                    startContent={!isSubmitting && <span className="material-symbols-outlined">send</span>}>
+                  <Button type="submit" color="primary" className="w-full" disabled={isSubmitting} startContent={!isSubmitting && <Send />}>
                     {isSubmitting ? (
                       <>
                         <Spinner size="sm" color="white" className="mr-2" />
@@ -261,7 +271,7 @@ const ContactPage = () => {
             <Card className="w-full mb-6">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg text-primary">contact_page</span>
+                  <Contact className="text-lg text-primary" />
                   <h2 className="text-xl font-bold text-gray-800">Información de contacto</h2>
                 </div>
               </CardHeader>
@@ -284,7 +294,7 @@ const ContactPage = () => {
             <Card className="w-full">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-xl text-primary">share</span>
+                  <Share className="text-xl text-primary" />
                   <h2 className="text-xl font-bold text-gray-800">Nuestras redes sociales</h2>
                 </div>
               </CardHeader>
@@ -300,7 +310,7 @@ const ContactPage = () => {
                     variant="light"
                     aria-label="Facebook"
                     className="bg-blue-100">
-                    <FaFacebookF className="text-blue-600" />
+                    <Facebook className="text-blue-600" />
                   </Button>
                   <Button
                     as="a"
@@ -312,7 +322,7 @@ const ContactPage = () => {
                     variant="light"
                     aria-label="Instagram"
                     className="bg-pink-100">
-                    <FaInstagram className="text-pink-600" />
+                    <Instagram className="text-pink-600" />
                   </Button>
                   <Button
                     as="a"
@@ -324,7 +334,7 @@ const ContactPage = () => {
                     variant="light"
                     aria-label="GitHub"
                     className="bg-gray-100">
-                    <FaGithub className="text-gray-600" />
+                    <Github className="text-gray-600" />
                   </Button>
                   <Button
                     as="a"
@@ -336,7 +346,7 @@ const ContactPage = () => {
                     variant="light"
                     aria-label="WhatsApp"
                     className="bg-green-100">
-                    <FaWhatsapp className="text-green-600" />
+                    <MessageCircle className="text-green-600" />
                   </Button>
                 </div>
               </CardBody>
@@ -346,7 +356,7 @@ const ContactPage = () => {
             <Card className="w-full">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-xl text-primary">support_agent</span>
+                  <Headphones className="text-xl text-primary" />
                   <h2 className="text-xl font-bold text-gray-800">Asistencia 24/7</h2>
                 </div>
               </CardHeader>
@@ -378,7 +388,7 @@ const ContactPage = () => {
                   key={index}
                   aria-label={item.title}
                   title={item.title}
-                  startContent={<span className="material-symbols-outlined text-primary">help</span>}>
+                  startContent={<HelpCircle className="text-primary" />}>
                   <div className="px-2 py-1">
                     <p className="text-gray-700">{item.content}</p>
                   </div>

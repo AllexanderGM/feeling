@@ -3,12 +3,12 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, 
 import { useAuth } from '@context/AuthContext.jsx'
 import { getAllUsers, getUserByEmail } from '@services/userService'
 
-import GenericTableControls from './GenericTableControls.jsx'
-import TableActionCell from './TableActionCell.jsx'
-import TablePagination from './TablePagination.jsx'
-import CrearUserForm from './CrearUserForm.jsx'
-import EditarUserForm from './EditarUserForm.jsx'
-import DeleteUserModal from './DeleteUserModal.jsx'
+import GenericTableControls from './ui/GenericTableControls.jsx'
+import TableActionCell from './ui/TableActionCell.jsx'
+import TablePagination from './ui/TablePagination.jsx'
+import CrearUserForm from '../pages/user/admin/components/CrearUserForm.jsx'
+import EditarUserForm from '../pages/user/admin/components/EditarUserForm.jsx'
+import DeleteUserModal from '../pages/user/admin/components/DeleteUserModal.jsx'
 import { USER_ROLES, USER_ROLE_COLORS, USER_COLUMNS } from '../constants/tableConstants.js'
 
 const TableUsers = () => {

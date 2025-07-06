@@ -9,6 +9,7 @@ import { loginSchema } from '@utils/formSchemas'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { Mail, Lock } from 'lucide-react'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ const Login = () => {
       }
     },
     onError: () => setIsGoogleAuthenticating(false),
+    onNonOAuthError: () => setIsGoogleAuthenticating(false),
     flow: 'implicit'
   })
 
@@ -85,6 +87,7 @@ const Login = () => {
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
               isDisabled={loading || isGoogleAuthenticating}
+              startContent={<Mail className="text-gray-400 w-4 h-5" />}
             />
           )}
         />
@@ -104,6 +107,7 @@ const Login = () => {
               isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
               isDisabled={loading || isGoogleAuthenticating}
+              startContent={<Lock className="text-gray-400 w-4 h-5" />}
             />
           )}
         />

@@ -25,14 +25,23 @@ export const APP_PATHS = {
     EVENTS: '/events',
     MATCHES: '/matches',
     SEARCH: '/search',
-    FAVORITES: '/favorites'
+    FAVORITES: '/favorites',
+    NOTIFICATIONS: '/notifications'
+  },
+
+  GENERAL: {
+    ABOUT: '/about',
+    CONTACT: '/contact',
+    HELP: '/help'
   },
 
   ADMIN: {
     ROOT: '/admin',
     USERS: '/admin/users',
     EVENTS: '/admin/events',
-    STATS: '/admin/statistics'
+    STATS: '/admin/statistics',
+    REQUESTS: '/admin/claims',
+    SETTINGS: '/admin/configuration'
   },
 
   LEGAL: {

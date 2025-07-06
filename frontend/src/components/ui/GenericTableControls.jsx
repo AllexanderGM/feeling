@@ -1,8 +1,8 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
+import { Search, ChevronDown, Plus } from 'lucide-react'
 
-import { SearchIcon, ChevronDownIcon, PlusIcon } from '../utils/icons.jsx'
-import { ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants.js'
-import { capitalize } from '../utils/capitalize.js'
+import { ROWS_PER_PAGE_OPTIONS } from '../../constants/tableConstants.js'
+import { capitalize } from '../../utils/capitalize.js'
 
 const GenericTableControls = ({
   filterValue,
@@ -43,7 +43,7 @@ const GenericTableControls = ({
           isClearable
           className="w-full sm:max-w-[44%]"
           placeholder={filterPlaceholder}
-          startContent={<SearchIcon />}
+          startContent={<Search />}
           value={filterValue}
           onClear={onClear}
           onValueChange={onSearchChange}
@@ -60,7 +60,7 @@ const GenericTableControls = ({
           {showFilters && (
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
                   {filterLabel}
                 </Button>
               </DropdownTrigger>
@@ -82,7 +82,7 @@ const GenericTableControls = ({
           )}
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
-              <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+              <Button endContent={<ChevronDown className="text-small" />} variant="flat">
                 Columnas
               </Button>
             </DropdownTrigger>
@@ -101,7 +101,7 @@ const GenericTableControls = ({
               ))}
             </DropdownMenu>
           </Dropdown>
-          <Button color="primary" endContent={<PlusIcon />} onPress={onCreateItem}>
+          <Button color="primary" endContent={<Plus />} onPress={onCreateItem}>
             {createButtonLabel}
           </Button>
         </div>

@@ -1,5 +1,5 @@
 import { Card, CardBody, CardHeader, Avatar, Button } from '@heroui/react'
-import { FaGithub, FaLinkedin } from 'react-icons/fa'
+import { Github, Linkedin } from 'lucide-react'
 import Diego from '@assets/perfiles/Diego.jpeg'
 import Alejandra from '@assets/perfiles/Alejandra.jpeg'
 import Kevin from '@assets/perfiles/Kevin.jpeg'
@@ -112,7 +112,7 @@ const AboutPage = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2">
-                    <FaGithub className="text-lg" />
+                    <Github className="text-lg" />
                   </Button>
                   <Button
                     isIconOnly
@@ -124,7 +124,7 @@ const AboutPage = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2">
-                    <FaLinkedin className="text-lg" />
+                    <Linkedin className="text-lg" />
                   </Button>
                 </div>
               </CardBody>

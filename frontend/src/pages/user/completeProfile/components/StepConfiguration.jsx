@@ -1,6 +1,7 @@
 import { useCallback, useMemo, memo } from 'react'
 import { Switch, Avatar, Card, CardBody, Chip, Divider } from '@heroui/react'
 import { Controller } from 'react-hook-form'
+import { User, MapPin, Images, Briefcase, Ruler, Building, Calendar, Heart, MessageCircle, Share, Info } from 'lucide-react'
 
 const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, categoryOptions }) => {
   // ========================================
@@ -203,7 +204,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
                 src={profileImageUrl}
                 className="w-20 h-20 ring-2 ring-primary-500"
                 isBordered
-                fallback={<span className="material-symbols-outlined text-4xl text-gray-400">account_circle</span>}
+                fallback={<User className="text-4xl text-gray-400" />}
               />
               {categoryInterest && selectedCategory && (
                 <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center border-2 border-gray-600">
@@ -222,7 +223,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
 
               {showLocation && city && (
                 <div className="flex items-center gap-1 text-gray-400 text-sm mb-2">
-                  <span className="material-symbols-outlined text-sm">location_on</span>
+                  <MapPin className="text-sm" />
                   <span>
                     {city}, {country}
                   </span>
@@ -252,7 +253,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           {allImages.length > 1 && (
             <div className="mb-4">
               <p className="text-gray-400 text-xs mb-2">
-                <span className="material-symbols-outlined text-primary-400 text-sm">photo_library</span> Fotos ({allImages.length})
+                <Images className="text-primary-400 text-sm" /> Fotos ({allImages.length})
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {allImages.slice(1, 5).map((image, index) => (
@@ -266,14 +267,14 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
             {profession && (
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400 text-sm">business_center</span>
+                <Briefcase className="text-gray-400 text-sm" />
                 <span className="text-gray-300">{profession}</span>
               </div>
             )}
 
             {height && (
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400 text-sm">straighten</span>
+                <Ruler className="text-gray-400 text-sm" />
                 <span className="text-gray-300">{height} cm</span>
               </div>
             )}
@@ -304,7 +305,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               <p className="text-gray-400 text-xs mb-2">Información espiritual</p>
               {church && (
                 <div className="flex items-center gap-2 mb-2 text-sm">
-                  <span className="material-symbols-outlined text-gray-400 text-sm">account_balance</span>
+                  <Building className="text-gray-400 text-sm" />
                   <span className="text-gray-300">{church}</span>
                 </div>
               )}
@@ -317,13 +318,13 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
             <p className="text-gray-400 text-xs mb-2">Preferencias</p>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400 text-xs">calendar_today</span>
+                <Calendar className="text-gray-400 text-xs" />
                 <span className="text-gray-300">
                   {agePreferenceMin || 18} - {agePreferenceMax || 50} años
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-400 text-xs">location_on</span>
+                <MapPin className="text-gray-400 text-xs" />
                 <span className="text-gray-300">{locationPreferenceRadius || 50} km</span>
               </div>
             </div>
@@ -335,9 +336,9 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           <div className="flex justify-between items-center text-xs text-gray-500">
             <span>Activo recientemente</span>
             <div className="flex gap-3">
-              <span className="material-symbols-outlined cursor-pointer hover:text-primary-400">favorite</span>
-              <span className="material-symbols-outlined cursor-pointer hover:text-primary-400">chat</span>
-              <span className="material-symbols-outlined cursor-pointer hover:text-primary-400">share</span>
+              <Heart className="cursor-pointer hover:text-primary-400" />
+              <MessageCircle className="cursor-pointer hover:text-primary-400" />
+              <Share className="cursor-pointer hover:text-primary-400" />
             </div>
           </div>
         </CardBody>
@@ -380,7 +381,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
       {/* Información final */}
       <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
         <div className="flex gap-3">
-          <span className="material-symbols-outlined text-green-400">info</span>
+          <Info className="text-green-400" />
           <div className="text-sm">
             <h4 className="text-green-400 font-medium mb-2">¡Ya casi terminamos!</h4>
             <p className="text-green-300/80">

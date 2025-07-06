@@ -1,7 +1,6 @@
 import { Tooltip } from '@heroui/react'
 import { Link } from 'react-router-dom'
-
-import { EyeIcon, EditIcon, DeleteIcon } from '../utils/icons.jsx'
+import { Eye, Edit, Trash2 } from 'lucide-react'
 
 const TableActionCell = ({
   item,
@@ -18,22 +17,22 @@ const TableActionCell = ({
       <Tooltip content={viewTooltip}>
         {viewPath ? (
           <Link to={viewPath} className="text-lg text-default-400 cursor-pointer active:opacity-50">
-            <EyeIcon />
+            <Eye />
           </Link>
         ) : (
           <span onClick={() => onView?.(item)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
-            <EyeIcon />
+            <Eye />
           </span>
         )}
       </Tooltip>
       <Tooltip content={editTooltip}>
         <span onClick={() => onEdit?.(item)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
-          <EditIcon />
+          <Edit />
         </span>
       </Tooltip>
       <Tooltip color="danger" content={deleteTooltip}>
         <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => onDelete?.(item)}>
-          <DeleteIcon />
+          <Trash2 />
         </span>
       </Tooltip>
     </div>

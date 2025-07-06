@@ -6,6 +6,7 @@ import useAuth from '@hooks/useAuth'
 import { forgotPasswordSchema } from '@utils/formSchemas'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { CheckCircle } from 'lucide-react'
 
 const ForgotPassword = () => {
   const { forgotPassword, loading } = useAuth()
@@ -40,7 +41,7 @@ const ForgotPassword = () => {
         {status === 'success' ? (
           <div className="text-center">
             <div className="text-green-400 text-6xl mb-6">
-              <span className="material-symbols-outlined text-8xl drop-shadow-lg">check_circle</span>
+              <CheckCircle className="text-8xl drop-shadow-lg" />
             </div>
             <h3 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Correo enviado!</h3>
             <p className="text-gray-300 mb-6 leading-relaxed">

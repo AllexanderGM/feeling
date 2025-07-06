@@ -7,6 +7,7 @@ import useAuth from '@hooks/useAuth'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { resetPasswordSchema } from '@utils/formSchemas'
 import { APP_PATHS } from '@constants/paths.js'
+import { CheckCircle, Eye, EyeOff } from 'lucide-react'
 
 const ResetPassword = () => {
   const { token } = useParams()
@@ -64,7 +65,7 @@ const ResetPassword = () => {
         {status === 'success' ? (
           <div className="text-center">
             <div className="text-green-500 text-5xl mb-4">
-              <span className="material-symbols-outlined text-6xl">check_circle</span>
+              <CheckCircle className="text-6xl" />
             </div>
             <p className="text-gray-300 mb-6">
               Tu contraseña ha sido restablecida con éxito. Puedes iniciar sesión con tu nueva contraseña.
@@ -94,7 +95,7 @@ const ResetPassword = () => {
                     className="mb-4"
                     endContent={
                       <button type="button" onClick={togglePasswordVisibility} className="focus:outline-none">
-                        <span className="material-symbols-outlined">{isPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                        {isPasswordVisible ? <EyeOff /> : <Eye />}
                       </button>
                     }
                   />
@@ -119,7 +120,7 @@ const ResetPassword = () => {
                     className="mb-6"
                     endContent={
                       <button type="button" onClick={toggleConfirmPasswordVisibility} className="focus:outline-none">
-                        <span className="material-symbols-outlined">{isConfirmPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                        {isConfirmPasswordVisible ? <EyeOff /> : <Eye />}
                       </button>
                     }
                   />

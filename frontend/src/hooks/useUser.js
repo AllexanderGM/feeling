@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import useAuth from '@hooks/useAuth'
 import userService from '@services/userService.js'
 import { useError } from '@hooks/useError'
@@ -12,6 +12,17 @@ const useUser = () => {
   const { loading, submitting, withLoading, withSubmitting } = useAsyncOperation()
 
   const profile = user
+
+  // Estado para gestión de múltiples usuarios (administración)
+  const [users, setUsers] = useState([])
+  const [usersPagination, setUsersPagination] = useState({
+    page: 0,
+    size: 10,
+    totalPages: 0,
+    totalElements: 0,
+    hasNext: false,
+    hasPrevious: false
+  })
 
   // ========================================
   // HELPERS INTERNOS
@@ -174,7 +185,248 @@ const useUser = () => {
   )
 
   // ========================================
-  // VALIDACIONES Y ESTADÍSTICAS
+  // GESTIÓN DE MÚLTIPLES USUARIOS (ADMINISTRACIÓN)
+  // ========================================
+
+  const fetchUsers = useCallback(
+    async (page = 0, size = 10, searchTerm = '', showNotifications = false) => {
+      const result = await withLoading(async () => {
+        console.log('📥 Obteniendo lista de usuarios', { page, size, searchTerm })
+        const response = await userService.getAllUsers(page, size, searchTerm)
+
+        console.log('🔍 useUser: Raw API response:', response)
+        console.log('🔍 useUser: Response type:', typeof response)
+
+        // Manejar respuesta paginada del backend
+        if (response.content && Array.isArray(response.content)) {
+          setUsers(response.content)
+          setUsersPagination({
+            page: response.number || page,
+            size: response.size || size,
+            totalPages: response.totalPages || 0,
+            totalElements: response.totalElements || 0,
+            hasNext: !response.last,
+            hasPrevious: !response.first
+          })
+          console.log('✅ Lista de usuarios paginada obtenida exitosamente', {
+            users: response.content.length,
+            totalElements: response.totalElements
+          })
+          return response.content
+        } else {
+          // Fallback para respuesta no paginada
+          setUsers(response)
+          setUsersPagination({
+            page: 0,
+            size: response.length,
+            totalPages: 1,
+            totalElements: response.length,
+            hasNext: false,
+            hasPrevious: false
+          })
+          console.log('✅ Lista de usuarios obtenida exitosamente (no paginada)')
+          return response
+        }
+      }, 'obtener usuarios')
+
+      if (showNotifications) {
+        return handleApiResponse(result, 'Usuarios cargados correctamente.', { showNotifications: true })
+      }
+
+      return result
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const getUserByEmail = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withLoading(async () => {
+        console.log(`📥 Obteniendo usuario por email: ${email}`)
+        const userData = await userService.getUserByEmail(email)
+        console.log('✅ Usuario obtenido exitosamente')
+        return userData
+      }, 'obtener usuario')
+
+      return handleApiResponse(result, 'Usuario obtenido correctamente.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const createUser = useCallback(
+    async (userData, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        console.log('👤 Creando nuevo usuario:', userData.email)
+        const newUser = await userService.createUser(userData)
+
+        // Actualizar la lista local agregando el nuevo usuario
+        setUsers(prevUsers => [...prevUsers, newUser])
+
+        console.log('✅ Usuario creado exitosamente')
+        return newUser
+      }, 'crear usuario')
+
+      return handleApiResponse(result, 'Usuario creado exitosamente.', { showNotifications })
+    },
+    [withSubmitting, handleApiResponse]
+  )
+
+  const updateUserAdmin = useCallback(
+    async (email, userData, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        console.log(`🔄 Actualizando usuario: ${email}`)
+        const updatedUser = await userService.updateUserAdmin(email, userData)
+
+        // Actualizar la lista local
+        setUsers(prevUsers => prevUsers.map(user => (user.email === email ? { ...user, ...updatedUser } : user)))
+
+        console.log('✅ Usuario actualizado exitosamente')
+        return updatedUser
+      }, 'actualizar usuario')
+
+      return handleApiResponse(result, 'Usuario actualizado exitosamente.', { showNotifications })
+    },
+    [withSubmitting, handleApiResponse]
+  )
+
+  const assignAdminRole = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        console.log(`👑 Asignando rol de administrador a: ${email}`)
+        const updatedUser = await userService.assignAdminRole(email)
+
+        // Actualizar la lista local
+        setUsers(prevUsers => prevUsers.map(user => (user.email === email ? { ...user, ...updatedUser } : user)))
+
+        console.log('✅ Rol de administrador asignado exitosamente')
+        return updatedUser
+      }, 'asignar rol de administrador')
+
+      return handleApiResponse(result, 'Rol de administrador asignado exitosamente.', { showNotifications })
+    },
+    [withSubmitting, handleApiResponse]
+  )
+
+  const revokeAdminRole = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        console.log(`👤 Revocando rol de administrador a: ${email}`)
+        const updatedUser = await userService.revokeAdminRole(email)
+
+        // Actualizar la lista local
+        setUsers(prevUsers => prevUsers.map(user => (user.email === email ? { ...user, ...updatedUser } : user)))
+
+        console.log('✅ Rol de administrador revocado exitosamente')
+        return updatedUser
+      }, 'revocar rol de administrador')
+
+      return handleApiResponse(result, 'Rol de administrador revocado exitosamente.', { showNotifications })
+    },
+    [withSubmitting, handleApiResponse]
+  )
+
+  const deleteUser = useCallback(
+    async (email, showNotifications = true) => {
+      const result = await withSubmitting(async () => {
+        console.log(`🗑️ Eliminando usuario: ${email}`)
+        await userService.deleteUser(email)
+
+        // Actualizar la lista local eliminando el usuario
+        setUsers(prevUsers => prevUsers.filter(user => user.email !== email))
+
+        console.log('✅ Usuario eliminado exitosamente')
+        return { email }
+      }, 'eliminar usuario')
+
+      return handleApiResponse(result, 'Usuario eliminado exitosamente.', { showNotifications })
+    },
+    [withSubmitting, handleApiResponse]
+  )
+
+  const refreshUsers = useCallback(
+    async (page, size, searchTerm) => {
+      return await fetchUsers(page, size, searchTerm, false)
+    },
+    [fetchUsers]
+  )
+
+  const filterUsers = useCallback(
+    (searchTerm = '', currentUser = null) => {
+      if (!users.length) return []
+
+      let filteredUsers = users.filter(user => {
+        // El usuario actual nunca debe verse a sí mismo
+        if (user.email === currentUser?.email) return false
+
+        // Si es superadmin, ve a todos excepto a sí mismo
+        if (currentUser?.isSuperAdmin) return true
+
+        // Si es admin regular: Solo ve a clientes regulares
+        if (currentUser?.isAdmin) {
+          return user.role !== 'ADMIN' && user.email !== 'admin@admin.com'
+        }
+
+        return false
+      })
+
+      // Aplicar filtro de búsqueda si existe
+      if (searchTerm.trim()) {
+        const search = searchTerm.toLowerCase()
+        filteredUsers = filteredUsers.filter(
+          user =>
+            (`${user.name} ${user.lastName}`.toLowerCase() || '').includes(search) ||
+            (user.email?.toLowerCase() || '').includes(search) ||
+            (user.role?.toLowerCase() || '').includes(search) ||
+            (user.username?.toLowerCase() || '').includes(search)
+        )
+      }
+
+      return filteredUsers
+    },
+    [users]
+  )
+
+  const getUserStats = useCallback(() => {
+    if (!users.length)
+      return {
+        total: 0,
+        admins: 0,
+        users: 0,
+        verified: 0,
+        unverified: 0
+      }
+
+    const stats = users.reduce(
+      (acc, user) => {
+        acc.total++
+
+        if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+          acc.admins++
+        } else {
+          acc.users++
+        }
+
+        if (user.verified) {
+          acc.verified++
+        } else {
+          acc.unverified++
+        }
+
+        return acc
+      },
+      {
+        total: 0,
+        admins: 0,
+        users: 0,
+        verified: 0,
+        unverified: 0
+      }
+    )
+
+    return stats
+  }, [users])
+
+  // ========================================
+  // VALIDACIONES Y ESTADÍSTICAS DEL PERFIL PERSONAL
   // ========================================
 
   const getProfileStats = useCallback(() => {
@@ -222,7 +474,6 @@ const useUser = () => {
     if (!profile) return true
     return !profile.profileComplete || !isProfileComplete()
   }, [profile, isProfileComplete])
-
   // ========================================
   // API PÚBLICA DEL HOOK
   // ========================================
@@ -233,17 +484,32 @@ const useUser = () => {
     submitting,
     user,
 
-    // Métodos principales
+    // Métodos principales (perfil personal)
     completeUser,
     updateUser,
     fetchProfile,
     uploadProfileImage,
     updateUserPreferences,
 
-    // Validaciones y estadísticas
+    // Validaciones y estadísticas (perfil personal)
     getProfileStats,
     isProfileComplete,
     needsProfileCompletion,
+
+    // Gestión de múltiples usuarios (administración)
+    users,
+    usersPagination,
+    fetchUsers,
+    getUserByEmail,
+    createUser,
+    updateUserAdmin,
+    assignAdminRole,
+    revokeAdminRole,
+    deleteUser,
+    refreshUsers,
+    filterUsers,
+    getUserStats,
+    setUsers,
 
     // Utilidades
     formatFormDataToApi

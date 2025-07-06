@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +57,20 @@ public class UserService {
         return users.stream()
                 .map(UserResponseDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    public Page<UserResponseDTO> getListPaginated(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        logger.info("Usuarios paginados encontrados correctamente - Página: {}, Tamaño: {}, Total: {}", 
+                   pageable.getPageNumber(), pageable.getPageSize(), users.getTotalElements());
+        return users.map(UserResponseDTO::new);
+    }
+
+    public Page<UserResponseDTO> searchUsers(String searchTerm, Pageable pageable) {
+        Page<User> users = userRepository.findBySearchTerm(searchTerm, pageable);
+        logger.info("Búsqueda de usuarios completada - Término: '{}', Página: {}, Resultados: {}", 
+                   searchTerm, pageable.getPageNumber(), users.getTotalElements());
+        return users.map(UserResponseDTO::new);
     }
 
 

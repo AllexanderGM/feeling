@@ -74,6 +74,98 @@ $opacity-low: 0.2;
     @include ellipse-base(70vh, 70vh);
     @include gradient-circle($rouse, $purple);
   }
+
+  // Orbes de luz adicionales más sutiles
+  .light-orb-1 {
+    position: fixed;
+    top: 20%;
+    left: 25%;
+    width: 15vh;
+    height: 15vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($spirit, 0.25) 0%, rgba($purple, 0.15) 40%, transparent 70%);
+    filter: blur($blur-medium);
+    opacity: $opacity-low;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-1 ($animation-duration-medium + 2s) $animation-timing $animation-iteration $animation-direction;
+  }
+
+  .light-orb-2 {
+    position: fixed;
+    bottom: 25%;
+    right: 15%;
+    width: 12vh;
+    height: 12vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($rouse, 0.3) 0%, rgba($spirit, 0.18) 50%, transparent 75%);
+    filter: blur($blur-light);
+    opacity: $opacity-medium;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-2 $animation-duration-fast $animation-timing $animation-iteration $animation-direction;
+  }
+
+  .light-orb-3 {
+    position: fixed;
+    top: 60%;
+    left: 70%;
+    width: 8vh;
+    height: 8vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($purple, 0.35) 0%, rgba($rouse, 0.2) 60%, transparent 80%);
+    filter: blur($blur-light * 0.8);
+    opacity: $opacity-low + 0.1;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-3 ($animation-duration-slow - 2s) $animation-timing $animation-iteration $animation-direction;
+  }
+
+  .light-orb-4 {
+    position: fixed;
+    top: 15%;
+    right: 40%;
+    width: 18vh;
+    height: 18vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($spirit, 0.2) 0%, rgba($purple, 0.12) 30%, transparent 65%);
+    filter: blur($blur-heavy);
+    opacity: $opacity-low - 0.05;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-4 ($animation-duration-medium + 5s) $animation-timing $animation-iteration $animation-direction;
+  }
+
+  // Orbes de luz adicionales
+  .light-orb-5 {
+    position: fixed;
+    top: 10%;
+    left: 15%;
+    width: 10vh;
+    height: 10vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($purple, 0.28) 0%, rgba($spirit, 0.16) 45%, transparent 75%);
+    filter: blur($blur-light);
+    opacity: $opacity-medium;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-5 ($animation-duration-fast + 3s) $animation-timing $animation-iteration $animation-direction;
+  }
+
+  .light-orb-6 {
+    position: fixed;
+    bottom: 10%;
+    right: 35%;
+    width: 6vh;
+    height: 6vh;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, rgba($rouse, 0.32) 0%, rgba($purple, 0.2) 50%, transparent 80%);
+    filter: blur($blur-light * 0.7);
+    opacity: $opacity-low + 0.08;
+    z-index: 1;
+    pointer-events: none;
+    animation: float-orb-6 ($animation-duration-medium - 1s) $animation-timing $animation-iteration $animation-direction;
+  }
 }
 
 // Animación para la elipse superior
@@ -108,6 +200,98 @@ $opacity-low: 0.2;
   }
 }
 
+// Animaciones para los orbes de luz
+@keyframes float-orb-1 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-low;
+  }
+  50% {
+    transform: translateX(5%) translateY(-3%) scale(1.1);
+    opacity: $opacity-medium;
+  }
+  100% {
+    transform: translateX(-3%) translateY(2%) scale(0.9);
+    opacity: $opacity-low + 0.05;
+  }
+}
+
+@keyframes float-orb-2 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-medium;
+  }
+  50% {
+    transform: translateX(-4%) translateY(6%) scale(1.15);
+    opacity: $opacity-high;
+  }
+  100% {
+    transform: translateX(2%) translateY(-4%) scale(0.85);
+    opacity: $opacity-low + 0.1;
+  }
+}
+
+@keyframes float-orb-3 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-low + 0.1;
+  }
+  50% {
+    transform: translateX(3%) translateY(-5%) scale(1.2);
+    opacity: $opacity-high;
+  }
+  100% {
+    transform: translateX(-2%) translateY(3%) scale(0.8);
+    opacity: $opacity-medium;
+  }
+}
+
+@keyframes float-orb-4 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-low - 0.05;
+  }
+  50% {
+    transform: translateX(-2%) translateY(4%) scale(1.05);
+    opacity: $opacity-low + 0.1;
+  }
+  100% {
+    transform: translateX(1%) translateY(-2%) scale(0.95);
+    opacity: $opacity-low;
+  }
+}
+
+// Animaciones para los nuevos orbes
+@keyframes float-orb-5 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-medium;
+  }
+  50% {
+    transform: translateX(-6%) translateY(4%) scale(1.08);
+    opacity: $opacity-high;
+  }
+  100% {
+    transform: translateX(3%) translateY(-2%) scale(0.92);
+    opacity: $opacity-low + 0.12;
+  }
+}
+
+@keyframes float-orb-6 {
+  0% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: $opacity-low + 0.08;
+  }
+  50% {
+    transform: translateX(4%) translateY(-5%) scale(1.12);
+    opacity: $opacity-medium + 0.05;
+  }
+  100% {
+    transform: translateX(-2%) translateY(3%) scale(0.88);
+    opacity: $opacity-low + 0.15;
+  }
+}
+
 // Media queries para responsividad
 @media (max-width: 1200px) {
   .background-container {
@@ -121,6 +305,31 @@ $opacity-low: 0.2;
       width: 70vh;
       height: 70vh;
       left: -40%;
+    }
+
+    .light-orb-1 {
+      width: 12vh;
+      height: 12vh;
+    }
+    .light-orb-2 {
+      width: 10vh;
+      height: 10vh;
+    }
+    .light-orb-3 {
+      width: 6vh;
+      height: 6vh;
+    }
+    .light-orb-4 {
+      width: 15vh;
+      height: 15vh;
+    }
+    .light-orb-5 {
+      width: 8vh;
+      height: 8vh;
+    }
+    .light-orb-6 {
+      width: 5vh;
+      height: 5vh;
     }
   }
 }
@@ -138,6 +347,37 @@ $opacity-low: 0.2;
       height: 50vh;
       left: -30%;
     }
+
+    .light-orb-1 {
+      width: 10vh;
+      height: 10vh;
+      opacity: 0.15;
+    }
+    .light-orb-2 {
+      width: 8vh;
+      height: 8vh;
+      opacity: 0.25;
+    }
+    .light-orb-3 {
+      width: 5vh;
+      height: 5vh;
+      opacity: 0.2;
+    }
+    .light-orb-4 {
+      width: 12vh;
+      height: 12vh;
+      opacity: 0.1;
+    }
+    .light-orb-5 {
+      width: 7vh;
+      height: 7vh;
+      opacity: 0.2;
+    }
+    .light-orb-6 {
+      width: 4vh;
+      height: 4vh;
+      opacity: 0.18;
+    }
   }
 }
 
@@ -152,6 +392,35 @@ $opacity-low: 0.2;
     .bottom-ellipse {
       width: 45vh;
       height: 45vh;
+    }
+
+    .light-orb-1 {
+      width: 8vh;
+      height: 8vh;
+      opacity: 0.1;
+    }
+    .light-orb-2 {
+      width: 6vh;
+      height: 6vh;
+      opacity: 0.2;
+    }
+    .light-orb-3 {
+      display: none;
+    }
+    .light-orb-4 {
+      width: 10vh;
+      height: 10vh;
+      opacity: 0.08;
+    }
+    .light-orb-5 {
+      width: 5vh;
+      height: 5vh;
+      opacity: 0.15;
+    }
+    .light-orb-6 {
+      width: 3vh;
+      height: 3vh;
+      opacity: 0.12;
     }
   }
 }

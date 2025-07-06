@@ -12,6 +12,7 @@ import {
   EmailIcon
 } from 'react-share'
 import { Button, Popover, PopoverTrigger, PopoverContent, Tooltip } from '@heroui/react'
+import { Share, Check, Copy } from 'lucide-react'
 
 const ShareButtons = ({ tour, currentUrl }) => {
   // Estados para controlar la visibilidad y mensajes de éxito
@@ -38,12 +39,7 @@ const ShareButtons = ({ tour, currentUrl }) => {
     <div className="flex flex-col items-start">
       <Popover placement="bottom">
         <PopoverTrigger>
-          <Button
-            isIconOnly
-            color="primary"
-            variant="light"
-            startContent={<span className="material-symbols-outlined">share</span>}
-            className="mb-0"></Button>
+          <Button isIconOnly color="primary" variant="light" startContent={<Share />} className="mb-0"></Button>
         </PopoverTrigger>
         <PopoverContent>
           <div className="p-2">
@@ -75,7 +71,7 @@ const ShareButtons = ({ tour, currentUrl }) => {
                 <input type="text" value={shareUrl} readOnly className="flex-grow p-2 text-sm border rounded-l-md bg-gray-50" />
                 <Tooltip content={copied ? '¡Enlace copiado!' : 'Copiar enlace'}>
                   <Button color={copied ? 'success' : 'primary'} onPress={handleCopyLink} className="rounded-l-none h-full">
-                    <span className="material-symbols-outlined">{copied ? 'check' : 'content_copy'}</span>
+                    {copied ? <Check /> : <Copy />}
                   </Button>
                 </Tooltip>
               </div>

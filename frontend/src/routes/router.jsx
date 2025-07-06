@@ -6,6 +6,7 @@ import App from '@routes/App.jsx'
 import Welcome from '@pages/general/Welcome'
 import NotFound from '@pages/general/NotFound'
 import ApiStatus from '@pages/general/ApiStatus'
+import ContactPage from '@pages/general/ContactPage'
 // Páginas de autenticación
 import Login from '@pages/auth/Login'
 import Register from '@pages/auth/Register'
@@ -17,6 +18,8 @@ import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
 import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
 import Home from '@pages/home/Home.jsx'
+// Páginas de administración
+import UsersManagement from '@pages/user/admin/UsersManagement.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -50,6 +53,179 @@ const router = createBrowserRouter([
               <RequireCompleteProfile>
                 <Home />
               </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.MATCHES.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Página de Matches - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.SEARCH.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Búsqueda de Usuarios - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.EVENTS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Eventos - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PROFILE.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Mi Perfil - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PROFILE_BY_ID.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Ver Perfil de Usuario - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.SETTINGS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Configuración - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.FAVORITES.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div>Favoritos - Por implementar</div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.NOTIFICATIONS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <div className="max-w-4xl mx-auto p-6">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Notificaciones</h1>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                      <p className="text-blue-800">📱 Sistema de notificaciones por implementar</p>
+                      <p className="text-blue-600 text-sm mt-2">Próximamente podrás ver todas tus notificaciones aquí:</p>
+                      <ul className="text-blue-600 text-sm mt-3 space-y-1">
+                        <li>• Nuevos matches</li>
+                        <li>• Mensajes recibidos</li>
+                        <li>• Actualizaciones del sistema</li>
+                        <li>• Recordatorios de eventos</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.WELCOME_ONBOARDING.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <WelcomeOnboarding />
+              </RequireCompleteProfile>
+            )
+          },
+
+          // ========================================
+          // RUTAS ADMINISTRATIVAS
+          // ========================================
+          {
+            path: APP_PATHS.ADMIN.ROOT.slice(1),
+            element: (
+              <RequireAdmin>
+                <div>Dashboard de Administración - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.USERS.slice(1),
+            element: (
+              <RequireAdmin>
+                <UsersManagement />
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.EVENTS.slice(1),
+            element: (
+              <RequireAdmin>
+                <div>Gestión de Eventos - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.REQUESTS.slice(1),
+            element: (
+              <RequireAdmin>
+                <div>Gestión de PQR (Peticiones, Quejas y Reclamos) - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.SETTINGS.slice(1),
+            element: (
+              <RequireAdmin>
+                <div>Configuración de la Plataforma - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+
+          // ========================================
+          // RUTAS GENERALES (Accesibles para usuarios autenticados)
+          // ========================================
+          {
+            path: 'contact',
+            element: (
+              <RequireAuthOnly>
+                <ContactPage />
+              </RequireAuthOnly>
+            )
+          },
+          {
+            path: 'help',
+            element: (
+              <RequireAuthOnly>
+                <div className="max-w-4xl mx-auto p-6">
+                  <div className="text-center">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Centro de Ayuda</h1>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                      <p className="text-green-800">❓ Centro de ayuda por implementar</p>
+                      <p className="text-green-600 text-sm mt-2">Próximamente encontrarás aquí:</p>
+                      <ul className="text-green-600 text-sm mt-3 space-y-1">
+                        <li>• Preguntas frecuentes (FAQ)</li>
+                        <li>• Tutoriales paso a paso</li>
+                        <li>• Guías de uso de la plataforma</li>
+                        <li>• Videos explicativos</li>
+                        <li>• Contacto con soporte técnico</li>
+                      </ul>
+                      <div className="mt-4 pt-4 border-t border-green-300">
+                        <p className="text-green-700 text-sm font-medium">Mientras tanto, puedes contactarnos directamente:</p>
+                        <a
+                          href="/contact"
+                          className="inline-block mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                          Ir a Contacto
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </RequireAuthOnly>
             )
           },
 
@@ -132,110 +308,6 @@ const router = createBrowserRouter([
                   <CompleteProfile />
                 </RedirectIfProfileComplete>
               </RequireVerifiedUser>
-            )
-          },
-          {
-            path: APP_PATHS.USER.WELCOME_ONBOARDING.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <WelcomeOnboarding />
-              </RequireCompleteProfile>
-            )
-          },
-
-          // ========================================
-          // RUTAS DE MATCHING Y FUNCIONALIDADES PRINCIPALES
-          // ========================================
-          {
-            path: APP_PATHS.USER.MATCHES.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Página de Matches - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.SEARCH.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Búsqueda de Usuarios - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.EVENTS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Eventos - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PROFILE.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Mi Perfil - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PROFILE_BY_ID.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Ver Perfil de Usuario - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.SETTINGS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Configuración - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.FAVORITES.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <div>Favoritos - Por implementar</div>
-              </RequireCompleteProfile>
-            )
-          },
-
-          // ========================================
-          // RUTAS ADMINISTRATIVAS
-          // ========================================
-          {
-            path: APP_PATHS.ADMIN.ROOT.slice(1),
-            element: (
-              <RequireAdmin>
-                <div>Panel de Administración - Por implementar</div>
-              </RequireAdmin>
-            )
-          },
-          {
-            path: APP_PATHS.ADMIN.USERS.slice(1),
-            element: (
-              <RequireAdmin>
-                <div>Gestión de Usuarios - Por implementar</div>
-              </RequireAdmin>
-            )
-          },
-          {
-            path: APP_PATHS.ADMIN.EVENTS.slice(1),
-            element: (
-              <RequireAdmin>
-                <div>Gestión de Eventos - Por implementar</div>
-              </RequireAdmin>
-            )
-          },
-          {
-            path: APP_PATHS.ADMIN.STATS.slice(1),
-            element: (
-              <RequireAdmin>
-                <div>Estadísticas - Por implementar</div>
-              </RequireAdmin>
             )
           },
 

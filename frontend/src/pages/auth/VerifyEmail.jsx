@@ -8,6 +8,7 @@ import { useNotification } from '@hooks/useNotification'
 import { verifyEmailSchema } from '@utils/formSchemas'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { CheckCircle, Info, Mail, ShieldCheck, RefreshCw, Clock, Lightbulb } from 'lucide-react'
 
 const VerifyEmail = () => {
   const navigate = useNavigate()
@@ -135,7 +136,7 @@ const VerifyEmail = () => {
         <div className="flex flex-col w-full space-y-6 max-w-md">
           <div className="text-center">
             <div className="text-green-400 text-6xl mb-6">
-              <span className="material-symbols-outlined text-8xl drop-shadow-lg">check_circle</span>
+              <CheckCircle className="text-8xl drop-shadow-lg" />
             </div>
             <h2 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Bienvenido a Feeling!</h2>
             <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
@@ -160,7 +161,7 @@ const VerifyEmail = () => {
         <div className="flex flex-col w-full space-y-6 max-w-md">
           <div className="text-center">
             <div className="text-green-400 text-6xl mb-6">
-              <span className="material-symbols-outlined text-8xl drop-shadow-lg">check_circle</span>
+              <CheckCircle className="text-8xl drop-shadow-lg" />
             </div>
             <h2 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Verificación Exitosa!</h2>
             <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
@@ -178,7 +179,7 @@ const VerifyEmail = () => {
           {message && (
             <div className="bg-blue-900/30 border border-blue-800/50 text-blue-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-blue-400">info</span>
+                <Info className="text-blue-400" />
                 {message}
               </div>
             </div>
@@ -214,7 +215,7 @@ const VerifyEmail = () => {
           {stateEmail && (
             <div className="mb-4 p-4 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 w-full">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary-400">email</span>
+                <Mail className="text-primary-400" />
                 <div>
                   <p className="text-xs text-gray-400">Código enviado a:</p>
                   <p className="text-white font-medium">{stateEmail}</p>
@@ -239,7 +240,7 @@ const VerifyEmail = () => {
                 errorMessage={errors.code?.message}
                 isDisabled={loading}
                 description="Código de 6 dígitos numéricos"
-                startContent={<span className="material-symbols-outlined text-gray-400 text-sm">verified_user</span>}
+                startContent={<ShieldCheck className="text-gray-400 text-sm" />}
                 onChange={e => {
                   const value = e.target.value.replace(/\D/g, '')
                   field.onChange(value)
@@ -275,14 +276,14 @@ const VerifyEmail = () => {
                   onPress={handleResendCode}
                   isLoading={resendLoading}
                   isDisabled={resendLoading}
-                  startContent={!resendLoading && <span className="material-symbols-outlined">refresh</span>}>
+                  startContent={!resendLoading && <RefreshCw />}>
                   {resendLoading ? 'Enviando...' : 'Reenviar código'}
                 </Button>
               ) : (
                 <div className="bg-gray-800/30 backdrop-blur-sm p-4 rounded-lg border border-gray-700/50">
                   <p className="text-sm text-gray-400 mb-2">Podrás solicitar un nuevo código en:</p>
                   <div className="flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-primary-400">schedule</span>
+                    <Clock className="text-primary-400" />
                     <span className="font-mono text-lg text-primary-400 font-semibold">{formatCountdown(resendCountdown)}</span>
                   </div>
                 </div>
@@ -306,7 +307,7 @@ const VerifyEmail = () => {
 
             <div className="bg-gray-800/20 backdrop-blur-sm p-4 rounded-lg border border-gray-700/30">
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-yellow-400 text-sm mt-0.5">lightbulb</span>
+                <Lightbulb className="text-yellow-400 text-sm mt-0.5" />
                 <div className="text-xs text-gray-400 leading-relaxed">
                   <p className="font-medium text-gray-300 mb-1">Consejos para la verificación:</p>
                   <ul className="space-y-1 text-gray-400">

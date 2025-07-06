@@ -1,7 +1,7 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { normalizeWords } from '@utils/normalizeWords.js'
 
-import { SearchIcon, ChevronDownIcon } from '../utils/icons.jsx'
+import { Search, ChevronDown } from 'lucide-react'
 
 const TourPageControls = ({
   filterValue,
@@ -23,7 +23,7 @@ const TourPageControls = ({
             isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Buscar tours..."
-            startContent={<SearchIcon />}
+            startContent={<Search />
             value={filterValue}
             onClear={onClear}
             onValueChange={onSearchChange}
@@ -39,7 +39,7 @@ const TourPageControls = ({
           <div className="flex gap-3">
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+                <Button endContent={<ChevronDown className="text-small" />} variant="flat">
                   Categoría
                 </Button>
               </DropdownTrigger>

@@ -1,6 +1,7 @@
 import { Spinner, Button } from '@heroui/react'
 import { useSearch } from '@context/SearchContext'
 import { useState, useEffect } from 'react'
+import { Plus, ArrowUp } from 'lucide-react'
 
 import CardMain from '../../../components/ui/CardTour.jsx'
 
@@ -94,7 +95,7 @@ const Body = () => {
             {hasMoreItems && (
               <div className="flex justify-center mt-8">
                 <Button color="primary" variant="flat" onPress={handleLoadMore} className="px-8">
-                  <span className="material-symbols-outlined mr-2">add</span>
+                  <Plus className="mr-2" />
                   Cargar más tours
                 </Button>
               </div>
@@ -117,7 +118,7 @@ const Body = () => {
           showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
         }`}
         aria-label="Volver arriba">
-        <span className="material-symbols-outlined text-2xl">arrow_upward</span>
+        <ArrowUp className="text-2xl" />
       </Button>
     </div>
   )

@@ -4,12 +4,12 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, 
 import { normalizeWords } from '@utils/normalizeWords.js'
 import { deleteTour } from '@services/tourService.js'
 
-import { EyeIcon, DeleteIcon, EditIcon, SearchIcon, ChevronDownIcon, PlusIcon } from '../utils/icons.jsx'
+import { Eye, Trash2, Edit, Search, ChevronDown, Plus } from 'lucide-react'
 import CrearTourForm from './CrearTourForm.jsx'
 import EditarTourForm from './EditarTourForm.jsx'
 import TableControls from './TableControls.jsx'
 import DeleteTourModal from './DeleteTourModal.jsx'
-import TablePagination from './TablePagination.jsx'
+import TablePagination from './ui/TablePagination.jsx'
 
 export const INITIAL_VISIBLE_COLUMNS = [
   { name: 'NOMBRE', uid: 'nombre' },

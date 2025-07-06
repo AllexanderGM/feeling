@@ -1,6 +1,6 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 
-import { SearchIcon, ChevronDownIcon, PlusIcon } from '../utils/icons.jsx'
+import { Search, ChevronDown, Plus } from 'lucide-react'
 import { INITIAL_VISIBLE_COLUMNS, ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants.js'
 
 export const capitalize = s => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '')
@@ -35,7 +35,7 @@ const TableControls = ({
           isClearable
           className="w-full sm:max-w-[44%]"
           placeholder="Buscar por nombre..."
-          startContent={<SearchIcon />}
+          startContent={<Search />
           value={filterValue}
           onClear={onClear}
           onValueChange={onSearchChange}
@@ -51,7 +51,7 @@ const TableControls = ({
         <div className="flex gap-3">
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
-              <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+              <Button endContent={<ChevronDown className="text-small" />} variant="flat">
                 Categoría
               </Button>
             </DropdownTrigger>
@@ -72,7 +72,7 @@ const TableControls = ({
           </Dropdown>
           <Dropdown>
             <DropdownTrigger className="hidden sm:flex">
-              <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+              <Button endContent={<ChevronDown className="text-small" />} variant="flat">
                 Columnas
               </Button>
             </DropdownTrigger>
@@ -91,7 +91,7 @@ const TableControls = ({
               ))}
             </DropdownMenu>
           </Dropdown>
-          <Button color="primary" endContent={<PlusIcon />} onPress={onCreateTour}>
+          <Button color="primary" endContent={<Plus />} onPress={onCreateTour}>
             Crear Tour
           </Button>
         </div>

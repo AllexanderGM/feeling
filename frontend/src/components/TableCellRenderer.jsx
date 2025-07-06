@@ -2,7 +2,7 @@ import { User, Chip, Tooltip } from '@heroui/react'
 import { Link } from 'react-router-dom'
 import { normalizeWords } from '@utils/normalizeWords.js'
 
-import { EyeIcon, EditIcon, DeleteIcon } from '../utils/icons.jsx'
+import { Eye, Edit, Trash2 } from 'lucide-react'
 import { STATUS_COLOR_MAP } from '../constants/tableConstants.jsx'
 import { capitalize } from './TableControls'
 
@@ -49,17 +49,17 @@ const TableCellRenderer = ({ columnKey, lugar, onEdit, onDelete }) => {
         <div className="relative flex items-center justify-center gap-2">
           <Tooltip content="Detalles">
             <Link to={`/tour/${lugar.idPaquete}`} className="text-lg text-default-400 cursor-pointer active:opacity-50">
-              <EyeIcon />
+              <Eye />
             </Link>
           </Tooltip>
           <Tooltip content="Editar">
             <span onClick={() => onEdit(lugar)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
-              <EditIcon />
+              <Edit />
             </span>
           </Tooltip>
           <Tooltip color="danger" content="Eliminar">
             <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => onDelete(lugar)}>
-              <DeleteIcon />
+              <Trash2 />
             </span>
           </Tooltip>
         </div>

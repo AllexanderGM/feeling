@@ -21,6 +21,7 @@ import {
 } from '@heroui/react'
 import { Controller } from 'react-hook-form'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
+import { Brain, Sparkles, Tag, Heart, GraduationCap, Briefcase, Accessibility, Ruler } from 'lucide-react'
 
 const PROFILE_TIPS = [
   { label: 'Descripción auténtica', tip: 'Sé auténtico en tu descripción - muestra tu personalidad real' },
@@ -388,7 +389,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
           <AccordionItem
             key="profile-tips"
             aria-label="Tips para tu perfil"
-            startContent={<span className="material-symbols-outlined text-blue-400 text-xl pt-1">psychology</span>}
+            startContent={<Brain className="text-blue-400 text-xl pt-1" />}
             title="Tips para tu perfil"
             classNames={{
               trigger: 'p-1',
@@ -433,7 +434,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 handleAddTag(tagQuery)
               }
             }}
-            startContent={<span className="material-symbols-outlined text-sm">interests</span>}
+            startContent={<Sparkles className="text-sm" />}
             classNames={{
               base: 'max-w-full',
               listboxWrapper: 'max-h-72',
@@ -442,7 +443,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
             {tagData.options.map(tag => (
               <AutocompleteItem key={tag.key} textValue={tag.name} className="text-gray-200 data-[hover=true]:bg-gray-700">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary-400 text-sm">tag</span>
+                  <Tag className="text-primary-400 text-sm" />
                   <span>{tag.name}</span>
                 </div>
               </AutocompleteItem>
@@ -547,7 +548,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 isInvalid={!!errors.maritalStatusId}
                 errorMessage={errors.maritalStatusId?.message}
-                startContent={<span className="material-symbols-outlined text-sm">person_heart</span>}
+                startContent={<Heart className="text-sm" />}
                 renderValue={items => {
                   return items.map(item => {
                     const option = maritalStatusOptions.find(opt => opt.key === item.key)
@@ -595,7 +596,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 isInvalid={!!errors.educationLevelId}
                 errorMessage={errors.educationLevelId?.message}
-                startContent={<span className="material-symbols-outlined text-sm">school</span>}
+                startContent={<GraduationCap className="text-sm" />}
                 renderValue={items => {
                   return items.map(item => {
                     const option = educationLevelOptions.find(opt => opt.key === item.key)
@@ -638,7 +639,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 value={field.value || ''}
                 isInvalid={!!errors.profession}
                 errorMessage={errors.profession?.message}
-                startContent={<span className="material-symbols-outlined text-sm">business_center</span>}
+                startContent={<Briefcase className="text-sm" />}
               />
             )}
           />
@@ -660,7 +661,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
               }}
               isInvalid={!!errors.bodyTypeId}
               errorMessage={errors.bodyTypeId?.message}
-              startContent={<span className="material-symbols-outlined text-sm">accessibility</span>}
+              startContent={<Accessibility className="text-sm" />}
               renderValue={items => {
                 return items.map(item => {
                   const option = bodyTypeOptions.find(opt => opt.key === item.key)
@@ -715,7 +716,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 errorMessage={errors.height?.message}
                 startContent={
                   <div className="flex text-gray-400">
-                    <span className="material-symbols-outlined">straighten</span>
+                    <Ruler />
                     <span className="ml-2">Estatura: </span>
                   </div>
                 }

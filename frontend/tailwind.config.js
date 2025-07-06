@@ -64,7 +64,44 @@ export default {
       // Gradientes predefinidos
       backgroundImage: {
         'rouse-gradient': 'linear-gradient(to right, #FF0062, #7D4EFF)',
-        'spirit-gradient': 'linear-gradient(to right, #FCB87A, #7D4EFF)'
+        'spirit-gradient': 'linear-gradient(to right, #FCB87A, #7D4EFF)',
+        'gradient-radial': 'radial-gradient(circle at center, var(--tw-gradient-stops))'
+      },
+      // Animaciones personalizadas
+      animation: {
+        'float-top': 'float-top 15s ease-in-out infinite alternate',
+        'float-bottom': 'float-bottom 18s ease-in-out infinite alternate'
+      },
+      // Keyframes para animaciones
+      keyframes: {
+        'float-top': {
+          '0%': {
+            transform: 'translateY(0) scale(1)',
+            opacity: '0.2'
+          },
+          '50%': {
+            transform: 'translateY(5%) scale(1.05)',
+            opacity: '0.4'
+          },
+          '100%': {
+            transform: 'translateY(-5%) scale(0.95)',
+            opacity: '0.3'
+          }
+        },
+        'float-bottom': {
+          '0%': {
+            transform: 'translateY(0) scale(1)',
+            opacity: '0.3'
+          },
+          '50%': {
+            transform: 'translateY(-7%) scale(1.05)',
+            opacity: '0.4'
+          },
+          '100%': {
+            transform: 'translateY(7%) scale(0.95)',
+            opacity: '0.25'
+          }
+        }
       }
     }
   },

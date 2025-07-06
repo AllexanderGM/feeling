@@ -1,4 +1,4 @@
-import { FaWhatsapp } from 'react-icons/fa'
+import { MessageCircle } from 'lucide-react'
 import { Button } from '@heroui/react'
 
 const WhatsAppBtn = ({ phoneNumber, message }) => {
@@ -8,7 +8,7 @@ const WhatsAppBtn = ({ phoneNumber, message }) => {
   return (
     <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
       <Button isIconOnly color="primary" variant="light">
-        <FaWhatsapp size={24} />
+        <MessageCircle size={24} />
       </Button>
     </a>
   )

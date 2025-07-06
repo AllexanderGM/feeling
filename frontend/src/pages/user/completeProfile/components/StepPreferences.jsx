@@ -16,6 +16,7 @@ import {
   Divider
 } from '@heroui/react'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
+import { Church, Building } from 'lucide-react'
 
 const StepPreferences = ({
   control,
@@ -342,14 +343,14 @@ const StepPreferences = ({
             label: 'Religión',
             placeholder: 'Selecciona tu religión',
             isRequired: true,
-            startContent: <span className="material-symbols-outlined">church</span>,
+            startContent: <Church />,
             ariaLabel: 'Religión'
           })}
 
           {/* Iglesia */}
           {renderInput('church', {
             placeholder: 'Nombre de tu iglesia o congregación (opcional)',
-            startContent: <span className="material-symbols-outlined">account_balance</span>,
+            startContent: <Building />,
             ariaLabel: 'Iglesia'
           })}
 

@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardFooter, CardBody, Image, Chip, Divider, Button, Tooltip } from '@heroui/react'
 import { normalizeWords } from '@utils/normalizeWords.js'
 import { useFavorites } from '@context/FavoritesContext'
+import { Bookmark, Heart, Globe, MapPin, Calendar, User, Baby } from 'lucide-react'
 
 import './cardTour.scss'
 
@@ -52,7 +53,7 @@ const CardTour = ({ data }) => {
             className="card_tour-tag"
             onClick={e => handleTagClick(tag, e)}
             style={{ cursor: 'pointer' }}
-            startContent={<span className="material-symbols-outlined icon">bookmarks</span>}>
+            startContent={<Bookmark className="icon" />}>
             {normalizeWords(tag)}
           </Chip>
         ))}
@@ -71,7 +72,7 @@ const CardTour = ({ data }) => {
                       className="card_tour-tag"
                       onClick={e => handleTagClick(tag, e)}
                       style={{ cursor: 'pointer' }}
-                      startContent={<span className="material-symbols-outlined text-primary text-base mr-1">bookmarks</span>}>
+                      startContent={<Bookmark className="text-primary text-base mr-1" />}>
                       {normalizeWords(tag)}
                     </Chip>
                   ))}
@@ -112,7 +113,7 @@ const CardTour = ({ data }) => {
                 onClick={handleFavoriteClick}
                 className="card_tour-favorite-btn"
                 aria-label={isCurrentlyFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>
-                <span className={`material-symbols-outlined icon ${isCurrentlyFavorite ? 'favorite-active' : ''}`}>favorite</span>
+                <Heart className={`icon ${isCurrentlyFavorite ? 'favorite-active' : ''}`} />
               </button>
             </Tooltip>
           </div>
@@ -133,7 +134,7 @@ const CardTour = ({ data }) => {
         <div className="card_tour-locations">
           <Chip className="card_tour-location" size="sm" variant="flat" color="primary">
             <div className="location-content">
-              <span className="material-symbols-outlined icon">globe_location_pin</span>
+              <Globe className="icon" />
               <span className="location-text">
                 {data.destination.region} | {data.destination.city.name}
               </span>
@@ -142,7 +143,7 @@ const CardTour = ({ data }) => {
 
           <Chip className="card_tour-location" size="sm" variant="flat" color="primary">
             <div className="location-content">
-              <span className="material-symbols-outlined icon">pin_drop</span>
+              <MapPin className="icon" />
               <span className="location-text">{data.destination.country}</span>
             </div>
           </Chip>
@@ -167,7 +168,7 @@ const CardTour = ({ data }) => {
         {data.availability && data.availability.length > 0 && (
           <div className="card_tour-availability">
             <div className="flex flex-row items-center card_tour-availability-header mb-1">
-              <span className="material-symbols-outlined icon">event_available</span>
+              <Calendar className="icon" />
               <h4 className="text-sm text-gray-600">Fechas de salida</h4>
             </div>
             <div className="card_tour-availability-dates">
@@ -184,13 +185,13 @@ const CardTour = ({ data }) => {
       <CardFooter className="card_tour-footer">
         <div className="card_tour-price">
           <div className="card_tour-price_type">
-            <span className="material-symbols-outlined icon">man</span>
+            <User className="icon" />
             <span>Adulto/a</span>
             <span className="price">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(data.adultPrice)}</span>
           </div>
 
           <div className="card_tour-price_type">
-            <span className="material-symbols-outlined icon">escalator_warning</span>
+            <Baby className="icon" />
             <span>Niño/a</span>
             <span className="price">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(data.childPrice)}</span>
           </div>

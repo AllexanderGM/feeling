@@ -1,20 +1,20 @@
 import { useState, useCallback } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
-import { createUser } from '@services/userService'
+import useUser from '@hooks/useUser.js'
 
-import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../constants/tableConstants.js'
+import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../../../../constants/tableConstants.js'
 
 const DEFAULT_BIRTHDATE = '1986-03-21'
 const MAX_BIRTHDATE = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]
 
 const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
+  const { createUser, submitting } = useUser()
   const [formData, setFormData] = useState({
     ...DEFAULT_USER_FORM_DATA,
     dateOfBirth: DEFAULT_BIRTHDATE,
     role: USER_ROLES.CLIENT
   })
   const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
 
   const validateForm = () => {
@@ -81,16 +81,17 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
     }
 
     try {
-      setIsLoading(true)
-      // Excluir confirmPassword del envío
-      const { ...userData } = formData
-      await createUser(userData)
-      onSuccess?.()
-      onClose()
+      const userData = { ...formData }
+      delete userData.confirmPassword
+      const result = await createUser(userData)
+      if (result.success) {
+        onSuccess?.()
+        onClose()
+      } else {
+        setApiError(result.error || 'Error al crear usuario')
+      }
     } catch (error) {
       setApiError(error.message)
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -223,10 +224,10 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
             {apiError && <div className="mt-4 text-danger text-sm">{apiError}</div>}
           </ModalBody>
           <ModalFooter>
-            <Button color="danger" variant="light" onPress={handleClose} disabled={isLoading}>
+            <Button color="danger" variant="light" onPress={handleClose} disabled={submitting}>
               Cancelar
             </Button>
-            <Button color="primary" type="submit" disabled={isLoading} isLoading={isLoading}>
+            <Button color="primary" type="submit" disabled={submitting} isLoading={submitting}>
               Crear Usuario
             </Button>
           </ModalFooter>

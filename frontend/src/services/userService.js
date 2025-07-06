@@ -13,9 +13,18 @@ class UserService extends ServiceREST {
   // OPERACIONES BÁSICAS DE USUARIO
   // ========================================
 
-  async getAllUsers() {
+  async getAllUsers(page = 0, size = 10, searchTerm = '') {
     try {
-      const result = await ServiceREST.get('/users')
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+      
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim())
+      }
+      
+      const result = await ServiceREST.get(`/users?${params.toString()}`)
       return ServiceREST.handleServiceResponse(result, 'obtener lista de usuarios')
     } catch (error) {
       this.logError('obtener usuarios', error)
@@ -29,6 +38,46 @@ class UserService extends ServiceREST {
       return ServiceREST.handleServiceResponse(result, 'obtener usuario por email')
     } catch (error) {
       this.logError('obtener usuario por email', error)
+      throw error
+    }
+  }
+
+  async createUser(userData) {
+    try {
+      const result = await ServiceREST.post('/users', userData)
+      return ServiceREST.handleServiceResponse(result, 'crear usuario')
+    } catch (error) {
+      this.logError('crear usuario', error)
+      throw error
+    }
+  }
+
+  async updateUserAdmin(email, userData) {
+    try {
+      const result = await ServiceREST.put(`/users/${encodeURIComponent(email)}`, userData)
+      return ServiceREST.handleServiceResponse(result, 'actualizar usuario')
+    } catch (error) {
+      this.logError('actualizar usuario', error)
+      throw error
+    }
+  }
+
+  async assignAdminRole(email) {
+    try {
+      const result = await ServiceREST.put(`/users/${encodeURIComponent(email)}/assign-admin`)
+      return ServiceREST.handleServiceResponse(result, 'asignar rol de administrador')
+    } catch (error) {
+      this.logError('asignar rol de administrador', error)
+      throw error
+    }
+  }
+
+  async revokeAdminRole(email) {
+    try {
+      const result = await ServiceREST.put(`/users/${encodeURIComponent(email)}/revoke-admin`)
+      return ServiceREST.handleServiceResponse(result, 'revocar rol de administrador')
+    } catch (error) {
+      this.logError('revocar rol de administrador', error)
       throw error
     }
   }

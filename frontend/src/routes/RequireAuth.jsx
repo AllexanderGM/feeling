@@ -25,18 +25,23 @@ const RequireAuth = ({ children, requiredRole = null, requireVerification = true
       return
     }
 
-    // Verificar email si es requerido
-    if (requireVerification && !user.verified) {
-      setRedirectPath(APP_PATHS.AUTH.VERIFY_EMAIL)
-      setShouldRedirect(true)
-      return
-    }
+    // ADMIN bypass: Los administradores pueden acceder a todo sin restricciones
+    const isAdmin = user.role && user.role.toUpperCase() === 'ADMIN'
 
-    // Verificar perfil completo si es requerido
-    if (requireCompleteProfile && !user.profileComplete) {
-      setRedirectPath(APP_PATHS.USER.COMPLETE_PROFILE)
-      setShouldRedirect(true)
-      return
+    if (!isAdmin) {
+      // Verificar email si es requerido (solo para no-admin)
+      if (requireVerification && !user.verified) {
+        setRedirectPath(APP_PATHS.AUTH.VERIFY_EMAIL)
+        setShouldRedirect(true)
+        return
+      }
+
+      // Verificar perfil completo si es requerido (solo para no-admin)
+      if (requireCompleteProfile && !user.profileComplete) {
+        setRedirectPath(APP_PATHS.USER.COMPLETE_PROFILE)
+        setShouldRedirect(true)
+        return
+      }
     }
 
     // Verificar rol si es requerido
@@ -117,7 +122,7 @@ export const RequireCompleteProfile = ({ children }) => {
 // Wrapper para rutas de administrador
 export const RequireAdmin = ({ children }) => {
   return (
-    <RequireAuth requireVerification={true} requireCompleteProfile={true} requiredRole="admin">
+    <RequireAuth requireVerification={false} requireCompleteProfile={false} requiredRole="admin">
       {children}
     </RequireAuth>
   )
@@ -154,7 +159,10 @@ export const RedirectIfProfileComplete = ({ children, redirectTo = APP_PATHS.ROO
     )
   }
 
-  if (isAuthenticated && user && user.profileComplete && user.verified) {
+  // No redirigir a admins, pueden acceder sin restricciones
+  const isAdmin = user?.role && user.role.toUpperCase() === 'ADMIN'
+
+  if (isAuthenticated && user && user.profileComplete && user.verified && !isAdmin) {
     return <Navigate to={redirectTo} replace />
   }
 

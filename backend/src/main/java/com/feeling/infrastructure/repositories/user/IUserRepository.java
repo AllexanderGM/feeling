@@ -133,6 +133,17 @@ public interface IUserRepository extends JpaRepository<User, Long> {
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<User> searchUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
 
+    @Query("SELECT u FROM User u WHERE " +
+            "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.lastname) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.userCategoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    Page<User> findBySearchTerm(@Param("searchTerm") String searchTerm, Pageable pageable);
+
     // ========================================
     // ACTUALIZACIONES ESPECÍFICAS
     // ========================================

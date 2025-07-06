@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Switch } from '@heroui/react'
-import { updateUser, assignAdminRole, revokeAdminRole } from '@services/userService'
-import { useAuth } from '@context/AuthContext'
+import useUser from '@hooks/useUser.js'
+import useAuth from '@hooks/useAuth.js'
 
-import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../constants/tableConstants.js'
+import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../../../../constants/tableConstants.js'
 
 const generateRandomDocument = () => Math.floor(10000000 + Math.random() * 90000000).toString()
 const generateRandomPhone = () => Math.floor(100000000 + Math.random() * 900000000).toString()
@@ -12,10 +12,10 @@ const MAX_BIRTHDATE = new Date(new Date().setFullYear(new Date().getFullYear() -
 
 const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
   const { user: currentUser } = useAuth()
+  const { updateUserAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
   const [formData, setFormData] = useState(DEFAULT_USER_FORM_DATA)
   const [originalRole, setOriginalRole] = useState('')
   const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
 
   useEffect(() => {
@@ -110,13 +110,20 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
     }
 
     try {
-      setIsLoading(true)
-
+      // Manejar cambio de rol si es necesario
       if (formData.role !== originalRole) {
         if (formData.role === USER_ROLES.ADMIN) {
-          await assignAdminRole(userData.id, currentUser.email)
+          const result = await assignAdminRole(userData.email)
+          if (!result.success) {
+            setApiError(result.error || 'Error al asignar rol de administrador')
+            return
+          }
         } else {
-          await revokeAdminRole(userData.id, currentUser.email)
+          const result = await revokeAdminRole(userData.email)
+          if (!result.success) {
+            setApiError(result.error || 'Error al revocar rol de administrador')
+            return
+          }
         }
       }
 
@@ -153,31 +160,16 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
         password: updateData.password ? '[CONTRASEÑA NUEVA]' : '[NO SE MODIFICA]'
       })
 
-      await updateUser(userData.email, updateData)
-      onSuccess?.()
-      onClose()
+      const result = await updateUserAdmin(userData.email, updateData)
+      if (result.success) {
+        onSuccess?.()
+        onClose()
+      } else {
+        setApiError(result.error || 'Error al actualizar usuario')
+      }
     } catch (error) {
       console.error('Error al actualizar usuario:', error)
-      let errorMessage = 'Error al actualizar el usuario. '
-
-      // Personalizar mensaje según el tipo de error
-      if (error.message.includes('400')) {
-        errorMessage = 'Por favor, completa todos los campos obligatorios marcados con *'
-      } else if (error.message.includes('401')) {
-        errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
-      } else if (error.message.includes('403')) {
-        errorMessage = 'No tienes permisos para realizar esta acción.'
-      } else if (error.message.includes('404')) {
-        errorMessage = 'No se encontró el usuario a actualizar.'
-      } else if (error.message.includes('409')) {
-        errorMessage = 'Ya existe un usuario con ese correo electrónico.'
-      } else {
-        errorMessage = 'Hubo un problema al actualizar el usuario. Por favor, inténtalo de nuevo.'
-      }
-
-      setApiError(errorMessage)
-    } finally {
-      setIsLoading(false)
+      setApiError(error.message || 'Error al actualizar usuario')
     }
   }
 
@@ -329,10 +321,10 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
             </div>
           </ModalBody>
           <ModalFooter>
-            <Button color="danger" variant="light" onPress={onClose} disabled={isLoading}>
+            <Button color="danger" variant="light" onPress={onClose} disabled={submitting}>
               Cancelar
             </Button>
-            <Button color="primary" type="submit" disabled={isLoading} isLoading={isLoading}>
+            <Button color="primary" type="submit" disabled={submitting} isLoading={submitting}>
               Guardar Cambios
             </Button>
           </ModalFooter>

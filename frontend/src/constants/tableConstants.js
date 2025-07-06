@@ -55,10 +55,19 @@ export const USER_ROLE_COLORS = {
   CLIENT: 'success'
 }
 
+export const USER_INTEREST_COLORS = {
+  ROSE: 'danger',
+  ESSENCE: 'primary',
+  ROUSE: 'warning'
+}
+
 export const USER_COLUMNS = [
   { name: 'ID', uid: 'id' },
   { name: 'NOMBRE', uid: 'name' },
-  { name: 'EMAIL', uid: 'email' },
+  { name: 'INTERÉS', uid: 'categoryInterest' },
+  { name: 'UBICACIÓN', uid: 'location' },
+  { name: 'VERIFICADO', uid: 'verified' },
+  { name: 'PERFIL COMPLETO', uid: 'profileComplete' },
   { name: 'ROL', uid: 'role' },
   { name: 'ACCIONES', uid: 'actions' }
 ]

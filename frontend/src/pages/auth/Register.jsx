@@ -9,6 +9,7 @@ import useAuth from '@hooks/useAuth'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { User, Mail, Lock } from 'lucide-react'
 
 const Register = () => {
   const navigate = useNavigate()
@@ -88,6 +89,7 @@ const Register = () => {
       }
     },
     onError: () => setIsGoogleAuthenticating(false),
+    onNonOAuthError: () => setIsGoogleAuthenticating(false),
     flow: 'implicit'
   })
 
@@ -157,6 +159,7 @@ const Register = () => {
                 isInvalid={!!errors.name}
                 errorMessage={errors.name?.message}
                 isDisabled={loading || isGoogleAuthenticating}
+                startContent={<User className="text-gray-400 w-4 h-5" />}
               />
             )}
           />
@@ -175,6 +178,7 @@ const Register = () => {
                 isInvalid={!!errors.lastName}
                 errorMessage={errors.lastName?.message}
                 isDisabled={loading || isGoogleAuthenticating}
+                startContent={<User className="text-gray-400 w-4 h-5" />}
               />
             )}
           />
@@ -195,6 +199,7 @@ const Register = () => {
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
               isDisabled={loading || isGoogleAuthenticating}
+              startContent={<Mail className="text-gray-400 w-4 h-5" />}
             />
           )}
         />
@@ -214,6 +219,7 @@ const Register = () => {
               isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
               isDisabled={loading || isGoogleAuthenticating}
+              startContent={<Lock className="text-gray-400 w-4 h-5" />}
             />
           )}
         />
@@ -233,6 +239,7 @@ const Register = () => {
               isInvalid={!!errors.confirmPassword}
               errorMessage={errors.confirmPassword?.message}
               isDisabled={loading || isGoogleAuthenticating}
+              startContent={<Lock className="text-gray-400 w-4 h-5" />}
             />
           )}
         />
