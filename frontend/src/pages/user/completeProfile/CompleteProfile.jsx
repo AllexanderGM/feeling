@@ -15,6 +15,7 @@ import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LoadData from '@components/layout/LoadData.jsx'
 // Utils
 import { completeProfileSchema, getFieldsForStep } from '@utils/formSchemas.js'
+import { getDefaultValuesForStep } from '@constants/userSchema.js'
 import { APP_PATHS } from '@constants/paths.js'
 import { ArrowLeft, Check, ArrowRight } from 'lucide-react'
 
@@ -50,55 +51,8 @@ const CompleteProfile = () => {
   const userTags = useUserTags()
   const categoryInterests = useCategoryInterests()
 
-  // Valores por defecto del formulario
-  const defaultValues = useMemo(
-    () => ({
-      // Step 1 - Información básica
-      images: user?.images || [],
-      selectedProfileImageIndex: user?.selectedProfileImageIndex || 0,
-      name: user?.name || '',
-      lastName: user?.lastName || '',
-      document: user?.document || '',
-      phone: user?.phone || '',
-      phoneCode: '+57',
-      birthDate: user?.birthDate || '',
-      country: user?.country || 'Colombia',
-      city: user?.city || 'Bogotá',
-      department: user?.department || '',
-      locality: user?.locality || '',
-
-      // Step 2 - Características
-      description: user?.description || '',
-      tags: user?.tags || [],
-      genderId: user?.genderId || '',
-      maritalStatusId: user?.maritalStatusId || '',
-      educationLevelId: user?.educationLevelId || '',
-      profession: user?.profession || '',
-      bodyTypeId: user?.bodyTypeId || '',
-      height: user?.height || 170,
-      eyeColorId: user?.eyeColorId || '',
-      hairColorId: user?.hairColorId || '',
-
-      // Step 3 - Preferencias
-      categoryInterest: user?.categoryInterest || '',
-      agePreferenceMin: user?.agePreferenceMin || 18,
-      agePreferenceMax: user?.agePreferenceMax || 50,
-      locationPreferenceRadius: user?.locationPreferenceRadius || 50,
-      religionId: user?.religionId || '',
-      church: user?.church || '',
-      spiritualMoments: user?.spiritualMoments || '',
-      spiritualPractices: user?.spiritualPractices || '',
-      sexualRoleId: user?.sexualRoleId || '',
-      relationshipTypeId: user?.relationshipTypeId || '',
-
-      // Step 4 - Configuración
-      showAge: user?.showAge ?? true,
-      showLocation: user?.showLocation ?? true,
-      allowNotifications: user?.allowNotifications ?? true,
-      showMeInSearch: user?.showMeInSearch ?? true
-    }),
-    [user]
-  )
+  // Valores por defecto del formulario usando esquema centralizado
+  const defaultValues = useMemo(() => getDefaultValuesForStep(currentStep, user), [currentStep, user])
 
   // React Hook Form
   const {

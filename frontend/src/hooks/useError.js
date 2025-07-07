@@ -8,7 +8,7 @@ import { useNotification } from '@hooks/useNotification'
  */
 export const useError = (authContext = null) => {
   const errorContext = useContext(ErrorContext)
-  const { showError, showSuccess, showWarning, showInfo } = useNotification()
+  const { showError, showSuccess, showWarning, showInfo, clearAllNotifications } = useNotification()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -45,6 +45,11 @@ export const useError = (authContext = null) => {
       // Mostrar error con Toast
       showError(message, 'Sesión expirada')
 
+      // Limpiar notificaciones antes de redirigir
+      setTimeout(() => {
+        clearAllNotifications()
+      }, 1000)
+
       // Redirigir al login después de un pequeño delay
       setTimeout(() => {
         navigate('/login', {
@@ -56,7 +61,7 @@ export const useError = (authContext = null) => {
         })
       }, 1500)
     },
-    [navigate, location, showError, authContext]
+    [navigate, location, showError, authContext, clearAllNotifications]
   )
 
   /**
@@ -362,7 +367,10 @@ export const useError = (authContext = null) => {
     showError,
     showSuccess,
     showWarning,
-    showInfo
+    showInfo,
+
+    // Método para limpiar notificaciones
+    clearAllNotifications
   }
 }
 

@@ -129,13 +129,13 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE " +
             "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastname) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<User> searchUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE " +
             "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastname) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +

@@ -4,6 +4,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { resetPasswordSchema } from '@utils/formSchemas'
 import { APP_PATHS } from '@constants/paths.js'
@@ -54,7 +55,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-center gap-8 min-h-screen p-6">
+    <LiteContainer>
       <figure className="text-center">
         <img src={logo} alt="Logo Feeling" className="w-40" />
       </figure>
@@ -140,7 +141,7 @@ const ResetPassword = () => {
           </>
         )}
       </div>
-    </main>
+    </LiteContainer>
   )
 }
 

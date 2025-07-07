@@ -134,6 +134,46 @@ MAILPASS=$MAILPASS
 EOL
 }
 
+# Función para configurar MinIO
+configure_minio() {
+  echo "🔧 Configurando MinIO..."
+  
+  # Esperar a que MinIO esté listo
+  echo "⌛ Esperando a que MinIO esté listo..."
+  MAX_WAIT=60
+  WAIT_TIME=0
+  
+  while ! curl -s "$MINIO_HOST:$MINIO_PORT/minio/health/live" >/dev/null 2>&1; do
+    sleep 2
+    WAIT_TIME=$((WAIT_TIME + 2))
+    echo "🛠️ MinIO aún iniciando... ($WAIT_TIME/$MAX_WAIT seg)"
+    
+    if [[ $WAIT_TIME -ge $MAX_WAIT ]]; then
+      echo "❌ Error: MinIO no respondió en $MAX_WAIT segundos."
+      return 1
+    fi
+  done
+  
+  echo "✅ MinIO está listo. Configurando bucket y políticas..."
+  
+  # Configurar MinIO usando docker exec
+  docker exec "${NAME}-minio" mc alias set minio http://localhost:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+  
+  # Crear bucket si no existe
+  if ! docker exec "${NAME}-minio" mc ls minio/"$MINIO_BUCKET" >/dev/null 2>&1; then
+    echo "📁 Creando bucket: $MINIO_BUCKET"
+    docker exec "${NAME}-minio" mc mb minio/"$MINIO_BUCKET"
+  else
+    echo "📁 Bucket $MINIO_BUCKET ya existe"
+  fi
+  
+  # Configurar política pública
+  echo "🔓 Configurando política pública para el bucket: $MINIO_BUCKET"
+  docker exec "${NAME}-minio" mc anonymous set public minio/"$MINIO_BUCKET"
+  
+  echo "✅ MinIO configurado correctamente!"
+}
+
 ### EJECUCIÓN ###
 
 # Crear archivos .env para todos los perfiles
@@ -165,6 +205,11 @@ if [[ "$PROFILE" == "back" || "$PROFILE" == "local" ]]; then
   done
 
   echo "✅ Backend disponible!"
+fi
+
+# Configurar MinIO para todos los perfiles que lo usan
+if [[ "$PROFILE" == "back" || "$PROFILE" == "front" || "$PROFILE" == "local" || "$PROFILE" == "db" ]]; then
+  configure_minio
 fi
 
 ### MENSAJE FINAL ###

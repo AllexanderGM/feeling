@@ -39,7 +39,7 @@ public record UserResponseDTO(
         this(
                 user.getId(),
                 user.getName(),
-                user.getLastname(),
+                user.getLastName(),
                 user.getEmail(),
                 user.getUserRole().getUserRoleList().name(),
                 user.isVerified(),

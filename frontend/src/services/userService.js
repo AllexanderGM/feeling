@@ -19,11 +19,11 @@ class UserService extends ServiceREST {
         page: page.toString(),
         size: size.toString()
       })
-      
+
       if (searchTerm && searchTerm.trim()) {
         params.append('search', searchTerm.trim())
       }
-      
+
       const result = await ServiceREST.get(`/users?${params.toString()}`)
       return ServiceREST.handleServiceResponse(result, 'obtener lista de usuarios')
     } catch (error) {

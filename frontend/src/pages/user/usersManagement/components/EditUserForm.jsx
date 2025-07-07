@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Switch } from '@heroui/react'
 import useUser from '@hooks/useUser.js'
 import useAuth from '@hooks/useAuth.js'
+import { useError } from '@hooks/useError.js'
 
 import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../../../../constants/tableConstants.js'
 
@@ -10,13 +11,13 @@ const generateRandomPhone = () => Math.floor(100000000 + Math.random() * 9000000
 const DEFAULT_BIRTHDATE = '1986-03-21'
 const MAX_BIRTHDATE = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]
 
-const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
+const EditUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
   const { user: currentUser } = useAuth()
   const { updateUserAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
+  const { handleError, handleSuccess } = useError()
   const [formData, setFormData] = useState(DEFAULT_USER_FORM_DATA)
   const [originalRole, setOriginalRole] = useState('')
   const [errors, setErrors] = useState({})
-  const [apiError, setApiError] = useState(null)
 
   useEffect(() => {
     if (userData) {
@@ -39,7 +40,7 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar campos requeridos
+    // Validate required fields
     if (!formData.name.trim()) newErrors.name = 'El nombre es requerido'
     if (!formData.lastName.trim()) newErrors.lastName = 'El apellido es requerido'
     if (!formData.email.trim()) {
@@ -48,20 +49,20 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
       newErrors.email = 'Email inválido'
     }
 
-    // Validar fecha de nacimiento
+    // Validate birth date
     const birthDate = new Date(formData.dateOfBirth)
     const maxDate = new Date(MAX_BIRTHDATE)
     if (birthDate > maxDate) {
       newErrors.dateOfBirth = 'Debe ser mayor de 18 años'
     }
 
-    // Validar contraseña solo si se intenta cambiar
+    // Validate password only if attempting to change
     if (formData.password) {
       if (formData.password.length < USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH) {
         newErrors.password = `La contraseña debe tener al menos ${USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH} caracteres`
       }
 
-      // Validar confirmación de contraseña
+      // Validate password confirmation
       if (!formData.confirmPassword) {
         newErrors.confirmPassword = 'Por favor confirma la contraseña'
       } else if (formData.password !== formData.confirmPassword) {
@@ -76,7 +77,7 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
   const handleInputChange = useCallback(
     (field, value) => {
       setFormData(prev => ({ ...prev, [field]: value }))
-      // Limpiar error del campo cuando el usuario empieza a escribir
+      // Clear field error when user starts typing
       if (errors[field]) {
         setErrors(prev => ({ ...prev, [field]: null }))
       }
@@ -86,7 +87,7 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
 
   const handleRoleChange = async newRole => {
     try {
-      // Si no es superadmin y está intentando cambiar a ADMIN, mostrar error
+      // If not superadmin and trying to change to ADMIN, show error
       if (newRole === USER_ROLES.ADMIN && !currentUser?.isSuperAdmin) {
         setErrors(prev => ({
           ...prev,
@@ -97,37 +98,36 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
 
       setFormData(prev => ({ ...prev, role: newRole }))
     } catch (error) {
-      setApiError(error.message)
+      handleError(error)
     }
   }
 
   const handleSubmit = async e => {
     e.preventDefault()
-    setApiError(null)
 
     if (!validateForm()) {
       return
     }
 
     try {
-      // Manejar cambio de rol si es necesario
+      // Handle role change if necessary
       if (formData.role !== originalRole) {
         if (formData.role === USER_ROLES.ADMIN) {
           const result = await assignAdminRole(userData.email)
           if (!result.success) {
-            setApiError(result.error || 'Error al asignar rol de administrador')
+            handleError(result.error || 'Error al asignar rol de administrador')
             return
           }
         } else {
           const result = await revokeAdminRole(userData.email)
           if (!result.success) {
-            setApiError(result.error || 'Error al revocar rol de administrador')
+            handleError(result.error || 'Error al revocar rol de administrador')
             return
           }
         }
       }
 
-      // Crear objeto de actualización solo con los campos necesarios
+      // Create update object with only necessary fields
       const updateData = {
         id: userData.id,
         name: formData.name.trim(),
@@ -140,7 +140,7 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
         image: formData.image?.trim() || userData.image || ''
       }
 
-      // Solo incluir password si ambos campos están llenos y coinciden
+      // Only include password if both fields are filled and match
       if (
         formData.password &&
         formData.confirmPassword &&
@@ -162,14 +162,15 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
 
       const result = await updateUserAdmin(userData.email, updateData)
       if (result.success) {
+        handleSuccess('Usuario actualizado exitosamente')
         onSuccess?.()
         onClose()
       } else {
-        setApiError(result.error || 'Error al actualizar usuario')
+        handleError(result.error || 'Error al actualizar usuario')
       }
     } catch (error) {
       console.error('Error al actualizar usuario:', error)
-      setApiError(error.message || 'Error al actualizar usuario')
+      handleError(error)
     }
   }
 
@@ -316,8 +317,6 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
                   />
                 </div>
               </div>
-
-              {apiError && <div className="col-span-2 bg-danger-50 text-danger-600 p-3 rounded-lg text-sm">{apiError}</div>}
             </div>
           </ModalBody>
           <ModalFooter>
@@ -334,4 +333,6 @@ const EditarUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
   )
 }
 
-export default EditarUserForm
+EditUserForm.displayName = 'EditUserForm'
+
+export default EditUserForm

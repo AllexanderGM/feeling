@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-const useUserStats = (users) => {
+const useUserStats = users => {
   return useMemo(() => {
     if (!users?.length) return null
 

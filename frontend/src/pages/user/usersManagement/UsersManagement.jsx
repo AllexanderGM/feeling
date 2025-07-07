@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
+import { useError } from '@hooks/useError.js'
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
 import useAuth from '@hooks/useAuth.js'
@@ -9,8 +10,8 @@ import GenericTableControls from '@components/ui/GenericTableControls.jsx'
 import TablePagination from '@components/ui/TablePagination.jsx'
 import { USER_COLUMNS } from '@constants/tableConstants.js'
 
-import CrearUserForm from './components/CrearUserForm.jsx'
-import EditarUserForm from './components/EditarUserForm.jsx'
+import CreateUserForm from './components/CreateUserForm.jsx'
+import EditUserForm from './components/EditUserForm.jsx'
 import DeleteUserModal from './components/DeleteUserModal.jsx'
 import UserTableCell from './components/UserTableCell.jsx'
 import UserStatsCards from './components/UserStatsCards.jsx'
@@ -18,8 +19,9 @@ import UserStatsCards from './components/UserStatsCards.jsx'
 const UsersManagement = memo(() => {
   const { user: currentUser } = useAuth()
   const { users, usersPagination, loading, refreshUsers, getUserByEmail, fetchUsers } = useUser()
+  const { handleError, handleSuccess } = useError()
 
-  // Estados de la tabla
+  // Table states
   const [filterValue, setFilterValue] = useState('')
   const [debouncedFilter, setDebouncedFilter] = useState('')
   const [selectedKeys, setSelectedKeys] = useState(new Set([]))
@@ -31,17 +33,17 @@ const UsersManagement = memo(() => {
   })
   const [page, setPage] = useState(1)
 
-  // Estados de modales
+  // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState(null)
 
   // ========================================
-  // EFECTOS
+  // EFFECTS
   // ========================================
 
-  // Debounce para la búsqueda
+  // Debounce for search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedFilter(filterValue)
@@ -50,45 +52,14 @@ const UsersManagement = memo(() => {
     return () => clearTimeout(timer)
   }, [filterValue])
 
-  // Cargar usuarios cuando cambian los parámetros
+  // Load users when parameters change
   useEffect(() => {
-    console.log('🔄 UsersManagement: Fetching users...', { page, rowsPerPage, debouncedFilter })
     fetchUsers(page - 1, rowsPerPage, debouncedFilter)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, debouncedFilter])
 
-  // Debug: Log users state changes
-  useEffect(() => {
-    console.log('👥 UsersManagement: Users state changed:', {
-      usersCount: users?.length || 0,
-      users: users,
-      loading: loading
-    })
-
-    // Debug: Check image data for first few users
-    if (users && users.length > 0) {
-      console.log(
-        '🖼️ Image data sample from first 3 users:',
-        users.slice(0, 3).map(u => ({
-          id: u.id,
-          name: u.name,
-          mainImage: u.mainImage,
-          image: u.image,
-          images: u.images,
-          externalAvatarUrl: u.externalAvatarUrl,
-          hasImages: u.images?.length > 0
-        }))
-      )
-    }
-
-    // Make users data available for debugging
-    if (typeof window !== 'undefined') {
-      window.__USERS_DEBUG_DATA = users
-    }
-  }, [users, loading])
-
   // ========================================
-  // CONFIGURACIÓN DE COLUMNAS Y FILTROS
+  // COLUMNS AND FILTERS CONFIGURATION
   // ========================================
 
   const headerColumns = useMemo(() => {
@@ -98,11 +69,11 @@ const UsersManagement = memo(() => {
 
   const filteredItems = useUserFiltering(users, currentUser)
 
-  // Usar paginación del backend
+  // Use backend pagination
   const pages = usersPagination.totalPages || 1
   const totalItems = usersPagination.totalElements || 0
 
-  // Los items ya vienen filtrados del backend, solo aplicamos filtro de permisos local
+  // Items already come filtered from backend, only apply local permissions filter
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {
       const first = a[sortDescriptor.column] || ''
@@ -113,7 +84,7 @@ const UsersManagement = memo(() => {
   }, [sortDescriptor, filteredItems])
 
   // ========================================
-  // MANEJADORES DE EVENTOS
+  // EVENT HANDLERS
   // ========================================
 
   const handleOpenCreateModal = useCallback(() => {
@@ -123,10 +94,10 @@ const UsersManagement = memo(() => {
   const handleOpenEditModal = useCallback(
     async user => {
       try {
-        // Obtener datos completos del usuario
+        // Get complete user data
         const fullUserData = await getUserByEmail(user.email)
 
-        // Mapear los datos recibidos al formato esperado por el formulario
+        // Map received data to format expected by form
         const mappedUserData = {
           id: fullUserData.id,
           image: fullUserData.image || '',
@@ -146,30 +117,35 @@ const UsersManagement = memo(() => {
         setSelectedUser(mappedUserData)
         setIsEditModalOpen(true)
       } catch (error) {
-        console.error('Error al obtener datos completos del usuario:', error)
-        // Fallback a datos básicos si falla la llamada
+        console.error('Error getting complete user data:', error)
+        handleError('Error al cargar datos del usuario. Usando información básica.')
+        // Fallback to basic data if call fails
         setSelectedUser(user)
         setIsEditModalOpen(true)
       }
     },
-    [getUserByEmail]
+    [getUserByEmail, handleError]
   )
 
-  const handleOpenDeleteModal = useCallback(user => {
-    if (!user || !user.email) {
-      console.error('Error: Datos de usuario incompletos', user)
-      return
-    }
+  const handleOpenDeleteModal = useCallback(
+    user => {
+      if (!user || !user.email) {
+        console.error('Error: Incomplete user data', user)
+        handleError('No se puede eliminar el usuario: datos incompletos')
+        return
+      }
 
-    setSelectedUser({
-      id: user.id,
-      email: user.email,
-      name: user.name || user.username,
-      lastName: user.lastName || '',
-      role: user.role
-    })
-    setIsDeleteModalOpen(true)
-  }, [])
+      setSelectedUser({
+        id: user.id,
+        email: user.email,
+        name: user.name || user.username,
+        lastName: user.lastName || '',
+        role: user.role
+      })
+      setIsDeleteModalOpen(true)
+    },
+    [handleError]
+  )
 
   const handleCloseModals = useCallback(() => {
     setIsCreateModalOpen(false)
@@ -178,8 +154,8 @@ const UsersManagement = memo(() => {
     setSelectedUser(null)
   }, [])
 
-  const handleSuccess = useCallback(() => {
-    console.log('Operación exitosa, actualizando lista de usuarios')
+  const handleOperationSuccess = useCallback(() => {
+    console.log('Operation successful, updating user list')
     refreshUsers(page - 1, rowsPerPage, debouncedFilter)
     setIsCreateModalOpen(false)
     setIsEditModalOpen(false)
@@ -188,7 +164,7 @@ const UsersManagement = memo(() => {
   }, [refreshUsers, page, rowsPerPage, debouncedFilter])
 
   // ========================================
-  // RENDERIZADO DE CELDAS
+  // CELL RENDERING
   // ========================================
 
   const renderCell = useCallback(
@@ -205,7 +181,7 @@ const UsersManagement = memo(() => {
   )
 
   // ========================================
-  // MANEJADORES DE PAGINACIÓN Y BÚSQUEDA
+  // PAGINATION AND SEARCH HANDLERS
   // ========================================
 
   const onNextPage = useCallback(() => {
@@ -227,7 +203,7 @@ const UsersManagement = memo(() => {
 
   const onSearchChange = useCallback(value => {
     setFilterValue(value || '')
-    setPage(1) // Reset a la primera página cuando se busca
+    setPage(1) // Reset to first page when searching
   }, [])
 
   const onClear = useCallback(() => {
@@ -235,21 +211,11 @@ const UsersManagement = memo(() => {
     setPage(1)
   }, [])
 
-  // Función para determinar si una fila se puede seleccionar
-  const isRowSelectable = useCallback(
-    item => {
-      // El usuario actual no se puede seleccionar
-      const canSelect = item.email !== currentUser?.email
-      if (!canSelect) {
-        console.log(`🚫 User ${item.email} (ID: ${item.id}) is NOT selectable (current user)`)
-      }
-      return canSelect
-    },
-    [currentUser?.email]
-  )
+  // Function to determine if a row can be selected
+  const isRowSelectable = useCallback(item => item.email !== currentUser?.email, [currentUser?.email])
 
   // ========================================
-  // CONTENIDO DE LA TABLA
+  // TABLE CONTENT
   // ========================================
 
   const topContent = useMemo(
@@ -291,15 +257,17 @@ const UsersManagement = memo(() => {
   )
 
   // ========================================
-  // ESTADÍSTICAS
+  // STATISTICS
   // ========================================
 
   const userStats = useUserStats(users)
 
-  // Calcular las claves deshabilitadas (usuarios que no se pueden seleccionar)
+  // Calculate disabled keys (users that cannot be selected)
   const disabledKeys = useMemo(() => {
     const disabled = filteredItems.filter(user => !isRowSelectable(user)).map(user => String(user.id))
-    console.log('🚫 Disabled keys for selection:', disabled)
+    if (disabled.length > 0) {
+      console.log('🚫 Disabled keys for selection:', disabled)
+    }
     return new Set(disabled)
   }, [filteredItems, isRowSelectable])
 
@@ -353,14 +321,19 @@ const UsersManagement = memo(() => {
       </Table>
 
       {/* Modales */}
-      <CrearUserForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} />
+      <CreateUserForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />
 
       {selectedUser && (
-        <EditarUserForm isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} userData={selectedUser} />
+        <EditUserForm isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} userData={selectedUser} />
       )}
 
       {selectedUser && (
-        <DeleteUserModal isOpen={isDeleteModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} userData={selectedUser} />
+        <DeleteUserModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseModals}
+          onSuccess={handleOperationSuccess}
+          userData={selectedUser}
+        />
       )}
     </div>
   )

@@ -48,7 +48,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-admin123}
-      MINIO_BUCKET: ${MINIO_BUCKET:-dev-bucket}
+      MINIO_BUCKET: ${MINIO_BUCKET:-minio-bucket}
     volumes:
       - minio_data:/data
     networks:

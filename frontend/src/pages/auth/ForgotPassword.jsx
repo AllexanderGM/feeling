@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { CheckCircle } from 'lucide-react'
 import useAuth from '@hooks/useAuth'
 import { forgotPasswordSchema } from '@utils/formSchemas'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
-import { CheckCircle } from 'lucide-react'
 
 const ForgotPassword = () => {
   const { forgotPassword, loading } = useAuth()
@@ -30,7 +31,7 @@ const ForgotPassword = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+    <LiteContainer>
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
@@ -105,7 +106,7 @@ const ForgotPassword = () => {
           </>
         )}
       </div>
-    </main>
+    </LiteContainer>
   )
 }
 

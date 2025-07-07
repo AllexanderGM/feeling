@@ -1,26 +1,27 @@
 import { useState, useCallback } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
 import useUser from '@hooks/useUser.js'
+import { useError } from '@hooks/useError.js'
 
 import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../../../../constants/tableConstants.js'
 
 const DEFAULT_BIRTHDATE = '1986-03-21'
 const MAX_BIRTHDATE = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]
 
-const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
+const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
   const { createUser, submitting } = useUser()
+  const { handleError, handleSuccess } = useError()
   const [formData, setFormData] = useState({
     ...DEFAULT_USER_FORM_DATA,
     dateOfBirth: DEFAULT_BIRTHDATE,
     role: USER_ROLES.CLIENT
   })
   const [errors, setErrors] = useState({})
-  const [apiError, setApiError] = useState(null)
 
   const validateForm = () => {
     const newErrors = {}
 
-    // Validar campos requeridos
+    // Validate required fields
     if (!formData.name.trim()) newErrors.name = 'El nombre es requerido'
     if (!formData.lastName.trim()) newErrors.lastName = 'El apellido es requerido'
     if (!formData.document.trim()) newErrors.document = 'El documento es requerido'
@@ -31,26 +32,26 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
       newErrors.email = 'Email inválido'
     }
 
-    // Validar teléfono (9 dígitos)
+    // Validate phone (9 digits)
     if (!USER_FORM_VALIDATIONS.PHONE_REGEX.test(formData.phone)) {
       newErrors.phone = 'El teléfono debe tener 9 dígitos'
     }
 
-    // Validar fecha de nacimiento
+    // Validate birth date
     const birthDate = new Date(formData.dateOfBirth)
     const maxDate = new Date(MAX_BIRTHDATE)
     if (birthDate > maxDate) {
       newErrors.dateOfBirth = 'Debe ser mayor de 18 años'
     }
 
-    // Validar contraseña
+    // Validate password
     if (!formData.password) {
       newErrors.password = 'Por favor ingresa una contraseña'
     } else if (formData.password.length < USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH) {
       newErrors.password = `La contraseña debe tener al menos ${USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH} caracteres`
     }
 
-    // Validar confirmación de contraseña
+    // Validate password confirmation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Por favor confirma la contraseña'
     } else if (formData.password !== formData.confirmPassword) {
@@ -64,7 +65,7 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
   const handleInputChange = useCallback(
     (field, value) => {
       setFormData(prev => ({ ...prev, [field]: value }))
-      // Limpiar error del campo cuando el usuario empieza a escribir
+      // Clear field error when user starts typing
       if (errors[field]) {
         setErrors(prev => ({ ...prev, [field]: null }))
       }
@@ -74,7 +75,6 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async e => {
     e.preventDefault()
-    setApiError(null)
 
     if (!validateForm()) {
       return
@@ -85,13 +85,14 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
       delete userData.confirmPassword
       const result = await createUser(userData)
       if (result.success) {
+        handleSuccess('Usuario creado exitosamente')
         onSuccess?.()
         onClose()
       } else {
-        setApiError(result.error || 'Error al crear usuario')
+        handleError(result.error || 'Error al crear usuario')
       }
     } catch (error) {
-      setApiError(error.message)
+      handleError(error)
     }
   }
 
@@ -102,7 +103,6 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
       role: USER_ROLES.CLIENT
     })
     setErrors({})
-    setApiError(null)
     onClose()
   }
 
@@ -220,8 +220,6 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
                 className="w-full"
               />
             </div>
-
-            {apiError && <div className="mt-4 text-danger text-sm">{apiError}</div>}
           </ModalBody>
           <ModalFooter>
             <Button color="danger" variant="light" onPress={handleClose} disabled={submitting}>
@@ -237,4 +235,6 @@ const CrearUserForm = ({ isOpen, onClose, onSuccess }) => {
   )
 }
 
-export default CrearUserForm
+CreateUserForm.displayName = 'CreateUserForm'
+
+export default CreateUserForm

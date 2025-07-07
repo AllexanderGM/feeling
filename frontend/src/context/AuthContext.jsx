@@ -1,122 +1,101 @@
 import { createContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { useCookies } from '@hooks/useCookies'
 import { registerAuthCallbacks } from '@services/api'
+import { USER_DEFAULT_VALUES, USER_REQUIRED_FIELDS, USER_OPTIONAL_FIELDS, isSpecialField } from '@constants/userSchema.js'
 
 const AuthContext = createContext(null)
 
-// Estructura completa del usuario
+// Convertir timestamps del backend si vienen como arrays
+const convertTimestamp = timestamp => {
+  if (Array.isArray(timestamp) && timestamp.length >= 3) {
+    const [year, month, day, hour = 0, minute = 0, second = 0, nano = 0] = timestamp
+    return new Date(year, month - 1, day, hour, minute, second, Math.floor(nano / 1000000)).toISOString()
+  }
+  return timestamp ? new Date(timestamp).toISOString() : null
+}
+
+// Convertir dateOfBirth array a Date string
+const convertDateOfBirth = dateOfBirth => {
+  if (!dateOfBirth) return null
+
+  if (Array.isArray(dateOfBirth) && dateOfBirth.length >= 3) {
+    const [year, month, day] = dateOfBirth
+    return new Date(year, month - 1, day).toISOString().split('T')[0] // YYYY-MM-DD
+  }
+
+  if (dateOfBirth instanceof Date) {
+    return dateOfBirth.toISOString().split('T')[0]
+  }
+
+  if (typeof dateOfBirth === 'string') {
+    return new Date(dateOfBirth).toISOString().split('T')[0]
+  }
+
+  return null
+}
+
+// Estructura completa del usuario usando esquemas centralizados
 const createUserStructure = (userData = {}) => {
-  // Convertir dateOfBirth array a Date
-  let birthDate = null
-  if (userData.dateOfBirth) {
-    if (Array.isArray(userData.dateOfBirth) && userData.dateOfBirth.length >= 3) {
-      const [year, month, day] = userData.dateOfBirth
-      birthDate = new Date(year, month - 1, day)
-    } else if (userData.dateOfBirth instanceof Date) {
-      birthDate = userData.dateOfBirth
-    } else if (typeof userData.dateOfBirth === 'string') {
-      birthDate = new Date(userData.dateOfBirth)
-    }
-  }
+  // Usar valores por defecto centralizados como base
+  const baseStructure = { ...USER_DEFAULT_VALUES }
 
-  // Convertir timestamps del backend si vienen como arrays
-  const convertTimestamp = timestamp => {
-    if (Array.isArray(timestamp) && timestamp.length >= 3) {
-      const [year, month, day, hour = 0, minute = 0, second = 0, nano = 0] = timestamp
-      return new Date(year, month - 1, day, hour, minute, second, Math.floor(nano / 1000000)).toISOString()
-    }
-    return timestamp ? new Date(timestamp).toISOString() : null
-  }
+  // Mapear datos del usuario con manejo especial para campos específicos
+  const mappedData = {
+    ...baseStructure,
+    ...userData,
 
-  return {
-    // DATOS BÁSICOS
-    id: userData.id || null,
-    name: userData.name || 'Usuario',
-    lastName: userData.lastName || '',
-    email: userData.email || '',
-    verified: userData.verified || false,
-    profileComplete: userData.profileComplete || false,
+    // Campos que requieren procesamiento especial
+    birthDate: convertDateOfBirth(userData.dateOfBirth || userData.birthDate),
+    // Priorizar imágenes subidas por el usuario sobre imagen externa (Google, etc.)
+    image: userData.images?.[0] || userData.externalAvatarUrl || null,
     createdAt: convertTimestamp(userData.createdAt),
     updatedAt: convertTimestamp(userData.updatedAt),
     lastActive: convertTimestamp(userData.lastActive),
+    attemptsExpiryDate: convertTimestamp(userData.attemptsExpiryDate),
+    lastExternalSync: convertTimestamp(userData.lastExternalSync),
+
+    // Campos con valores por defecto específicos para AuthContext
+    id: userData.id || null,
+    name: userData.name || 'Usuario',
+    email: userData.email || '',
+    verified: userData.verified || false,
+    profileComplete: userData.profileComplete || false,
     role: userData.role || 'CLIENT',
-
-    // DATOS PERSONALES BÁSICOS
-    image: userData.images?.[0] || null,
-    images: userData.images || [],
-    document: userData.document || null,
-    phone: userData.phone || null,
-    dateOfBirth: birthDate,
     age: userData.age || null,
-    description: userData.description || null,
 
-    // UBICACIÓN GEOGRÁFICA
-    country: userData.country || null,
-    city: userData.city || null,
-    department: userData.department || null,
-    locality: userData.locality || null,
-
-    // ATRIBUTOS PERSONALES
-    categoryInterest: userData.categoryInterest || null,
-    genderId: userData.genderId || null,
-    maritalStatusId: userData.maritalStatusId || null,
-    height: userData.height || null,
-    eyeColorId: userData.eyeColorId || null,
-    hairColorId: userData.hairColorId || null,
-    bodyTypeId: userData.bodyTypeId || null,
-    educationLevelId: userData.educationLevelId || null,
-    profession: userData.profession || null,
-    tags: userData.tags || [],
-
-    // DATOS PARA SPIRIT
-    church: userData.church || null,
-    religionId: userData.religionId || null,
-    spiritualMoments: userData.spiritualMoments || null,
-    spiritualPractices: userData.spiritualPractices || null,
-
-    // DATOS PARA ROUSE
-    sexualRoleId: userData.sexualRoleId || null,
-    relationshipType: userData.relationshipType || null,
-
-    // PREFERENCIAS DE MATCHING
-    agePreferenceMin: userData.agePreferenceMin || null,
-    agePreferenceMax: userData.agePreferenceMax || null,
-    locationPreferenceRadius: userData.locationPreferenceRadius || null,
-    showMeInSearch: userData.showMeInSearch !== undefined ? userData.showMeInSearch : true,
-    allowNotifications: userData.allowNotifications !== undefined ? userData.allowNotifications : true,
-
-    // CONFIGURACIÓN DE PRIVACIDAD
-    showAge: userData.showAge !== undefined ? userData.showAge : true,
-    showLocation: userData.showLocation !== undefined ? userData.showLocation : true,
-    showPhone: userData.showPhone !== undefined ? userData.showPhone : false,
-
-    // MÉTRICAS SOCIALES Y GAMIFICACIÓN
+    // Métricas sociales
     profileViews: userData.profileViews || 0,
     likesReceived: userData.likesReceived || 0,
     matchesCount: userData.matchesCount || 0,
     popularityScore: userData.popularityScore || 0.0,
 
-    // SISTEMA DE INTENTOS/PINES
+    // Sistema de intentos
     availableAttempts: userData.availableAttempts || 0,
     totalAttemptsPurchased: userData.totalAttemptsPurchased || 0,
-    attemptsExpiryDate: convertTimestamp(userData.attemptsExpiryDate),
 
-    // AUTENTICACIÓN MÚLTIPLE
+    // Autenticación
     userAuthProvider: userData.userAuthProvider || 'LOCAL',
     externalId: userData.externalId || null,
     externalAvatarUrl: userData.externalAvatarUrl || null,
-    lastExternalSync: convertTimestamp(userData.lastExternalSync),
 
-    // PREFERENCIAS LOCALES DEL FRONTEND
+    // Configuración adicional no incluida en esquemas base
+    showPhone: userData.showPhone !== undefined ? userData.showPhone : false,
+
+    // Preferencias locales del frontend
     preferences: {
       language: userData.preferences?.language || 'es',
       theme: userData.preferences?.theme || 'light',
-      notifications: userData.preferences?.notifications !== undefined ? userData.preferences.notifications : userData.allowNotifications,
+      notifications:
+        userData.preferences?.notifications !== undefined
+          ? userData.preferences.notifications
+          : userData.allowNotifications !== undefined
+            ? userData.allowNotifications
+            : true,
       newsletter: userData.preferences?.newsletter || false,
       ...userData.preferences
     },
 
-    // METADATOS LOCALES DEL FRONTEND
+    // Metadatos locales del frontend
     metadata: {
       lastLogin: userData.metadata?.lastLogin || convertTimestamp(userData.lastActive),
       loginCount: userData.metadata?.loginCount || 0,
@@ -126,6 +105,8 @@ const createUserStructure = (userData = {}) => {
       ...userData.metadata
     }
   }
+
+  return mappedData
 }
 
 export const AuthProvider = ({ children }) => {
@@ -204,40 +185,31 @@ export const AuthProvider = ({ children }) => {
     [updateAccessToken, updateRefreshToken, clearTokens]
   )
 
-  // Calcular completitud del perfil
+  // Calcular completitud del perfil usando esquemas centralizados
   const calculateProfileCompleteness = useCallback(userData => {
-    const basicRequiredFields = ['name', 'lastName', 'email', 'phone', 'document', 'dateOfBirth', 'city', 'country']
-    const categoryRequiredFields = ['categoryInterest']
-    const profileFields = ['description', 'gender', 'images', 'profession']
-    const optionalFields = ['department', 'locality', 'height', 'education', 'tags']
+    if (!userData) return 0
 
-    const checkField = (field, value) => {
-      if (field === 'dateOfBirth') {
-        return value && (value instanceof Date || Array.isArray(value) || value.toString().trim() !== '')
-      }
-      if (field === 'tags') {
-        return Array.isArray(value) && value.length > 0
-      }
-      if (field === 'images') {
-        return Array.isArray(value) && value.length > 0
-      }
-      if (field === 'categoryInterest') {
-        return value && value.toString().trim() !== ''
-      }
-      return value && value.toString().trim() !== ''
-    }
+    // Usar campos centralizados
+    const requiredFields = USER_REQUIRED_FIELDS
+    const optionalFields = USER_OPTIONAL_FIELDS
 
-    const basicCompleted = basicRequiredFields.filter(field => checkField(field, userData[field])).length
-    const categoryCompleted = categoryRequiredFields.filter(field => checkField(field, userData[field])).length
-    const profileCompleted = profileFields.filter(field => checkField(field, userData[field])).length
-    const optionalCompleted = optionalFields.filter(field => checkField(field, userData[field])).length
+    // Contar campos requeridos completados
+    const requiredComplete = requiredFields.filter(field => {
+      // Mapear birthDate a dateOfBirth para compatibilidad con backend
+      const value = field === 'birthDate' ? userData.dateOfBirth || userData.birthDate : userData[field]
+      return isSpecialField(field, value)
+    }).length
 
-    const basicScore = (basicCompleted / basicRequiredFields.length) * 50
-    const categoryScore = (categoryCompleted / categoryRequiredFields.length) * 20
-    const profileScore = (profileCompleted / profileFields.length) * 20
-    const optionalScore = (optionalCompleted / optionalFields.length) * 10
+    // Contar campos opcionales completados
+    const optionalComplete = optionalFields.filter(field => {
+      const value = userData[field]
+      return isSpecialField(field, value)
+    }).length
 
-    return Math.round(basicScore + categoryScore + profileScore + optionalScore)
+    const totalFields = requiredFields.length + optionalFields.length
+    const completedFields = requiredComplete + optionalComplete
+
+    return Math.round((completedFields / totalFields) * 100)
   }, [])
 
   // ========================================
@@ -262,10 +234,15 @@ export const AuthProvider = ({ children }) => {
         }
       })
 
-      // Recalcular completitud del perfil
+      // Usar profileComplete del backend si está disponible, sino calcular localmente
       const profileCompleteness = calculateProfileCompleteness(updatedUser)
       updatedUser.metadata.profileCompleteness = profileCompleteness
-      updatedUser.profileComplete = userData.completeProfile ?? userData.profileComplete ?? profileCompleteness >= 80
+      // Priorizar el valor del backend, solo calcular localmente si no viene del servidor
+      if (userData.profileComplete !== undefined) {
+        updatedUser.profileComplete = userData.profileComplete
+      } else {
+        updatedUser.profileComplete = profileCompleteness >= 80
+      }
 
       setUser(updatedUser)
       cookieHandler.set('user', updatedUser)

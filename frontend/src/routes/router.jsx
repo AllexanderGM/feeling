@@ -18,8 +18,9 @@ import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
 import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
 import Home from '@pages/home/Home.jsx'
+import Profile from '@pages/user/profile/Profile.jsx'
 // Páginas de administración
-import UsersManagement from '@pages/user/admin/UsersManagement.jsx'
+import UsersManagement from '@pages/user/usersManagement/UsersManagement.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -83,7 +84,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.PROFILE.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Mi Perfil - Por implementar</div>
+                <Profile />
               </RequireCompleteProfile>
             )
           },

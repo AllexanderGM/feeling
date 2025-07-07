@@ -6,7 +6,7 @@ const useUserSearch = (fetchUsers, initialPage = 0, initialRowsPerPage = 10) => 
   const [page, setPage] = useState(initialPage)
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage)
   const [isSearching, setIsSearching] = useState(false)
-  
+
   const debounceTimer = useRef(null)
 
   // Debounce de la búsqueda
@@ -16,7 +16,7 @@ const useUserSearch = (fetchUsers, initialPage = 0, initialRowsPerPage = 10) => 
     }
 
     setIsSearching(true)
-    
+
     debounceTimer.current = setTimeout(() => {
       setDebouncedQuery(searchQuery)
       setIsSearching(false)
@@ -31,35 +31,38 @@ const useUserSearch = (fetchUsers, initialPage = 0, initialRowsPerPage = 10) => 
 
   // Ejecutar búsqueda cuando cambie el query debounced, página o filas por página
   useEffect(() => {
-    console.log('🔍 UserSearch: Executing search...', { 
-      page, 
-      rowsPerPage, 
-      query: debouncedQuery 
+    console.log('🔍 UserSearch: Executing search...', {
+      page,
+      rowsPerPage,
+      query: debouncedQuery
     })
-    
+
     fetchUsers(page, rowsPerPage, debouncedQuery)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery, page, rowsPerPage])
 
   // Handlers
-  const handleSearchChange = useCallback((value) => {
-    setSearchQuery(value || '')
-    // Reset a la primera página cuando se hace una nueva búsqueda
-    if (page !== 0) {
-      setPage(0)
-    }
-  }, [page])
+  const handleSearchChange = useCallback(
+    value => {
+      setSearchQuery(value || '')
+      // Reset a la primera página cuando se hace una nueva búsqueda
+      if (page !== 0) {
+        setPage(0)
+      }
+    },
+    [page]
+  )
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('')
     setPage(0)
   }, [])
 
-  const handlePageChange = useCallback((newPage) => {
+  const handlePageChange = useCallback(newPage => {
     setPage(newPage)
   }, [])
 
-  const handleRowsPerPageChange = useCallback((newRowsPerPage) => {
+  const handleRowsPerPageChange = useCallback(newRowsPerPage => {
     setRowsPerPage(newRowsPerPage)
     setPage(0) // Reset a primera página
   }, [])
@@ -71,13 +74,13 @@ const useUserSearch = (fetchUsers, initialPage = 0, initialRowsPerPage = 10) => 
     page,
     rowsPerPage,
     isSearching,
-    
+
     // Handlers
     handleSearchChange,
     handleClearSearch,
     handlePageChange,
     handleRowsPerPageChange,
-    
+
     // Para compatibilidad con componente existente
     filterValue: searchQuery,
     onSearchChange: handleSearchChange,

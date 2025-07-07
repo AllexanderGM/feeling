@@ -26,12 +26,16 @@ const TableActionCell = ({
         )}
       </Tooltip>
       <Tooltip content={editTooltip}>
-        <span onClick={() => onEdit?.(item)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+        <span
+          onClick={() => onEdit?.(item)}
+          className={`text-lg ${onEdit ? 'text-default-400 cursor-pointer active:opacity-50' : 'text-default-200 cursor-not-allowed opacity-50 line-through'}`}>
           <Edit />
         </span>
       </Tooltip>
       <Tooltip color="danger" content={deleteTooltip}>
-        <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => onDelete?.(item)}>
+        <span
+          className={`text-lg ${onDelete ? 'text-danger cursor-pointer active:opacity-50' : 'text-default-200 cursor-not-allowed opacity-50 line-through'}`}
+          onClick={() => onDelete?.(item)}>
           <Trash2 />
         </span>
       </Tooltip>

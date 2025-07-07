@@ -4,12 +4,13 @@ import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
+import { Mail, Lock } from 'lucide-react'
 import useAuth from '@hooks/useAuth'
 import { loginSchema } from '@utils/formSchemas'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
-import { Mail, Lock } from 'lucide-react'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -58,7 +59,7 @@ const Login = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+    <LiteContainer>
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
@@ -172,7 +173,7 @@ const Login = () => {
           </Button>
         </div>
       </Form>
-    </main>
+    </LiteContainer>
   )
 }
 

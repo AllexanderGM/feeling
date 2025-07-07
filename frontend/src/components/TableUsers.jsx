@@ -6,9 +6,9 @@ import { getAllUsers, getUserByEmail } from '@services/userService'
 import GenericTableControls from './ui/GenericTableControls.jsx'
 import TableActionCell from './ui/TableActionCell.jsx'
 import TablePagination from './ui/TablePagination.jsx'
-import CrearUserForm from '../pages/user/admin/components/CrearUserForm.jsx'
-import EditarUserForm from '../pages/user/admin/components/EditarUserForm.jsx'
-import DeleteUserModal from '../pages/user/admin/components/DeleteUserModal.jsx'
+import CrearUserForm from '../pages/user/usersManagement/components/CrearUserForm.jsx'
+import EditarUserForm from '../pages/user/usersManagement/components/EditarUserForm.jsx'
+import DeleteUserModal from '../pages/user/usersManagement/components/DeleteUserModal.jsx'
 import { USER_ROLES, USER_ROLE_COLORS, USER_COLUMNS } from '../constants/tableConstants.js'
 
 const TableUsers = () => {

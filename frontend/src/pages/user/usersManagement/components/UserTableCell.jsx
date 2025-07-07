@@ -30,7 +30,11 @@ const UserTableCell = memo(({ user, columnKey, currentUser, onEdit, onDelete }) 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">{`${user.name || 'Usuario'} ${user.lastName || ''}`.trim()}</p>
-              {isCurrentUser && <Chip size="sm" color="primary" variant="flat">Tú</Chip>}
+              {isCurrentUser && (
+                <Chip size="sm" color="primary" variant="flat">
+                  Tú
+                </Chip>
+              )}
             </div>
             <p className="text-xs text-default-500">{user.email}</p>
           </div>
@@ -72,7 +76,8 @@ const UserTableCell = memo(({ user, columnKey, currentUser, onEdit, onDelete }) 
     case 'actions': {
       const isCurrentUser = user.email === currentUser?.email
       const canEdit = !isCurrentUser && (currentUser?.role === 'SUPER_ADMIN' || user.role !== 'ADMIN')
-      const canDelete = !isCurrentUser && currentUser?.role === 'SUPER_ADMIN' && (user.role !== 'ADMIN' || user.email !== currentUser?.email)
+      const canDelete =
+        !isCurrentUser && currentUser?.role === 'SUPER_ADMIN' && (user.role !== 'ADMIN' || user.email !== currentUser?.email)
 
       let editTooltip = 'Editar'
       let deleteTooltip = 'Eliminar'

@@ -9,7 +9,12 @@ public record UserProfileRequestDTO(
         // ========================================
         // DATOS PERSONALES BÁSICOS
         // ========================================
-        @NotBlank(message = "El documento es obligatorio")
+        @Size(max = 50, message = "El nombre no puede superar los 50 caracteres")
+        String name,
+
+        @Size(max = 50, message = "El apellido no puede superar los 50 caracteres")
+        String lastName,
+
         @Size(max = 20, message = "El documento no puede superar los 20 caracteres")
         String document,
 

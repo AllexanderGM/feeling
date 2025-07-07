@@ -6,6 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import useAuth from '@hooks/useAuth'
 import { useNotification } from '@hooks/useNotification'
 import { verifyEmailSchema } from '@utils/formSchemas'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
 import { CheckCircle, Info, Mail, ShieldCheck, RefreshCw, Clock, Lightbulb } from 'lucide-react'
@@ -128,7 +129,7 @@ const VerifyEmail = () => {
   // Si es usuario de Google verificado automáticamente
   if (fromGoogle && autoVerified && status === 'success') {
     return (
-      <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20">
+      <LiteContainer>
         <figure className="text-center pb-8">
           <img src={logo} alt="Logo Feeling" className="w-52" />
         </figure>
@@ -147,12 +148,12 @@ const VerifyEmail = () => {
             </div>
           </div>
         </div>
-      </main>
+      </LiteContainer>
     )
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20 pb-10">
+    <LiteContainer>
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>
@@ -321,7 +322,7 @@ const VerifyEmail = () => {
           </div>
         </Form>
       )}
-    </main>
+    </LiteContainer>
   )
 }
 

@@ -3,6 +3,7 @@ import useAuth from '@hooks/useAuth'
 import userService from '@services/userService.js'
 import { useError } from '@hooks/useError'
 import useAsyncOperation from '@hooks/useAsyncOperation'
+import { USER_REQUIRED_FIELDS, USER_OPTIONAL_FIELDS, isSpecialField, formatFormDataToApi } from '@constants/userSchema.js'
 
 const useUser = () => {
   const { user, updateUser: updateAuthUser } = useAuth()
@@ -28,41 +29,7 @@ const useUser = () => {
   // HELPERS INTERNOS
   // ========================================
 
-  const formatFormDataToApi = useCallback(formData => {
-    return {
-      document: formData.document,
-      phone: formData.phone,
-      phoneCode: formData.phoneCode,
-      dateOfBirth: formData.birthDate,
-      description: formData.description,
-      country: formData.country,
-      city: formData.city,
-      department: formData.department || '',
-      locality: formData.locality || '',
-      categoryInterest: formData.categoryInterest,
-      religionId: formData.religionId ? parseInt(formData.religionId) : null,
-      spiritualMoments: formData.spiritualMoments || '',
-      spiritualPractices: formData.spiritualPractices || '',
-      sexualRoleId: formData.sexualRoleId ? parseInt(formData.sexualRoleId) : null,
-      relationshipId: formData.relationshipTypeId ? parseInt(formData.relationshipTypeId) : null,
-      genderId: formData.genderId ? parseInt(formData.genderId) : null,
-      height: formData.height ? parseInt(formData.height) : null,
-      eyeColorId: formData.eyeColorId ? parseInt(formData.eyeColorId) : null,
-      hairColorId: formData.hairColorId ? parseInt(formData.hairColorId) : null,
-      bodyTypeId: formData.bodyTypeId ? parseInt(formData.bodyTypeId) : null,
-      maritalStatusId: formData.maritalStatusId ? parseInt(formData.maritalStatusId) : null,
-      profession: formData.profession || '',
-      educationId: formData.educationLevelId ? parseInt(formData.educationLevelId) : null,
-      tags: formData.tags || [],
-      agePreferenceMin: formData.agePreferenceMin ? parseInt(formData.agePreferenceMin) : 18,
-      agePreferenceMax: formData.agePreferenceMax ? parseInt(formData.agePreferenceMax) : 50,
-      locationPreferenceRadius: formData.locationPreferenceRadius ? parseInt(formData.locationPreferenceRadius) : 50,
-      allowNotifications: formData.allowNotifications !== false,
-      showAge: formData.showAge !== false,
-      showLocation: formData.showLocation !== false,
-      showMeInSearch: formData.showMeInSearch !== false
-    }
-  }, [])
+  // Usar función centralizada directamente (no necesita useCallback al ser una función pura importada)
 
   // ========================================
   // MÉTODOS PRINCIPALES
@@ -83,7 +50,7 @@ const useUser = () => {
 
       return handleApiResponse(result, '¡Perfil completado exitosamente! Ya puedes usar todas las funciones.', { showNotifications })
     },
-    [withSubmitting, updateAuthUser, formatFormDataToApi, handleApiResponse]
+    [withSubmitting, updateAuthUser, handleApiResponse]
   )
 
   const updateUser = useCallback(
@@ -119,7 +86,7 @@ const useUser = () => {
 
       return handleApiResponse(result, 'Perfil actualizado exitosamente.', { showNotifications })
     },
-    [withLoading, updateAuthUser, formatFormDataToApi, handleApiResponse]
+    [withLoading, updateAuthUser, handleApiResponse]
   )
 
   const fetchProfile = useCallback(
@@ -432,31 +399,35 @@ const useUser = () => {
   const getProfileStats = useCallback(() => {
     if (!profile) return null
 
-    const requiredFields = [
-      'name',
-      'lastName',
-      'email',
-      'phone',
-      'document',
-      'dateOfBirth',
-      'city',
-      'country',
-      'categoryInterest',
-      'description'
-    ]
+    // Usar campos centralizados
+    const requiredFields = USER_REQUIRED_FIELDS
+    const optionalFields = USER_OPTIONAL_FIELDS
 
-    const completedFields = requiredFields.filter(field => {
+    // Contar campos requeridos completados
+    const requiredComplete = requiredFields.filter(field => {
       const value = profile[field]
-      return value && value.toString().trim() !== ''
-    })
+      return isSpecialField(field, value)
+    }).length
 
-    const completionPercentage = Math.round((completedFields.length / requiredFields.length) * 100)
+    // Contar campos opcionales completados
+    const optionalComplete = optionalFields.filter(field => {
+      const value = profile[field]
+      return isSpecialField(field, value)
+    }).length
+
+    const totalFields = requiredFields.length + optionalFields.length
+    const completedFields = requiredComplete + optionalComplete
+    const completionPercentage = Math.round((completedFields / totalFields) * 100)
 
     return {
       completionPercentage,
-      completedFieldsCount: completedFields.length,
-      totalFieldsCount: requiredFields.length,
-      missingFieldsCount: requiredFields.length - completedFields.length,
+      completedFieldsCount: completedFields,
+      totalFieldsCount: totalFields,
+      requiredFieldsCount: requiredFields.length,
+      optionalFieldsCount: optionalFields.length,
+      requiredCompleted: requiredComplete,
+      optionalCompleted: optionalComplete,
+      missingFieldsCount: totalFields - completedFields,
       hasImages: profile.images?.length > 0,
       imageCount: profile.images?.length || 0,
       isVerified: profile.verified || false,
@@ -472,8 +443,19 @@ const useUser = () => {
 
   const needsProfileCompletion = useCallback(() => {
     if (!profile) return true
-    return !profile.profileComplete || !isProfileComplete()
+    // Priorizar el valor del backend si está disponible
+    if (profile.profileComplete !== undefined) {
+      return !profile.profileComplete
+    }
+    // Fallback al cálculo local si no hay valor del backend
+    return !isProfileComplete()
   }, [profile, isProfileComplete])
+
+  const getProfileCompleteness = useCallback(() => {
+    const stats = getProfileStats()
+    return stats?.completionPercentage || 0
+  }, [getProfileStats])
+
   // ========================================
   // API PÚBLICA DEL HOOK
   // ========================================
@@ -493,6 +475,7 @@ const useUser = () => {
 
     // Validaciones y estadísticas (perfil personal)
     getProfileStats,
+    getProfileCompleteness,
     isProfileComplete,
     needsProfileCompletion,
 
@@ -509,10 +492,7 @@ const useUser = () => {
     refreshUsers,
     filterUsers,
     getUserStats,
-    setUsers,
-
-    // Utilidades
-    formatFormDataToApi
+    setUsers
   }
 }
 

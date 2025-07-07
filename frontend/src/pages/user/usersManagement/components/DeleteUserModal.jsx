@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useError } from '@hooks/useError.js'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth.js'
 import useUser from '@hooks/useUser.js'
@@ -6,18 +7,19 @@ import useUser from '@hooks/useUser.js'
 const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
   const { user: currentUser } = useAuth()
   const { deleteUser, submitting } = useUser()
+  const { handleError, handleSuccess } = useError()
   const [error, setError] = useState(null)
 
   // Verificar si se puede eliminar el usuario
   const canDeleteUser = () => {
-    // No permitir eliminar si:
-    // 1. Es el mismo usuario intentando eliminarse a sí mismo
+    // Do not allow deletion if:
+    // 1. It's the same user trying to delete themselves
     if (currentUser?.email === userData?.email) {
       setError('No puedes eliminarte a ti mismo')
       return false
     }
 
-    // 2. Un admin intentando eliminar a otro admin
+    // 2. An admin trying to delete another admin
     if (userData?.role === 'ADMIN' && !currentUser?.isSuperAdmin) {
       setError('No tienes permisos para eliminar a otros administradores')
       return false
@@ -36,14 +38,19 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
 
       const result = await deleteUser(userData.email)
       if (result.success) {
+        handleSuccess('Usuario eliminado exitosamente')
         onSuccess?.()
         onClose()
       } else {
-        setError(result.error || 'Error al eliminar el usuario')
+        const errorMsg = result.error || 'Error al eliminar el usuario'
+        setError(errorMsg)
+        handleError(errorMsg)
       }
     } catch (error) {
       console.error('Error al eliminar usuario:', error)
-      setError(error.message || 'Error al eliminar el usuario')
+      const errorMsg = error.message || 'Error al eliminar el usuario'
+      setError(errorMsg)
+      handleError(error)
     }
   }
 

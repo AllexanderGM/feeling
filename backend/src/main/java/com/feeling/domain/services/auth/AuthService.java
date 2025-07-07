@@ -8,7 +8,6 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
 import com.feeling.infrastructure.repositories.user.*;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
@@ -19,6 +18,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -83,7 +83,7 @@ public class AuthService {
 
             User userEntity = User.builder()
                     .name(newUser.name().trim())
-                    .lastname(newUser.lastName().trim())
+                    .lastName(newUser.lastName().trim())
                     .email(newUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(newUser.password()))
                     .userRole(clientRole)
@@ -159,7 +159,7 @@ public class AuthService {
 
             User newUser = User.builder()
                     .name(googleUser.getFirstName())
-                    .lastname(googleUser.getLastName())
+                    .lastName(googleUser.getLastName())
                     .email(googleUser.email().toLowerCase().trim())
                     .password(passwordEncoder.encode(
                             googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
@@ -186,16 +186,15 @@ public class AuthService {
                     .popularityScore(0.0)
                     .build();
 
-            if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
-                newUser.setImages(new ArrayList<>(List.of(googleUser.picture())));
-            }
+            // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
+            // No necesitamos agregarla a la lista de images
 
             newUser = userRepository.save(newUser);
 
             try {
                 emailService.sendWelcomeEmailForGoogleUser(
                         newUser.getEmail(),
-                        newUser.getName() + " " + newUser.getLastname(),
+                        newUser.getName() + " " + newUser.getLastName(),
                         googleUser.picture()
                 );
                 logger.info("Email de bienvenida enviado a usuario de Google: {}", newUser.getEmail());
@@ -292,7 +291,7 @@ public class AuthService {
                 // Crear usuario
                 user = User.builder()
                         .name(googleUser.getFirstName())
-                        .lastname(googleUser.getLastName())
+                        .lastName(googleUser.getLastName())
                         .email(googleUser.email().toLowerCase().trim())
                         .password(passwordEncoder.encode(
                                 googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
@@ -320,10 +319,8 @@ public class AuthService {
                         .popularityScore(0.0)
                         .build();
 
-                // Añadir imagen de Google si existe
-                if (googleUser.picture() != null && !googleUser.picture().trim().isEmpty()) {
-                    user.setImages(new ArrayList<>(List.of(googleUser.picture())));
-                }
+                // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
+                // No necesitamos agregarla a la lista de images
             }
 
             // 4. Guardar usuario
@@ -334,7 +331,7 @@ public class AuthService {
                 try {
                     emailService.sendWelcomeEmailForGoogleUser(
                             user.getEmail(),
-                            user.getName() + " " + user.getLastname(),
+                            user.getName() + " " + user.getLastName(),
                             googleUser.picture()
                     );
                     logger.info("Email de bienvenida enviado a usuario de Google: {}", user.getEmail());
@@ -476,7 +473,7 @@ public class AuthService {
             // 3. Enviar correo con el código
             emailService.sendVerificationEmail(
                     user.getEmail(),
-                    user.getName() + " " + user.getLastname(),
+                    user.getName() + " " + user.getLastName(),
                     code
             );
 
@@ -533,7 +530,7 @@ public class AuthService {
         try {
             emailService.sendWelcomeEmailForLocalUser(
                     user.getEmail(),
-                    user.getName() + " " + user.getLastname()
+                    user.getName() + " " + user.getLastName()
             );
             logger.info("Email de bienvenida enviado a usuario local verificado: {}", user.getEmail());
         } catch (Exception emailError) {
@@ -644,7 +641,7 @@ public class AuthService {
             String resetLink = frontendUrl + "/reset-password/" + resetToken;
             emailService.sendPasswordResetEmail(
                     user.getEmail(),
-                    user.getName() + " " + user.getLastname(),
+                    user.getName() + " " + user.getLastName(),
                     resetLink,
                     60 // minutos de validez
             );
@@ -712,7 +709,7 @@ public class AuthService {
             try {
                 emailService.sendPasswordChangeConfirmationEmail(
                         user.getEmail(),
-                        user.getName() + " " + user.getLastname()
+                        user.getName() + " " + user.getLastName()
                 );
             } catch (Exception emailError) {
                 logger.warn("Error al enviar email de confirmación de cambio de contraseña: {}", emailError.getMessage());
@@ -872,21 +869,21 @@ public class AuthService {
     AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
         try {
             logger.debug("Generando tokens para usuario: {}", user.getEmail());
-            
+
             // Validar que el usuario tenga rol asignado
             if (user.getUserRole() == null) {
                 throw new IllegalStateException("Usuario no tiene rol asignado");
             }
-            
+
             // Generar tokens
             String accessToken = jwtService.generateToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
             logger.debug("Tokens generados, revocando tokens anteriores para usuario: {}", user.getEmail());
-            
+
             // Revocar todos los tokens anteriores y guardar los nuevos
             revokeAllUserTokens(user);
-            
+
             logger.debug("Guardando nuevos tokens para usuario: {}", user.getEmail());
             saveUserToken(user, accessToken, UserToken.TokenType.ACCESS);
             saveUserToken(user, refreshToken, UserToken.TokenType.REFRESH);
@@ -900,7 +897,7 @@ public class AuthService {
             return new AuthLoginResponseDTO(
                     user.getId(),
                     user.getName(),
-                    user.getLastname(),
+                    user.getLastName(),
                     user.getEmail(),
                     user.getUserRole().getUserRoleList().name(),
                     accessToken,

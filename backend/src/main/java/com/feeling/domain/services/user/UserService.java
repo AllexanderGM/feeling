@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -61,15 +61,15 @@ public class UserService {
 
     public Page<UserResponseDTO> getListPaginated(Pageable pageable) {
         Page<User> users = userRepository.findAll(pageable);
-        logger.info("Usuarios paginados encontrados correctamente - Página: {}, Tamaño: {}, Total: {}", 
-                   pageable.getPageNumber(), pageable.getPageSize(), users.getTotalElements());
+        logger.info("Usuarios paginados encontrados correctamente - Página: {}, Tamaño: {}, Total: {}",
+                pageable.getPageNumber(), pageable.getPageSize(), users.getTotalElements());
         return users.map(UserResponseDTO::new);
     }
 
     public Page<UserResponseDTO> searchUsers(String searchTerm, Pageable pageable) {
         Page<User> users = userRepository.findBySearchTerm(searchTerm, pageable);
-        logger.info("Búsqueda de usuarios completada - Término: '{}', Página: {}, Resultados: {}", 
-                   searchTerm, pageable.getPageNumber(), users.getTotalElements());
+        logger.info("Búsqueda de usuarios completada - Término: '{}', Página: {}, Resultados: {}",
+                searchTerm, pageable.getPageNumber(), users.getTotalElements());
         return users.map(UserResponseDTO::new);
     }
 
@@ -104,8 +104,9 @@ public class UserService {
             imageUrls.addAll(additionalImageUrls);
             logger.info("Imágenes subidas: {}", additionalImageUrls.size());
         }
-
         if (!imageUrls.isEmpty()) user.setImages(imageUrls);
+        if (profileData.name() != null) user.setName(profileData.name().trim());
+        if (profileData.lastName() != null) user.setLastName(profileData.lastName().trim());
         if (profileData.document() != null) user.setDocument(profileData.document());
         if (profileData.phone() != null) user.setPhone(profileData.phone());
         if (profileData.phoneCode() != null) user.setPhoneCode(profileData.phoneCode());
@@ -129,8 +130,7 @@ public class UserService {
             try {
                 categoryEnum = UserCategoryInterestList.valueOf(profileData.categoryInterest().toUpperCase());
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Categoría de interés no válida: " + profileData.categoryInterest() +
-                        ". Valores válidos: ESSENCE, ROUSE, SPIRIT");
+                throw new IllegalArgumentException("Categoría de interés no válida: " + profileData.categoryInterest() + ". Valores válidos: ESSENCE, ROUSE, SPIRIT");
             }
 
             // Buscar en la base de datos usando el enum
@@ -287,7 +287,7 @@ public class UserService {
 
             user.setEmail(userRequestDTO.email());
             user.setName(userRequestDTO.name());
-            user.setLastname(userRequestDTO.lastName());
+            user.setLastName(userRequestDTO.lastName());
             user.setDocument(userRequestDTO.document());
             user.setPhone(userRequestDTO.phone());
             user.setDateOfBirth(userRequestDTO.dateOfBirth());

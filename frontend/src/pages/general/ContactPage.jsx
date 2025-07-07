@@ -105,7 +105,7 @@ const ContactPage = () => {
         subject: '',
         message: ''
       })
-    } catch (error) {
+    } catch {
       setSubmitStatus({
         type: 'error',
         message: 'Hubo un problema al enviar tu mensaje. Por favor, intenta nuevamente.'
@@ -157,7 +157,7 @@ const ContactPage = () => {
   ]
 
   return (
-    <div className="contact-container">
+    <>
       <Helmet>
         <title>Contacto | Glocal Tours</title>
         <meta
@@ -406,7 +406,7 @@ const ContactPage = () => {
           </CardFooter>
         </Card>
       </div>
-    </div>
+    </>
   )
 }
 

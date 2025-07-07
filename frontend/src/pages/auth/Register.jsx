@@ -6,6 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema } from '@utils/formSchemas'
 import { useGoogleLogin } from '@react-oauth/google'
 import useAuth from '@hooks/useAuth'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -99,7 +100,7 @@ const Register = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-evenly gap-10 h-full max-h-fit w-full max-w-3xl px-8 py-20 pb-10">
+    <LiteContainer>
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-36" />
       </figure>
@@ -288,7 +289,7 @@ const Register = () => {
           </div>
         </div>
       </Form>
-    </main>
+    </LiteContainer>
   )
 }
 

@@ -1,4 +1,5 @@
-import { HeroUIProvider, ToastProvider } from '@heroui/react'
+import { HeroUIProvider } from '@heroui/react'
+import { ToastProvider } from '@heroui/toast'
 import { useHref, useNavigate } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
 import { CookiesProvider } from 'react-cookie'
@@ -11,12 +12,12 @@ const LibrariesProvider = ({ children }) => {
 
   return (
     <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES">
-      <ToastProvider />
       <HelmetProvider>
         <CookiesProvider defaultSetOptions={{ path: '/' }}>
           <GoogleOAuthProvider clientId={CLIENT_ID}>{children}</GoogleOAuthProvider>
         </CookiesProvider>
       </HelmetProvider>
+      <ToastProvider />
     </HeroUIProvider>
   )
 }

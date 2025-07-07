@@ -372,7 +372,7 @@ public class DataInitializer implements CommandLineRunner {
 
             User admin = User.builder()
                     .name("Administrador")
-                    .lastname("Feeling")
+                    .lastName("Feeling")
                     .email(this.adminEmail)
                     .password(passwordEncoder.encode(this.adminPassword))
                     .userRole(adminRole)

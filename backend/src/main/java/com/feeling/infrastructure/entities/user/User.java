@@ -33,7 +33,8 @@ public class User implements UserDetails {
 
     @NotNull
     @NotBlank(message = "El apellido es obligatorio")
-    private String lastname;
+    @Column(name = "lastname")
+    private String lastName;
 
     @NotNull
     @Getter
@@ -320,19 +321,12 @@ public class User implements UserDetails {
         if (this.name == null || this.name.trim().isEmpty()) {
             this.name = name;
         }
-        if (this.lastname == null || this.lastname.trim().isEmpty()) {
-            this.lastname = lastName;
+        if (this.lastName == null || this.lastName.trim().isEmpty()) {
+            this.lastName = lastName;
         }
 
-        // Añadir avatar externo a la lista de imágenes si no existe
-        if (avatarUrl != null && !avatarUrl.trim().isEmpty()) {
-            if (this.images == null) {
-                this.images = new ArrayList<>();
-            }
-            if (!this.images.contains(avatarUrl)) {
-                this.images.add(0, avatarUrl); // Añadir al principio
-            }
-        }
+        // NO añadir avatar externo a la lista de imágenes
+        // El avatar externo se maneja por separado en externalAvatarUrl
 
         this.updatedAt = LocalDateTime.now();
     }
@@ -357,7 +351,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.name + " " + this.lastname;
+        return this.name + " " + this.lastName;
     }
 
     @Override
@@ -393,7 +387,7 @@ public class User implements UserDetails {
     }
 
     public boolean isProfileComplete() {
-        return name != null && lastname != null &&
+        return name != null && lastName != null &&
                 dateOfBirth != null && gender != null &&
                 userCategoryInterest != null &&
                 images != null && !images.isEmpty() &&
@@ -401,27 +395,23 @@ public class User implements UserDetails {
                 phone != null && phoneCode != null;
     }
 
+    /**
+     * Obtiene la imagen principal del usuario
+     * Prioriza las imágenes subidas por el usuario sobre la imagen externa de OAuth
+     */
     public String getMainImage() {
-        // Prioritize user-uploaded images over external avatar URL
+        // Primero: imágenes subidas por el usuario
         if (images != null && !images.isEmpty()) {
-            // If there's an external avatar URL, skip it and look for user-uploaded images
-            if (externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty()) {
-                // Find the first image that is not the external avatar
-                for (String image : images) {
-                    if (!image.equals(externalAvatarUrl)) {
-                        return image; // Return first user-uploaded image
-                    }
-                }
-                // If all images are external avatars, return the external avatar
-                return externalAvatarUrl;
-            } else {
-                // No external avatar, return first image
-                return images.get(0);
-            }
+            return images.get(0); // Primera imagen subida por el usuario
         }
         
-        // Fallback to external avatar URL if no user-uploaded images
-        return externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty() ? externalAvatarUrl : null;
+        // Segundo: imagen externa de OAuth (Google, Facebook, etc.)
+        if (externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty()) {
+            return externalAvatarUrl;
+        }
+        
+        // Sin imagen
+        return null;
     }
 
     public boolean hasActiveAttempts() {

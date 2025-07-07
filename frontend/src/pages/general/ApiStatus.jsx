@@ -156,7 +156,7 @@ const ApiStatus = () => {
   }, [hasData, statusData, lastUpdate, isAutoRefreshing, stats, formatResponseTime])
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <>
       {/* Header con información adicional */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div className="flex items-center gap-4">
@@ -568,7 +568,7 @@ const ApiStatus = () => {
           </p>
         )}
       </div>
-    </div>
+    </>
   )
 }
 

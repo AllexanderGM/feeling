@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Configuración básica para notificaciones/toasts de HeroUI */
+@layer utilities {
+  /* Solo asegurar z-index apropiado para toasts */
+  [data-heroui-toast-container],
+  [data-toast-container] {
+    z-index: 50;
+  }
+}
+
