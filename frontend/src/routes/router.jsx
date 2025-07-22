@@ -14,11 +14,16 @@ import VerifyEmail from '@pages/auth/VerifyEmail'
 import ForgotPassword from '@pages/auth/ForgotPassword'
 import ResetPassword from '@pages/auth/ResetPassword'
 // Páginas del flujo de registro
-import CompleteProfile from '@pages/user/completeProfile/CompleteProfile.jsx'
+import Complete from '@pages/user/complete/complete.jsx'
 import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
 import Home from '@pages/home/Home.jsx'
 import Profile from '@pages/user/profile/Profile.jsx'
+import Settings from '@pages/user/settings/Settings.jsx'
+import Help from '@pages/help/Help.jsx'
+import Matches from '@pages/matches/Matches.jsx'
+import Favorites from '@pages/user/favorites/Favorites.jsx'
+import Search from '@pages/user/search/Search.jsx'
 // Páginas de administración
 import UsersManagement from '@pages/user/usersManagement/UsersManagement.jsx'
 // Constantes
@@ -52,7 +57,8 @@ const router = createBrowserRouter([
             index: true,
             element: (
               <RequireCompleteProfile>
-                <Home />
+                {/* <Home /> */}
+                <div></div>
               </RequireCompleteProfile>
             )
           },
@@ -60,7 +66,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.MATCHES.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Página de Matches - Por implementar</div>
+                <Matches />
               </RequireCompleteProfile>
             )
           },
@@ -68,7 +74,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.SEARCH.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Búsqueda de Usuarios - Por implementar</div>
+                <Search />
               </RequireCompleteProfile>
             )
           },
@@ -100,7 +106,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.SETTINGS.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Configuración - Por implementar</div>
+                <Settings />
               </RequireCompleteProfile>
             )
           },
@@ -108,7 +114,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.FAVORITES.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Favoritos - Por implementar</div>
+                <Favorites />
               </RequireCompleteProfile>
             )
           },
@@ -186,6 +192,30 @@ const router = createBrowserRouter([
               </RequireAdmin>
             )
           },
+          {
+            path: APP_PATHS.ADMIN.PROFILE.slice(1),
+            element: (
+              <RequireAdmin>
+                <Profile />
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.HELP.slice(1),
+            element: (
+              <RequireAdmin>
+                <Help />
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.SETTINGS_PROFILE.slice(1),
+            element: (
+              <RequireAdmin>
+                <Settings />
+              </RequireAdmin>
+            )
+          },
 
           // ========================================
           // RUTAS GENERALES (Accesibles para usuarios autenticados)
@@ -202,30 +232,7 @@ const router = createBrowserRouter([
             path: 'help',
             element: (
               <RequireAuthOnly>
-                <div className="max-w-4xl mx-auto p-6">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Centro de Ayuda</h1>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                      <p className="text-green-800">❓ Centro de ayuda por implementar</p>
-                      <p className="text-green-600 text-sm mt-2">Próximamente encontrarás aquí:</p>
-                      <ul className="text-green-600 text-sm mt-3 space-y-1">
-                        <li>• Preguntas frecuentes (FAQ)</li>
-                        <li>• Tutoriales paso a paso</li>
-                        <li>• Guías de uso de la plataforma</li>
-                        <li>• Videos explicativos</li>
-                        <li>• Contacto con soporte técnico</li>
-                      </ul>
-                      <div className="mt-4 pt-4 border-t border-green-300">
-                        <p className="text-green-700 text-sm font-medium">Mientras tanto, puedes contactarnos directamente:</p>
-                        <a
-                          href="/contact"
-                          className="inline-block mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                          Ir a Contacto
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Help />
               </RequireAuthOnly>
             )
           },
@@ -304,11 +311,11 @@ const router = createBrowserRouter([
           {
             path: APP_PATHS.USER.COMPLETE_PROFILE.slice(1),
             element: (
-              <RequireVerifiedUser>
+              <RequireAuthOnly>
                 <RedirectIfProfileComplete>
-                  <CompleteProfile />
+                  <Complete />
                 </RedirectIfProfileComplete>
-              </RequireVerifiedUser>
+              </RequireAuthOnly>
             )
           },
 

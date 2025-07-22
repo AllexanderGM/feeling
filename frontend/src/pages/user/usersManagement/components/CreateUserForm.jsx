@@ -1,235 +1,317 @@
-import { useState, useCallback } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input } from '@heroui/react'
+import { useState, useCallback, useMemo } from 'react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { useForm } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import useUser from '@hooks/useUser.js'
 import { useError } from '@hooks/useError.js'
+import useLocation from '@hooks/useLocation.js'
+import useUserAttributes from '@hooks/useUserAttributes.js'
+import useUserTags from '@hooks/useUserTags.js'
+import { useCategoryInterests } from '@hooks/useCategoryInterests'
+import { completeProfileSchema, getFieldsForStep, getDefaultValuesForStep } from '@schemas'
 
-import { USER_ROLES, USER_FORM_VALIDATIONS, DEFAULT_USER_FORM_DATA } from '../../../../constants/tableConstants.js'
+import StepBasicRegistration from './StepBasicRegistration.jsx'
+import StepBasicInfo from '../../complete/components/StepBasicInfo.jsx'
+import StepCharacteristics from '../../complete/components/StepCharacteristics.jsx'
+import StepPreferences from '../../complete/components/StepPreferences.jsx'
+import StepConfiguration from '../../complete/components/StepConfiguration.jsx'
 
-const DEFAULT_BIRTHDATE = '1986-03-21'
-const MAX_BIRTHDATE = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]
+const TOTAL_STEPS = 5
 
 const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
   const { createUser, submitting } = useUser()
   const { handleError, handleSuccess } = useError()
-  const [formData, setFormData] = useState({
-    ...DEFAULT_USER_FORM_DATA,
-    dateOfBirth: DEFAULT_BIRTHDATE,
-    role: USER_ROLES.CLIENT
-  })
-  const [errors, setErrors] = useState({})
+  const [currentStep, setCurrentStep] = useState(0)
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    // Validate required fields
-    if (!formData.name.trim()) newErrors.name = 'El nombre es requerido'
-    if (!formData.lastName.trim()) newErrors.lastName = 'El apellido es requerido'
-    if (!formData.document.trim()) newErrors.document = 'El documento es requerido'
-    if (!formData.phone.trim()) newErrors.phone = 'El teléfono es requerido'
-    if (!formData.email.trim()) {
-      newErrors.email = 'El email es requerido'
-    } else if (!USER_FORM_VALIDATIONS.EMAIL_REGEX.test(formData.email)) {
-      newErrors.email = 'Email inválido'
-    }
-
-    // Validate phone (9 digits)
-    if (!USER_FORM_VALIDATIONS.PHONE_REGEX.test(formData.phone)) {
-      newErrors.phone = 'El teléfono debe tener 9 dígitos'
-    }
-
-    // Validate birth date
-    const birthDate = new Date(formData.dateOfBirth)
-    const maxDate = new Date(MAX_BIRTHDATE)
-    if (birthDate > maxDate) {
-      newErrors.dateOfBirth = 'Debe ser mayor de 18 años'
-    }
-
-    // Validate password
-    if (!formData.password) {
-      newErrors.password = 'Por favor ingresa una contraseña'
-    } else if (formData.password.length < USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH) {
-      newErrors.password = `La contraseña debe tener al menos ${USER_FORM_VALIDATIONS.PASSWORD_MIN_LENGTH} caracteres`
-    }
-
-    // Validate password confirmation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Por favor confirma la contraseña'
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleInputChange = useCallback(
-    (field, value) => {
-      setFormData(prev => ({ ...prev, [field]: value }))
-      // Clear field error when user starts typing
-      if (errors[field]) {
-        setErrors(prev => ({ ...prev, [field]: null }))
-      }
-    },
-    [errors]
+  // Configuración de ubicación
+  const locationConfig = useMemo(
+    () => ({
+      defaultCountry: 'Colombia',
+      defaultCity: 'Bogotá'
+    }),
+    []
   )
 
-  const handleSubmit = async e => {
-    e.preventDefault()
+  // Hooks de datos
+  const location = useLocation(locationConfig)
+  const userAttributes = useUserAttributes()
+  const userTags = useUserTags()
+  const categoryInterests = useCategoryInterests()
 
-    if (!validateForm()) {
-      return
+  // Valores por defecto del formulario
+  const defaultValues = useMemo(
+    () => ({
+      // Step 0: Basic Registration
+      email: '',
+      password: '',
+      confirmPassword: '',
+      role: 'CLIENT',
+      // Steps 1-4: Profile completion
+      ...getDefaultValuesForStep(1, null)
+    }),
+    []
+  )
+
+  // React Hook Form
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid },
+    trigger,
+    watch,
+    getValues,
+    setValue,
+    setError,
+    clearErrors,
+    reset
+  } = useForm({
+    resolver: yupResolver(completeProfileSchema),
+    defaultValues,
+    mode: 'onChange'
+  })
+
+  // Datos de hooks
+  const hookData = useMemo(
+    () => ({
+      location,
+      userAttributes,
+      userTags,
+      categoryInterests
+    }),
+    [location, userAttributes, userTags, categoryInterests]
+  )
+
+  // Funciones del formulario
+  const formMethods = useMemo(
+    () => ({
+      control,
+      watch,
+      getValues,
+      setValue,
+      setError,
+      clearErrors,
+      trigger,
+      reset
+    }),
+    [control, watch, getValues, setValue, setError, clearErrors, trigger, reset]
+  )
+
+  // Información del paso actual
+  const stepInfo = useMemo(() => {
+    const progress = Math.round(((currentStep + 1) / TOTAL_STEPS) * 100)
+    return {
+      current: currentStep + 1,
+      total: TOTAL_STEPS,
+      progress,
+      isFirst: currentStep === 0,
+      isLast: currentStep === TOTAL_STEPS - 1
     }
+  }, [currentStep])
 
-    try {
-      const userData = { ...formData }
-      delete userData.confirmPassword
-      const result = await createUser(userData)
-      if (result.success) {
-        handleSuccess('Usuario creado exitosamente')
-        onSuccess?.()
-        onClose()
-      } else {
-        handleError(result.error || 'Error al crear usuario')
+  // Funciones de navegación
+  const stepActions = useMemo(
+    () => ({
+      validateCurrentStep: async () => {
+        if (currentStep === 0) {
+          // Validación para step básico
+          const basicFields = ['email', 'password', 'confirmPassword', 'role']
+          return await formMethods.trigger(basicFields)
+        } else {
+          // Validación para steps de ProfileComplete
+          const fieldsToValidate = getFieldsForStep(currentStep)
+          if (fieldsToValidate.length === 0) return true
+          return await formMethods.trigger(fieldsToValidate)
+        }
+      },
+
+      nextStep: async () => {
+        const isValid = await stepActions.validateCurrentStep()
+        if (isValid && currentStep < TOTAL_STEPS - 1) {
+          setCurrentStep(prev => prev + 1)
+        }
+      },
+
+      prevStep: () => {
+        if (currentStep > 0) {
+          setCurrentStep(prev => prev - 1)
+        }
+      },
+
+      onSubmit: async data => {
+        try {
+          // Preparar datos para crear usuario
+          const userData = { ...data }
+          delete userData.confirmPassword
+
+          const result = await createUser(userData)
+          if (result.success) {
+            handleSuccess('Usuario creado exitosamente')
+            onSuccess?.()
+            onClose()
+          } else {
+            handleError(result.error || 'Error al crear usuario')
+          }
+        } catch (error) {
+          handleError(error)
+        }
       }
-    } catch (error) {
-      handleError(error)
+    }),
+    [currentStep, formMethods, createUser, handleSuccess, handleError, onSuccess, onClose]
+  )
+
+  // Renderizado del contenido del paso
+  const renderStepContent = useMemo(() => {
+    const baseProps = {
+      errors,
+      ...formMethods
     }
-  }
+
+    switch (currentStep) {
+      case 0:
+        return <StepBasicRegistration {...baseProps} />
+      case 1:
+        return <StepBasicInfo {...baseProps} locationData={hookData.location} user={null} />
+      case 2:
+        return <StepCharacteristics {...baseProps} userAttributes={hookData.userAttributes} userTags={hookData.userTags} />
+      case 3:
+        return (
+          <StepPreferences
+            {...baseProps}
+            categoryOptions={hookData.categoryInterests.categoryOptions}
+            categoriesLoading={hookData.categoryInterests.loading}
+            categoriesError={hookData.categoryInterests.error}
+            religionOptions={hookData.userAttributes.religionOptions}
+            sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
+            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
+            attributesLoading={hookData.userAttributes.loading}
+          />
+        )
+      case 4:
+        return <StepConfiguration {...baseProps} categoryOptions={hookData.categoryInterests.categoryOptions} />
+      default:
+        return null
+    }
+  }, [currentStep, hookData, errors, formMethods])
+
+  // Handler para submit final
+  const handleFinalSubmit = useCallback(() => {
+    handleSubmit(stepActions.onSubmit)()
+  }, [handleSubmit, stepActions.onSubmit])
 
   const handleClose = () => {
-    setFormData({
-      ...DEFAULT_USER_FORM_DATA,
-      dateOfBirth: DEFAULT_BIRTHDATE,
-      role: USER_ROLES.CLIENT
-    })
-    setErrors({})
+    setCurrentStep(0)
+    reset()
     onClose()
+  }
+
+  // Estados de carga
+  const isLoading =
+    hookData.location.loading || hookData.userAttributes.loading || hookData.userTags.loading || hookData.categoryInterests.loading
+
+  if (isLoading) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        size="2xl"
+        classNames={{
+          backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
+          base: 'border-[#292f46] bg-white dark:bg-gray-800'
+        }}>
+        <ModalContent>
+          <ModalBody>
+            <div className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Cargando datos necesarios...</p>
+              </div>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    )
   }
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      size="2xl"
+      size="4xl"
+      scrollBehavior="inside"
       classNames={{
         backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
         base: 'border-[#292f46] bg-white dark:bg-gray-800'
       }}>
       <ModalContent>
-        <form onSubmit={handleSubmit}>
-          <ModalHeader>Crear Nuevo Usuario</ModalHeader>
-          <ModalBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Datos básicos */}
-              <Input
-                type="text"
-                label="Nombre *"
-                placeholder="Ingrese el nombre"
-                value={formData.name}
-                onChange={e => handleInputChange('name', e.target.value)}
-                color={errors.name ? 'danger' : 'default'}
-                errorMessage={errors.name}
-                className="w-full"
-              />
-
-              <Input
-                type="text"
-                label="Apellido *"
-                placeholder="Ingrese el apellido"
-                value={formData.lastName}
-                onChange={e => handleInputChange('lastName', e.target.value)}
-                color={errors.lastName ? 'danger' : 'default'}
-                errorMessage={errors.lastName}
-                className="w-full"
-              />
-
-              <Input
-                type="text"
-                label="Documento *"
-                placeholder="Ingrese el documento"
-                value={formData.document}
-                onChange={e => handleInputChange('document', e.target.value)}
-                color={errors.document ? 'danger' : 'default'}
-                errorMessage={errors.document}
-                className="w-full"
-              />
-
-              <Input
-                type="tel"
-                label="Teléfono *"
-                placeholder="Ingrese el teléfono (9 dígitos)"
-                value={formData.phone}
-                onChange={e => handleInputChange('phone', e.target.value)}
-                color={errors.phone ? 'danger' : 'default'}
-                errorMessage={errors.phone}
-                className="w-full"
-              />
-
-              <Input
-                type="date"
-                label="Fecha de Nacimiento *"
-                value={formData.dateOfBirth}
-                onChange={e => handleInputChange('dateOfBirth', e.target.value)}
-                color={errors.dateOfBirth ? 'danger' : 'default'}
-                errorMessage={errors.dateOfBirth}
-                className="w-full"
-                max={MAX_BIRTHDATE}
-              />
-
-              <Input
-                type="email"
-                label="Email *"
-                placeholder="Ingrese el email"
-                value={formData.email}
-                onChange={e => handleInputChange('email', e.target.value)}
-                color={errors.email ? 'danger' : 'default'}
-                errorMessage={errors.email}
-                className="w-full"
-              />
-
-              {/* URL de imagen */}
-              <Input
-                type="url"
-                label="URL de Imagen"
-                placeholder="https://..."
-                value={formData.image}
-                onChange={e => handleInputChange('image', e.target.value)}
-                className="w-full col-span-2"
-              />
-
-              {/* Contraseñas */}
-              <Input
-                type="password"
-                label="Contraseña *"
-                placeholder="Mínimo 6 caracteres"
-                value={formData.password}
-                onChange={e => handleInputChange('password', e.target.value)}
-                color={errors.password ? 'danger' : 'default'}
-                errorMessage={errors.password}
-                className="w-full"
-              />
-
-              <Input
-                type="password"
-                label="Confirmar Contraseña *"
-                placeholder="Repite la contraseña"
-                value={formData.confirmPassword}
-                onChange={e => handleInputChange('confirmPassword', e.target.value)}
-                color={errors.confirmPassword ? 'danger' : 'default'}
-                errorMessage={errors.confirmPassword}
-                className="w-full"
-              />
+        <ModalHeader className="flex flex-col gap-1">
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h3 className="text-lg font-semibold">Crear Nuevo Usuario</h3>
+              <p className="text-sm text-gray-400">
+                Paso {stepInfo.current} de {stepInfo.total}
+              </p>
             </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="danger" variant="light" onPress={handleClose} disabled={submitting}>
-              Cancelar
+            <div className="text-sm text-gray-400">{stepInfo.progress}%</div>
+          </div>
+
+          {/* Barra de progreso */}
+          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden mt-2">
+            <div
+              className="bg-gradient-to-r from-primary-400 to-primary-600 h-full rounded-full transition-all duration-500"
+              style={{ width: `${stepInfo.progress}%` }}
+            />
+          </div>
+        </ModalHeader>
+
+        <ModalBody>
+          <div className="min-h-[400px] py-4">{renderStepContent}</div>
+        </ModalBody>
+
+        <ModalFooter>
+          <div className="flex justify-between items-center w-full">
+            <Button
+              variant="bordered"
+              onPress={stepActions.prevStep}
+              isDisabled={stepInfo.isFirst || submitting}
+              startContent={<ArrowLeft size={16} />}>
+              Anterior
             </Button>
-            <Button color="primary" type="submit" disabled={submitting} isLoading={submitting}>
-              Crear Usuario
-            </Button>
-          </ModalFooter>
-        </form>
+
+            {/* Indicador de pasos */}
+            <div className="flex gap-2">
+              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    i === currentStep ? 'bg-primary-500 scale-125' : i < currentStep ? 'bg-primary-400' : 'bg-gray-600'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <Button color="danger" variant="light" onPress={handleClose} isDisabled={submitting}>
+                Cancelar
+              </Button>
+
+              {stepInfo.isLast ? (
+                <Button
+                  color="primary"
+                  onPress={handleFinalSubmit}
+                  isLoading={submitting}
+                  isDisabled={submitting}
+                  endContent={!submitting && <Check size={16} />}>
+                  {submitting ? 'Creando...' : 'Crear Usuario'}
+                </Button>
+              ) : (
+                <Button color="primary" onPress={stepActions.nextStep} isDisabled={submitting} endContent={<ArrowRight size={16} />}>
+                  Siguiente
+                </Button>
+              )}
+            </div>
+          </div>
+        </ModalFooter>
       </ModalContent>
     </Modal>
   )

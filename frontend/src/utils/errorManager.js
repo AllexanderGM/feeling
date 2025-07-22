@@ -38,7 +38,7 @@ export class ErrorManager {
       success: false,
       type: this.getErrorType(error),
       message: message || this.getErrorMessage(error) || 'Error desconocido',
-      status: error.response?.status,
+      status: error.code || error.status || error.response?.status || 500,
       fieldErrors: this.getFieldErrors(error),
       operation: error.operation || 'operación'
     }
@@ -56,11 +56,11 @@ export class ErrorManager {
     if (error.response) {
       const { status, data } = error.response
 
-      // PRIORIDAD 1: Mensaje específico del backend en campo 'error'
-      if (data?.error) return data.error
-
-      // PRIORIDAD 2: Mensaje específico del backend en campo 'message'
+      // PRIORIDAD 1: Mensaje específico del backend en campo 'message'
       if (data?.message) return data.message
+
+      // PRIORIDAD 2: Mensaje específico del backend en campo 'error'
+      if (data?.error) return data.error
 
       // PRIORIDAD 3: Mensajes genéricos por código de estado
       const statusMessages = {
@@ -137,8 +137,7 @@ export class ErrorManager {
   static extractBackendMessage(error) {
     if (error.response?.data) {
       const data = error.response.data
-      // Buscar en orden de prioridad: error, message, msg
-      return data.error || data.message || data.msg || null
+      return data.message || data.error || data.msg || null
     }
     return null
   }

@@ -55,6 +55,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean profileComplete = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean approved = false;
+
     @Column(name = "created_at")
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -71,7 +75,12 @@ public class User implements UserDetails {
     private UserRole userRole;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<UserToken> userTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<UserComplaint> complaints = new ArrayList<>();
 
     // ========================================
     // DATOS PERSONALES BÁSICOS
@@ -109,7 +118,7 @@ public class User implements UserDetails {
     // ========================================
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_interest_id")
-    private UserCategoryInterest userCategoryInterest;
+    private UserCategoryInterest categoryInterest;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gender_id")
@@ -246,6 +255,61 @@ public class User implements UserDetails {
     private boolean showPhone = false;
 
     // ========================================
+    // CONFIGURACIÓN EXTENDIDA DE PRIVACIDAD
+    // ========================================
+    @Column(name = "public_account")
+    @Builder.Default
+    private boolean publicAccount = true;
+
+    @Column(name = "search_visibility")
+    @Builder.Default
+    private boolean searchVisibility = true;
+
+    @Column(name = "location_public")
+    @Builder.Default
+    private boolean locationPublic = true;
+
+    // ========================================
+    // CONFIGURACIÓN DE NOTIFICACIONES
+    // ========================================
+    @Column(name = "notifications_email_enabled")
+    @Builder.Default
+    private boolean notificationsEmailEnabled = true;
+
+    @Column(name = "notifications_phone_enabled")
+    @Builder.Default
+    private boolean notificationsPhoneEnabled = false;
+
+    @Column(name = "notifications_matches_enabled")
+    @Builder.Default
+    private boolean notificationsMatchesEnabled = true;
+
+    @Column(name = "notifications_events_enabled")
+    @Builder.Default
+    private boolean notificationsEventsEnabled = true;
+
+    @Column(name = "notifications_login_enabled")
+    @Builder.Default
+    private boolean notificationsLoginEnabled = true;
+
+    @Column(name = "notifications_payments_enabled")
+    @Builder.Default
+    private boolean notificationsPaymentsEnabled = true;
+
+    // ========================================
+    // GESTIÓN DE CUENTA
+    // ========================================
+    @Column(name = "account_deactivated")
+    @Builder.Default
+    private boolean accountDeactivated = false;
+
+    @Column(name = "deactivation_date")
+    private LocalDateTime deactivationDate;
+
+    @Column(name = "deactivation_reason")
+    private String deactivationReason;
+
+    // ========================================
     // CAMPOS DE AUTENTICACIÓN MÚLTIPLE
     // ========================================
 
@@ -355,6 +419,11 @@ public class User implements UserDetails {
     }
 
     @Override
+    public String getPassword() {
+        return this.password;
+    }
+
+    @Override
     public boolean isAccountNonExpired() {
         return true;
     }
@@ -373,9 +442,9 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         // Los usuarios OAuth están habilitados automáticamente si están verificados por el proveedor
         if (userAuthProvider.isExternalOAuth()) {
-            return verified; // Ya verificado por Google/Facebook/etc.
+            return verified && approved && !accountDeactivated; // Ya verificado por Google/Facebook/etc., aprobado por admin y no desactivado
         }
-        return verified; // Para usuarios locales, deben verificar email
+        return verified && approved && !accountDeactivated; // Para usuarios locales, deben verificar email, ser aprobados por admin y no estar desactivados
     }
 
     // ========================================
@@ -386,13 +455,60 @@ public class User implements UserDetails {
         return LocalDate.now().getYear() - dateOfBirth.getYear();
     }
 
+    /**
+     * Getter para el campo profileComplete
+     */
+    public boolean getProfileComplete() {
+        return this.profileComplete;
+    }
+
+    /**
+     * Setter para el campo profileComplete
+     */
+    public void setProfileComplete(boolean profileComplete) {
+        this.profileComplete = profileComplete;
+    }
+
+    /**
+     * Calcula dinámicamente si el perfil está completo basándose en los esquemas de validación del frontend
+     */
     public boolean isProfileComplete() {
-        return name != null && lastName != null &&
-                dateOfBirth != null && gender != null &&
-                userCategoryInterest != null &&
-                images != null && !images.isEmpty() &&
-                description != null && !description.trim().isEmpty() &&
-                phone != null && phoneCode != null;
+        // STEP 1: Información básica - stepBasicInfoSchema
+        boolean step1Complete = name != null && !name.trim().isEmpty() &&
+                lastName != null && !lastName.trim().isEmpty() &&
+                document != null && !document.trim().isEmpty() &&
+                phone != null && !phone.trim().isEmpty() &&
+                dateOfBirth != null &&
+                country != null && !country.trim().isEmpty() &&
+                city != null && !city.trim().isEmpty() &&
+                images != null && !images.isEmpty();
+
+        // STEP 2: Características - step2Schema  
+        boolean step2Complete = description != null && !description.trim().isEmpty() &&
+                tags != null && !tags.isEmpty();
+
+        // STEP 3: Preferencias - step3Schema (validación más permisiva temporalmente)
+        boolean step3Complete = categoryInterest != null;
+
+        // STEP 3: Validaciones condicionales según categoría (TEMPORALMENTE PERMISIVAS)
+        boolean conditionalFieldsComplete = true;
+        if (categoryInterest != null) {
+            switch (categoryInterest.getCategoryInterestEnum()) {
+                case SPIRIT:
+                    // Para SPIRIT: religión es obligatoria (temporalmente permisivo)
+                    conditionalFieldsComplete = true; // religion != null;
+                    break;
+                case ROUSE:
+                    // Para ROUSE: rol sexual y tipo de relación son obligatorios (temporalmente permisivo)
+                    conditionalFieldsComplete = true; // sexualRole != null && relationshipType != null;
+                    break;
+                case ESSENCE:
+                    // Para ESSENCE: no hay campos adicionales obligatorios
+                    break;
+            }
+        }
+
+        return step1Complete && step2Complete && step3Complete && conditionalFieldsComplete;
     }
 
     /**
@@ -404,12 +520,12 @@ public class User implements UserDetails {
         if (images != null && !images.isEmpty()) {
             return images.get(0); // Primera imagen subida por el usuario
         }
-        
+
         // Segundo: imagen externa de OAuth (Google, Facebook, etc.)
         if (externalAvatarUrl != null && !externalAvatarUrl.trim().isEmpty()) {
             return externalAvatarUrl;
         }
-        
+
         // Sin imagen
         return null;
     }
@@ -500,6 +616,72 @@ public class User implements UserDetails {
     }
 
     // ========================================
+    // GESTIÓN DE CUENTA
+    // ========================================
+
+    /**
+     * Desactiva la cuenta del usuario
+     */
+    public void deactivateAccount(String reason) {
+        this.accountDeactivated = true;
+        this.deactivationDate = LocalDateTime.now();
+        this.deactivationReason = reason;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Reactiva la cuenta del usuario
+     */
+    public void reactivateAccount() {
+        this.accountDeactivated = false;
+        this.deactivationDate = null;
+        this.deactivationReason = null;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones por email
+     */
+    public boolean canReceiveEmailNotifications() {
+        return notificationsEmailEnabled && !accountDeactivated;
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones por teléfono
+     */
+    public boolean canReceivePhoneNotifications() {
+        return notificationsPhoneEnabled && phone != null && !phone.isEmpty() && !accountDeactivated;
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones de matches
+     */
+    public boolean canReceiveMatchNotifications() {
+        return notificationsMatchesEnabled && !accountDeactivated;
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones de eventos
+     */
+    public boolean canReceiveEventNotifications() {
+        return notificationsEventsEnabled && !accountDeactivated;
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones de login
+     */
+    public boolean canReceiveLoginNotifications() {
+        return notificationsLoginEnabled && !accountDeactivated;
+    }
+
+    /**
+     * Verifica si el usuario puede recibir notificaciones de pagos
+     */
+    public boolean canReceivePaymentNotifications() {
+        return notificationsPaymentsEnabled && !accountDeactivated;
+    }
+
+    // ========================================
     // MÉTODOS DE ACTUALIZACIÓN
     // ========================================
     @PreUpdate
@@ -522,13 +704,14 @@ public class User implements UserDetails {
     // ========================================
     public boolean isCompatibleWith(User otherUser) {
         // Lógica básica de compatibilidad
-        if (otherUser == null || !otherUser.isEnabled() || !otherUser.showMeInSearch) {
+        if (otherUser == null || !otherUser.isEnabled() || !otherUser.showMeInSearch ||
+                !otherUser.approved || !otherUser.searchVisibility || !otherUser.publicAccount) {
             return false;
         }
 
         // Verificar categoría de interés
-        if (this.userCategoryInterest != null && otherUser.userCategoryInterest != null) {
-            if (!this.userCategoryInterest.equals(otherUser.userCategoryInterest)) {
+        if (this.categoryInterest != null && otherUser.categoryInterest != null) {
+            if (!this.categoryInterest.equals(otherUser.categoryInterest)) {
                 return false;
             }
         }
@@ -574,8 +757,8 @@ public class User implements UserDetails {
         }
 
         // Compatibilidad religiosa para SPIRIT (peso: 20%)
-        if (this.userCategoryInterest != null &&
-                "SPIRIT".equals(this.userCategoryInterest.getCategoryInterestEnum().name())) {
+        if (this.categoryInterest != null &&
+                "SPIRIT".equals(this.categoryInterest.getCategoryInterestEnum().name())) {
             if (this.religion != null && otherUser.religion != null &&
                     this.religion.equals(otherUser.religion)) {
                 score += 0.2;

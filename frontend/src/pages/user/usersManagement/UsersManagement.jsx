@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
 import { useError } from '@hooks/useError.js'
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from '@heroui/react'
+import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
+import { Users, Clock } from 'lucide-react'
 import useAuth from '@hooks/useAuth.js'
 import useUser from '@hooks/useUser.js'
 import useUserStats from '@hooks/useUserStats.js'
@@ -13,25 +14,38 @@ import { USER_COLUMNS } from '@constants/tableConstants.js'
 import CreateUserForm from './components/CreateUserForm.jsx'
 import EditUserForm from './components/EditUserForm.jsx'
 import DeleteUserModal from './components/DeleteUserModal.jsx'
-import UserTableCell from './components/UserTableCell.jsx'
 import UserStatsCards from './components/UserStatsCards.jsx'
+import UnifiedUserTable from './components/UnifiedUserTable.jsx'
 
 const UsersManagement = memo(() => {
   const { user: currentUser } = useAuth()
   const { users, usersPagination, loading, refreshUsers, getUserByEmail, fetchUsers } = useUser()
   const { handleError, handleSuccess } = useError()
+  
+  // Estados para usuarios pendientes
+  const [pendingUsers, setPendingUsers] = useState([])
+  const [loadingPending, setLoadingPending] = useState(false)
+  
+  // Estado para las tabs
+  const [selectedTab, setSelectedTab] = useState('active')
 
-  // Table states
+  // Table states for active users
   const [filterValue, setFilterValue] = useState('')
   const [debouncedFilter, setDebouncedFilter] = useState('')
   const [selectedKeys, setSelectedKeys] = useState(new Set([]))
-  const [visibleColumns, setVisibleColumns] = useState(new Set(USER_COLUMNS.map(col => col.uid)))
+  const [visibleColumns, setVisibleColumns] = useState(new Set(USER_COLUMNS.filter(col => col.uid !== 'id').map(col => col.uid)))
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [sortDescriptor, setSortDescriptor] = useState({
     column: 'name',
     direction: 'ascending'
   })
   const [page, setPage] = useState(1)
+
+  // Table states for pending users
+  const [pendingFilterValue, setPendingFilterValue] = useState('')
+  const [pendingDebouncedFilter, setPendingDebouncedFilter] = useState('')
+  const [pendingRowsPerPage, setPendingRowsPerPage] = useState(10)
+  const [pendingPage, setPendingPage] = useState(1)
 
   // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -43,7 +57,7 @@ const UsersManagement = memo(() => {
   // EFFECTS
   // ========================================
 
-  // Debounce for search
+  // Debounce for search - active users
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedFilter(filterValue)
@@ -51,6 +65,15 @@ const UsersManagement = memo(() => {
 
     return () => clearTimeout(timer)
   }, [filterValue])
+
+  // Debounce for search - pending users
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPendingDebouncedFilter(pendingFilterValue)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [pendingFilterValue])
 
   // Load users when parameters change
   useEffect(() => {
@@ -82,6 +105,26 @@ const UsersManagement = memo(() => {
       return sortDescriptor.direction === 'descending' ? -cmp : cmp
     })
   }, [sortDescriptor, filteredItems])
+
+  // Filtered and paginated pending users
+  const filteredPendingUsers = useMemo(() => {
+    if (!pendingDebouncedFilter) return pendingUsers
+    return pendingUsers.filter(user => 
+      user.name?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+      user.email?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+      user.country?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+      user.city?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+      user.categoryInterest?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase())
+    )
+  }, [pendingUsers, pendingDebouncedFilter])
+
+  // Pagination for pending users
+  const pendingPages = Math.ceil(filteredPendingUsers.length / pendingRowsPerPage)
+  const paginatedPendingUsers = useMemo(() => {
+    const start = (pendingPage - 1) * pendingRowsPerPage
+    return filteredPendingUsers.slice(start, start + pendingRowsPerPage)
+  }, [filteredPendingUsers, pendingPage, pendingRowsPerPage])
 
   // ========================================
   // EVENT HANDLERS
@@ -157,28 +200,124 @@ const UsersManagement = memo(() => {
   const handleOperationSuccess = useCallback(() => {
     console.log('Operation successful, updating user list')
     refreshUsers(page - 1, rowsPerPage, debouncedFilter)
+    fetchPendingUsers() // Actualizar usuarios pendientes también
     setIsCreateModalOpen(false)
     setIsEditModalOpen(false)
     setIsDeleteModalOpen(false)
     setSelectedUser(null)
   }, [refreshUsers, page, rowsPerPage, debouncedFilter])
 
-  // ========================================
-  // CELL RENDERING
-  // ========================================
+  // Función para actualizar usuarios activos
+  const handleRefreshActiveUsers = useCallback(() => {
+    console.log('Refreshing active users...')
+    refreshUsers(page - 1, rowsPerPage, debouncedFilter)
+  }, [refreshUsers, page, rowsPerPage, debouncedFilter])
 
-  const renderCell = useCallback(
-    (user, columnKey) => (
-      <UserTableCell
-        user={user}
-        columnKey={columnKey}
-        currentUser={currentUser}
-        onEdit={() => handleOpenEditModal(user)}
-        onDelete={() => handleOpenDeleteModal(user)}
-      />
-    ),
-    [currentUser, handleOpenEditModal, handleOpenDeleteModal]
-  )
+  // Funciones para usuarios pendientes
+  const fetchPendingUsers = useCallback(async () => {
+    setLoadingPending(true)
+    try {
+      // Simulación de datos pendientes - reemplazar con llamada real al backend
+      const mockPendingUsers = [
+        {
+          id: 1001,
+          name: 'Ana',
+          lastName: 'García',
+          email: 'ana.garcia@example.com',
+          birthDate: '1995-06-15',
+          country: 'Colombia',
+          city: 'Bogotá',
+          phone: '3001234567',
+          profileCompleteness: 85,
+          categoryInterest: 'ROSE',
+          matchesAvailable: 12,
+          verified: true,
+          role: 'CLIENT',
+          registeredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          description: 'Amante de la naturaleza y los deportes al aire libre',
+          mainImage: null
+        },
+        {
+          id: 1002,
+          name: 'Carlos',
+          lastName: 'Rodriguez',
+          email: 'carlos.rodriguez@example.com',
+          birthDate: '1991-03-22',
+          country: 'Colombia',
+          city: 'Medellín',
+          phone: '3109876543',
+          profileCompleteness: 70,
+          categoryInterest: 'ESSENCE',
+          matchesAvailable: 8,
+          verified: false,
+          role: 'CLIENT',
+          registeredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          description: 'Profesional en tecnología, busco conexiones auténticas',
+          mainImage: null
+        },
+        {
+          id: 1003,
+          name: 'María',
+          lastName: 'López',
+          email: 'maria.lopez@example.com',
+          birthDate: '1997-09-10',
+          country: 'Colombia',
+          city: 'Cali',
+          phone: '3201357924',
+          profileCompleteness: 95,
+          categoryInterest: 'ROUSE',
+          matchesAvailable: 15,
+          verified: true,
+          role: 'CLIENT',
+          registeredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+          description: 'Artista y creativa, me encanta viajar y conocer nuevas culturas',
+          mainImage: null
+        }
+      ]
+      setPendingUsers(mockPendingUsers)
+    } catch (error) {
+      handleError('Error al cargar usuarios pendientes')
+    } finally {
+      setLoadingPending(false)
+    }
+  }, [handleError])
+
+  const handleApproveUser = useCallback(async (userId) => {
+    try {
+      // Simulación - reemplazar con llamada real al backend
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setPendingUsers(prev => prev.filter(user => user.id !== userId))
+      handleSuccess('Usuario aprobado correctamente')
+    } catch (error) {
+      handleError('Error al aprobar usuario')
+    }
+  }, [handleSuccess, handleError])
+
+  const handleRejectUser = useCallback(async (userId) => {
+    try {
+      // Simulación - reemplazar con llamada real al backend
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setPendingUsers(prev => prev.filter(user => user.id !== userId))
+      handleSuccess('Usuario rechazado correctamente')
+    } catch (error) {
+      handleError('Error al rechazar usuario')
+    }
+  }, [handleSuccess, handleError])
+
+  // Función para actualizar usuarios pendientes
+  const handleRefreshPendingUsers = useCallback(() => {
+    console.log('Refreshing pending users...')
+    fetchPendingUsers()
+  }, [fetchPendingUsers])
+
+  // Cargar usuarios pendientes al inicio
+  useEffect(() => {
+    fetchPendingUsers()
+  }, [fetchPendingUsers])
+
+  // ========================================
+  // TABLE HANDLERS
+  // ========================================
 
   // ========================================
   // PAGINATION AND SEARCH HANDLERS
@@ -211,6 +350,34 @@ const UsersManagement = memo(() => {
     setPage(1)
   }, [])
 
+  // Pending users handlers
+  const onPendingSearchChange = useCallback(value => {
+    setPendingFilterValue(value || '')
+    setPendingPage(1)
+  }, [])
+
+  const onPendingClear = useCallback(() => {
+    setPendingFilterValue('')
+    setPendingPage(1)
+  }, [])
+
+  const onPendingRowsPerPageChange = useCallback(newValue => {
+    setPendingRowsPerPage(newValue)
+    setPendingPage(1)
+  }, [])
+
+  const onPendingNextPage = useCallback(() => {
+    if (pendingPage < pendingPages) {
+      setPendingPage(pendingPage + 1)
+    }
+  }, [pendingPage, pendingPages])
+
+  const onPendingPreviousPage = useCallback(() => {
+    if (pendingPage > 1) {
+      setPendingPage(pendingPage - 1)
+    }
+  }, [pendingPage])
+
   // Function to determine if a row can be selected
   const isRowSelectable = useCallback(item => item.email !== currentUser?.email, [currentUser?.email])
 
@@ -230,6 +397,7 @@ const UsersManagement = memo(() => {
         setVisibleColumns={setVisibleColumns}
         onCreateItem={handleOpenCreateModal}
         createButtonLabel="Crear Usuario"
+        onRefresh={handleRefreshActiveUsers}
         loading={loading}
         error={null}
         totalItems={totalItems}
@@ -238,7 +406,7 @@ const UsersManagement = memo(() => {
         onRowsPerPageChange={onRowsPerPageChange}
       />
     ),
-    [filterValue, onClear, onSearchChange, visibleColumns, handleOpenCreateModal, loading, rowsPerPage, onRowsPerPageChange, totalItems]
+    [filterValue, onClear, onSearchChange, visibleColumns, handleOpenCreateModal, handleRefreshActiveUsers, loading, rowsPerPage, onRowsPerPageChange, totalItems]
   )
 
   const bottomContent = useMemo(
@@ -254,6 +422,55 @@ const UsersManagement = memo(() => {
       />
     ),
     [selectedKeys, totalItems, page, pages, onPreviousPage, onNextPage]
+  )
+
+  // Pending users table content
+  const pendingTopContent = useMemo(
+    () => (
+      <GenericTableControls
+        filterValue={pendingFilterValue}
+        onClear={onPendingClear}
+        onSearchChange={onPendingSearchChange}
+        filterPlaceholder="Buscar usuarios pendientes..."
+        columns={USER_COLUMNS}
+        visibleColumns={visibleColumns}
+        setVisibleColumns={setVisibleColumns}
+        loading={loadingPending}
+        error={null}
+        totalItems={filteredPendingUsers.length}
+        itemsLabel="usuarios pendientes"
+        rowsPerPage={pendingRowsPerPage}
+        onRowsPerPageChange={onPendingRowsPerPageChange}
+        hideCreateButton={true}
+        onRefresh={handleRefreshPendingUsers}
+      />
+    ),
+    [
+      pendingFilterValue,
+      onPendingClear,
+      onPendingSearchChange,
+      visibleColumns,
+      loadingPending,
+      filteredPendingUsers.length,
+      pendingRowsPerPage,
+      onPendingRowsPerPageChange,
+      handleRefreshPendingUsers
+    ]
+  )
+
+  const pendingBottomContent = useMemo(
+    () => (
+      <TablePagination
+        selectedKeys={new Set([])}
+        filteredItemsLength={filteredPendingUsers.length}
+        page={pendingPage}
+        pages={pendingPages}
+        onPreviousPage={onPendingPreviousPage}
+        onNextPage={onPendingNextPage}
+        onPageChange={setPendingPage}
+      />
+    ),
+    [filteredPendingUsers.length, pendingPage, pendingPages, onPendingPreviousPage, onPendingNextPage]
   )
 
   // ========================================
@@ -284,41 +501,83 @@ const UsersManagement = memo(() => {
           <h1 className="text-2xl font-bold text-gray-200">Gestión de Usuarios</h1>
           <p className="text-gray-400">Administra los usuarios del sistema</p>
         </div>
-
-        {/* Estadísticas */}
-        <UserStatsCards userStats={userStats} />
       </div>
 
-      {/* Tabla de usuarios */}
-      <Table
-        isHeaderSticky
-        aria-label="Tabla de Usuarios"
-        className="w-full"
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        selectedKeys={selectedKeys}
-        disabledKeys={disabledKeys}
-        selectionMode="multiple"
-        sortDescriptor={sortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}>
-        <TableHeader columns={headerColumns}>
-          {column => (
-            <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'} allowsSorting={column.uid !== 'actions'}>
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody
-          items={sortedItems}
-          emptyContent={loading ? 'Cargando usuarios...' : 'No se encontraron usuarios'}
-          loadingContent={<div>Cargando usuarios...</div>}
-          loadingState={loading ? 'loading' : 'idle'}>
-          {item => <TableRow key={String(item.id)}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
-        </TableBody>
-      </Table>
+      {/* Pestañas para usuarios activos y pendientes */}
+      <div className="flex w-full flex-col">
+        <Tabs
+          selectedKey={selectedTab}
+          onSelectionChange={setSelectedTab}
+          aria-label="Gestión de usuarios"
+          color="primary"
+          variant="bordered"
+        >
+          <Tab
+            key="active"
+            title={
+              <div className="flex items-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Usuarios Activos</span>
+                {users.length > 0 && (
+                  <div className="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs font-medium">
+                    {totalItems}
+                  </div>
+                )}
+              </div>
+            }
+          >
+            <div className="py-4">
+              <UnifiedUserTable
+                users={sortedItems}
+                loading={loading}
+                tableType="active"
+                currentUser={currentUser}
+                onEdit={handleOpenEditModal}
+                onDelete={handleOpenDeleteModal}
+                selectedKeys={selectedKeys}
+                setSelectedKeys={setSelectedKeys}
+                disabledKeys={disabledKeys}
+                sortDescriptor={sortDescriptor}
+                setSortDescriptor={setSortDescriptor}
+                topContent={topContent}
+                bottomContent={bottomContent}
+                visibleColumns={visibleColumns}
+              />
+            </div>
+          </Tab>
+          
+          <Tab
+            key="pending"
+            title={
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span>Pendientes de Aprobación</span>
+                {pendingUsers.length > 0 && (
+                  <div className="bg-warning-100 text-warning-600 px-2 py-1 rounded-full text-xs font-medium">
+                    {pendingUsers.length}
+                  </div>
+                )}
+              </div>
+            }
+          >
+            <div className="py-4">
+              <UnifiedUserTable
+                users={paginatedPendingUsers}
+                loading={loadingPending}
+                tableType="pending"
+                onApprove={handleApproveUser}
+                onReject={handleRejectUser}
+                visibleColumns={visibleColumns}
+                topContent={pendingTopContent}
+                bottomContent={pendingBottomContent}
+              />
+            </div>
+          </Tab>
+        </Tabs>
+      </div>
+
+      {/* Estadísticas */}
+      <UserStatsCards userStats={userStats} />
 
       {/* Modales */}
       <CreateUserForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />

@@ -13,7 +13,9 @@
       "@utils/*": ["./src/utils/*"],
       "@pages/*": ["./src/pages/*"],
       "@hooks/*": ["./src/hooks/*"],
-      "@config/*": ["./src/config/*"]
+      "@config/*": ["./src/config/*"],
+      "@schemas": ["./src/schemas/index.js"],
+      "@schemas/*": ["./src/schemas/*"]
     }
   }
 }

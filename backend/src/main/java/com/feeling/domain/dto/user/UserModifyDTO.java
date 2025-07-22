@@ -109,9 +109,34 @@ public record UserModifyDTO(
         List<String> imageUrls, // Para recibir URLs de imágenes ya subidas
 
         // ========================================
-        // ROLE (para administradores)
+        // ROLE y APROBACIÓN (para administradores)
         // ========================================
-        String role
+        String role,
+        
+        Boolean approved,
+
+        // ========================================
+        // CONFIGURACIÓN DE PRIVACIDAD EXTENDIDA
+        // ========================================
+        Boolean publicAccount,
+        Boolean searchVisibility,
+        Boolean locationPublic,
+
+        // ========================================
+        // CONFIGURACIÓN DE NOTIFICACIONES
+        // ========================================
+        Boolean notificationsEmailEnabled,
+        Boolean notificationsPhoneEnabled,
+        Boolean notificationsMatchesEnabled,
+        Boolean notificationsEventsEnabled,
+        Boolean notificationsLoginEnabled,
+        Boolean notificationsPaymentsEnabled,
+
+        // ========================================
+        // GESTIÓN DE CUENTA
+        // ========================================
+        Boolean accountDeactivated,
+        String deactivationReason
 ) {
 
     // Método de compatibilidad para el birthdate
@@ -125,7 +150,7 @@ public record UserModifyDTO(
     }
 
     // Método para validar datos de perfil completo
-    public boolean hasCompleteProfileData() {
+    public boolean hasProfileCompleteData() {
         return hasBasicData() &&
                 dateOfBirth != null &&
                 genderId != null &&
@@ -165,5 +190,28 @@ public record UserModifyDTO(
     // Método para verificar si hay datos específicos de ROUSE
     public boolean hasRouserData() {
         return sexualRoleId != null || relationshipTypeId != null;
+    }
+
+    // Método para verificar si hay cambios de configuración de privacidad extendida
+    public boolean hasExtendedPrivacyChanges() {
+        return publicAccount != null ||
+                searchVisibility != null ||
+                locationPublic != null;
+    }
+
+    // Método para verificar si hay cambios de configuración de notificaciones
+    public boolean hasNotificationChanges() {
+        return notificationsEmailEnabled != null ||
+                notificationsPhoneEnabled != null ||
+                notificationsMatchesEnabled != null ||
+                notificationsEventsEnabled != null ||
+                notificationsLoginEnabled != null ||
+                notificationsPaymentsEnabled != null;
+    }
+
+    // Método para verificar si hay cambios de estado de cuenta
+    public boolean hasAccountStatusChanges() {
+        return accountDeactivated != null ||
+                deactivationReason != null;
     }
 }

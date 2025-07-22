@@ -41,7 +41,10 @@ export const APP_PATHS = {
     EVENTS: '/admin/events',
     STATS: '/admin/statistics',
     REQUESTS: '/admin/claims',
-    SETTINGS: '/admin/configuration'
+    SETTINGS: '/admin/configuration',
+    PROFILE: '/admin/profile',
+    SETTINGS_PROFILE: '/admin/profile/settings',
+    HELP: '/admin/help'
   },
 
   LEGAL: {

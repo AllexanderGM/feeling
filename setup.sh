@@ -181,10 +181,26 @@ create_frontend_env
 create_backend_env
 
 echo "✅ Archivos .env creados exitosamente"
-echo "🛑 Deteniendo contenedores antiguos..."
-docker-compose -p "$NAME" down
+
+# Destruir y reconstruir solo contenedores de desarrollo (frontend/backend)
+if [[ "$PROFILE" == "back" || "$PROFILE" == "local" ]]; then
+  echo "🛑 Deteniendo y removiendo contenedor del backend..."
+  docker-compose -p "$NAME" stop backend 2>/dev/null || true
+  docker-compose -p "$NAME" rm -f backend 2>/dev/null || true
+  echo "🔨 Eliminando imagen del backend para forzar reconstrucción..."
+  docker rmi "${NAME}-backend" 2>/dev/null || true
+fi
+
+if [[ "$PROFILE" == "front" || "$PROFILE" == "local" ]]; then
+  echo "🛑 Deteniendo y removiendo contenedor del frontend..."
+  docker-compose -p "$NAME" stop frontend 2>/dev/null || true
+  docker-compose -p "$NAME" rm -f frontend 2>/dev/null || true
+  echo "🔨 Eliminando imagen del frontend para forzar reconstrucción..."
+  docker rmi "${NAME}-frontend" 2>/dev/null || true
+fi
+
 echo "🚀 Iniciando Docker Compose con el perfil '$PROFILE'..."
-docker-compose --profile "$PROFILE" up -d
+docker-compose --profile "$PROFILE" up -d --build
 docker-compose ps
 
 # Esperar backend esté listo

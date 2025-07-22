@@ -6,7 +6,7 @@ import { Form, Input, Button } from '@heroui/react'
 import useAuth from '@hooks/useAuth'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
-import { resetPasswordSchema } from '@utils/formSchemas'
+import { resetPasswordSchema, extractResetPasswordData } from '@schemas'
 import { APP_PATHS } from '@constants/paths.js'
 import { CheckCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -35,16 +35,16 @@ const ResetPassword = () => {
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible)
   const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
-  const onSubmit = async ({ password, confirmPassword }) => {
-    console.log('📝 Datos del formulario:', { token, password, confirmPassword })
-    const result = await resetPassword(token, password, confirmPassword) // Notificaciones automáticas
+  const onSubmit = async formData => {
+    const data = extractResetPasswordData(formData)
+    const result = await resetPassword(token, data.password, data.confirmPassword)
     if (result.success) {
       setStatus('success')
       setTimeout(() => {
         navigate(APP_PATHS.AUTH.LOGIN, {
           state: { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' }
         })
-      }, 3000)
+      }, 2000)
     }
   }
 
@@ -55,7 +55,7 @@ const ResetPassword = () => {
   }
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página de restablecimiento de contraseña">
       <figure className="text-center">
         <img src={logo} alt="Logo Feeling" className="w-40" />
       </figure>

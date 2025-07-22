@@ -1,113 +1,32 @@
 import { createContext, useState, useEffect, useMemo, useCallback } from 'react'
 import { useCookies } from '@hooks/useCookies'
 import { registerAuthCallbacks } from '@services/api'
-import { USER_DEFAULT_VALUES, USER_REQUIRED_FIELDS, USER_OPTIONAL_FIELDS, isSpecialField } from '@constants/userSchema.js'
+import { getDefaultValuesForUser } from '@schemas'
+import { COOKIE_KEYS } from '@constants/cookieKeys'
+
+/**
+ * Crear estructura de usuario usando los esquemas
+ * Combina los datos del usuario con la estructura por defecto
+ *
+ * @param {Object} userData - Datos del usuario
+ * @returns {Object|null} - Estructura de usuario completa o null
+ */
+const createUserStructure = (userData = {}) => {
+  if (!userData) return null
+
+  const userStructure = getDefaultValuesForUser(userData)
+
+  userStructure._metadata = {
+    lastLogin: new Date().toISOString(),
+    loginCount: (userData._metadata?.loginCount || 0) + 1,
+    lastSyncWithServer: new Date().toISOString(),
+    ...userData._metadata
+  }
+
+  return userStructure
+}
 
 const AuthContext = createContext(null)
-
-// Convertir timestamps del backend si vienen como arrays
-const convertTimestamp = timestamp => {
-  if (Array.isArray(timestamp) && timestamp.length >= 3) {
-    const [year, month, day, hour = 0, minute = 0, second = 0, nano = 0] = timestamp
-    return new Date(year, month - 1, day, hour, minute, second, Math.floor(nano / 1000000)).toISOString()
-  }
-  return timestamp ? new Date(timestamp).toISOString() : null
-}
-
-// Convertir dateOfBirth array a Date string
-const convertDateOfBirth = dateOfBirth => {
-  if (!dateOfBirth) return null
-
-  if (Array.isArray(dateOfBirth) && dateOfBirth.length >= 3) {
-    const [year, month, day] = dateOfBirth
-    return new Date(year, month - 1, day).toISOString().split('T')[0] // YYYY-MM-DD
-  }
-
-  if (dateOfBirth instanceof Date) {
-    return dateOfBirth.toISOString().split('T')[0]
-  }
-
-  if (typeof dateOfBirth === 'string') {
-    return new Date(dateOfBirth).toISOString().split('T')[0]
-  }
-
-  return null
-}
-
-// Estructura completa del usuario usando esquemas centralizados
-const createUserStructure = (userData = {}) => {
-  // Usar valores por defecto centralizados como base
-  const baseStructure = { ...USER_DEFAULT_VALUES }
-
-  // Mapear datos del usuario con manejo especial para campos específicos
-  const mappedData = {
-    ...baseStructure,
-    ...userData,
-
-    // Campos que requieren procesamiento especial
-    birthDate: convertDateOfBirth(userData.dateOfBirth || userData.birthDate),
-    // Priorizar imágenes subidas por el usuario sobre imagen externa (Google, etc.)
-    image: userData.images?.[0] || userData.externalAvatarUrl || null,
-    createdAt: convertTimestamp(userData.createdAt),
-    updatedAt: convertTimestamp(userData.updatedAt),
-    lastActive: convertTimestamp(userData.lastActive),
-    attemptsExpiryDate: convertTimestamp(userData.attemptsExpiryDate),
-    lastExternalSync: convertTimestamp(userData.lastExternalSync),
-
-    // Campos con valores por defecto específicos para AuthContext
-    id: userData.id || null,
-    name: userData.name || 'Usuario',
-    email: userData.email || '',
-    verified: userData.verified || false,
-    profileComplete: userData.profileComplete || false,
-    role: userData.role || 'CLIENT',
-    age: userData.age || null,
-
-    // Métricas sociales
-    profileViews: userData.profileViews || 0,
-    likesReceived: userData.likesReceived || 0,
-    matchesCount: userData.matchesCount || 0,
-    popularityScore: userData.popularityScore || 0.0,
-
-    // Sistema de intentos
-    availableAttempts: userData.availableAttempts || 0,
-    totalAttemptsPurchased: userData.totalAttemptsPurchased || 0,
-
-    // Autenticación
-    userAuthProvider: userData.userAuthProvider || 'LOCAL',
-    externalId: userData.externalId || null,
-    externalAvatarUrl: userData.externalAvatarUrl || null,
-
-    // Configuración adicional no incluida en esquemas base
-    showPhone: userData.showPhone !== undefined ? userData.showPhone : false,
-
-    // Preferencias locales del frontend
-    preferences: {
-      language: userData.preferences?.language || 'es',
-      theme: userData.preferences?.theme || 'light',
-      notifications:
-        userData.preferences?.notifications !== undefined
-          ? userData.preferences.notifications
-          : userData.allowNotifications !== undefined
-            ? userData.allowNotifications
-            : true,
-      newsletter: userData.preferences?.newsletter || false,
-      ...userData.preferences
-    },
-
-    // Metadatos locales del frontend
-    metadata: {
-      lastLogin: userData.metadata?.lastLogin || convertTimestamp(userData.lastActive),
-      loginCount: userData.metadata?.loginCount || 0,
-      accountCreated: userData.metadata?.accountCreated || convertTimestamp(userData.createdAt),
-      profileCompleteness: userData.metadata?.profileCompleteness || 0,
-      lastSyncWithServer: new Date().toISOString(),
-      ...userData.metadata
-    }
-  }
-
-  return mappedData
-}
 
 export const AuthProvider = ({ children }) => {
   // Usar el hook de cookies
@@ -115,17 +34,17 @@ export const AuthProvider = ({ children }) => {
 
   // Estados del usuario obtenido de cookies al inicializar
   const [user, setUser] = useState(() => {
-    const userCookie = cookieHandler.get('user')
+    const userCookie = cookieHandler.get(COOKIE_KEYS.USER)
     return userCookie ? createUserStructure(userCookie) : null
   })
 
   // Estados de tokens obtenidos de cookies al inicializar
   const [accessToken, setAccessToken] = useState(() => {
-    return cookieHandler.get('access_token') || null
+    return cookieHandler.get(COOKIE_KEYS.ACCESS_TOKEN) || null
   })
 
   const [refreshToken, setRefreshToken] = useState(() => {
-    return cookieHandler.get('refresh_token') || null
+    return cookieHandler.get(COOKIE_KEYS.REFRESH_TOKEN) || null
   })
 
   const [loading, setLoading] = useState(!user)
@@ -139,12 +58,12 @@ export const AuthProvider = ({ children }) => {
     token => {
       if (!token) {
         setAccessToken(null)
-        cookieHandler.remove('access_token')
+        cookieHandler.remove(COOKIE_KEYS.ACCESS_TOKEN)
         return null
       }
 
       setAccessToken(token)
-      cookieHandler.set('access_token', token)
+      cookieHandler.set(COOKIE_KEYS.ACCESS_TOKEN, token)
       return token
     },
     [cookieHandler]
@@ -154,12 +73,12 @@ export const AuthProvider = ({ children }) => {
     token => {
       if (!token) {
         setRefreshToken(null)
-        cookieHandler.remove('refresh_token')
+        cookieHandler.remove(COOKIE_KEYS.REFRESH_TOKEN)
         return null
       }
 
       setRefreshToken(token)
-      cookieHandler.set('refresh_token', token)
+      cookieHandler.set(COOKIE_KEYS.REFRESH_TOKEN, token)
       return token
     },
     [cookieHandler]
@@ -168,8 +87,8 @@ export const AuthProvider = ({ children }) => {
   const clearTokens = useCallback(() => {
     setAccessToken(null)
     setRefreshToken(null)
-    cookieHandler.remove('access_token')
-    cookieHandler.remove('refresh_token')
+    cookieHandler.remove(COOKIE_KEYS.ACCESS_TOKEN)
+    cookieHandler.remove(COOKIE_KEYS.REFRESH_TOKEN)
   }, [cookieHandler])
 
   const updateTokens = useCallback(
@@ -185,33 +104,6 @@ export const AuthProvider = ({ children }) => {
     [updateAccessToken, updateRefreshToken, clearTokens]
   )
 
-  // Calcular completitud del perfil usando esquemas centralizados
-  const calculateProfileCompleteness = useCallback(userData => {
-    if (!userData) return 0
-
-    // Usar campos centralizados
-    const requiredFields = USER_REQUIRED_FIELDS
-    const optionalFields = USER_OPTIONAL_FIELDS
-
-    // Contar campos requeridos completados
-    const requiredComplete = requiredFields.filter(field => {
-      // Mapear birthDate a dateOfBirth para compatibilidad con backend
-      const value = field === 'birthDate' ? userData.dateOfBirth || userData.birthDate : userData[field]
-      return isSpecialField(field, value)
-    }).length
-
-    // Contar campos opcionales completados
-    const optionalComplete = optionalFields.filter(field => {
-      const value = userData[field]
-      return isSpecialField(field, value)
-    }).length
-
-    const totalFields = requiredFields.length + optionalFields.length
-    const completedFields = requiredComplete + optionalComplete
-
-    return Math.round((completedFields / totalFields) * 100)
-  }, [])
-
   // ========================================
   // MÉTODOS DE GESTIÓN DEL USUARIO
   // ========================================
@@ -220,53 +112,51 @@ export const AuthProvider = ({ children }) => {
     userData => {
       if (!userData) {
         setUser(null)
-        cookieHandler.remove('user')
+        cookieHandler.remove(COOKIE_KEYS.USER)
         return null
       }
 
-      const updatedUser = createUserStructure({
-        ...(user || {}),
+      // Crear estructura combinando usuario actual con datos nuevos
+      const combinedData = {
+        ...user,
         ...userData,
-        metadata: {
-          ...(user?.metadata || {}),
-          ...userData.metadata,
+        _metadata: {
+          ...(user?._metadata || {}),
+          ...(userData._metadata || {}),
           lastUpdated: new Date().toISOString()
         }
-      })
-
-      // Usar profileComplete del backend si está disponible, sino calcular localmente
-      const profileCompleteness = calculateProfileCompleteness(updatedUser)
-      updatedUser.metadata.profileCompleteness = profileCompleteness
-      // Priorizar el valor del backend, solo calcular localmente si no viene del servidor
-      if (userData.profileComplete !== undefined) {
-        updatedUser.profileComplete = userData.profileComplete
-      } else {
-        updatedUser.profileComplete = profileCompleteness >= 80
       }
 
+      // Usar createUserStructure que ya utiliza los esquemas
+      const updatedUser = createUserStructure(combinedData)
+
       setUser(updatedUser)
-      cookieHandler.set('user', updatedUser)
+      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
 
       return updatedUser
     },
-    [user, cookieHandler, calculateProfileCompleteness]
+    [user, cookieHandler]
   )
 
   const updateUserField = useCallback(
-    (field, value) => {
+    (section, field, value) => {
       if (!user) return null
 
+      // Actualizar campo específico en la sección correspondiente
       const updatedUser = {
         ...user,
-        [field]: value,
-        metadata: {
-          ...user.metadata,
+        [section]: {
+          ...user[section],
+          [field]: value
+        },
+        _metadata: {
+          ...user._metadata,
           lastUpdated: new Date().toISOString()
         }
       }
 
       setUser(updatedUser)
-      cookieHandler.set('user', updatedUser)
+      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
       return updatedUser
     },
     [user, cookieHandler]
@@ -276,72 +166,152 @@ export const AuthProvider = ({ children }) => {
     fields => {
       if (!user) return null
 
-      const updatedUser = createUserStructure({
+      // Crear estructura combinando usuario actual con campos nuevos
+      const combinedData = {
         ...user,
         ...fields,
-        metadata: {
-          ...user.metadata,
-          ...fields.metadata,
-          lastUpdated: new Date().toISOString()
-        }
-      })
-
-      const profileCompleteness = calculateProfileCompleteness(updatedUser)
-      updatedUser.metadata.profileCompleteness = profileCompleteness
-
-      setUser(updatedUser)
-      cookieHandler.set('user', updatedUser)
-      return updatedUser
-    },
-    [user, cookieHandler, calculateProfileCompleteness]
-  )
-
-  const updateUserPreferences = useCallback(
-    newPreferences => {
-      if (!user) return null
-
-      const updatedUser = {
-        ...user,
-        preferences: {
-          ...user.preferences,
-          ...newPreferences
-        },
-        metadata: {
-          ...user.metadata,
+        _metadata: {
+          ...(user._metadata || {}),
+          ...(fields._metadata || {}),
           lastUpdated: new Date().toISOString()
         }
       }
 
+      // Usar createUserStructure que ya utiliza los esquemas
+      const updatedUser = createUserStructure(combinedData)
+
       setUser(updatedUser)
-      cookieHandler.set('user', updatedUser)
+      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
       return updatedUser
     },
     [user, cookieHandler]
+  )
+
+  // ========================================
+  // MÉTODOS ESPECÍFICOS POR SECCIÓN DE USUARIO
+  // ========================================
+
+  const updateUserStatus = useCallback(
+    statusData => {
+      if (!user) return null
+      return updateUserFields({ status: statusData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserProfile = useCallback(
+    profileData => {
+      if (!user) return null
+      return updateUserFields({ profile: profileData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserMetrics = useCallback(
+    metricsData => {
+      if (!user) return null
+      return updateUserFields({ metrics: metricsData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserPrivacy = useCallback(
+    privacyData => {
+      if (!user) return null
+      return updateUserFields({ privacy: privacyData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserNotifications = useCallback(
+    notificationsData => {
+      if (!user) return null
+      return updateUserFields({ notifications: notificationsData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserAuth = useCallback(
+    authData => {
+      if (!user) return null
+      return updateUserFields({ auth: authData })
+    },
+    [user, updateUserFields]
+  )
+
+  const updateUserAccount = useCallback(
+    accountData => {
+      if (!user) return null
+      return updateUserFields({ account: accountData })
+    },
+    [user, updateUserFields]
   )
 
   const updateUserMetadata = useCallback(
-    newMetadata => {
+    metadataData => {
+      if (!user) return null
+      return updateUserFields({ _metadata: metadataData })
+    },
+    [user, updateUserFields]
+  )
+
+  // Método para actualizar múltiples secciones a la vez
+  const updateUserSections = useCallback(
+    sectionsData => {
+      if (!user) return null
+      return updateUserFields(sectionsData)
+    },
+    [user, updateUserFields]
+  )
+
+  // Método de compatibilidad con componentes existentes (auto-organiza campos)
+  const updateUserProfileLegacy = useCallback(
+    profileData => {
       if (!user) return null
 
-      const updatedUser = {
-        ...user,
-        metadata: {
-          ...user.metadata,
-          ...newMetadata,
-          lastUpdated: new Date().toISOString()
-        }
-      }
+      // Organizar datos según la nueva estructura
+      const organizedData = {}
 
-      setUser(updatedUser)
-      cookieHandler.set('user', updatedUser)
-      return updatedUser
+      Object.keys(profileData).forEach(key => {
+        // Determinar en qué sección va cada campo
+        if (
+          [
+            'showAge',
+            'showLocation',
+            'showPhone',
+            'publicAccount',
+            'searchVisibility',
+            'locationPublic',
+            'showMeInSearch',
+            'allowNotifications'
+          ].includes(key)
+        ) {
+          if (!organizedData.privacy) organizedData.privacy = {}
+          organizedData.privacy[key] = profileData[key]
+        } else if (key.startsWith('notifications')) {
+          if (!organizedData.notifications) organizedData.notifications = {}
+          organizedData.notifications[key] = profileData[key]
+        } else if (['verified', 'profileComplete', 'approved', 'role', 'availableAttempts'].includes(key)) {
+          if (!organizedData.status) organizedData.status = {}
+          organizedData.status[key] = profileData[key]
+        } else if (['profileViews', 'likesReceived', 'matchesCount', 'popularityScore'].includes(key)) {
+          if (!organizedData.metrics) organizedData.metrics = {}
+          organizedData.metrics[key] = profileData[key]
+        } else {
+          // Todo lo demás va a profile
+          if (!organizedData.profile) organizedData.profile = {}
+          organizedData.profile[key] = profileData[key]
+        }
+      })
+
+      return updateUserFields(organizedData)
     },
-    [user, cookieHandler]
+    [user, updateUserFields]
   )
 
   const clearUser = useCallback(() => {
     setUser(null)
-    cookieHandler.remove('user')
+    cookieHandler.remove(COOKIE_KEYS.USER)
   }, [cookieHandler])
 
   const clearAllAuth = useCallback(() => {
@@ -396,28 +366,31 @@ export const AuthProvider = ({ children }) => {
   // Ejecutar al iniciar el contexto
   useEffect(() => {
     const initializeAuth = () => {
-      const userCookie = cookieHandler.get('user')
-      const accessTokenCookie = cookieHandler.get('access_token')
-      const refreshTokenCookie = cookieHandler.get('refresh_token')
+      const userCookie = cookieHandler.get(COOKIE_KEYS.USER)
+      const accessTokenCookie = cookieHandler.get(COOKIE_KEYS.ACCESS_TOKEN)
+      const refreshTokenCookie = cookieHandler.get(COOKIE_KEYS.REFRESH_TOKEN)
 
-      if (userCookie && userCookie.email) {
+      // Verificación más robusta del usuario
+      if (userCookie && (userCookie.email || userCookie.profile?.email)) {
         setUser(createUserStructure(userCookie))
       } else {
-        cookieHandler.remove('user')
+        if (userCookie) {
+          cookieHandler.remove(COOKIE_KEYS.USER)
+        }
         setUser(null)
       }
 
       if (accessTokenCookie) {
         setAccessToken(accessTokenCookie)
       } else {
-        cookieHandler.remove('access_token')
+        cookieHandler.remove(COOKIE_KEYS.ACCESS_TOKEN)
         setAccessToken(null)
       }
 
       if (refreshTokenCookie) {
         setRefreshToken(refreshTokenCookie)
       } else {
-        cookieHandler.remove('refresh_token')
+        cookieHandler.remove(COOKIE_KEYS.REFRESH_TOKEN)
         setRefreshToken(null)
       }
 
@@ -425,12 +398,10 @@ export const AuthProvider = ({ children }) => {
       setIsInitialized(true)
     }
 
-    if (cookieHandler.isInitialized && !isInitialized) {
+    if (!isInitialized) {
       initializeAuth()
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isInitialized, cookieHandler])
 
   // ========================================
   // CONTEXT VALUE
@@ -452,9 +423,21 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       updateUserField,
       updateUserFields,
-      updateUserPreferences,
-      updateUserMetadata,
       clearUser,
+
+      // Métodos específicos por sección
+      updateUserStatus,
+      updateUserProfile,
+      updateUserMetrics,
+      updateUserPrivacy,
+      updateUserNotifications,
+      updateUserAuth,
+      updateUserAccount,
+      updateUserMetadata,
+      updateUserSections,
+
+      // Método de compatibilidad
+      updateUserProfileLegacy,
 
       // Métodos de gestión de tokens
       updateAccessToken,
@@ -472,9 +455,9 @@ export const AuthProvider = ({ children }) => {
       // Valores reactivos de cookies observadas
       allCookies: cookieHandler.allCookies,
       cookieStatus: {
-        hasUser: cookieHandler.exists('user'),
-        hasAccessToken: cookieHandler.exists('access_token'),
-        hasRefreshToken: cookieHandler.exists('refresh_token')
+        hasUser: cookieHandler.exists(COOKIE_KEYS.USER),
+        hasAccessToken: cookieHandler.exists(COOKIE_KEYS.ACCESS_TOKEN),
+        hasRefreshToken: cookieHandler.exists(COOKIE_KEYS.REFRESH_TOKEN)
       }
     }),
     [
@@ -486,9 +469,21 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       updateUserField,
       updateUserFields,
-      updateUserPreferences,
-      updateUserMetadata,
       clearUser,
+
+      // Métodos específicos por sección
+      updateUserStatus,
+      updateUserProfile,
+      updateUserMetrics,
+      updateUserPrivacy,
+      updateUserNotifications,
+      updateUserAuth,
+      updateUserAccount,
+      updateUserMetadata,
+      updateUserSections,
+
+      // Método de compatibilidad
+      updateUserProfileLegacy,
       updateAccessToken,
       updateRefreshToken,
       updateTokens,

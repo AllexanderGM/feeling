@@ -1,17 +1,19 @@
 import { useState, useMemo } from 'react'
-import { Button, Spinner } from '@heroui/react'
-import { MapPin, Calendar, Phone, Mail, Edit2, Check, X, IdCard, Camera } from 'lucide-react'
+import { Button, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
+import { MapPin, Calendar, Phone, Mail, Edit2, Check, X, IdCard, Camera, User, Briefcase, Eye, ZoomIn, Settings } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import useUser from '@hooks/useUser.js'
 import useLocation from '@hooks/useLocation.js'
-import { stepBasicInfoSchema } from '@utils/formSchemas.js'
-import { getDefaultValuesForStep } from '@constants/userSchema.js'
-import StepBasicInfo from '@pages/user/completeProfile/components/StepBasicInfo.jsx'
+import { stepBasicInfoSchema, getDefaultValuesForStep } from '@schemas'
+import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
 
 const PersonalInfoSection = ({ user }) => {
-  const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const { isOpen: isImageOpen, onOpen: onImageOpen, onOpenChange: onImageOpenChange } = useDisclosure()
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
   const { updateUserProfile } = useUser()
 
@@ -19,7 +21,8 @@ const PersonalInfoSection = ({ user }) => {
   const locationConfig = useMemo(
     () => ({
       defaultCountry: user?.country || 'Colombia',
-      defaultCity: user?.city || 'Bogotá'
+      defaultCity: user?.city || 'Bogotá',
+      loadAll: true
     }),
     [user?.country, user?.city]
   )
@@ -47,12 +50,12 @@ const PersonalInfoSection = ({ user }) => {
 
   const handleEdit = () => {
     reset(defaultValues)
-    setIsEditing(true)
+    onEditOpen()
   }
 
   const handleCancel = () => {
     reset(defaultValues)
-    setIsEditing(false)
+    onEditOpenChange()
   }
 
   const handleSave = async () => {
@@ -60,7 +63,7 @@ const PersonalInfoSection = ({ user }) => {
       setLoading(true)
       const formData = getValues()
       await updateUserProfile(formData)
-      setIsEditing(false)
+      onEditOpenChange()
     } catch (error) {
       console.error('Error updating personal info:', error)
     } finally {
@@ -92,6 +95,20 @@ const PersonalInfoSection = ({ user }) => {
   const age = calculateAge(user?.birthDate)
   const mainImage = getMainImage()
 
+  // Hook para obtener datos geográficos y banderas (ya inicializado arriba como 'location')
+
+  // Obtener datos del país con bandera
+  const getCountryData = useMemo(() => {
+    if (!user?.country || !location.formattedCountries) return null
+    return location.formattedCountries.find(country => country.name === user.country)
+  }, [user?.country, location.formattedCountries])
+
+  // Obtener datos del país para teléfono
+  const getPhoneCountryData = useMemo(() => {
+    if (!user?.phoneCode || !location.formattedCountries) return null
+    return location.formattedCountries.find(country => country.phone === user.phoneCode)
+  }, [user?.phoneCode, location.formattedCountries])
+
   // Datos para StepBasicInfo
   const stepBasicInfoProps = {
     user,
@@ -110,206 +127,292 @@ const PersonalInfoSection = ({ user }) => {
     clearErrors
   }
 
-  if (isEditing) {
-    return (
-      <div className="space-y-6 w-full">
-        {/* Header de edición */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-200">Editar Información Personal</h2>
-            <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">Actualiza tus datos básicos y fotos de perfil</p>
-          </div>
-          <div className="flex gap-2 sm:shrink-0">
-            <Button
-              size="sm"
-              color="success"
-              variant="flat"
-              startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-              onPress={handleSave}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              {loading ? 'Guardando...' : 'Guardar'}
-            </Button>
-            <Button
-              size="sm"
-              color="danger"
-              variant="light"
-              startContent={<X className="w-4 h-4" />}
-              onPress={handleCancel}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              Cancelar
-            </Button>
-          </div>
-        </div>
+  // Preparar imágenes para la galería
+  const prepareGalleryImages = () => {
+    const allImages = user?.images || []
+    return allImages.filter(img => img && img.trim() !== '')
+  }
 
-        {/* Renderizar StepBasicInfo */}
-        <StepBasicInfo {...stepBasicInfoProps} />
+  const galleryImages = prepareGalleryImages()
 
-        {/* Botones de acción en la parte inferior */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
-          <Button
-            size="md"
-            color="danger"
-            variant="light"
-            startContent={<X className="w-4 h-4" />}
-            onPress={handleCancel}
-            isDisabled={loading}>
-            Cancelar
-          </Button>
-          <Button
-            size="md"
-            color="success"
-            variant="flat"
-            startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-            onPress={handleSave}
-            isDisabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
-        </div>
-      </div>
-    )
+  // Funciones para la galería
+  const openImageModal = (image, index) => {
+    setSelectedImage(image)
+    setCurrentImageIndex(index)
+    onImageOpen()
+  }
+
+  const navigateImage = direction => {
+    const newIndex =
+      direction === 'next'
+        ? (currentImageIndex + 1) % galleryImages.length
+        : (currentImageIndex - 1 + galleryImages.length) % galleryImages.length
+
+    setCurrentImageIndex(newIndex)
+    setSelectedImage(galleryImages[newIndex])
   }
 
   // Vista de solo lectura
   return (
-    <div className="space-y-8 w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-200">Información Personal</h2>
-          <p className="text-gray-400 mt-2">Datos básicos de tu perfil</p>
+    <div className="space-y-6 w-full">
+      {/* Información personal con diseño similar al estado general */}
+      <div className="bg-gray-800/50 border border-gray-700/30 rounded-lg p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-gray-200">Información Personal</span>
+          </div>
+          <Button
+            size="sm"
+            variant="solid"
+            color="primary"
+            className="bg-primary-600 hover:bg-primary-700"
+            startContent={<Settings className="w-3 h-3" />}
+            onPress={handleEdit}>
+            Editar
+          </Button>
         </div>
-        <Button size="sm" color="primary" variant="bordered" startContent={<Edit2 className="w-4 h-4" />} onPress={handleEdit}>
-          Editar
-        </Button>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400">
+          {/* Nombre completo */}
+          <div className="flex items-center gap-2">
+            <User className="w-3 h-3" />
+            <span>
+              Nombre:{' '}
+              <span className="text-gray-300">{user?.name && user?.lastName ? `${user.name} ${user.lastName}` : 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Documento */}
+          <div className="flex items-center gap-2">
+            <IdCard className="w-3 h-3" />
+            <span>
+              Documento: <span className="text-gray-300">{user?.document || 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Fecha de nacimiento y edad */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3 h-3" />
+            <span>
+              Nacimiento:{' '}
+              <span className="text-gray-300">
+                {user?.birthDate ? (
+                  <>
+                    {new Date(user.birthDate).toLocaleDateString('es-ES')}
+                    {calculateAge(user.birthDate) && ` (${calculateAge(user.birthDate)} años)`}
+                  </>
+                ) : (
+                  'No especificado'
+                )}
+              </span>
+            </span>
+          </div>
+
+          {/* Teléfono con bandera */}
+          <div className="flex items-center gap-2">
+            <Phone className="w-3 h-3" />
+            <span>Teléfono: </span>
+            {user?.phoneCode && user?.phone ? (
+              <div className="flex items-center gap-1">
+                {getPhoneCountryData && (
+                  <img
+                    src={getPhoneCountryData.image}
+                    alt={`Bandera de ${getPhoneCountryData.name}`}
+                    className="w-3 h-3 rounded-full object-cover"
+                  />
+                )}
+                <span className="text-gray-300">
+                  {user.phoneCode} {user.phone}
+                </span>
+              </div>
+            ) : (
+              <span className="text-gray-300">No especificado</span>
+            )}
+          </div>
+
+          {/* Ubicación con bandera */}
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <MapPin className="w-3 h-3" />
+            <span>Ubicación: </span>
+            {user?.city && user?.country ? (
+              <div className="flex items-center gap-1">
+                {getCountryData && (
+                  <img src={getCountryData.image} alt={`Bandera de ${getCountryData.name}`} className="w-3 h-3 rounded-full object-cover" />
+                )}
+                <span className="text-gray-300">
+                  {user?.locality ? `${user.locality}, ` : ''}
+                  {user.city}, {user.country}
+                </span>
+              </div>
+            ) : (
+              <span className="text-gray-300">No especificado</span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Vista previa de foto principal */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Foto de Perfil</h3>
-        <div className="flex justify-center">
-          {mainImage ? (
-            <div className="relative">
-              <img
-                src={mainImage}
-                alt="Foto principal del perfil"
-                className="w-32 h-32 object-cover rounded-full border-2 border-primary-500"
-              />
-              <div className="absolute -bottom-1 -right-1 p-1 bg-gray-700 rounded-full">
-                <Camera className="w-3 h-3 text-gray-300" />
+      {/* Galería de imágenes compacta */}
+      {galleryImages.length > 0 && (
+        <div className="bg-gray-800/30 border border-gray-700/20 rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Camera className="w-4 h-4 text-blue-400" />
+              <span className="text-sm font-medium text-gray-200">Galería de Fotos</span>
+            </div>
+            <span className="text-xs text-gray-400">{galleryImages.length} de 5</span>
+          </div>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {galleryImages.slice(0, 5).map((image, index) => (
+              <div
+                key={index}
+                className="relative group cursor-pointer overflow-hidden rounded-lg border border-gray-700/50 hover:border-primary-500 transition-all duration-300"
+                onClick={() => openImageModal(image, index)}>
+                <img
+                  src={image}
+                  alt={`Foto ${index + 1} del perfil`}
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-black/50 rounded-full p-2">
+                      <ZoomIn className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </div>
+                {index === 0 && (
+                  <div className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1 py-0.5 rounded">Principal</div>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="w-32 h-32 bg-gray-700/50 rounded-full border-2 border-gray-600 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-gray-400" />
-            </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal para visualizar imágenes */}
+      <Modal
+        isOpen={isImageOpen}
+        onOpenChange={onImageOpenChange}
+        size="5xl"
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50',
+          closeButton: 'hover:bg-gray-800/50'
+        }}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <div className="flex items-center justify-between w-full">
+                  <h3 className="text-lg font-bold text-gray-200">
+                    Foto {currentImageIndex + 1} de {galleryImages.length}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {currentImageIndex === 0 && <span className="bg-primary-500 text-white text-xs px-2 py-1 rounded-full">Principal</span>}
+                  </div>
+                </div>
+              </ModalHeader>
+              <ModalBody className="p-0">
+                <div className="relative">
+                  {selectedImage && (
+                    <img
+                      src={selectedImage}
+                      alt={`Foto ${currentImageIndex + 1} del perfil`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                    />
+                  )}
+
+                  {/* Navegación */}
+                  {galleryImages.length > 1 && (
+                    <>
+                      <Button
+                        isIconOnly
+                        variant="flat"
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                        onPress={() => navigateImage('prev')}>
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </Button>
+                      <Button
+                        isIconOnly
+                        variant="flat"
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                        onPress={() => navigateImage('next')}>
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <div className="flex justify-between items-center w-full">
+                  <div className="flex items-center gap-2">
+                    {galleryImages.length > 1 && (
+                      <div className="flex gap-1">
+                        {galleryImages.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              index === currentImageIndex ? 'bg-primary-500' : 'bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button color="danger" variant="light" onPress={onClose}>
+                    Cerrar
+                  </Button>
+                </div>
+              </ModalFooter>
+            </>
           )}
-        </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-500">{user?.images?.length || 0} de 5 fotos subidas</p>
-        </div>
-      </section>
+        </ModalContent>
+      </Modal>
 
-      {/* Información personal */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Datos Personales</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-400">Nombre(s)</label>
-            <p className="text-gray-200 text-base mt-1">{user?.name || 'No especificado'}</p>
-          </div>
-          <div>
-            <label className="text-sm text-gray-400">Apellidos</label>
-            <p className="text-gray-200 text-base mt-1">{user?.lastName || 'No especificado'}</p>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-400">Documento de identidad</label>
-          <div className="flex items-center gap-2 mt-1">
-            <IdCard className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">{user?.document || <span className="text-gray-500 italic">No especificado</span>}</p>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-400">Fecha de nacimiento</label>
-          <div className="flex items-center gap-2 mt-1">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">
-              {user?.birthDate ? (
-                <>
-                  {new Date(user.birthDate).toLocaleDateString('es-ES', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                  {age && <span className="text-gray-400 ml-2">{age} años</span>}
-                </>
-              ) : (
-                <span className="text-gray-500 italic">No especificado</span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-400">Correo electrónico</label>
-          <div className="flex items-center gap-2 mt-1">
-            <Mail className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">{user?.email}</p>
-            <span className="text-xs text-gray-500">(No editable por seguridad)</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Contacto */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Contacto</h3>
-
-        <div>
-          <label className="text-sm text-gray-400">Teléfono</label>
-          <div className="flex items-center gap-2 mt-1">
-            <Phone className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">
-              {user?.phoneCode && user?.phone ? (
-                `${user.phoneCode} ${user.phone}`
-              ) : (
-                <span className="text-gray-500 italic">No especificado</span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-400">Profesión</label>
-          <p className="text-gray-200 text-base mt-1">
-            {user?.profession || <span className="text-gray-500 italic">No especificado</span>}
-          </p>
-        </div>
-      </section>
-
-      {/* Ubicación */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Ubicación</h3>
-
-        <div>
-          <label className="text-sm text-gray-400">Ubicación</label>
-          <div className="flex items-center gap-2 mt-1">
-            <MapPin className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">
-              {user?.locality ? `${user.locality}, ` : ''}
-              {user?.city && user?.country ? (
-                `${user.city}, ${user.country}`
-              ) : (
-                <span className="text-gray-500 italic">No especificado</span>
-              )}
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Modal para editar información personal */}
+      <Modal
+        isOpen={isEditOpen}
+        onOpenChange={onEditOpenChange}
+        size="5xl"
+        scrollBehavior="inside"
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50',
+          closeButton: 'hover:bg-gray-800/50'
+        }}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold text-gray-200">Editar Información Personal</h3>
+                <p className="text-sm text-gray-400">Actualiza tus datos básicos y fotos de perfil</p>
+              </ModalHeader>
+              <ModalBody className="py-6">
+                <StepBasicInfo {...stepBasicInfoProps} />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={handleCancel} startContent={<X className="w-4 h-4" />} isDisabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleSave}
+                  startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                  isDisabled={loading}>
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

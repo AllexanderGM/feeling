@@ -1,20 +1,36 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import useAuth from '@hooks/useAuth.js'
-import Nav from '@components/layout/Nav'
+import NavAdmin from '@components/layout/navigation/NavAdmin'
+import NavClient from '@components/layout/navigation/NavClient'
 import BackgroundEffect from '@components/layout/BackgroundEffect'
 
 const Layout = () => {
   const { user, isAuthenticated } = useAuth()
   const location = useLocation()
-  const isAdmin = user?.isAdmin || user?.isSuperAdmin || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
-  const isClient = user?.role === 'CLIENT'
+  
+  // Usar únicamente la nueva estructura del backend
+  const isAdmin = user?.status?.role === 'ADMIN'
+  const isClient = user?.status?.role === 'CLIENT'
   const isNotFoundPage = location.pathname.includes('not-found')
+
+  // Decidir qué navegación renderizar según el rol
+  const renderNavigation = () => {
+    if (!isAuthenticated || (!user?.status?.profileComplete && !isAdmin) || isNotFoundPage) {
+      return null
+    }
+
+    if (isAdmin) {
+      return <NavAdmin user={user} />
+    } else {
+      return <NavClient user={user} />
+    }
+  }
 
   return (
     <BackgroundEffect className={`flex flex-col min-h-screen relative`}>
-      <main className={`h-full max-h-fit w-full max-w-7xl px-8 py-14 ${isAdmin ? 'pb-32' : ''} ${isClient ? 'pb-24' : ''}`}>
+      <main className={`h-full max-h-fit w-full max-w-7xl p-8 ${isAdmin ? 'pb-32' : ''} ${isClient ? 'pb-24' : ''}`}>
         <Outlet />
-        {isAuthenticated && (user.profileComplete || isAdmin) && !isNotFoundPage ? <Nav /> : null}
+        {renderNavigation()}
       </main>
     </BackgroundEffect>
   )

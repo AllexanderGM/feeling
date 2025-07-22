@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { CheckCircle } from 'lucide-react'
 import useAuth from '@hooks/useAuth'
-import { forgotPasswordSchema } from '@utils/formSchemas'
+import { forgotPasswordSchema, extractForgotPasswordData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -23,15 +23,14 @@ const ForgotPassword = () => {
     mode: 'onChange'
   })
 
-  const onSubmit = async ({ email }) => {
-    const result = await forgotPassword(email)
-    if (result.success) {
-      setStatus('success')
-    }
+  const onSubmit = async formData => {
+    const data = extractForgotPasswordData(formData)
+    const result = await forgotPassword(data)
+    if (result.success) setStatus('success')
   }
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página de recuperación de contraseña">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>

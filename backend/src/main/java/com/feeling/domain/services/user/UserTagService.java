@@ -241,8 +241,9 @@ public class UserTagService {
         // Obtener tags que el usuario no tiene pero que son populares
         List<String> userTagNames = user.getTagNames();
 
-        return userTagRepository.findSuggestedTagsExcluding(userTagNames, limit)
+        return userTagRepository.findSuggestedTagsExcluding(userTagNames)
                 .stream()
+                .limit(limit)
                 .map(UserTagDTO::new)
                 .collect(Collectors.toList());
     }
@@ -429,11 +430,11 @@ public class UserTagService {
     public List<UserTagDTO> getTagsSuggestedByCategory(String userEmail) {
         User user = findUserByEmail(userEmail);
 
-        if (user.getUserCategoryInterest() == null) {
+        if (user.getCategoryInterest() == null) {
             return getPopularTags(10);
         }
 
-        String category = user.getUserCategoryInterest().getCategoryInterestEnum().name();
+        String category = user.getCategoryInterest().getCategoryInterestEnum().name();
         return getPopularTagsByCategory(category, 15);
     }
 
@@ -476,8 +477,8 @@ public class UserTagService {
 
         // Filtrar por categoría de interés si existe
         String categoryFilter = null;
-        if (user.getUserCategoryInterest() != null) {
-            categoryFilter = user.getUserCategoryInterest().getCategoryInterestEnum().name();
+        if (user.getCategoryInterest() != null) {
+            categoryFilter = user.getCategoryInterest().getCategoryInterestEnum().name();
         }
 
         return userTagRepository.findMatchCandidatesByTags(

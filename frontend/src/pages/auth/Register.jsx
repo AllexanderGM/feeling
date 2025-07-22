@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { registerSchema } from '@utils/formSchemas'
+import { registerSchema, extractRegisterData } from '@schemas'
 import { useGoogleLogin } from '@react-oauth/google'
 import useAuth from '@hooks/useAuth'
 import LiteContainer from '@components/layout/LiteContainer'
@@ -49,24 +49,9 @@ const Register = () => {
 
     setTermsError('')
 
-    const userData = {
-      name: formData.name.trim(),
-      lastName: formData.lastName.trim(),
-      email: formData.email.toLowerCase().trim(),
-      password: formData.password
-    }
-
+    const userData = extractRegisterData(formData)
     const result = await register(userData)
-    if (result.success) {
-      navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
-        state: {
-          email: formData.email.toLowerCase().trim(),
-          fromRegister: true,
-          userType: 'local'
-        },
-        replace: true
-      })
-    }
+    if (result.success) navigate(APP_PATHS.AUTH.VERIFY_EMAIL, { replace: true })
   }
 
   const googleRegistration = useGoogleLogin({
@@ -74,17 +59,7 @@ const Register = () => {
       setIsGoogleAuthenticating(true)
       try {
         const result = await registerWithGoogle(tokenResponse)
-        if (result.success) {
-          navigate(APP_PATHS.USER.COMPLETE_PROFILE, {
-            state: {
-              email: result.data.email,
-              fromGoogle: true,
-              autoVerified: true,
-              message: 'Tu cuenta de Google ha sido registrada exitosamente. Tu email ya está verificado.'
-            },
-            replace: true
-          })
-        }
+        if (result.success) navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
       } finally {
         setIsGoogleAuthenticating(false)
       }
@@ -100,7 +75,7 @@ const Register = () => {
   }
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página de registro">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-36" />
       </figure>

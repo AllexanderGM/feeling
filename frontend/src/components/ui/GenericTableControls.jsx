@@ -1,5 +1,5 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
-import { Search, ChevronDown, Plus } from 'lucide-react'
+import { Search, ChevronDown, Plus, RefreshCw } from 'lucide-react'
 
 import { ROWS_PER_PAGE_OPTIONS } from '../../constants/tableConstants.js'
 import { capitalize } from '../../utils/capitalize.js'
@@ -22,6 +22,10 @@ const GenericTableControls = ({
   // Props para el botón de crear
   onCreateItem,
   createButtonLabel = 'Crear',
+  hideCreateButton = false,
+  // Props para el botón de actualizar
+  onRefresh,
+  hideRefreshButton = false,
   // Props de estado
   loading,
   error,
@@ -101,9 +105,23 @@ const GenericTableControls = ({
               ))}
             </DropdownMenu>
           </Dropdown>
-          <Button color="primary" endContent={<Plus />} onPress={onCreateItem}>
-            {createButtonLabel}
-          </Button>
+          {!hideRefreshButton && (
+            <Button 
+              color="default" 
+              variant="flat" 
+              isIconOnly 
+              onPress={onRefresh}
+              isLoading={loading}
+              className="min-w-10"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          )}
+          {!hideCreateButton && (
+            <Button color="primary" endContent={<Plus />} onPress={onCreateItem}>
+              {createButtonLabel}
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex justify-between items-center">

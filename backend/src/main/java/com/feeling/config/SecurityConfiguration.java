@@ -12,7 +12,6 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,6 +31,8 @@ public class SecurityConfiguration {
 
     private final Filter loggingFilter;
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
+    private final SelfModificationAuthorizationFilter selfModificationAuthorizationFilter;
     private final IUserTokenRepository tokenRepository;
     private final AuthenticationProvider authenticationProvider;
 
@@ -85,58 +86,55 @@ public class SecurityConfiguration {
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()))
                 .authorizeHttpRequests(auth -> {
-                    // 🔹Rutas para Swagger/OpenAPI y sistema
+                    // ========================================
+                    // 🔓 RUTAS PÚBLICAS
+                    // ========================================
+                    
+                    // Sistema y documentación
                     auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/", "/system", "/health").permitAll();
                     auth.requestMatchers("/favicon.ico", "/error").permitAll();
 
-                    // 🔹RUTAS DE AUTENTICACIÓN (PÚBLICAS) - CORREGIDAS
+                    // Autenticación y registro
                     auth.requestMatchers(HttpMethod.POST, "/auth/register").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/login").permitAll();
-
-                    // 🔹Rutas Google OAuth actualizadas
                     auth.requestMatchers(HttpMethod.POST, "/auth/google/register").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/google/login").permitAll();
-
-                    // 🔹Verificación de email
                     auth.requestMatchers(HttpMethod.POST, "/auth/verify-email").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/resend-verification").permitAll();
-
-                    // 🔹Recuperación de contraseña
                     auth.requestMatchers(HttpMethod.POST, "/auth/forgot-password").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/auth/reset-password").permitAll();
-
-                    // 🔹Refresh token debe ser PÚBLICO (no autenticado)
                     auth.requestMatchers(HttpMethod.POST, "/auth/refresh-token").permitAll();
-
-                    // 🔹Verificación de email y métodos
                     auth.requestMatchers(HttpMethod.GET, "/auth/check-email/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/auth/check-method/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET, "/auth/status/**").permitAll();
 
-                    // 🔹 Rutas de ubicaciones (públicas)
+                    // Datos de configuración (públicos para registro)
                     auth.requestMatchers("/geographic/**").permitAll();
+                    auth.requestMatchers("/user-attributes", "/user-attributes/**").permitAll();
+                    auth.requestMatchers("/category-interests", "/category-interests/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/popular", "/tags/popular/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/search", "/tags/search/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/tags/trending", "/tags/trending/**").permitAll();
 
-                    // 🔹 Rutas de atributos de usuario (públicas)
-                    auth.requestMatchers("/user-attributes/**").permitAll();
-
-                    // 🔹 Rutas para categorías de interés (públicas)
-                    auth.requestMatchers("/category-interests/**").permitAll();
-
-                    // 🔹 Rutas para tags populares (públicas)
-                    auth.requestMatchers(HttpMethod.GET, "/tags/popular").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/tags/search").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/tags/popular/category/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/tags/trending").permitAll();
-
-                    // 🔹 RUTAS PROTEGIDAS PARA USUARIOS AUTENTICADOS
-                    // Logout (requiere autenticación)
+                    // ========================================
+                    // 🔒 RUTAS AUTENTICADAS (USUARIOS)
+                    // ========================================
+                    
+                    // Sesión y logout
                     auth.requestMatchers(HttpMethod.POST, "/auth/logout").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/auth/session-info").authenticated();
 
-                    // Perfil de usuario
+                    // Perfil propio (self-modification controlado por filtro)
                     auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
                     auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
                     auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/users/deactivate-account").authenticated();
+
+                    // Gestión de usuarios (lectura pública para matching, modificación restringida)
+                    auth.requestMatchers(HttpMethod.GET, "/users/**").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/users/**").authenticated(); // Controlado por SelfModificationFilter
+                    auth.requestMatchers(HttpMethod.PATCH, "/users/**").authenticated(); // Controlado por SelfModificationFilter
 
                     // Tags de usuario
                     auth.requestMatchers("/users/tags/**").authenticated();
@@ -144,21 +142,80 @@ public class SecurityConfiguration {
                     // Matching y búsquedas
                     auth.requestMatchers("/matches/**").authenticated();
                     auth.requestMatchers("/users/search").authenticated();
+                    auth.requestMatchers("/users/suggestions").authenticated();
 
-                    // 🔹 RUTAS PROTEGIDAS PARA ADMINISTRADORES
-                    auth.requestMatchers("/admin/**").hasRole("ADMIN");
+                    // Eventos (lectura pública, creación/modificación autenticada)
+                    auth.requestMatchers(HttpMethod.GET, "/api/events/**").permitAll(); // Eventos públicos
+                    auth.requestMatchers(HttpMethod.POST, "/api/events/**").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/api/events/**").authenticated();
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/events/**").authenticated();
+
+                    // Reservas
+                    auth.requestMatchers("/api/bookings/**").authenticated();
+
+                    // Sistema de soporte y quejas
+                    auth.requestMatchers(HttpMethod.POST, "/api/support/complaints").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/api/support/my-complaints").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/api/support/my-complaints/**").authenticated(); // SelfModificationFilter aplica
+
+                    // ========================================
+                    // 👑 RUTAS ADMINISTRATIVAS (ADMIN)
+                    // ========================================
+                    
+                    // Panel administrativo general
+                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                    
+                    // Gestión de usuarios (admin)
+                    auth.requestMatchers(HttpMethod.GET, "/api/admin/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/admin/users/*/approve").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/admin/users/*/revoke-approval").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/admin/users/*/reactivate").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/admin/users/**").hasRole("ADMIN");
+                    
+                    // Gestión de roles (admin)
+                    auth.requestMatchers(HttpMethod.PUT, "/api/admin/users/*/grant-admin").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/admin/users/*/revoke-admin").hasRole("ADMIN");
+
+                    // Sistema de soporte (admin)
+                    auth.requestMatchers(HttpMethod.GET, "/api/support/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/support/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/support/admin/**").hasRole("ADMIN");
+
+                    // Eventos (admin)
+                    auth.requestMatchers("/api/admin/events/**").hasRole("ADMIN");
+
+                    // Rutas de gestión legacy (admin)
                     auth.requestMatchers(HttpMethod.POST, "/users/{id}/admin").hasRole("ADMIN");
                     auth.requestMatchers(HttpMethod.PUT, "/users/{id}/admin").hasRole("ADMIN");
-                    auth.requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN");
+                    auth.requestMatchers(HttpMethod.DELETE, "/users/{id}").hasRole("ADMIN");
 
-                    // 🔹 Cualquier otra ruta requiere autenticación
+                    // ========================================
+                    // 🔒 CUALQUIER OTRA RUTA REQUIERE AUTENTICACIÓN
+                    // ========================================
                     auth.anyRequest().authenticated();
                 })
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(management ->
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        // Prevenir que la página se renderice en iframes (protección XSS)
+                        .frameOptions(frameOptionsConfig -> frameOptionsConfig.deny())
+                        // Forzar detección de tipo MIME para prevenir ataques de tipo confusion
+                        .contentTypeOptions(Customizer.withDefaults())
+                        // Habilitar HSTS (HTTP Strict Transport Security)
+                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                                .maxAgeInSeconds(31536000) // 1 año
+                                .includeSubDomains(true))
+                        // Política de referrer para proteger información sensible
+                        .referrerPolicy(policy -> policy.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        // Headers personalizados adicionales se manejan en WebSecurityCustomizer
+                )
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(loggingFilter, JwtAuthFilter.class)
+                .addFilterAfter(selfModificationAuthorizationFilter, JwtAuthFilter.class)
+                .addFilterAfter(loggingFilter, SelfModificationAuthorizationFilter.class)
+                .addFilterBefore(securityHeadersFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authenticationProvider(authenticationProvider)
                 .logout(logout -> logout
                         .logoutUrl("/auth/logout")
@@ -200,14 +257,29 @@ public class SecurityConfiguration {
         });
     }
 
+
+    /**
+     * Filtro para agregar headers de seguridad adicionales
+     */
     @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring().requestMatchers(
-                "/swagger-ui/**",
-                "/v3/api-docs/**",
-                "/swagger-ui.html",
-                "/favicon.ico",
-                "/error"
-        );
+    public Filter securityHeadersFilter() {
+        return (request, response, chain) -> {
+            jakarta.servlet.http.HttpServletResponse httpResponse = (jakarta.servlet.http.HttpServletResponse) response;
+            
+            // Content Security Policy
+            httpResponse.setHeader("Content-Security-Policy", 
+                "default-src 'self'; " +
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                "style-src 'self' 'unsafe-inline'; " +
+                "img-src 'self' data: https:; " +
+                "font-src 'self' https:; " +
+                "connect-src 'self' https:");
+            
+            // Headers adicionales de seguridad
+            httpResponse.setHeader("X-Content-Type-Options", "nosniff");
+            httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
+            
+            chain.doFilter(request, response);
+        };
     }
 }

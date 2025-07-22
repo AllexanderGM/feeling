@@ -40,23 +40,32 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     List<User> findByProfileCompleteFalse();
 
     // ========================================
+    // BÚSQUEDAS POR APROBACIÓN
+    // ========================================
+    Page<User> findByProfileCompleteAndApproved(boolean profileComplete, boolean approved, Pageable pageable);
+
+    List<User> findByApprovedTrue();
+
+    List<User> findByApprovedFalse();
+
+    // ========================================
     // BÚSQUEDAS POR CATEGORÍA DE INTERÉS
     // ========================================
-    List<User> findByUserCategoryInterest(UserCategoryInterest categoryInterest);
+    List<User> findByCategoryInterest(UserCategoryInterest categoryInterest);
 
-    @Query("SELECT u FROM User u WHERE u.userCategoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.showMeInSearch = true")
+    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCategory(@Param("categoryInterest") UserCategoryInterestList categoryInterest);
 
     // Si tienes consultas que usen String en lugar del enum:
-    @Query("SELECT u FROM User u WHERE u.userCategoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.showMeInSearch = true")
+    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCategoryString(@Param("categoryInterest") String categoryInterest);
 
     // ========================================
     // BÚSQUEDAS PARA MATCHING
     // ========================================
     @Query("SELECT u FROM User u WHERE " +
-            "u.verified = true AND u.showMeInSearch = true AND " +
-            "u.userCategoryInterest = :categoryInterest AND " +
+            "u.verified = true AND u.approved = true AND u.showMeInSearch = true AND " +
+            "u.categoryInterest = :categoryInterest AND " +
             "u.id != :excludeUserId AND " +
             "(:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) AND " +
             "(:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) AND " +
@@ -69,6 +78,82 @@ public interface IUserRepository extends JpaRepository<User, Long> {
             @Param("city") String city
     );
 
+    // OPTIMIZACIÓN: Consulta con FETCH JOIN para evitar N+1
+    @Query("SELECT DISTINCT u FROM User u " +
+            "LEFT JOIN FETCH u.categoryInterest uci " +
+            "LEFT JOIN FETCH u.userRole ur " +
+            "WHERE u.verified = true AND u.approved = true AND u.showMeInSearch = true " +
+            "AND u.profileComplete = true AND u.publicAccount = true AND u.searchVisibility = true " +
+            "AND u.accountDeactivated = false " +
+            "AND u.id != :excludeUserId " +
+            "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId) " +
+            "AND (:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) " +
+            "AND (:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) " +
+            "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
+            "ORDER BY " +
+            "CASE WHEN u.city = :city THEN 1 " +
+            "     WHEN u.department = :department THEN 2 " +
+            "     ELSE 3 END, " +
+            "u.popularityScore DESC")
+    Page<User> findCompatibleUsersOptimized(
+            @Param("excludeUserId") Long excludeUserId,
+            @Param("categoryInterestId") Long categoryInterestId,
+            @Param("minAge") Integer minAge,
+            @Param("maxAge") Integer maxAge,
+            @Param("city") String city,
+            @Param("department") String department,
+            Pageable pageable
+    );
+
+    // Versión aleatoria para variedad (usar alternativamente)
+    @Query(value = "SELECT u.* FROM users u " +
+            "LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id " +
+            "WHERE u.verified = true AND u.approved = true AND u.show_me_in_search = true " +
+            "AND u.profile_complete = true AND u.public_account = true AND u.search_visibility = true " +
+            "AND u.account_deactivated = false " +
+            "AND u.id != :excludeUserId " +
+            "AND (:categoryInterestId IS NULL OR u.category_interest_id = :categoryInterestId) " +
+            "AND (:minAge IS NULL OR YEAR(CURDATE()) - YEAR(u.date_of_birth) >= :minAge) " +
+            "AND (:maxAge IS NULL OR YEAR(CURDATE()) - YEAR(u.date_of_birth) <= :maxAge) " +
+            "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
+            "ORDER BY RAND() " +
+            "LIMIT :limit",
+            nativeQuery = true)
+    List<User> findCompatibleUsersRandomized(
+            @Param("excludeUserId") Long excludeUserId,
+            @Param("categoryInterestId") Long categoryInterestId,
+            @Param("minAge") Integer minAge,
+            @Param("maxAge") Integer maxAge,
+            @Param("city") String city,
+            @Param("department") String department,
+            @Param("limit") int limit
+    );
+
+    // OPTIMIZACIÓN: Búsqueda con fetch join
+    @Query("SELECT DISTINCT u FROM User u " +
+            "LEFT JOIN FETCH u.userRole ur " +
+            "LEFT JOIN FETCH u.categoryInterest uci " +
+            "WHERE " +
+            "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    Page<User> findBySearchTermOptimized(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    // OPTIMIZACIÓN: Cargar usuario con todas las relaciones necesarias
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.userRole " +
+            "LEFT JOIN FETCH u.categoryInterest " +
+            "LEFT JOIN FETCH u.userTokens " +
+            "WHERE u.email = :email")
+    Optional<User> findByEmailWithRelations(@Param("email") String email);
+
+    // OPTIMIZACIÓN: Usuarios con métricas pre-cargadas
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.userRole " +
+            "WHERE u.verified = true " +
+            "ORDER BY u.popularityScore DESC")
+    Page<User> findMostPopularUsersOptimized(Pageable pageable);
+
     // ========================================
     // BÚSQUEDAS POR UBICACIÓN
     // ========================================
@@ -78,7 +163,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     List<User> findByCountry(String country);
 
-    @Query("SELECT u FROM User u WHERE u.city = :city AND u.verified = true AND u.showMeInSearch = true")
+    @Query("SELECT u FROM User u WHERE u.city = :city AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCity(@Param("city") String city);
 
     // ========================================
@@ -112,8 +197,8 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      * @param categoryInterest Categoría de interés
      * @return Número de usuarios en esa categoría
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.userCategoryInterest = :categoryInterest")
-    Long countByUserCategoryInterest(@Param("categoryInterest") UserCategoryInterest categoryInterest);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.categoryInterest = :categoryInterest")
+    Long countByCategoryInterest(@Param("categoryInterest") UserCategoryInterest categoryInterest);
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
     long countNewUsersSince(@Param("since") LocalDateTime since);
@@ -140,7 +225,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
             "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.userCategoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+            "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
             "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<User> findBySearchTerm(@Param("searchTerm") String searchTerm, Pageable pageable);
 

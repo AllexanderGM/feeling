@@ -10,9 +10,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
+// Filtro básico deshabilitado - usar RequestLoggingFilter en su lugar
+//@Component 
 @Slf4j
-public class LoggingFilter extends OncePerRequestFilter {
+class DisabledLoggingFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {

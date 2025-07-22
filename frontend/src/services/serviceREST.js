@@ -52,11 +52,16 @@ export class ServiceREST {
   }
 
   static async post(url, data, config = {}) {
-    // Si data es FormData, no establecer Content-Type
+    // Si data es FormData, no establecer Content-Type para que el browser lo maneje
     if (data instanceof FormData) {
       const { headers = {}, ...restConfig } = config
       const cleanHeaders = { ...headers }
+      
+      // Eliminar todas las variantes de Content-Type
       delete cleanHeaders['Content-Type']
+      delete cleanHeaders['content-type']
+      delete cleanHeaders['Content-type']
+      delete cleanHeaders['CONTENT-TYPE']
 
       return this.request({
         ...restConfig,
@@ -71,11 +76,16 @@ export class ServiceREST {
   }
 
   static async put(url, data, config = {}) {
-    // Si data es FormData, no establecer Content-Type
+    // Si data es FormData, no establecer Content-Type para que el browser lo maneje
     if (data instanceof FormData) {
       const { headers = {}, ...restConfig } = config
       const cleanHeaders = { ...headers }
+      
+      // Eliminar todas las variantes de Content-Type
       delete cleanHeaders['Content-Type']
+      delete cleanHeaders['content-type']
+      delete cleanHeaders['Content-type']
+      delete cleanHeaders['CONTENT-TYPE']
 
       return this.request({
         ...restConfig,

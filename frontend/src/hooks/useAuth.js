@@ -1,6 +1,6 @@
 import { useContext, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import AuthContext from '@context/AuthContext.jsx'
+import AuthContext from '@context/AuthContext'
 import authService from '@services/authService'
 import { useError } from '@hooks/useError'
 import useAsyncOperation from '@hooks/useAsyncOperation'
@@ -38,9 +38,21 @@ const useAuth = () => {
     updateUser,
     updateUserField,
     updateUserFields,
-    updateUserPreferences,
-    updateUserMetadata,
     clearUser,
+
+    // Métodos específicos por sección
+    updateUserStatus,
+    updateUserProfile,
+    updateUserMetrics,
+    updateUserPrivacy,
+    updateUserNotifications,
+    updateUserAuth,
+    updateUserAccount,
+    updateUserMetadata,
+    updateUserSections,
+
+    // Método de compatibilidad
+    updateUserProfileLegacy,
 
     // Métodos de tokens
     updateAccessToken,
@@ -49,17 +61,6 @@ const useAuth = () => {
     clearTokens,
     clearAllAuth
   } = context
-
-  // Función para manejar redirección después del login
-  const handlePostLoginRedirect = useCallback(() => {
-    const redirectPath = localStorage.getItem('redirectAfterLogin')
-    if (redirectPath && redirectPath !== '/login') {
-      localStorage.removeItem('redirectAfterLogin')
-      navigate(redirectPath, { replace: true })
-    } else {
-      navigate('/', { replace: true })
-    }
-  }, [navigate])
 
   // ========================================
   // MÉTODOS DE AUTENTICACIÓN
@@ -77,20 +78,39 @@ const useAuth = () => {
     async (email, password, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await authService.login(email, password)
+        // Actualizar tokens
         updateTokens(data.accessToken, data.refreshToken)
-        updateUser(data)
 
-        // Manejar redirección automática después del login exitoso
-        setTimeout(() => {
-          handlePostLoginRedirect()
-        }, 100)
+        // Actualizar secciones específicas del usuario según lo que venga del backend
+        if (data.status) updateUserStatus(data.status)
+        if (data.profile) updateUserProfile(data.profile)
+        if (data.metrics) updateUserMetrics(data.metrics)
+        if (data.privacy) updateUserPrivacy(data.privacy)
+        if (data.notifications) updateUserNotifications(data.notifications)
+        if (data.auth) updateUserAuth(data.auth)
+        if (data.account) updateUserAccount(data.account)
 
-        return data
+        // Si el profile viene como objeto plano, usar el método general
+        if (!data.status && !data.profile) {
+          updateUser(data)
+        }
       }, 'Inicio de sesión')
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
     },
-    [withLoading, updateUser, updateTokens, handleApiResponse, handlePostLoginRedirect]
+    [
+      withLoading,
+      handleApiResponse,
+      updateTokens,
+      updateUserStatus,
+      updateUserProfile,
+      updateUserMetrics,
+      updateUserPrivacy,
+      updateUserNotifications,
+      updateUserAuth,
+      updateUserAccount,
+      updateUser
+    ]
   )
 
   const loginWithGoogle = useCallback(
@@ -99,41 +119,50 @@ const useAuth = () => {
         const data = await authService.loginWithGoogle(tokenResponse)
         updateTokens(data.accessToken, data.refreshToken)
         updateUser(data)
-
-        // Manejar redirección automática después del login exitoso
-        setTimeout(() => {
-          handlePostLoginRedirect()
-        }, 100)
-
-        return data
       }, 'Inicio de sesión con Google')
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
     },
-    [withLoading, updateUser, handleApiResponse, updateTokens, handlePostLoginRedirect]
+    [withLoading, handleApiResponse, updateTokens, updateUser]
   )
 
   const registerWithGoogle = useCallback(
     async (tokenResponse, showNotifications = true) => {
       const result = await withLoading(async () => {
-        const data = await authService.registerWithGoogle(tokenResponse)
-        updateTokens(data.accessToken, data.refreshToken)
-        updateUser({
-          ...data,
-          verified: true,
-          profileComplete: false
-        })
+        const { accessToken, refreshToken, profile } = await authService.registerWithGoogle(tokenResponse)
 
-        // Después del registro con Google, ir al completar perfil
-        setTimeout(() => {
-          navigate('/complete-profile', { replace: true })
-        }, 100)
+        // Actualizar tokens
+        updateTokens(accessToken, refreshToken)
 
-        return data
+        // Actualizar secciones específicas del usuario según lo que venga del backend
+        if (profile.status) updateUserStatus(profile.status)
+        if (profile.profile) updateUserProfile(profile.profile)
+        if (profile.metrics) updateUserMetrics(profile.metrics)
+        if (profile.privacy) updateUserPrivacy(profile.privacy)
+        if (profile.notifications) updateUserNotifications(profile.notifications)
+        if (profile.auth) updateUserAuth(profile.auth)
+        if (profile.account) updateUserAccount(profile.account)
+
+        // Si el profile viene como objeto plano, usar el método general
+        if (!profile.status && !profile.profile) {
+          updateUser(profile)
+        }
       }, 'Registro con Google')
       return handleApiResponse(result, '¡Registro exitoso con Google! Ya puedes usar todas las funcionalidades.', { showNotifications })
     },
-    [withLoading, updateUser, handleApiResponse, updateTokens, navigate]
+    [
+      withLoading,
+      handleApiResponse,
+      updateTokens,
+      updateUserStatus,
+      updateUserProfile,
+      updateUserMetrics,
+      updateUserPrivacy,
+      updateUserNotifications,
+      updateUserAuth,
+      updateUserAccount,
+      updateUser
+    ]
   )
 
   const verifyEmailCode = useCallback(
@@ -272,6 +301,7 @@ const useAuth = () => {
     // Métodos de gestión de tokens
     refreshTokens,
     isTokenExpiringSoon,
+
     // Métodos de actualización de tokens
     updateAccessToken,
     updateRefreshToken,
@@ -282,13 +312,22 @@ const useAuth = () => {
     updateUser,
     updateUserField,
     updateUserFields,
-    updateUserPreferences,
-    updateUserMetadata,
     clearUser,
-    clearAllAuth,
 
-    // Método para manejo de redirección
-    handlePostLoginRedirect,
+    // Métodos específicos por sección
+    updateUserStatus,
+    updateUserProfile,
+    updateUserMetrics,
+    updateUserPrivacy,
+    updateUserNotifications,
+    updateUserAuth,
+    updateUserAccount,
+    updateUserMetadata,
+    updateUserSections,
+
+    // Método de compatibilidad
+    updateUserProfileLegacy,
+    clearAllAuth,
 
     // Método para forzar limpieza de auth en caso de error
     handleAuthError

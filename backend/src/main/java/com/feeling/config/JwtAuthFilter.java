@@ -1,6 +1,7 @@
 package com.feeling.config;
 
 import com.feeling.domain.services.auth.JwtService;
+import com.feeling.domain.services.user.CachedUserService;
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserToken;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
@@ -10,8 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.feeling.infrastructure.logging.StructuredLoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,12 +28,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
+    private static final StructuredLoggerFactory.StructuredLogger logger = 
+            StructuredLoggerFactory.create(JwtAuthFilter.class);
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final IUserTokenRepository tokenRepository;
-    private final IUserRepository userRepository;
+    private final CachedUserService cachedUserService;
 
     @Override
     protected void doFilterInternal(
@@ -50,13 +51,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             final String authHeader = request.getHeader("Authorization");
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                logger.debug("❌ No hay token Authorization en la petición a: {}", requestPath);
+                // Solo log si no es ruta pública común
+                if (!isPublicRoute(requestPath)) {
+                    logger.debug("No Authorization token for: " + requestPath);
+                }
                 filterChain.doFilter(request, response);
                 return;
             }
 
             final String jwtToken = authHeader.substring(7);
-            logger.debug("🔍 Token extraído para: {}", requestPath);
 
             // Validaciones básicas del token
             if (jwtToken.isEmpty()) {
@@ -70,7 +73,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 userEmail = jwtService.extractUsername(jwtToken);
             } catch (Exception e) {
-                logger.warn("❌ Error al extraer username del token: {}", e.getMessage());
+                logger.warn("❌ Error al extraer username del token: " + e.getMessage());
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -83,7 +86,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             // Si ya hay autenticación en el contexto, continuar
             if (SecurityContextHolder.getContext().getAuthentication() != null) {
-                logger.debug("✅ Usuario ya autenticado en contexto: {}", userEmail);
+                logger.debug("✅ Usuario ya autenticado en contexto: " + userEmail);
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -91,12 +94,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Verificar que es un ACCESS token (no REFRESH)
             try {
                 if (!jwtService.isAccessToken(jwtToken)) {
-                    logger.warn("❌ Token no es de tipo ACCESS para usuario: {}", userEmail);
+                    logger.warn("❌ Token no es de tipo ACCESS para usuario: " + userEmail);
                     setErrorResponse(response, "Token inválido - se requiere access token");
                     return;
                 }
             } catch (Exception e) {
-                logger.warn("❌ Error al verificar tipo de token: {}", e.getMessage());
+                logger.warn("❌ Error al verificar tipo de token: " + e.getMessage());
                 setErrorResponse(response, "Token malformado");
                 return;
             }
@@ -104,29 +107,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Verificar que el token existe en la base de datos y no está revocado
             Optional<UserToken> storedTokenOptional = tokenRepository.findByToken(jwtToken);
             if (storedTokenOptional.isEmpty()) {
-                logger.warn("❌ Token no encontrado en base de datos para usuario: {}", userEmail);
+                logger.warn("❌ Token no encontrado en base de datos para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido");
                 return;
             }
 
             UserToken storedToken = storedTokenOptional.get();
             if (storedToken.isExpired() || storedToken.isRevoked()) {
-                logger.warn("❌ Token expirado o revocado para usuario: {}", userEmail);
+                logger.warn("❌ Token expirado o revocado para usuario: " + userEmail);
                 setErrorResponse(response, "Token expirado o revocado");
                 return;
             }
 
             // Verificar que es un ACCESS token en la BD también
             if (storedToken.getType() != UserToken.TokenType.ACCESS) {
-                logger.warn("❌ Token en BD no es de tipo ACCESS para usuario: {}", userEmail);
+                logger.warn("❌ Token en BD no es de tipo ACCESS para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido - tipo incorrecto");
                 return;
             }
 
-            // Verificar que el usuario existe
-            Optional<User> userOptional = userRepository.findByEmail(userEmail);
+            // OPTIMIZACIÓN: Verificar que el usuario existe y está habilitado usando cache
+            Boolean isUserValid = cachedUserService.isUserValidForAuth(userEmail);
+            if (!isUserValid) {
+                logger.warn("❌ Usuario no encontrado o deshabilitado: " + userEmail);
+                setErrorResponse(response, "Usuario no válido");
+                return;
+            }
+
+            // Solo cargar el usuario completo si es necesario para validación del token
+            Optional<User> userOptional = cachedUserService.findByEmailCached(userEmail);
             if (userOptional.isEmpty()) {
-                logger.warn("❌ Usuario no encontrado: {}", userEmail);
+                logger.warn("❌ Usuario no encontrado en cache: " + userEmail);
                 setErrorResponse(response, "Usuario no encontrado");
                 return;
             }
@@ -136,28 +147,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Verificar que el token es válido para el usuario
             try {
                 if (!jwtService.isTokenValid(jwtToken, user)) {
-                    logger.warn("❌ Token inválido para usuario: {}", userEmail);
+                    logger.warn("❌ Token inválido para usuario: " + userEmail);
                     setErrorResponse(response, "Token inválido");
                     return;
                 }
             } catch (Exception e) {
-                logger.warn("❌ Error al validar token: {}", e.getMessage());
+                logger.warn("❌ Error al validar token: " + e.getMessage());
                 setErrorResponse(response, "Error en validación de token");
                 return;
             }
 
-            // Verificar que el usuario está verificado y habilitado
+            // Verificar que el usuario está verificado (email confirmado)
             if (!user.isVerified()) {
-                logger.warn("❌ Usuario no verificado: {}", userEmail);
+                logger.warn("❌ Usuario no verificado: " + userEmail);
                 setErrorResponse(response, "Usuario no verificado");
                 return;
             }
 
-            if (!user.isEnabled()) {
-                logger.warn("❌ Usuario deshabilitado: {}", userEmail);
-                setErrorResponse(response, "Usuario deshabilitado");
+            // Verificar que la cuenta no esté desactivada
+            if (user.isAccountDeactivated()) {
+                logger.warn("❌ Usuario con cuenta desactivada: " + userEmail);
+                setErrorResponse(response, "Cuenta desactivada");
                 return;
             }
+
+            // Nota: No verificamos 'approved' aquí - eso se maneja en endpoints específicos
 
             // Cargar detalles del usuario para Spring Security
             UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
@@ -173,15 +187,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Establecer autenticación en el contexto de seguridad
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            logger.debug("✅ Usuario autenticado exitosamente: {}", userEmail);
+            logger.debug("✅ Usuario autenticado exitosamente: " + userEmail);
 
             // Continuar con la cadena de filtros
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
-            logger.error("❌ Error inesperado en JwtAuthFilter: {}", e.getMessage(), e);
+            logger.error("❌ Error inesperado en JwtAuthFilter: " + e.getMessage());
             setErrorResponse(response, "Error interno del servidor");
         }
+    }
+
+    /**
+     * Verifica si es una ruta pública para reducir logs innecesarios
+     */
+    private boolean isPublicRoute(String requestPath) {
+        return requestPath.startsWith("/auth/") ||
+               requestPath.equals("/") ||
+               requestPath.startsWith("/geographic/") ||
+               requestPath.startsWith("/user-attributes") ||
+               requestPath.startsWith("/category-interests") ||
+               requestPath.startsWith("/tags/popular");
     }
 
     /**

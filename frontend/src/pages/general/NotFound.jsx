@@ -14,7 +14,7 @@ const NotFoundPage = () => {
   }, [])
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página no encontrada">
       {/* Logo */}
       <figure className="text-center mb-8">
         <img src={logo} alt="Logo Feeling" className="w-64 md:w-72 lg:w-80 mx-auto" />

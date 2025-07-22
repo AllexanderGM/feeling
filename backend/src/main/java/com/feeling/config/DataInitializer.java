@@ -12,9 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -30,11 +28,9 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final IUserCategoryInterestRepository categoryInterestRepository;
 
-    @Value("${spring.security.user.name}")
-    private String adminEmail;
-
-    @Value("${spring.security.user.password}")
-    private String adminPassword;
+    // Usar valores por defecto para el administrador del sistema
+    private final String adminEmail = "admin@feeling.com";
+    private final String adminPassword = "Feeling2024!";
 
     @Override
     public void run(String... args) throws Exception {
@@ -45,6 +41,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeUserAttributes();
         initializeCommonTags();
         createAdminUser();
+        createTestUsers();
 
         logger.info("Inicialización de datos completada exitosamente");
     }
@@ -145,12 +142,19 @@ public class DataInitializer implements CommandLineRunner {
                     .icon(icon)
                     .fullDescription(fullDescription)
                     .targetAudience(targetAudience)
-                    .features(features)
                     .isActive(true)
                     .displayOrder(displayOrder)
                     .build();
 
-            userCategoryInterestRepository.save(category);
+            // Guardar sin features primero para evitar lazy loading issues
+            UserCategoryInterest savedCategory = userCategoryInterestRepository.save(category);
+            
+            // Establecer features después del save si es necesario
+            if (features != null && !features.isEmpty()) {
+                savedCategory.setFeatures(new ArrayList<>(features));
+                userCategoryInterestRepository.save(savedCategory);
+            }
+            
             logger.info("Categoría de interés creada: {}", name);
         } else {
             logger.info("Categoría de interés ya existe: {}", name);
@@ -370,6 +374,15 @@ public class DataInitializer implements CommandLineRunner {
             UserRole adminRole = userRoleRepository.findByUserRoleList(UserRoleList.ADMIN)
                     .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
 
+            // Obtener atributos necesarios para completar el perfil
+            UserAttribute defaultGender = userAttributeRepository.findByCodeAndAttributeType("MALE", "GENDER")
+                    .orElse(null);
+            UserAttribute defaultReligion = userAttributeRepository.findByCodeAndAttributeType("CATHOLIC", "RELIGION")
+                    .orElse(null);
+            UserCategoryInterest defaultCategory = userCategoryInterestRepository
+                    .findByCategoryInterestEnum(UserCategoryInterestList.ESSENCE)
+                    .orElse(null);
+
             User admin = User.builder()
                     .name("Administrador")
                     .lastName("Feeling")
@@ -377,17 +390,137 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(this.adminPassword))
                     .userRole(adminRole)
                     .verified(true)
-                    .profileComplete(true)
                     .dateOfBirth(LocalDate.of(1990, 1, 1))
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .allowNotifications(true)
                     .showMeInSearch(false)
                     .availableAttempts(999)
+                    // CAMPOS REQUERIDOS PARA COMPLETAR EL PERFIL
+                    .document("0000000000")
+                    .phone("3000000000")
+                    .phoneCode("+57")
+                    .country("Colombia")
+                    .city("Bogotá")
+                    .description("Administrador del sistema Feeling")
+                    .height(175)
+                    .gender(defaultGender)
+                    .categoryInterest(defaultCategory)
+                    .religion(defaultReligion)
+                    // Preferencias por defecto
+                    .agePreferenceMin(18)
+                    .agePreferenceMax(80)
+                    .locationPreferenceRadius(100)
+                    // Configuración de privacidad
+                    .showAge(true)
+                    .showLocation(true)
                     .build();
 
             userRepository.save(admin);
-            logger.info("Usuario administrador creado: {}", this.adminEmail);
+
+            // Crear tags básicos para el administrador si no existen
+            try {
+                UserTag adminTag = userTagRepository.findByNameIgnoreCase("administrador")
+                        .orElseGet(() -> userTagRepository.save(UserTag.builder()
+                                .name("administrador")
+                                .createdBy(adminEmail)
+                                .createdAt(LocalDateTime.now())
+                                .usageCount(1L)
+                                .lastUsed(LocalDateTime.now())
+                                .build()));
+                UserTag systemTag = userTagRepository.findByNameIgnoreCase("sistema")
+                        .orElseGet(() -> userTagRepository.save(UserTag.builder()
+                                .name("sistema")
+                                .createdBy(adminEmail)
+                                .createdAt(LocalDateTime.now())
+                                .usageCount(1L)
+                                .lastUsed(LocalDateTime.now())
+                                .build()));
+
+                logger.info("Tags básicos del administrador creados/verificados");
+            } catch (Exception e) {
+                logger.warn("No se pudieron crear/verificar tags del administrador: {}", e.getMessage());
+            }
+
+            logger.info("Usuario administrador creado con perfil completo: {}", this.adminEmail);
+        } else {
+            // Si el administrador ya existe, verificar si necesita actualización de campos
+            User existingAdmin = userRepository.findByEmail(this.adminEmail).get();
+            boolean needsUpdate = false;
+
+            // Verificar y actualizar campos faltantes
+            if (existingAdmin.getDocument() == null) {
+                existingAdmin.setDocument("0000000000");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getPhone() == null) {
+                existingAdmin.setPhone("3000000000");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getPhoneCode() == null) {
+                existingAdmin.setPhoneCode("+57");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getCountry() == null) {
+                existingAdmin.setCountry("Colombia");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getCity() == null) {
+                existingAdmin.setCity("Bogotá");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getDescription() == null) {
+                existingAdmin.setDescription("Administrador del sistema Feeling");
+                needsUpdate = true;
+            }
+            if (existingAdmin.getHeight() == null) {
+                existingAdmin.setHeight(175);
+                needsUpdate = true;
+            }
+            // Set default image if not already present
+            if (existingAdmin.getImages() == null) {
+                existingAdmin.setImages(List.of("https://via.placeholder.com/400x400/6366F1/FFFFFF?text=Admin"));
+                needsUpdate = true;
+            }
+            if (existingAdmin.getGender() == null) {
+                UserAttribute defaultGender = userAttributeRepository.findByCodeAndAttributeType("MALE", "GENDER").orElse(null);
+                if (defaultGender != null) {
+                    existingAdmin.setGender(defaultGender);
+                    needsUpdate = true;
+                }
+            }
+            if (existingAdmin.getCategoryInterest() == null) {
+                UserCategoryInterest defaultCategory = userCategoryInterestRepository
+                        .findByCategoryInterestEnum(UserCategoryInterestList.ESSENCE).orElse(null);
+                if (defaultCategory != null) {
+                    existingAdmin.setCategoryInterest(defaultCategory);
+                    needsUpdate = true;
+                }
+            }
+            if (existingAdmin.getReligion() == null) {
+                UserAttribute defaultReligion = userAttributeRepository.findByCodeAndAttributeType("CATHOLIC", "RELIGION").orElse(null);
+                if (defaultReligion != null) {
+                    existingAdmin.setReligion(defaultReligion);
+                    needsUpdate = true;
+                }
+            }
+            if (existingAdmin.getAgePreferenceMin() == null) {
+                existingAdmin.setAgePreferenceMin(18);
+                needsUpdate = true;
+            }
+            if (existingAdmin.getAgePreferenceMax() == null) {
+                existingAdmin.setAgePreferenceMax(80);
+                needsUpdate = true;
+            }
+            if (existingAdmin.getLocationPreferenceRadius() == null) {
+                existingAdmin.setLocationPreferenceRadius(100);
+                needsUpdate = true;
+            }
+
+            if (needsUpdate) {
+                userRepository.save(existingAdmin);
+                logger.info("Usuario administrador actualizado con campos faltantes: {}", this.adminEmail);
+            }
         }
     }
 
@@ -418,5 +551,245 @@ public class DataInitializer implements CommandLineRunner {
             this.detail = null;
             this.displayOrder = displayOrder;
         }
+    }
+
+    // ==============================
+    // USUARIOS DE PRUEBA
+    // ==============================
+    private void createTestUsers() {
+        logger.info("Creando usuarios de prueba...");
+        
+        // Solo crear en desarrollo y si no existen muchos usuarios ya
+        long userCount = userRepository.count();
+        if (userCount > 5) {
+            logger.info("Ya existen {} usuarios, saltando creación de usuarios de prueba", userCount);
+            return;
+        }
+
+        try {
+            // Obtener datos necesarios
+            UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
+                .orElseThrow(() -> new RuntimeException("Rol CLIENT no encontrado"));
+                
+            List<UserCategoryInterest> categories = userCategoryInterestRepository.findAll();
+            List<UserAttribute> genders = userAttributeRepository.findByAttributeTypeAndActiveTrue("GENDER");
+            List<UserAttribute> eyeColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("EYE_COLOR");
+            List<UserAttribute> hairColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("HAIR_COLOR");
+            List<UserAttribute> bodyTypes = userAttributeRepository.findByAttributeTypeAndActiveTrue("BODY_TYPE");
+            List<UserTag> availableTags = userTagRepository.findAll();
+
+            int usuariosCreados = 0;
+            Random random = new Random();
+
+            // Crear 30 usuarios
+            for (int i = 0; i < 30; i++) {
+                try {
+                    User user = crearUsuarioAleatorio(random, clientRole, categories, genders, 
+                                                    eyeColors, hairColors, bodyTypes, availableTags);
+                    
+                    // Verificar que el email no exista
+                    if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                        userRepository.save(user);
+                        usuariosCreados++;
+                        logger.debug("Usuario de prueba creado: {} {}", user.getName(), user.getLastName());
+                    }
+                    
+                } catch (Exception e) {
+                    logger.error("Error creando usuario de prueba {}: {}", i, e.getMessage());
+                }
+            }
+
+            logger.info("Se crearon {} usuarios de prueba", usuariosCreados);
+            
+        } catch (Exception e) {
+            logger.error("Error en creación de usuarios de prueba: {}", e.getMessage());
+        }
+    }
+
+    private User crearUsuarioAleatorio(Random random, UserRole clientRole, 
+                                     List<UserCategoryInterest> categories,
+                                     List<UserAttribute> genders,
+                                     List<UserAttribute> eyeColors,
+                                     List<UserAttribute> hairColors,
+                                     List<UserAttribute> bodyTypes,
+                                     List<UserTag> availableTags) {
+        
+        // Datos para generar usuarios falsos
+        String[] nombresMasculinos = {
+            "Alejandro", "Carlos", "Diego", "Eduardo", "Fernando", "Gabriel", "Hugo", "Iván", 
+            "Javier", "Kevin", "Luis", "Miguel", "Nicolás", "Oscar", "Pablo", "Rafael", 
+            "Santiago", "Tomás", "Víctor", "William", "Andrés", "Daniel", "Sergio", "Ricardo"
+        };
+
+        String[] nombresFemeninos = {
+            "Alejandra", "Beatriz", "Carmen", "Diana", "Elena", "Fernanda", "Gabriela", "Helena",
+            "Isabel", "Julia", "Karen", "Laura", "María", "Natalia", "Olivia", "Patricia",
+            "Rosa", "Sofia", "Teresa", "Valentina", "Andrea", "Carolina", "Daniela", "Marcela"
+        };
+
+        String[] apellidos = {
+            "García", "Rodríguez", "González", "Fernández", "López", "Martínez", "Sánchez", "Pérez",
+            "Gómez", "Martín", "Jiménez", "Ruiz", "Hernández", "Díaz", "Moreno", "Muñoz",
+            "Álvarez", "Romero", "Alonso", "Gutiérrez", "Navarro", "Torres", "Domínguez", "Vázquez"
+        };
+
+        String[][] ciudadesCol = {
+            {"Colombia", "Bogotá", "Cundinamarca"},
+            {"Colombia", "Medellín", "Antioquia"},
+            {"Colombia", "Cali", "Valle del Cauca"},
+            {"Colombia", "Barranquilla", "Atlántico"},
+            {"Colombia", "Cartagena", "Bolívar"},
+            {"Colombia", "Bucaramanga", "Santander"},
+            {"Colombia", "Pereira", "Risaralda"},
+            {"Colombia", "Manizales", "Caldas"}
+        };
+
+        String[] descripciones = {
+            "Me encanta viajar y conocer nuevas culturas. Busco personas auténticas.",
+            "Apasionado por la música y el arte. Me gusta conversar sobre la vida.",
+            "Amo la naturaleza y los deportes al aire libre. Siempre dispuesto a nuevas experiencias.",
+            "Foodie empedernido. Las mejores conversaciones se dan alrededor de una buena comida.",
+            "Lector voraz y amante del cine. Busco conexiones profundas.",
+            "Empresario en crecimiento. Balanceo trabajo y vida personal.",
+            "Artista en el alma, práctico en la vida. Me gusta crear e inspirar.",
+            "Deportista por pasión, optimista por naturaleza.",
+            "Tecnólogo innovador con alma aventurera.",
+            "Espíritu libre que cree en las conexiones genuinas."
+        };
+
+        String[] profesiones = {
+            "Ingeniero de Software", "Médico", "Abogado", "Arquitecto", "Diseñador Gráfico",
+            "Contador", "Marketing Digital", "Psicólogo", "Periodista", "Chef",
+            "Profesor", "Enfermero", "Dentista", "Veterinario", "Fisioterapeuta"
+        };
+
+        // Determinar género
+        boolean esMasculino = random.nextBoolean();
+        String nombre = esMasculino ? 
+            nombresMasculinos[random.nextInt(nombresMasculinos.length)] :
+            nombresFemeninos[random.nextInt(nombresFemeninos.length)];
+        
+        String apellido = apellidos[random.nextInt(apellidos.length)];
+        String email = generarEmail(nombre, apellido, random);
+        
+        // Ubicación aleatoria
+        String[] ubicacion = ciudadesCol[random.nextInt(ciudadesCol.length)];
+        
+        // Fecha de nacimiento (18-65 años)
+        int edad = 18 + random.nextInt(47);
+        LocalDate fechaNacimiento = LocalDate.now().minusYears(edad)
+            .minusDays(random.nextInt(365));
+
+        User user = User.builder()
+            .name(nombre)
+            .lastName(apellido)
+            .email(email)
+            .password(passwordEncoder.encode("123456")) // Contraseña fija para testing
+            .verified(true) // Todos verificados para testing
+            .userRole(clientRole)
+            .userAuthProvider(UserAuthProvider.LOCAL)
+            .createdAt(LocalDateTime.now().minusDays(random.nextInt(365)))
+            .updatedAt(LocalDateTime.now())
+            .dateOfBirth(fechaNacimiento)
+            .country(ubicacion[0])
+            .city(ubicacion[1])
+            .department(ubicacion[2])
+            .phone(generarTelefono(random))
+            .phoneCode("+57")
+            .document(generarDocumento(random))
+            .description(descripciones[random.nextInt(descripciones.length)])
+            .profession(profesiones[random.nextInt(profesiones.length)])
+            .height(150 + random.nextInt(50)) // 150-200 cm
+            .profileViews(random.nextLong(1000))
+            .likesReceived(random.nextLong(100))
+            .matchesCount(random.nextLong(50))
+            .popularityScore(random.nextDouble() * 100)
+            .showMeInSearch(random.nextDouble() < 0.9) // 90% visible
+            .allowNotifications(random.nextDouble() < 0.8) // 80% notificaciones
+            .showAge(random.nextDouble() < 0.85)
+            .showLocation(random.nextDouble() < 0.9)
+            .showPhone(random.nextDouble() < 0.3)
+            .agePreferenceMin(Math.max(18, edad - 10))
+            .agePreferenceMax(Math.min(65, edad + 15))
+            .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25) // 25km o 50km
+            .build();
+
+        // Asignar categoría de interés
+        if (!categories.isEmpty()) {
+            user.setCategoryInterest(categories.get(random.nextInt(categories.size())));
+        }
+
+        // Asignar atributos físicos
+        if (!genders.isEmpty()) {
+            user.setGender(genders.get(random.nextInt(genders.size())));
+        }
+        if (!eyeColors.isEmpty()) {
+            user.setEyeColor(eyeColors.get(random.nextInt(eyeColors.size())));
+        }
+        if (!hairColors.isEmpty()) {
+            user.setHairColor(hairColors.get(random.nextInt(hairColors.size())));
+        }
+        if (!bodyTypes.isEmpty()) {
+            user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
+        }
+
+        // NO asignar tags aquí para evitar errores de detached entities
+        // Los tags se asignarán después de guardar el usuario
+
+        // Imágenes de perfil (simuladas)
+        List<String> imagenes = new ArrayList<>();
+        int numImagenes = 1 + random.nextInt(4); // 1-4 imágenes
+        for (int i = 0; i < numImagenes; i++) {
+            imagenes.add("https://picsum.photos/400/600?random=" + (random.nextInt(10000) + i));
+        }
+        user.setImages(imagenes);
+
+        return user;
+    }
+
+    private String generarEmail(String nombre, String apellido, Random random) {
+        String nombreLimpio = nombre.toLowerCase()
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u");
+        String apellidoLimpio = apellido.toLowerCase()
+            .replace("á", "a").replace("é", "e").replace("í", "i")
+            .replace("ó", "o").replace("ú", "u");
+        
+        String[] dominios = {"gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "test.com"};
+        String dominio = dominios[random.nextInt(dominios.length)];
+        
+        String[] patrones = {
+            nombreLimpio + "." + apellidoLimpio,
+            nombreLimpio + apellidoLimpio,
+            nombreLimpio.charAt(0) + apellidoLimpio,
+            nombreLimpio + "." + apellidoLimpio + (random.nextInt(99) + 1),
+            nombreLimpio + (random.nextInt(999) + 10)
+        };
+        
+        String patron = patrones[random.nextInt(patrones.length)];
+        return patron + "@" + dominio;
+    }
+
+    private String generarTelefono(Random random) {
+        String[] prefijos = {"301", "302", "310", "311", "312", "313", "314", "315", "316", "317", "318", "319", "320", "321", "322", "323"};
+        String prefijo = prefijos[random.nextInt(prefijos.length)];
+        StringBuilder numero = new StringBuilder(prefijo);
+        
+        for (int i = 0; i < 7; i++) {
+            numero.append(random.nextInt(10));
+        }
+        
+        return numero.toString();
+    }
+
+    private String generarDocumento(Random random) {
+        StringBuilder documento = new StringBuilder();
+        int longitud = 8 + random.nextInt(3); // 8-10 dígitos
+        
+        for (int i = 0; i < longitud; i++) {
+            documento.append(random.nextInt(10));
+        }
+        
+        return documento.toString();
     }
 }

@@ -2,6 +2,8 @@ import { useContext, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import ErrorContext from '@context/ErrorContext.jsx'
 import { useNotification } from '@hooks/useNotification'
+import { ErrorManager } from '@utils/errorManager'
+import { APP_PATHS } from '@constants/paths'
 
 /**
  * Hook unificado para manejo de errores que combina ErrorContext y sistema de Toast
@@ -23,26 +25,26 @@ export const useError = (authContext = null) => {
    */
   const handleAuthError = useCallback(
     (error, customMessage) => {
-      console.error('❌ Error de autenticación:', error)
+      console.error('Error de autenticación:', ErrorManager.formatError(error))
 
       // Si se pasó un contexto de auth, usar su método clearAllAuth
-      if (authContext?.clearAllAuth) {
-        authContext.clearAllAuth()
-      }
+      if (authContext?.clearAllAuth) authContext.clearAllAuth()
 
       // Guardar ruta actual para redireccionar después del login
-      // Solo usar localStorage para esto ya que es información temporal
       const currentPath = location.pathname + location.search
-      const authPaths = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password']
+      const authPaths = [
+        APP_PATHS.AUTH.LOGIN,
+        APP_PATHS.AUTH.REGISTER,
+        APP_PATHS.AUTH.VERIFY_EMAIL,
+        APP_PATHS.AUTH.FORGOT_PASSWORD,
+        APP_PATHS.AUTH.RESET_PASSWORD
+      ]
 
       if (!authPaths.some(path => currentPath.includes(path))) {
         localStorage.setItem('redirectAfterLogin', currentPath)
       }
 
-      // Mensaje de error para mostrar al usuario
       const message = customMessage || error?.message || 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
-
-      // Mostrar error con Toast
       showError(message, 'Sesión expirada')
 
       // Limpiar notificaciones antes de redirigir
@@ -52,7 +54,7 @@ export const useError = (authContext = null) => {
 
       // Redirigir al login después de un pequeño delay
       setTimeout(() => {
-        navigate('/login', {
+        navigate(APP_PATHS.AUTH.LOGIN, {
           replace: true,
           state: {
             message: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
@@ -186,13 +188,7 @@ export const useError = (authContext = null) => {
 
       // Log del error si está habilitado
       if (logError) {
-        console.error('Error capturado por useError:', {
-          error,
-          message: errorMessage,
-          errorType: error?.errorType || error?.type,
-          fieldErrors,
-          stack: error?.stack
-        })
+        console.error('Error capturado por useError:', ErrorManager.formatError(error, errorMessage))
       }
 
       // Mostrar modal si se requiere
@@ -329,11 +325,8 @@ export const useError = (authContext = null) => {
         if (successMessage) handleSuccess(successMessage)
       } else {
         const fieldErrors = extractFieldErrors(response?.error || response)
-
         if (fieldErrors && Object.keys(fieldErrors).length > 0) {
           handleValidationErrors(fieldErrors)
-        } else {
-          handleError(response?.error || response?.message || 'Error desconocido')
         }
       }
 

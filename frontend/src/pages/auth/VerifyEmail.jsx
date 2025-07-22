@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import useAuth from '@hooks/useAuth'
 import { useNotification } from '@hooks/useNotification'
-import { verifyEmailSchema } from '@utils/formSchemas'
+import { verifyEmailSchema } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -85,8 +85,9 @@ const VerifyEmail = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  const onSubmit = async ({ email, code }) => {
-    const result = await verifyEmailCode(email.toLowerCase().trim(), code)
+  const onSubmit = async formData => {
+    const { email, code } = extractVerifyEmailData(formData)
+    const result = await verifyEmailCode(email, code)
 
     if (result.success) {
       setStatus('success')
@@ -115,7 +116,7 @@ const VerifyEmail = () => {
     if (!email) return
 
     setResendLoading(true)
-    const result = await resendVerificationCode(email.toLowerCase().trim())
+    const result = await resendVerificationCode(email)
 
     if (result.success) {
       setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
@@ -129,7 +130,7 @@ const VerifyEmail = () => {
   // Si es usuario de Google verificado automáticamente
   if (fromGoogle && autoVerified && status === 'success') {
     return (
-      <LiteContainer>
+      <LiteContainer ariaLabel="Verificación de email automática">
         <figure className="text-center pb-8">
           <img src={logo} alt="Logo Feeling" className="w-52" />
         </figure>
@@ -153,7 +154,7 @@ const VerifyEmail = () => {
   }
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página de verificación de email">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>

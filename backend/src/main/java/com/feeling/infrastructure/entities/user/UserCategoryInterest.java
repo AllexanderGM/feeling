@@ -40,7 +40,7 @@ public class UserCategoryInterest {
     private String targetAudience;
 
     // Features como JSON o tabla separada
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "category_features",
             joinColumns = @JoinColumn(name = "category_id")

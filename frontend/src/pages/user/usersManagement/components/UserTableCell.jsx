@@ -67,6 +67,81 @@ const UserTableCell = memo(({ user, columnKey, currentUser, onEdit, onDelete }) 
           {user.profileComplete ? 'Completo' : 'Incompleto'}
         </Chip>
       )
+    case 'age': {
+      const calculateAge = (birthDate) => {
+        if (!birthDate) return null
+        const today = new Date()
+        const birth = new Date(birthDate)
+        let age = today.getFullYear() - birth.getFullYear()
+        const monthDiff = today.getMonth() - birth.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+          age--
+        }
+        return age
+      }
+
+      const age = calculateAge(user.birthDate || user.dateOfBirth)
+      
+      return (
+        <div className="flex flex-col items-center">
+          <span className="text-sm font-semibold text-foreground">
+            {age ? `${age}` : 'N/A'}
+          </span>
+          <p className="text-xs text-default-500">años</p>
+        </div>
+      )
+    }
+    case 'matches':
+      return (
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+            <span className="text-sm font-semibold text-foreground">
+              {user.matchesAvailable !== undefined ? user.matchesAvailable : 'N/A'}
+            </span>
+          </div>
+          <p className="text-xs text-default-500">disponibles</p>
+        </div>
+      )
+    case 'profileCompleteness': {
+      const completeness = user.profileCompleteness || 0
+      const getColor = (percentage) => {
+        if (percentage >= 80) return 'success'
+        if (percentage >= 60) return 'warning'
+        if (percentage >= 40) return 'primary'
+        return 'danger'
+      }
+
+      return (
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-2 bg-default-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-300 ${
+                  completeness >= 80 ? 'bg-success-500' : 
+                  completeness >= 60 ? 'bg-warning-500' : 
+                  completeness >= 40 ? 'bg-primary-500' : 'bg-danger-500'
+                }`}
+                style={{ width: `${completeness}%` }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-foreground">
+              {completeness}%
+            </span>
+          </div>
+          <Chip 
+            size="sm" 
+            variant="flat" 
+            color={getColor(completeness)}
+            className="text-xs"
+          >
+            {completeness >= 80 ? 'Completo' : 
+             completeness >= 60 ? 'Bueno' : 
+             completeness >= 40 ? 'Regular' : 'Incompleto'}
+          </Chip>
+        </div>
+      )
+    }
     case 'role':
       return (
         <Chip className="capitalize" color={USER_ROLE_COLORS[user.role] || 'default'} size="sm" variant="flat">
@@ -75,9 +150,8 @@ const UserTableCell = memo(({ user, columnKey, currentUser, onEdit, onDelete }) 
       )
     case 'actions': {
       const isCurrentUser = user.email === currentUser?.email
-      const canEdit = !isCurrentUser && (currentUser?.role === 'SUPER_ADMIN' || user.role !== 'ADMIN')
-      const canDelete =
-        !isCurrentUser && currentUser?.role === 'SUPER_ADMIN' && (user.role !== 'ADMIN' || user.email !== currentUser?.email)
+      const canEdit = !isCurrentUser && (currentUser?.role === 'ADMIN' && user.role !== 'ADMIN')
+      const canDelete = false // Los administradores no pueden eliminar usuarios
 
       let editTooltip = 'Editar'
       let deleteTooltip = 'Eliminar'
@@ -87,8 +161,10 @@ const UserTableCell = memo(({ user, columnKey, currentUser, onEdit, onDelete }) 
         deleteTooltip = 'No puedes eliminarte a ti mismo'
       } else if (!canEdit) {
         editTooltip = 'No tienes permisos para editar administradores'
-      } else if (!canDelete) {
-        deleteTooltip = 'No puedes eliminar este usuario'
+      }
+      
+      if (!canDelete) {
+        deleteTooltip = 'No tienes permisos para eliminar usuarios'
       }
 
       return (

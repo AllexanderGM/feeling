@@ -1,19 +1,35 @@
 import { useState, useMemo } from 'react'
-import { Button, Spinner, Chip, Slider } from '@heroui/react'
-import { Edit2, Check, X, Target, Heart, MapPin, Calendar, Church, Building } from 'lucide-react'
+import { Button, Spinner, Chip, Slider, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
+import {
+  Edit2,
+  Check,
+  X,
+  Target,
+  Heart,
+  MapPin,
+  Calendar,
+  Church,
+  Building,
+  Settings,
+  Users,
+  Search,
+  Filter,
+  Sparkles,
+  Flame,
+  MessageCircle
+} from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import useUser from '@hooks/useUser.js'
 import useUserAttributes from '@hooks/useUserAttributes.js'
 import { useCategoryInterests } from '@hooks/useCategoryInterests.js'
-import { step3Schema } from '@utils/formSchemas.js'
-import { getDefaultValuesForStep } from '@constants/userSchema.js'
-import StepPreferences from '@pages/user/completeProfile/components/StepPreferences.jsx'
+import { stepPreferencesSchema, getDefaultValuesForStep } from '@schemas'
+import StepPreferences from '@pages/user/complete/components/StepPreferences.jsx'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
 
 const PreferencesSection = ({ user }) => {
-  const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
   const { updateUserProfile } = useUser()
   const userAttributes = useUserAttributes()
@@ -34,19 +50,19 @@ const PreferencesSection = ({ user }) => {
     clearErrors,
     reset
   } = useForm({
-    resolver: yupResolver(step3Schema),
+    resolver: yupResolver(stepPreferencesSchema),
     defaultValues,
     mode: 'onChange'
   })
 
   const handleEdit = () => {
     reset(defaultValues)
-    setIsEditing(true)
+    onEditOpen()
   }
 
   const handleCancel = () => {
     reset(defaultValues)
-    setIsEditing(false)
+    onEditOpenChange()
   }
 
   const handleSave = async () => {
@@ -54,7 +70,7 @@ const PreferencesSection = ({ user }) => {
       setLoading(true)
       const formData = getValues()
       await updateUserProfile(formData)
-      setIsEditing(false)
+      onEditOpenChange()
     } catch (error) {
       console.error('Error updating preferences:', error)
     } finally {
@@ -75,6 +91,30 @@ const PreferencesSection = ({ user }) => {
     return categoryOptions.find(cat => cat.key === categoryKey)
   }
 
+  // Función para obtener el icono según la categoría
+  const getCategoryIcon = categoryKey => {
+    switch (categoryKey?.toUpperCase()) {
+      case 'ESSENCE':
+        return <Sparkles className="w-3 h-3 text-blue-400" />
+      case 'ROUSE':
+        return <Flame className="w-3 h-3 text-red-400" />
+      case 'SPIRIT':
+        return <MessageCircle className="w-3 h-3 text-purple-400" />
+      default:
+        return <Heart className="w-3 h-3 text-gray-400" />
+    }
+  }
+
+  // Función para verificar si el usuario tiene campos específicos de SPIRIT
+  const hasSpiritFields = () => {
+    return user?.religionId || user?.church || user?.spiritualMoments || user?.spiritualPractices
+  }
+
+  // Función para verificar si el usuario tiene campos específicos de ROUSE
+  const hasRoueFields = () => {
+    return user?.sexualRoleId || user?.relationshipTypeId
+  }
+
   // Props para StepPreferences
   const stepPreferencesProps = {
     control,
@@ -91,209 +131,207 @@ const PreferencesSection = ({ user }) => {
     attributesLoading: false
   }
 
-  if (isEditing) {
-    return (
-      <div className="space-y-6 w-full">
-        {/* Header de edición */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-200">Editar Preferencias</h2>
-            <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">Actualiza tus preferencias de conexión y búsqueda</p>
-          </div>
-          <div className="flex gap-2 sm:shrink-0">
-            <Button
-              size="sm"
-              color="success"
-              variant="flat"
-              startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-              onPress={handleSave}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              {loading ? 'Guardando...' : 'Guardar'}
-            </Button>
-            <Button
-              size="sm"
-              color="danger"
-              variant="light"
-              startContent={<X className="w-4 h-4" />}
-              onPress={handleCancel}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              Cancelar
-            </Button>
-          </div>
-        </div>
-
-        {/* Renderizar StepPreferences */}
-        <StepPreferences {...stepPreferencesProps} />
-
-        {/* Botones de acción en la parte inferior */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
-          <Button
-            size="md"
-            color="danger"
-            variant="light"
-            startContent={<X className="w-4 h-4" />}
-            onPress={handleCancel}
-            isDisabled={loading}>
-            Cancelar
-          </Button>
-          <Button
-            size="md"
-            color="success"
-            variant="flat"
-            startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-            onPress={handleSave}
-            isDisabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const categoryDetails = getCategoryDetails(user?.categoryInterest)
-  const isSpiritCategory = user?.categoryInterest === 'SPIRIT'
-  const isRoueCategory = user?.categoryInterest === 'ROUSE'
-
   // Vista de solo lectura
   return (
-    <div className="space-y-8 w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-200">Preferencias</h2>
-          <p className="text-gray-400 mt-2">Tus preferencias de conexión y búsqueda</p>
+    <div className="space-y-6 w-full">
+      {/* Preferencias con diseño similar al estado general */}
+      <div className="bg-gray-800/50 border border-gray-700/30 rounded-lg p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-gray-200">Preferencias</span>
+          </div>
+          <Button
+            size="sm"
+            variant="solid"
+            color="primary"
+            className="bg-primary-600 hover:bg-primary-700"
+            startContent={<Settings className="w-3 h-3" />}
+            onPress={handleEdit}>
+            Editar
+          </Button>
         </div>
-        <Button size="sm" color="primary" variant="bordered" startContent={<Edit2 className="w-4 h-4" />} onPress={handleEdit}>
-          Editar
-        </Button>
-      </div>
 
-      {/* Categoría de interés */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Categoría de Interés</h3>
-        <div>
-          <label className="text-sm text-gray-400">Tipo de conexión que buscas</label>
-          <div className="flex items-start gap-2 mt-1">
-            <Target className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
-            <div className="flex-1">
-              {categoryDetails ? (
+        {/* Categoría de interés */}
+        <div className="mb-4 pb-4 border-b border-gray-700/30">
+          <div className="flex items-center gap-2">
+            {getCategoryIcon(user?.categoryInterest)}
+            <span className="text-xs text-gray-400">Categoría de interés: </span>
+            <span className="text-xs text-gray-300 font-medium">
+              {getCategoryDetails(user?.categoryInterest)?.label || 'No especificado'}
+            </span>
+          </div>
+        </div>
+
+        {/* Campos específicos para SPIRIT */}
+        {user?.categoryInterest === 'SPIRIT' && hasSpiritFields() && (
+          <div className="mb-4 pb-4 border-b border-gray-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Church className="w-3 h-3 text-purple-400" />
+              <span className="text-xs font-medium text-gray-200">Información espiritual</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-400">
+              {/* Religión */}
+              {user?.religionId && (
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{categoryDetails.icon}</span>
-                  <div>
-                    <p className="text-gray-200 text-base font-medium">{categoryDetails.label}</p>
-                    <p className="text-gray-400 text-sm">{categoryDetails.shortDescription}</p>
+                  <Church className="w-3 h-3" />
+                  <span>
+                    Religión: <span className="text-gray-300">{getAttributeName('religionOptions', user.religionId)}</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Iglesia */}
+              {user?.church && (
+                <div className="flex items-center gap-2">
+                  <Building className="w-3 h-3" />
+                  <span>
+                    Iglesia: <span className="text-gray-300">{user.church}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Momentos espirituales */}
+            {user?.spiritualMoments && (
+              <div className="mt-3">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-3 h-3 mt-0.5" />
+                  <div className="w-full">
+                    <span className="text-xs text-gray-400">Momentos espirituales: </span>
+                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user.spiritualMoments}</p>
                   </div>
                 </div>
-              ) : (
-                <p className="text-gray-500 italic">No especificado</p>
+              </div>
+            )}
+
+            {/* Prácticas espirituales */}
+            {user?.spiritualPractices && (
+              <div className="mt-3">
+                <div className="flex items-start gap-2">
+                  <MessageCircle className="w-3 h-3 mt-0.5" />
+                  <div className="w-full">
+                    <span className="text-xs text-gray-400">Prácticas espirituales: </span>
+                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user.spiritualPractices}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Campos específicos para ROUSE */}
+        {user?.categoryInterest === 'ROUSE' && hasRoueFields() && (
+          <div className="mb-4 pb-4 border-b border-gray-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Flame className="w-3 h-3 text-red-400" />
+              <span className="text-xs font-medium text-gray-200">Preferencias personales</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-400">
+              {/* Rol sexual */}
+              {user?.sexualRoleId && (
+                <div className="flex items-center gap-2">
+                  <Target className="w-3 h-3" />
+                  <span>
+                    Rol sexual: <span className="text-gray-300">{getAttributeName('sexualRoleOptions', user.sexualRoleId)}</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Tipo de relación */}
+              {user?.relationshipTypeId && (
+                <div className="flex items-center gap-2">
+                  <Users className="w-3 h-3" />
+                  <span>
+                    Tipo de relación:{' '}
+                    <span className="text-gray-300">{getAttributeName('relationshipTypeOptions', user.relationshipTypeId)}</span>
+                  </span>
+                </div>
               )}
             </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* Preferencias de edad */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Preferencias de Edad</h3>
-        <div>
-          <label className="text-sm text-gray-400">Rango de edad preferido</label>
-          <div className="flex items-center gap-2 mt-1">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">
-              {user?.agePreferenceMin || 18} - {user?.agePreferenceMax || 50} años
-            </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400">
+          {/* Rango de edad para conexiones */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3 h-3 text-green-400" />
+            <span>
+              Rango de edad:{' '}
+              <span className="text-gray-300">
+                {user?.agePreferenceMin && user?.agePreferenceMax
+                  ? `${user.agePreferenceMin}-${user.agePreferenceMax} años`
+                  : 'No especificado'}
+              </span>
+            </span>
+          </div>
+
+          {/* Radio de búsqueda */}
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3 h-3 text-cyan-400" />
+            <span>
+              Radio de búsqueda:{' '}
+              <span className="text-gray-300">
+                {user?.locationPreferenceRadius ? `${user.locationPreferenceRadius} km` : 'No especificado'}
+              </span>
+            </span>
           </div>
         </div>
-      </section>
 
-      {/* Preferencias de ubicación */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Preferencias de Ubicación</h3>
-        <div>
-          <label className="text-sm text-gray-400">Radio de búsqueda</label>
-          <div className="flex items-center gap-2 mt-1">
-            <MapPin className="w-4 h-4 text-gray-400" />
-            <p className="text-gray-200 text-base">{user?.locationPreferenceRadius || 50} km</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Información espiritual - Solo para categoría SPIRIT */}
-      {isSpiritCategory && (
-        <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-200">Información Espiritual</h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-400">Religión</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Church className="w-4 h-4 text-gray-400" />
-                <p className="text-gray-200 text-base">{getAttributeName('religions', user?.religionId)}</p>
-              </div>
+        {/* Verificación requerida */}
+        {user?.requireVerification && (
+          <div className="pt-3 border-t border-gray-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="w-3 h-3 text-blue-400" />
+              <span className="text-xs font-medium text-gray-200">Filtros de búsqueda</span>
             </div>
-
-            {user?.church && (
-              <div>
-                <label className="text-sm text-gray-400">Iglesia</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Building className="w-4 h-4 text-gray-400" />
-                  <p className="text-gray-200 text-base">{user.church}</p>
-                </div>
-              </div>
-            )}
-
-            {user?.spiritualMoments && (
-              <div>
-                <label className="text-sm text-gray-400">Momentos espirituales</label>
-                <p className="text-gray-200 text-base mt-1 leading-relaxed">{user.spiritualMoments}</p>
-              </div>
-            )}
-
-            {user?.spiritualPractices && (
-              <div>
-                <label className="text-sm text-gray-400">Prácticas espirituales</label>
-                <p className="text-gray-200 text-base mt-1 leading-relaxed">{user.spiritualPractices}</p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Preferencias personales - Solo para categoría ROUSE */}
-      {isRoueCategory && (
-        <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-200">Preferencias Personales</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-400">Rol sexual</label>
-              <p className="text-gray-200 text-base mt-1">{getAttributeName('sexualRoles', user?.sexualRoleId)}</p>
-            </div>
-
-            <div>
-              <label className="text-sm text-gray-400">Tipo de relación</label>
-              <p className="text-gray-200 text-base mt-1">{getAttributeName('relationshipTypes', user?.relationshipTypeId)}</p>
+            <div className="flex flex-wrap gap-1">
+              <Chip size="sm" variant="flat" color="success" className="bg-green-500/20 text-green-300 border border-green-500/30 text-xs">
+                Solo usuarios verificados
+              </Chip>
             </div>
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
-      {/* Mensaje informativo si no hay preferencias específicas */}
-      {!isSpiritCategory && !isRoueCategory && user?.categoryInterest && (
-        <section className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-          <div className="flex gap-3">
-            <span className="text-blue-400">💡</span>
-            <div className="text-sm">
-              <p className="text-blue-300">
-                Las preferencias adicionales están disponibles para categorías específicas como Spirit y Rouse. Puedes cambiar tu categoría
-                editando esta sección.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Modal para editar preferencias */}
+      <Modal
+        isOpen={isEditOpen}
+        onOpenChange={onEditOpenChange}
+        size="5xl"
+        scrollBehavior="inside"
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50',
+          closeButton: 'hover:bg-gray-800/50'
+        }}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold text-gray-200">Editar Preferencias</h3>
+                <p className="text-sm text-gray-400">Actualiza tus preferencias de búsqueda y match</p>
+              </ModalHeader>
+              <ModalBody className="py-6">
+                <StepPreferences {...stepPreferencesProps} />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={handleCancel} startContent={<X className="w-4 h-4" />} isDisabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleSave}
+                  startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                  isDisabled={loading}>
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

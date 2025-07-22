@@ -175,7 +175,7 @@ const router = createBrowserRouter([
 ### Guards de Autenticación
 
 - **RequireAuth**: Protege rutas que requieren login
-- **RequireCompleteProfile**: Requiere perfil completo
+- **RequireProfileComplete**: Requiere perfil completo
 - **RequireSubscription**: Requiere plan activo
 
 ## 🌐 Estado Global

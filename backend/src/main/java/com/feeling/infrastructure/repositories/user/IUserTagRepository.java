@@ -24,16 +24,21 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     List<UserTag> findByUsageCountGreaterThan(Long count);
 
     // ========================================
-    // BÚSQUEDAS POR POPULARIDAD Y TENDENCIAS
+    // BÚSQUEDAS POR POPULARIDAD Y TENDENCIAS  
     // ========================================
+    // OPTIMIZACIÓN: Carga optimizada de tags populares
     @Query("SELECT t FROM UserTag t ORDER BY t.usageCount DESC")
     List<UserTag> findMostPopularTags();
+    
+    // OPTIMIZACIÓN: Tags populares con límite para paginación
+    @Query(value = "SELECT * FROM user_tags t ORDER BY t.usage_count DESC LIMIT ?1", nativeQuery = true)
+    List<UserTag> findMostPopularTagsLimited(int limit);
 
-    @Query(value = "SELECT t FROM UserTag t ORDER BY t.usageCount DESC")
-    List<UserTag> findTopPopularTags(@Param("limit") int limit);
+    @Query(value = "SELECT * FROM user_tags t ORDER BY t.usage_count DESC LIMIT ?1", nativeQuery = true)
+    List<UserTag> findTopPopularTags(int limit);
 
-    @Query(value = "SELECT t FROM UserTag t WHERE t.createdAt >= :since ORDER BY t.usageCount DESC")
-    List<UserTag> findTopNewTags(@Param("since") LocalDateTime since, @Param("limit") int limit);
+    @Query(value = "SELECT * FROM user_tags t WHERE t.created_at >= ?1 ORDER BY t.usage_count DESC LIMIT ?2", nativeQuery = true)
+    List<UserTag> findTopNewTags(LocalDateTime since, int limit);
 
     // Tags en tendencia (nuevo o con crecimiento reciente)
     @Query("SELECT t FROM UserTag t WHERE t.usageCount >= :minUsage AND t.lastUsed >= :since ORDER BY t.usageCount DESC")
@@ -123,6 +128,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     // ========================================
     // TAGS RELACIONADOS Y RECOMENDACIONES
     // ========================================
+    // OPTIMIZACIÓN: Carga relacionada optimizada sin FETCH JOIN para evitar conflictos
     @Query("SELECT DISTINCT t2 FROM UserTag t1 " +
             "JOIN t1.users u " +
             "JOIN u.tags t2 " +
@@ -130,6 +136,15 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
             "GROUP BY t2 " +
             "ORDER BY COUNT(t2) DESC")
     List<UserTag> findRelatedTags(@Param("tagName") String tagName);
+    
+    // OPTIMIZACIÓN: Versión simple sin FETCH para casos de solo IDs
+    @Query("SELECT DISTINCT t2 FROM UserTag t1 " +
+            "JOIN t1.users u " +
+            "JOIN u.tags t2 " +
+            "WHERE t1.name = :tagName AND t2.name != :tagName " +
+            "GROUP BY t2 " +
+            "ORDER BY COUNT(t2) DESC")
+    List<UserTag> findRelatedTagsLightweight(@Param("tagName") String tagName);
 
     @Query(value = """
             SELECT t FROM UserTag t 
@@ -140,10 +155,10 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
             ) 
             ORDER BY t.usageCount DESC
             """)
-    List<UserTag> findSuggestedTagsForUser(@Param("userEmail") String userEmail, @Param("limit") int limit);
+    List<UserTag> findSuggestedTagsForUser(@Param("userEmail") String userEmail);
 
     @Query("SELECT t FROM UserTag t WHERE t.name NOT IN :excludedTags AND t.usageCount > 0 ORDER BY t.usageCount DESC")
-    List<UserTag> findSuggestedTagsExcluding(@Param("excludedTags") List<String> excludedTags, @Param("limit") int limit);
+    List<UserTag> findSuggestedTagsExcluding(@Param("excludedTags") List<String> excludedTags);
 
     // ========================================
     // TAGS POR CATEGORÍA DE INTERÉS

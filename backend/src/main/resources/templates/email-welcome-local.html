@@ -184,33 +184,66 @@
                               <span style="font-size: 40px; color: white; line-height: 1">✓</span>
                             </div>
 
-                            <h3
-                              style="
-                                margin: 0 0 16px 0;
-                                font-size: 20px;
-                                color: #047857;
-                                font-weight: 600;
-                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                                  Arial, sans-serif;
-                              "
-                            >
-                              ¡Cuenta verificada exitosamente!
-                            </h3>
+                            <!-- Contenido condicional según si fue aprobado por admin -->
+                            <div th:if="${isApprovedByAdmin != null and isApprovedByAdmin}">
+                              <h3
+                                style="
+                                  margin: 0 0 16px 0;
+                                  font-size: 20px;
+                                  color: #047857;
+                                  font-weight: 600;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
+                              >
+                                ¡Tu cuenta ha sido validada por nuestro equipo!
+                              </h3>
 
-                            <p
-                              style="
-                                margin: 0;
-                                font-size: 16px;
-                                color: #065f46;
-                                line-height: 1.5;
-                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                                  Arial, sans-serif;
-                              "
-                            >
-                              Tu email ha sido verificado correctamente. Ya puedes acceder a todas
-                              las funcionalidades de Feeling y comenzar a crear conexiones
-                              significativas.
-                            </p>
+                              <p
+                                style="
+                                  margin: 0;
+                                  font-size: 16px;
+                                  color: #065f46;
+                                  line-height: 1.5;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
+                              >
+                                Nuestro equipo de administradores ha revisado y aprobado tu perfil. 
+                                ¡Ya puedes acceder a todas las funcionalidades de Feeling y comenzar 
+                                a crear conexiones significativas!
+                              </p>
+                            </div>
+
+                            <div th:unless="${isApprovedByAdmin != null and isApprovedByAdmin}">
+                              <h3
+                                style="
+                                  margin: 0 0 16px 0;
+                                  font-size: 20px;
+                                  color: #047857;
+                                  font-weight: 600;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
+                              >
+                                ¡Cuenta verificada exitosamente!
+                              </h3>
+
+                              <p
+                                style="
+                                  margin: 0;
+                                  font-size: 16px;
+                                  color: #065f46;
+                                  line-height: 1.5;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
+                              >
+                                Tu email ha sido verificado correctamente. Ya puedes acceder a todas
+                                las funcionalidades de Feeling y comenzar a crear conexiones
+                                significativas.
+                              </p>
+                            </div>
                           </td>
                         </tr>
                       </table>

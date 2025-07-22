@@ -22,6 +22,7 @@ public class UserCategoryInterestService {
     /**
      * Obtiene todas las categorías activas
      */
+    @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllActiveCategories() {
         return repository.findByIsActiveTrueOrderByDisplayOrder()
                 .stream()
@@ -32,6 +33,7 @@ public class UserCategoryInterestService {
     /**
      * Obtiene todas las categorías (incluyendo inactivas)
      */
+    @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllCategories() {
         return repository.findAllByOrderByDisplayOrder()
                 .stream()
@@ -42,6 +44,7 @@ public class UserCategoryInterestService {
     /**
      * Obtiene categoría por enum
      */
+    @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryByEnum(UserCategoryInterestList categoryEnum) {
         return repository.findByCategoryInterestEnum(categoryEnum)
                 .map(this::mapToDTO);
@@ -50,6 +53,7 @@ public class UserCategoryInterestService {
     /**
      * Obtiene categoría por ID
      */
+    @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryById(Long id) {
         return repository.findById(id)
                 .map(this::mapToDTO);
@@ -94,6 +98,20 @@ public class UserCategoryInterestService {
      * Mapea entidad a DTO usando constructor del record
      */
     private UserCategoryInterestDTO mapToDTO(UserCategoryInterest entity) {
+        // Inicializar features dentro de la sesión transaccional
+        List<String> features = null;
+        try {
+            // Forzar la inicialización de la colección lazy dentro de la sesión
+            features = entity.getFeatures();
+            if (features != null) {
+                // Forzar la carga tocando la colección
+                features.size();
+            }
+        } catch (Exception e) {
+            log.warn("No se pudieron cargar las features para la categoría {}: {}", entity.getId(), e.getMessage());
+            features = List.of(); // Lista vacía como fallback
+        }
+        
         return new UserCategoryInterestDTO(
                 entity.getId(),
                 entity.getCategoryInterestEnum().name(),
@@ -102,7 +120,7 @@ public class UserCategoryInterestService {
                 entity.getIcon(),
                 entity.getFullDescription(),
                 entity.getTargetAudience(),
-                entity.getFeatures(),
+                features,
                 entity.isActive(),
                 entity.getDisplayOrder(),
                 entity.getCreatedAt(),

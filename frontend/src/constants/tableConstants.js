@@ -64,10 +64,12 @@ export const USER_INTEREST_COLORS = {
 export const USER_COLUMNS = [
   { name: 'ID', uid: 'id' },
   { name: 'NOMBRE', uid: 'name' },
+  { name: 'EDAD', uid: 'age' },
   { name: 'INTERÉS', uid: 'categoryInterest' },
   { name: 'UBICACIÓN', uid: 'location' },
+  { name: 'MATCHES', uid: 'matches' },
+  { name: 'COMPLETITUD', uid: 'profileCompleteness' },
   { name: 'VERIFICADO', uid: 'verified' },
-  { name: 'PERFIL COMPLETO', uid: 'profileComplete' },
   { name: 'ROL', uid: 'role' },
   { name: 'ACCIONES', uid: 'actions' }
 ]

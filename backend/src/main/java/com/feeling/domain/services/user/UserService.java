@@ -4,6 +4,7 @@ import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.domain.dto.user.UserModifyDTO;
 import com.feeling.domain.dto.user.UserProfileRequestDTO;
 import com.feeling.domain.dto.user.UserResponseDTO;
+import com.feeling.domain.services.email.EmailService;
 import com.feeling.domain.services.storage.StorageService;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
@@ -11,8 +12,7 @@ import com.feeling.infrastructure.entities.user.*;
 import com.feeling.infrastructure.repositories.user.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.feeling.infrastructure.logging.StructuredLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +32,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private static final StructuredLoggerFactory.StructuredLogger logger = 
+            StructuredLoggerFactory.create(UserService.class);
     private static final Map<String, String> tokenBlacklist = new ConcurrentHashMap<>();
     private final IUserRepository userRepository;
     private final IUserRoleRepository rolRepository;
@@ -42,13 +43,22 @@ public class UserService {
     private final UserTagService userTagService;
     private final IUserAttributeRepository userAttributeRepository;
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
-    @Value("${ADMIN_USERNAME}")
-    private String superAdminEmail;
+    private final CachedUserService cachedUserService;
+    private final EmailService emailService;
 
     public UserResponseDTO get(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        logger.info("Usuario encontrado correctamente {}", user.getEmail());
+        logger.logUserOperation("GET_USER", user.getEmail(), Map.of("found", true));
         return new UserResponseDTO(user);
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+    }
+
+    public User getUserById(String userId) {
+        return userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
     }
 
     public List<UserResponseDTO> getList() {
@@ -61,16 +71,46 @@ public class UserService {
 
     public Page<UserResponseDTO> getListPaginated(Pageable pageable) {
         Page<User> users = userRepository.findAll(pageable);
-        logger.info("Usuarios paginados encontrados correctamente - Página: {}, Tamaño: {}, Total: {}",
-                pageable.getPageNumber(), pageable.getPageSize(), users.getTotalElements());
+        logger.info("Usuarios paginados encontrados correctamente", Map.of(
+                "page", pageable.getPageNumber(), 
+                "size", pageable.getPageSize(), 
+                "total", users.getTotalElements()));
         return users.map(UserResponseDTO::new);
     }
 
     public Page<UserResponseDTO> searchUsers(String searchTerm, Pageable pageable) {
         Page<User> users = userRepository.findBySearchTerm(searchTerm, pageable);
-        logger.info("Búsqueda de usuarios completada - Término: '{}', Página: {}, Resultados: {}",
-                searchTerm, pageable.getPageNumber(), users.getTotalElements());
+        logger.info("Búsqueda de usuarios completada", Map.of(
+                "searchTerm", searchTerm, 
+                "page", pageable.getPageNumber(), 
+                "results", users.getTotalElements()));
         return users.map(UserResponseDTO::new);
+    }
+
+    public Page<UserResponseDTO> getUserSuggestions(String userEmail, Pageable pageable) {
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (!currentUser.isProfileComplete()) {
+            throw new RuntimeException("Debes completar tu perfil antes de ver sugerencias");
+        }
+
+        // Obtener usuarios compatibles con paginación optimizada
+        Page<User> suggestedUsers = userRepository.findCompatibleUsersOptimized(
+                currentUser.getId(),
+                currentUser.getCategoryInterest() != null ? 
+                    currentUser.getCategoryInterest().getId() : null,
+                currentUser.getAgePreferenceMin(),
+                currentUser.getAgePreferenceMax(),
+                currentUser.getCity(),
+                currentUser.getDepartment(),
+                pageable
+        );
+
+        logger.logMatching(userEmail, "suggestions", (int) suggestedUsers.getTotalElements(), 
+                Map.of("page", (int) pageable.getPageNumber()));
+
+        return suggestedUsers.map(UserResponseDTO::new);
     }
 
 
@@ -102,7 +142,7 @@ public class UserService {
                     "profiles/" + user.getId() + "/images"
             );
             imageUrls.addAll(additionalImageUrls);
-            logger.info("Imágenes subidas: {}", additionalImageUrls.size());
+            logger.logUserOperation("images_uploaded", email, Map.of("count", additionalImageUrls.size()));
         }
         if (!imageUrls.isEmpty()) user.setImages(imageUrls);
         if (profileData.name() != null) user.setName(profileData.name().trim());
@@ -138,7 +178,7 @@ public class UserService {
                     .findByCategoryInterestEnum(categoryEnum)
                     .orElseThrow(() -> new NotFoundException("Categoría de interés no encontrada: " + categoryEnum));
 
-            user.setUserCategoryInterest(categoryInterest);
+            user.setCategoryInterest(categoryInterest);
         }
 
         if (profileData.genderId() != null) {
@@ -263,8 +303,7 @@ public class UserService {
             user.setShowMeInSearch(profileData.showMeInSearch());
         }
 
-        // MARCAR PERFIL COMO COMPLETO
-        user.setProfileComplete(true);
+        // ACTUALIZAR TIMESTAMPS (profileComplete se calculará automáticamente en @PreUpdate)
         user.setUpdatedAt(LocalDateTime.now());
 
         // ========================================
@@ -272,8 +311,9 @@ public class UserService {
         // ========================================
         User savedUser = userRepository.save(user);
 
-        logger.info("Perfil completado correctamente para el usuario {}: {} imágenes subidas, {} tags agregados",
-                email, imageUrls.size(), profileData.tags() != null ? profileData.tags().size() : 0);
+        logger.logUserOperation("profile_completed", email, Map.of(
+                "images", imageUrls.size(), 
+                "tags", profileData.tags() != null ? profileData.tags().size() : 0));
 
         return new UserResponseDTO(savedUser);
     }
@@ -281,26 +321,55 @@ public class UserService {
     public UserResponseDTO update(String email, UserModifyDTO userRequestDTO) {
         try {
             User user = userRepository.findByEmail(email).orElseThrow(() -> {
-                logger.error("Error: Usuario con email {} no encontrado", email);
+                logger.error("Error: Usuario con email " + email + " no encontrado");
                 return new UnauthorizedException("Usuario no encontrado");
             });
 
-            user.setEmail(userRequestDTO.email());
-            user.setName(userRequestDTO.name());
-            user.setLastName(userRequestDTO.lastName());
-            user.setDocument(userRequestDTO.document());
-            user.setPhone(userRequestDTO.phone());
-            user.setDateOfBirth(userRequestDTO.dateOfBirth());
-            user.setEmail(userRequestDTO.email());
-            user.setPassword(bCryptPasswordEncoder.encode(userRequestDTO.password()));
-            user.setCity(userRequestDTO.city());
+            // Actualizar datos básicos si están presentes
+            if (userRequestDTO.email() != null) user.setEmail(userRequestDTO.email());
+            if (userRequestDTO.name() != null) user.setName(userRequestDTO.name());
+            if (userRequestDTO.lastName() != null) user.setLastName(userRequestDTO.lastName());
+            if (userRequestDTO.document() != null) user.setDocument(userRequestDTO.document());
+            if (userRequestDTO.phone() != null) user.setPhone(userRequestDTO.phone());
+            if (userRequestDTO.dateOfBirth() != null) user.setDateOfBirth(userRequestDTO.dateOfBirth());
+            if (userRequestDTO.password() != null) user.setPassword(bCryptPasswordEncoder.encode(userRequestDTO.password()));
+            if (userRequestDTO.city() != null) user.setCity(userRequestDTO.city());
+
+            // Actualizar configuración de privacidad extendida
+            if (userRequestDTO.hasExtendedPrivacyChanges()) {
+                if (userRequestDTO.publicAccount() != null) user.setPublicAccount(userRequestDTO.publicAccount());
+                if (userRequestDTO.searchVisibility() != null) user.setSearchVisibility(userRequestDTO.searchVisibility());
+                if (userRequestDTO.locationPublic() != null) user.setLocationPublic(userRequestDTO.locationPublic());
+            }
+
+            // Actualizar configuración de notificaciones
+            if (userRequestDTO.hasNotificationChanges()) {
+                if (userRequestDTO.notificationsEmailEnabled() != null) user.setNotificationsEmailEnabled(userRequestDTO.notificationsEmailEnabled());
+                if (userRequestDTO.notificationsPhoneEnabled() != null) user.setNotificationsPhoneEnabled(userRequestDTO.notificationsPhoneEnabled());
+                if (userRequestDTO.notificationsMatchesEnabled() != null) user.setNotificationsMatchesEnabled(userRequestDTO.notificationsMatchesEnabled());
+                if (userRequestDTO.notificationsEventsEnabled() != null) user.setNotificationsEventsEnabled(userRequestDTO.notificationsEventsEnabled());
+                if (userRequestDTO.notificationsLoginEnabled() != null) user.setNotificationsLoginEnabled(userRequestDTO.notificationsLoginEnabled());
+                if (userRequestDTO.notificationsPaymentsEnabled() != null) user.setNotificationsPaymentsEnabled(userRequestDTO.notificationsPaymentsEnabled());
+            }
+
+            // Actualizar estado de cuenta (solo administradores)
+            if (userRequestDTO.hasAccountStatusChanges()) {
+                if (userRequestDTO.accountDeactivated() != null) {
+                    if (userRequestDTO.accountDeactivated() && !user.isAccountDeactivated()) {
+                        user.deactivateAccount(userRequestDTO.deactivationReason() != null ? 
+                                userRequestDTO.deactivationReason() : "Desactivado por administrador");
+                    } else if (!userRequestDTO.accountDeactivated() && user.isAccountDeactivated()) {
+                        user.reactivateAccount();
+                    }
+                }
+            }
 
             User userEdit = userRepository.save(user);
-            logger.info("Usuario actualizado correctamente {}", user.getEmail());
+            logger.logUserOperation("user_updated", user.getEmail(), null);
             return new UserResponseDTO(userEdit);
 
         } catch (UnauthorizedException e) {
-            logger.error("Error al actualizar el usuario: {}", e.getMessage());
+            logger.error("Error al actualizar el usuario: " + e.getMessage());
             throw e;
         }
     }
@@ -311,7 +380,7 @@ public class UserService {
         List<UserToken> userTokens = tokenRepository.findByUser(user);
         tokenRepository.deleteAll(userTokens);
         userRepository.delete(user);
-        logger.info("Usuario eliminado correctamente {}", user.getEmail());
+        logger.logUserOperation("user_deleted", user.getEmail(), null);
         return new MessageResponseDTO("Usuario eliminado correctamente");
     }
 
@@ -320,40 +389,182 @@ public class UserService {
         tokenBlacklist.clear();
     }
 
-    public MessageResponseDTO grantAdminRole(String superAdminEmail, String userId) {
-        if (this.superAdminEmail != null && this.superAdminEmail.equals(superAdminEmail)) {
-            // Lógica para Super Admin
-        } else {
-            throw new UnauthorizedException("No tienes permisos de Super Admin");
+    public MessageResponseDTO grantAdminRole(String adminEmail, String userId) {
+        // Verificar que el solicitante sea admin (ya verificado por Spring Security)
+        User adminUser = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new UnauthorizedException("Usuario administrador no encontrado"));
+        
+        if (!adminUser.getUserRole().getUserRoleList().equals(UserRoleList.ADMIN)) {
+            throw new UnauthorizedException("No tienes permisos de administrador");
         }
+
         User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+
+        // No permitir que un admin se modifique a sí mismo
+        if (user.getEmail().equals(adminEmail)) {
+            throw new UnauthorizedException("No puedes modificar tu propio rol");
+        }
 
         UserRole adminUserRole = rolRepository.findByUserRoleList(UserRoleList.ADMIN)
                 .orElseThrow(() -> new UnauthorizedException("Rol ADMIN no encontrado"));
 
         user.setUserRole(adminUserRole);
         userRepository.save(user);
-        logger.info("El usuario {} ahora es ADMIN", user.getEmail());
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        logger.logUserOperation("user_promoted_admin", user.getEmail(), Map.of("promotedBy", adminEmail));
 
         return new MessageResponseDTO("El usuario ahora es ADMIN");
     }
 
-    public MessageResponseDTO revokeAdminRole(String superAdminEmail, String userId) {
-        if (!this.superAdminEmail.equals(superAdminEmail)) {
-            throw new UnauthorizedException("No tienes permisos para modificar roles");
+    public MessageResponseDTO revokeAdminRole(String adminEmail, String userId) {
+        // Verificar que el solicitante sea admin (ya verificado por Spring Security)
+        User adminUser = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new UnauthorizedException("Usuario administrador no encontrado"));
+        
+        if (!adminUser.getUserRole().getUserRoleList().equals(UserRoleList.ADMIN)) {
+            throw new UnauthorizedException("No tienes permisos de administrador");
         }
 
         User user = userRepository.findById(Long.valueOf(userId))
                 .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+
+        // No permitir que un admin se revoque a sí mismo
+        if (user.getEmail().equals(adminEmail)) {
+            throw new UnauthorizedException("No puedes modificar tu propio rol");
+        }
 
         UserRole userRole = rolRepository.findByUserRoleList(UserRoleList.CLIENT)
                 .orElseThrow(() -> new UnauthorizedException("Rol CLIENT no encontrado"));
 
         user.setUserRole(userRole);
         userRepository.save(user);
-        logger.info("El usuario {} ya no es ADMIN", user.getEmail());
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        logger.logUserOperation("user_demoted_admin", user.getEmail(), Map.of("demotedBy", adminEmail));
 
         return new MessageResponseDTO("El usuario ya no es ADMIN");
+    }
+
+    /**
+     * Aprueba un usuario para que pueda usar la plataforma
+     */
+    public MessageResponseDTO approveUser(String userId) {
+        User user = userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (!user.isProfileComplete()) {
+            throw new RuntimeException("El usuario debe completar su perfil antes de ser aprobado");
+        }
+
+        user.setApproved(true);
+        userRepository.save(user);
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        // Enviar email de bienvenida para usuario validado por admin
+        try {
+            boolean isGoogleUser = user.getUserAuthProvider() == UserAuthProvider.GOOGLE;
+            String profilePicture = isGoogleUser ? user.getExternalAvatarUrl() : null;
+            
+            emailService.sendWelcomeEmailForApprovedUser(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastName(),
+                    isGoogleUser,
+                    profilePicture
+            );
+            logger.logUserOperation("approval_welcome_email_sent", user.getEmail(), 
+                    Map.of("provider", user.getUserAuthProvider().toString()));
+        } catch (Exception emailError) {
+            logger.warn("Error al enviar email de bienvenida de aprobación", 
+                    Map.of("userEmail", user.getEmail(), "error", emailError.getMessage()));
+            // No lanzar excepción porque la aprobación ya fue exitosa
+        }
+        
+        logger.logUserOperation("user_approved", user.getEmail(), Map.of("approved", true));
+
+        return new MessageResponseDTO("Usuario aprobado correctamente");
+    }
+
+    /**
+     * Revoca la aprobación de un usuario
+     */
+    public MessageResponseDTO revokeUserApproval(String userId) {
+        User user = userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        user.setApproved(false);
+        userRepository.save(user);
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        logger.logUserOperation("user_approval_revoked", user.getEmail(), Map.of("approved", false));
+
+        return new MessageResponseDTO("Aprobación del usuario revocada");
+    }
+
+    /**
+     * Obtiene usuarios pendientes de aprobación (perfil completo pero no aprobados)
+     */
+    public Page<UserResponseDTO> getPendingApprovalUsers(Pageable pageable) {
+        Page<User> pendingUsers = userRepository.findByProfileCompleteAndApproved(true, false, pageable);
+        logger.info("Usuarios pendientes de aprobación encontrados", Map.of(
+                "page", pageable.getPageNumber(),
+                "size", pageable.getPageSize(),
+                "total", pendingUsers.getTotalElements()));
+        return pendingUsers.map(UserResponseDTO::new);
+    }
+
+    /**
+     * Permite al usuario desactivar su propia cuenta
+     */
+    @Transactional
+    public MessageResponseDTO deactivateOwnAccount(String userEmail, String reason) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (user.isAccountDeactivated()) {
+            throw new RuntimeException("La cuenta ya está desactivada");
+        }
+
+        user.deactivateAccount(reason != null ? reason : "Desactivado por el usuario");
+        userRepository.save(user);
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        logger.logUserOperation("account_deactivated_by_user", userEmail, Map.of("reason", reason != null ? reason : "N/A"));
+
+        return new MessageResponseDTO("Cuenta desactivada correctamente");
+    }
+
+    /**
+     * Permite al administrador reactivar una cuenta
+     */
+    @Transactional
+    public MessageResponseDTO reactivateAccount(String userId) {
+        User user = userRepository.findById(Long.valueOf(userId))
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        if (!user.isAccountDeactivated()) {
+            throw new RuntimeException("La cuenta no está desactivada");
+        }
+
+        user.reactivateAccount();
+        userRepository.save(user);
+        
+        // Invalidar cache para que los cambios se reflejen inmediatamente
+        cachedUserService.evictUserCache(user.getEmail());
+        
+        logger.logUserOperation("account_reactivated_by_admin", user.getEmail(), null);
+
+        return new MessageResponseDTO("Cuenta reactivada correctamente");
     }
 }

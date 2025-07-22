@@ -1,6 +1,8 @@
 package com.feeling.domain.services.email;
 
 import com.feeling.domain.dto.booking.BookingResponseDTO;
+import com.feeling.domain.dto.event.EventRegistrationResponseDTO;
+import com.feeling.domain.dto.event.EventResponseDTO;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -216,6 +218,37 @@ public class EmailService {
         }
     }
 
+    /**
+     * Envía email de bienvenida para usuarios validados por administrador
+     */
+    @Async
+    public void sendWelcomeEmailForApprovedUser(String to, String name, boolean isGoogleUser, String profilePicture) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("isGoogleUser", isGoogleUser);
+            context.setVariable("profilePicture", profilePicture);
+            context.setVariable("isApprovedByAdmin", true);
+
+            // Usar la plantilla apropiada según el tipo de usuario
+            String templateName = isGoogleUser ? "email-welcome-google.html" : "email-welcome-local.html";
+            String htmlContent = templateEngine.process(templateName, context);
+
+            helper.setTo(to);
+            helper.setSubject("¡Tu cuenta ha sido validada! - Bienvenido a Feeling");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Email de bienvenida para usuario aprobado enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de bienvenida para usuario aprobado: {}", e.getMessage(), e);
+            throw new MessagingException("Error al enviar el email de bienvenida de aprobación", e);
+        }
+    }
+
     // ==============================
     // MÉTODOS DE UTILIDAD
     // ==============================
@@ -231,5 +264,77 @@ public class EmailService {
         } else {
             sendWelcomeEmailForLocalUser(to, name);
         }
+    }
+
+    // ==============================
+    // EMAILS DE EVENTOS
+    // ==============================
+
+    /**
+     * Envía email de confirmación de registro a evento
+     */
+    @Async
+    public void sendEventRegistrationConfirmation(EventRegistrationResponseDTO registration, EventResponseDTO event) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("userName", registration.userName());
+            context.setVariable("eventTitle", event.title());
+            context.setVariable("eventDate", event.eventDate());
+            context.setVariable("eventCategory", event.categoryDisplayName());
+            context.setVariable("amountPaid", registration.amountPaid());
+            context.setVariable("registrationId", registration.id());
+
+            String htmlContent = templateEngine.process("email-event-registration-confirmation.html", context);
+
+            helper.setTo(getUserEmailFromRegistration(registration));
+            helper.setSubject("✅ Confirmación de registro - " + event.title());
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Correo de confirmación de evento enviado para registro ID: {}", registration.id());
+        } catch (Exception e) {
+            logger.error("Error al enviar correo de confirmación de evento: {}", e.getMessage(), e);
+            throw new MessagingException("Error al enviar correo de confirmación de evento", e);
+        }
+    }
+
+    /**
+     * Envía recordatorio de evento 24 horas antes
+     */
+    @Async
+    public void sendEventReminder(EventRegistrationResponseDTO registration, EventResponseDTO event) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("userName", registration.userName());
+            context.setVariable("eventTitle", event.title());
+            context.setVariable("eventDate", event.eventDate());
+            context.setVariable("eventCategory", event.categoryDisplayName());
+            context.setVariable("registrationId", registration.id());
+
+            String htmlContent = templateEngine.process("email-event-reminder.html", context);
+
+            helper.setTo(getUserEmailFromRegistration(registration));
+            helper.setSubject("⏰ Recordatorio: " + event.title() + " es mañana");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Recordatorio de evento enviado para registro ID: {}", registration.id());
+        } catch (Exception e) {
+            logger.error("Error al enviar recordatorio de evento: {}", e.getMessage(), e);
+            throw new MessagingException("Error al enviar recordatorio de evento", e);
+        }
+    }
+
+    // Helper method - in a real implementation, you might want to include user email in the DTO
+    private String getUserEmailFromRegistration(EventRegistrationResponseDTO registration) {
+        // This is a placeholder - you might want to include user email in the registration DTO
+        // or fetch it from the user service
+        return "user@example.com"; // Replace with actual logic
     }
 }

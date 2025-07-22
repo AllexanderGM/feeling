@@ -1,70 +1,62 @@
 package com.feeling.domain.dto.user;
 
+import com.feeling.domain.dto.auth.UserStatusDTO;
+import com.feeling.domain.dto.auth.UserProfileDataDTO;
 import com.feeling.infrastructure.entities.user.User;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-
+/**
+ * DTO de respuesta del usuario usando estructura estándar
+ */
 public record UserResponseDTO(
-        Long id,
-        String name,
-        String lastName,
-        String email,
-        String role,
-        boolean verified,
-        boolean profileComplete,
-        LocalDate dateOfBirth,
-        Integer age,
-        String document,
-        String phone,
-        String city,
-        String department,
-        String locality,
-        String country,
-        String description,
-        List<String> images,
-        String mainImage,
-        String externalAvatarUrl,
-        String categoryInterest,
-        LocalDateTime createdAt,
-        LocalDateTime lastActive,
-        Integer availableAttempts,
-        Long profileViews,
-        Long likesReceived,
-        Long matchesCount,
-        List<String> tags
+        Long id, // ID adicional para administración
+        UserStatusDTO status,
+        UserProfileDataDTO profile,
+        UserPrivacyDTO privacy,
+        UserNotificationDTO notifications,
+        UserMetricsDTO metrics,
+        UserAuthDTO auth,
+        UserAccountStatusDTO account
 ) {
+    
     public UserResponseDTO(User user) {
         this(
                 user.getId(),
-                user.getName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getUserRole().getUserRoleList().name(),
-                user.isVerified(),
-                user.isProfileComplete(),
-                user.getDateOfBirth(),
-                user.getAge(),
-                user.getDocument(),
-                user.getPhone(),
-                user.getCity(),
-                user.getDepartment(),
-                user.getLocality(),
-                user.getCountry(),
-                user.getDescription(),
-                user.getImages(),
-                user.getMainImage(),
-                user.getExternalAvatarUrl(),
-                user.getUserCategoryInterest() != null ?
-                        user.getUserCategoryInterest().getCategoryInterestEnum().name() : null,
-                user.getCreatedAt(),
-                user.getLastActive(),
-                user.getAvailableAttempts(),
-                user.getProfileViews(),
-                user.getLikesReceived(),
-                user.getMatchesCount(),
-                user.getTagNames()
+                UserDTOMapper.toUserStatusDTO(user),
+                UserDTOMapper.toUserProfileDataDTO(user),
+                new UserPrivacyDTO(
+                        user.isPublicAccount(),
+                        user.isSearchVisibility(),
+                        user.isLocationPublic(),
+                        user.isShowAge(),
+                        user.isShowLocation(),
+                        user.isShowPhone(),
+                        user.isShowMeInSearch()
+                ),
+                new UserNotificationDTO(
+                        user.isNotificationsEmailEnabled(),
+                        user.isNotificationsPhoneEnabled(),
+                        user.isNotificationsMatchesEnabled(),
+                        user.isNotificationsEventsEnabled(),
+                        user.isNotificationsLoginEnabled(),
+                        user.isNotificationsPaymentsEnabled()
+                ),
+                new UserMetricsDTO(
+                        user.getProfileViews(),
+                        user.getLikesReceived(),
+                        user.getMatchesCount(),
+                        user.getPopularityScore()
+                ),
+                new UserAuthDTO(
+                        user.getUserAuthProvider(),
+                        user.getExternalId(),
+                        user.getExternalAvatarUrl(),
+                        user.getLastExternalSync()
+                ),
+                new UserAccountStatusDTO(
+                        user.isAccountDeactivated(),
+                        user.getDeactivationDate(),
+                        user.getDeactivationReason()
+                )
         );
     }
 }

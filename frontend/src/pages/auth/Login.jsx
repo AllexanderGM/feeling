@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import { Mail, Lock } from 'lucide-react'
 import useAuth from '@hooks/useAuth'
-import { loginSchema } from '@utils/formSchemas'
+import { loginSchema, extractLoginData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
@@ -33,8 +33,9 @@ const Login = () => {
     mode: 'onChange'
   })
 
-  const onSubmit = async ({ email, password }) => {
-    const result = await login(email, password)
+  const onSubmit = async formData => {
+    const data = extractLoginData(formData)
+    const result = await login(data)
     if (result.success) navigate(fromPath, { replace: true })
   }
 
@@ -59,7 +60,7 @@ const Login = () => {
   }
 
   return (
-    <LiteContainer>
+    <LiteContainer ariaLabel="Página de inicio de sesión">
       <figure className="text-center pb-8">
         <img src={logo} alt="Logo Feeling" className="w-52" />
       </figure>

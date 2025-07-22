@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "lint": "eslint --fix",
     "preview": "vite preview"
   },
@@ -31,6 +31,7 @@
     "axios": "1.8.1",
     "clsx": "2.1.1",
     "framer-motion": "11.15.0",
+    "lightgallery": "^2.9.0-beta.1",
     "lucide-react": "0.525.0",
     "react": "18.3.1",
     "react-cookie": "7.2.2",

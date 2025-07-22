@@ -1,5 +1,6 @@
 import { ServiceREST } from '@services/serviceREST.js'
 import { ErrorManager } from '@utils/errorManager.js'
+import api from '@services/api.js'
 
 /**
  * Servicio de usuario simplificado - Solo comunicación con API
@@ -118,11 +119,6 @@ class UserService extends ServiceREST {
 
   async completeUser(profileData, images = []) {
     try {
-      if (!images || images.length === 0) {
-        const result = await ServiceREST.post('/users/complete-profile', profileData)
-        return ServiceREST.handleServiceResponse(result, 'completar perfil del usuario')
-      }
-
       const formData = new FormData()
       formData.append('profileData', JSON.stringify(profileData))
 
@@ -131,8 +127,13 @@ class UserService extends ServiceREST {
         formData.append('profileImages', image)
       })
 
-      const result = await ServiceREST.post('/users/complete-profile', formData)
-      return ServiceREST.handleServiceResponse(result, 'completar perfil del usuario')
+      console.log('📤 Enviando FormData:', formData)
+      console.log('📤 Profile Data:', profileData)
+      console.log('📤 Images Count:', validImages.length)
+
+      // Usar directamente la instancia de axios para evitar problemas con ServiceREST
+      const response = await api.post('/users/complete-profile', formData)
+      return response.data
     } catch (error) {
       this.logError('Completar perfil', error)
       throw error
@@ -185,6 +186,25 @@ class UserService extends ServiceREST {
       return ServiceREST.handleServiceResponse(result, 'actualizar preferencias del usuario')
     } catch (error) {
       this.logError('actualizar preferencias', error)
+      throw error
+    }
+  }
+
+  // ========================================
+  // OPERACIONES DE SUGERENCIAS
+  // ========================================
+
+  async getUserSuggestions(page = 0, size = 4) {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const result = await ServiceREST.get(`/users/suggestions?${params.toString()}`)
+      return ServiceREST.handleServiceResponse(result, 'obtener sugerencias de perfiles')
+    } catch (error) {
+      this.logError('obtener sugerencias de perfiles', error)
       throw error
     }
   }

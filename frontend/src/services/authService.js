@@ -1,5 +1,6 @@
 import { ServiceREST } from '@services/serviceREST.js'
 import { ErrorManager } from '@utils/errorManager.js'
+import { API_ENDPOINTS } from '@constants/apiRoutes'
 
 /**
  * Servicio de autenticación simplificado - Solo comunicación con API
@@ -14,153 +15,163 @@ class AuthService extends ServiceREST {
   // ========================================
 
   async register(userData) {
+    const context = 'Registro de usuario'
+
     try {
-      const result = await ServiceREST.post('/auth/register', userData)
-      return ServiceREST.handleServiceResponse(result, 'registro de usuario')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REGISTER, userData)
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('registro', error)
+      this.logError(context, error.response?.data || error)
       throw error
     }
   }
 
   async login(email, password) {
+    const context = 'Inicio de sesión'
+
     try {
-      const result = await ServiceREST.post('/auth/login', { email, password })
-      return ServiceREST.handleServiceResponse(result, 'inicio de sesión')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.LOGIN, { email, password })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('login', error)
+      this.logError(context, error.response?.data || error)
       throw error
     }
   }
 
   async loginWithGoogle(tokenResponse) {
+    const context = 'Login con Google'
+
     try {
-      const result = await ServiceREST.post('/auth/google/login', {
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.GOOGLE_LOGIN, {
         accessToken: tokenResponse.access_token
       })
 
-      return ServiceREST.handleServiceResponse(result, 'login con Google')
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('login con Google', error)
+      this.logError(context, error.response?.data || error)
       throw error
     }
   }
 
   async registerWithGoogle(tokenResponse) {
+    const context = 'Registro con Google'
+
     try {
-      const result = await ServiceREST.post('/auth/google/register', {
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.GOOGLE_REGISTER, {
         accessToken: tokenResponse.access_token
       })
 
-      return ServiceREST.handleServiceResponse(result, 'registro con Google')
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('registro con Google', error)
+      this.logError(context, error.response?.data || error)
       throw error
     }
   }
 
   async verifyEmailCode(email, code) {
+    const context = 'Verificación de email'
+
     try {
-      const result = await ServiceREST.post('/auth/verify-email', { email, code })
-      return ServiceREST.handleServiceResponse(result, 'verificación de email')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { email, code })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('verificación de email', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async resendVerificationCode(email) {
+    const context = 'Reenvío de código de verificación'
+
     try {
-      const result = await ServiceREST.post('/auth/resend-verification', { email })
-      return ServiceREST.handleServiceResponse(result, 'reenvío de código de verificación')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, { email })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('reenvío de código', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async validateResetToken(token) {
+    const context = 'Validación de token de recuperación'
+
     try {
-      const result = await ServiceREST.get(`/auth/validate-reset-token/${encodeURIComponent(token)}`)
-      return ServiceREST.handleServiceResponse(result, 'validación de token de recuperación')
+      const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.VALIDATE_RESET_TOKEN}/${encodeURIComponent(token)}`)
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('validación de token', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async forgotPassword(email) {
+    const context = 'Recuperación de contraseña'
+
     try {
-      const result = await ServiceREST.post('/auth/forgot-password', { email })
-      return ServiceREST.handleServiceResponse(result, 'recuperación de contraseña')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('recuperación de contraseña', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async resetPassword(token, password, confirmPassword) {
-    try {
-      const payload = { token, password, confirmPassword }
-      console.log('🔍 Datos enviados al backend:', payload)
-      const result = await ServiceREST.post('/auth/reset-password', payload)
-      return ServiceREST.handleServiceResponse(result, 'restablecimiento de contraseña')
-    } catch (error) {
-      this.logError('restablecimiento de contraseña', error)
-      throw error
-    }
-  }
+    const context = 'Restablecimiento de contraseña'
 
-  async getCurrentUser(token) {
     try {
-      const result = await ServiceREST.get('/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      return ServiceREST.handleServiceResponse(result, 'obtener usuario actual')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, password, confirmPassword })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('obtener usuario actual', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async checkEmailAvailability(email) {
+    const context = 'Verificación de disponibilidad de email'
+
     try {
-      const result = await ServiceREST.get(`/auth/check-email/${encodeURIComponent(email)}`)
-      return ServiceREST.handleServiceResponse(result, 'verificación de disponibilidad de email')
+      const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.CHECK_EMAIL}/${encodeURIComponent(email)}`)
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('verificación de email', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async checkAuthMethod(email) {
+    const context = 'Verificación de método de autenticación'
+
     try {
-      const result = await ServiceREST.get(`/auth/check-method/${encodeURIComponent(email)}`)
-      return ServiceREST.handleServiceResponse(result, 'verificación de método de autenticación')
+      const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.CHECK_METHOD}/${encodeURIComponent(email)}`)
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('verificación de método de autenticación', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async refreshToken(refreshToken) {
+    const context = 'Renovación de token'
+
     try {
-      const result = await ServiceREST.post('/auth/refresh-token', { refreshToken })
-      return ServiceREST.handleServiceResponse(result, 'renovación de token')
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken })
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
-      this.logError('renovación de token', error)
+      this.logError(context, error)
       throw error
     }
   }
 
   async logout(token) {
+    const context = 'Cierre de sesión'
+
     try {
-      await ServiceREST.post('/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } })
+      await ServiceREST.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { headers: { Authorization: `Bearer ${token}` } })
       return { success: true, message: 'Sesión cerrada exitosamente' }
     } catch (error) {
-      console.error('❌ Error al cerrar sesión:', error.message)
+      this.logError(context, error)
       throw error
     }
   }
@@ -171,7 +182,7 @@ class AuthService extends ServiceREST {
 
   logError(operation, error) {
     error.operation = operation
-    console.error(`❌ Error en ${operation}:`, ErrorManager.formatError(error))
+    console.error(`Error en authService - ${operation}:`, ErrorManager.formatError(error))
   }
 }
 

@@ -229,22 +229,43 @@
                               />
                             </div>
 
-                            <p
-                              style="
-                                margin: 20px 0 0 0;
-                                font-size: 16px;
-                                color: #4a5568;
-                                line-height: 1.5;
-                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                                  Arial, sans-serif;
-                              "
-                            >
-                              Tu cuenta ha sido creada exitosamente usando tu cuenta de Google. Como
-                              tu email ya está verificado por Google,
-                              <strong style="color: #ff0062"
-                                >puedes comenzar a usar Feeling inmediatamente.</strong
+                            <!-- Contenido condicional según si fue aprobado por admin -->
+                            <div th:if="${isApprovedByAdmin != null and isApprovedByAdmin}">
+                              <p
+                                style="
+                                  margin: 20px 0 0 0;
+                                  font-size: 16px;
+                                  color: #4a5568;
+                                  line-height: 1.5;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
                               >
-                            </p>
+                                ¡Excelente noticia! Tu cuenta de Google ha sido
+                                <strong style="color: #ff0062">validada por nuestro equipo de administradores.</strong>
+                                Ya puedes acceder a todas las funcionalidades de Feeling y comenzar a crear 
+                                conexiones significativas.
+                              </p>
+                            </div>
+
+                            <div th:unless="${isApprovedByAdmin != null and isApprovedByAdmin}">
+                              <p
+                                style="
+                                  margin: 20px 0 0 0;
+                                  font-size: 16px;
+                                  color: #4a5568;
+                                  line-height: 1.5;
+                                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                                    Arial, sans-serif;
+                                "
+                              >
+                                Tu cuenta ha sido creada exitosamente usando tu cuenta de Google. Como
+                                tu email ya está verificado por Google,
+                                <strong style="color: #ff0062"
+                                  >puedes comenzar a usar Feeling inmediatamente.</strong
+                                >
+                              </p>
+                            </div>
                           </td>
                         </tr>
                       </table>

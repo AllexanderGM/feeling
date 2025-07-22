@@ -18,6 +18,23 @@ public class JwtService {
 
     @Value("${jwt.secret}")
     private String secret;
+    
+    // Validar que la clave JWT esté configurada al inicializar el servicio
+    @jakarta.annotation.PostConstruct
+    private void validateJwtSecret() {
+        if (secret == null || secret.trim().isEmpty()) {
+            throw new IllegalStateException(
+                "JWT_SECRET environment variable must be set. " +
+                "Generate a secure 256-bit key: openssl rand -base64 32"
+            );
+        }
+        if (secret.length() < 32) {
+            throw new IllegalStateException(
+                "JWT_SECRET must be at least 32 characters long for security. " +
+                "Current length: " + secret.length()
+            );
+        }
+    }
 
     @Value("${jwt.expiration}")
     private String accessTokenExpiration;
@@ -47,6 +64,25 @@ public class JwtService {
                 .getPayload();
 
         return jwtToken.get("type", String.class);
+    }
+
+    /**
+     * Extrae el username (email) desde el request HTTP
+     */
+    public String extractUsernameFromRequest(HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+        
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        
+        final String token = authHeader.substring(7);
+        
+        try {
+            return extractUsername(token);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // ==============================

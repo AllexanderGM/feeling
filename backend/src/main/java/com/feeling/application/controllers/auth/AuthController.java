@@ -408,7 +408,7 @@ public class AuthController {
                     email,
                     isFullyRegistered,
                     authService.getUserByEmail(email).map(User::isVerified).orElse(false),
-                    authService.getUserByEmail(email).map(User::isProfileComplete).orElse(false)
+                    authService.getUserByEmail(email).map(User::getProfileComplete).orElse(false)
             );
 
             return ResponseEntity.ok(status);

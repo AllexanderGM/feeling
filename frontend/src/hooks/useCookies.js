@@ -27,8 +27,8 @@ export const useCookies = () => {
           try {
             const parsed = JSON.parse(value)
             return parsed && typeof parsed === 'object' ? parsed : null
-          } catch {
-            console.warn(`Cookie '${name}' corrupta, eliminando...`)
+          } catch (error) {
+            console.warn(`Cookie '${name}' corrupta, eliminando...`, error.message)
             removeCookie(name, { path: '/' })
             return null
           }
@@ -192,7 +192,7 @@ export const useCookies = () => {
       allCookies: cookies,
       isInitialized: true
     }),
-    [get, set, remove, exists, update, getWithDefault, clearAuthCookies, getAll, createAuthServiceHandler, useValue, cookies]
+    [cookies]
   )
 
   return api

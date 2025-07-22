@@ -1,18 +1,39 @@
 import { useState, useMemo } from 'react'
-import { Button, Spinner, Chip } from '@heroui/react'
-import { Edit2, Check, X, Brain, Heart, GraduationCap, Briefcase, Ruler, User } from 'lucide-react'
+import { Button, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
+import {
+  Edit2,
+  Check,
+  X,
+  Brain,
+  Heart,
+  GraduationCap,
+  Briefcase,
+  Ruler,
+  User,
+  Settings,
+  Smile,
+  Book,
+  Target,
+  Users,
+  Eye,
+  Palette,
+  UserCheck,
+  Users2,
+  Sparkles,
+  MapPin,
+  Badge
+} from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import useUser from '@hooks/useUser.js'
 import useUserAttributes from '@hooks/useUserAttributes.js'
 import useUserTags from '@hooks/useUserTags.js'
-import { step2Schema } from '@utils/formSchemas.js'
-import { getDefaultValuesForStep } from '@constants/userSchema.js'
-import StepCharacteristics from '@pages/user/completeProfile/components/StepCharacteristics.jsx'
+import { stepCharacteristicsSchema, getDefaultValuesForStep } from '@schemas'
+import StepCharacteristics from '@pages/user/complete/components/StepCharacteristics.jsx'
 
 const CharacteristicsSection = ({ user }) => {
-  const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
   const { updateUserProfile } = useUser()
   const userAttributes = useUserAttributes()
@@ -34,19 +55,19 @@ const CharacteristicsSection = ({ user }) => {
     clearErrors,
     reset
   } = useForm({
-    resolver: yupResolver(step2Schema),
+    resolver: yupResolver(stepCharacteristicsSchema),
     defaultValues,
     mode: 'onChange'
   })
 
   const handleEdit = () => {
     reset(defaultValues)
-    setIsEditing(true)
+    onEditOpen()
   }
 
   const handleCancel = () => {
     reset(defaultValues)
-    setIsEditing(false)
+    onEditOpenChange()
   }
 
   const handleSave = async () => {
@@ -54,7 +75,7 @@ const CharacteristicsSection = ({ user }) => {
       setLoading(true)
       const formData = getValues()
       await updateUserProfile(formData)
-      setIsEditing(false)
+      onEditOpenChange()
     } catch (error) {
       console.error('Error updating characteristics:', error)
     } finally {
@@ -82,205 +103,288 @@ const CharacteristicsSection = ({ user }) => {
     return attribute?.name || 'No especificado'
   }
 
-  if (isEditing) {
-    return (
-      <div className="space-y-6 w-full">
-        {/* Header de edición */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-200">Editar Características</h2>
-            <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base">Actualiza tu descripción, intereses y características físicas</p>
-          </div>
-          <div className="flex gap-2 sm:shrink-0">
-            <Button
-              size="sm"
-              color="success"
-              variant="flat"
-              startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-              onPress={handleSave}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              {loading ? 'Guardando...' : 'Guardar'}
-            </Button>
-            <Button
-              size="sm"
-              color="danger"
-              variant="light"
-              startContent={<X className="w-4 h-4" />}
-              onPress={handleCancel}
-              isDisabled={loading}
-              className="flex-1 sm:flex-none">
-              Cancelar
-            </Button>
-          </div>
-        </div>
+  // Función para obtener el icono según el género
+  const getGenderIcon = gender => {
+    switch (gender?.toLowerCase()) {
+      case 'masculino':
+      case 'hombre':
+        return <User className="w-3 h-3 text-blue-400" />
+      case 'femenino':
+      case 'mujer':
+        return <Users2 className="w-3 h-3 text-pink-400" />
+      case 'no binario':
+      case 'otro':
+        return <Sparkles className="w-3 h-3 text-purple-400" />
+      default:
+        return <User className="w-3 h-3" />
+    }
+  }
 
-        {/* Renderizar StepCharacteristics */}
-        <StepCharacteristics {...stepCharacteristicsProps} />
+  // Función para obtener el icono según el estado civil
+  const getMaritalStatusIcon = status => {
+    switch (status?.toLowerCase()) {
+      case 'soltero':
+      case 'soltera':
+        return <User className="w-3 h-3 text-green-400" />
+      case 'casado':
+      case 'casada':
+        return <Heart className="w-3 h-3 text-red-400" />
+      case 'divorciado':
+      case 'divorciada':
+        return <Users className="w-3 h-3 text-orange-400" />
+      case 'viudo':
+      case 'viuda':
+        return <UserCheck className="w-3 h-3 text-gray-400" />
+      default:
+        return <User className="w-3 h-3" />
+    }
+  }
 
-        {/* Botones de acción en la parte inferior */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-700">
-          <Button
-            size="md"
-            color="danger"
-            variant="light"
-            startContent={<X className="w-4 h-4" />}
-            onPress={handleCancel}
-            isDisabled={loading}>
-            Cancelar
-          </Button>
-          <Button
-            size="md"
-            color="success"
-            variant="flat"
-            startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
-            onPress={handleSave}
-            isDisabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
-        </div>
-      </div>
-    )
+  // Función para obtener colores de ojos
+  const getEyeColorDisplay = eyeColor => {
+    const colors = {
+      marrón: '#8B4513',
+      azul: '#1E90FF',
+      verde: '#228B22',
+      avellana: '#8E7618',
+      gris: '#708090',
+      negro: '#000000',
+      ámbar: '#FFBF00'
+    }
+    const colorCode = colors[eyeColor?.toLowerCase()] || '#999999'
+    return {
+      color: colorCode,
+      name: eyeColor || 'No especificado'
+    }
+  }
+
+  // Función para obtener colores de cabello
+  const getHairColorDisplay = hairColor => {
+    const colors = {
+      negro: '#000000',
+      castaño: '#8B4513',
+      rubio: '#FFD700',
+      pelirrojo: '#DC143C',
+      gris: '#808080',
+      blanco: '#FFFFFF',
+      caoba: '#C04000'
+    }
+    const colorCode = colors[hairColor?.toLowerCase()] || '#999999'
+    return {
+      color: colorCode,
+      name: hairColor || 'No especificado'
+    }
   }
 
   // Vista de solo lectura
   return (
-    <div className="space-y-8 w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-200">Características</h2>
-          <p className="text-gray-400 mt-2">Tu descripción, intereses y características físicas</p>
+    <div className="space-y-6 w-full">
+      {/* Características con diseño similar al estado general */}
+      <div className="bg-gray-800/50 border border-gray-700/30 rounded-lg p-4 sm:p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Heart className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-gray-200">Características</span>
+          </div>
+          <Button
+            size="sm"
+            variant="solid"
+            color="primary"
+            className="bg-primary-600 hover:bg-primary-700"
+            startContent={<Settings className="w-3 h-3" />}
+            onPress={handleEdit}>
+            Editar
+          </Button>
         </div>
-        <Button size="sm" color="primary" variant="bordered" startContent={<Edit2 className="w-4 h-4" />} onPress={handleEdit}>
-          Editar
-        </Button>
-      </div>
 
-      {/* Descripción */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Descripción Personal</h3>
-        <div>
-          <label className="text-sm text-gray-400">Acerca de mí</label>
-          <div className="flex items-start gap-2 mt-1">
-            <Brain className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
-            <p className="text-gray-200 text-base leading-relaxed">
-              {user?.description || <span className="text-gray-500 italic">No hay descripción disponible</span>}
-            </p>
+        {/* Descripción personal */}
+        <div className="mb-4 pb-4 border-b border-gray-700/30">
+          <div className="flex items-start gap-2">
+            <Brain className="w-3 h-3 mt-0.5 text-blue-400" />
+            <div className="w-full">
+              <span className="text-xs text-gray-400">Descripción personal: </span>
+              <div className="mt-1">
+                {user?.description ? (
+                  <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap">{user.description}</p>
+                ) : (
+                  <span className="text-xs text-gray-500 italic">No especificado</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* Intereses/Tags */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Intereses</h3>
-        <div>
-          <label className="text-sm text-gray-400">Mis intereses</label>
-          <div className="flex items-start gap-2 mt-1">
-            <Heart className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
-            <div className="flex-1">
-              {user?.tags && user.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {user.tags.map((tag, index) => (
-                    <Chip
-                      key={index}
-                      size="sm"
-                      variant="flat"
-                      color="primary"
-                      className="bg-primary-500/20 text-primary-300 border border-primary-500/30">
-                      {tag}
-                    </Chip>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 italic">No hay intereses especificados</p>
+        {/* Tags personales */}
+        {user?.userTags && user.userTags.length > 0 && (
+          <div className="mb-4 pb-4 border-b border-gray-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-3 h-3 text-blue-400" />
+              <span className="text-xs font-medium text-gray-200">Tags personales</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {user.userTags.slice(0, 8).map((tag, index) => (
+                <Chip
+                  key={index}
+                  size="sm"
+                  variant="flat"
+                  color="secondary"
+                  className="bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs">
+                  {tag.name}
+                </Chip>
+              ))}
+              {user.userTags.length > 8 && (
+                <Chip size="sm" variant="flat" className="bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs">
+                  +{user.userTags.length - 8} más
+                </Chip>
               )}
             </div>
           </div>
+        )}
+
+        {/* Lista de intereses */}
+        {user?.interests && user.interests.length > 0 && (
+          <div className="mb-4 pb-4 border-b border-gray-700/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-3 h-3 text-blue-400" />
+              <span className="text-xs font-medium text-gray-200">Intereses</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {user.interests.slice(0, 8).map((interest, index) => (
+                <Chip
+                  key={index}
+                  size="sm"
+                  variant="flat"
+                  color="primary"
+                  className="bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs">
+                  {interest}
+                </Chip>
+              ))}
+              {user.interests.length > 8 && (
+                <Chip size="sm" variant="flat" className="bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs">
+                  +{user.interests.length - 8} más
+                </Chip>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400">
+          {/* Género */}
+          <div className="flex items-center gap-2">
+            {getGenderIcon(user?.gender)}
+            <span>
+              Género: <span className="text-gray-300">{user?.gender || 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Estado civil */}
+          <div className="flex items-center gap-2">
+            {getMaritalStatusIcon(user?.maritalStatus)}
+            <span>
+              Estado civil: <span className="text-gray-300">{user?.maritalStatus || 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Nivel educativo */}
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-3 h-3 text-purple-400" />
+            <span>
+              Educación: <span className="text-gray-300">{getAttributeName('educationLevelOptions', user?.educationLevel)}</span>
+            </span>
+          </div>
+
+          {/* Profesión */}
+          <div className="flex items-center gap-2">
+            <Badge className="w-3 h-3 text-orange-400" />
+            <span>
+              Profesión: <span className="text-gray-300">{user?.profession || 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Tipo de cuerpo */}
+          <div className="flex items-center gap-2">
+            <User className="w-3 h-3 text-green-400" />
+            <span>
+              Tipo de cuerpo: <span className="text-gray-300">{getAttributeName('bodyTypeOptions', user?.bodyType)}</span>
+            </span>
+          </div>
+
+          {/* Estatura */}
+          <div className="flex items-center gap-2">
+            <Ruler className="w-3 h-3 text-cyan-400" />
+            <span>
+              Estatura: <span className="text-gray-300">{user?.height ? `${user.height} cm` : 'No especificado'}</span>
+            </span>
+          </div>
+
+          {/* Color de ojos */}
+          <div className="flex items-center gap-2">
+            <Eye className="w-3 h-3 text-indigo-400" />
+            <span>Color de ojos: </span>
+            <div className="flex items-center gap-1">
+              {user?.eyeColor && (
+                <div
+                  className="w-3 h-3 rounded-full border border-gray-500"
+                  style={{ backgroundColor: getEyeColorDisplay(user.eyeColor).color }}></div>
+              )}
+              <span className="text-gray-300">{getEyeColorDisplay(user?.eyeColor).name}</span>
+            </div>
+          </div>
+
+          {/* Color de cabello */}
+          <div className="flex items-center gap-2">
+            <Palette className="w-3 h-3 text-yellow-400" />
+            <span>Color de cabello: </span>
+            <div className="flex items-center gap-1">
+              {user?.hairColor && (
+                <div
+                  className="w-3 h-3 rounded-full border border-gray-500"
+                  style={{ backgroundColor: getHairColorDisplay(user.hairColor).color }}></div>
+              )}
+              <span className="text-gray-300">{getHairColorDisplay(user?.hairColor).name}</span>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      {/* Información Personal */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Información Personal</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-400">Género</label>
-            <div className="flex items-center gap-2 mt-1">
-              <User className="w-4 h-4 text-gray-400" />
-              <p className="text-gray-200 text-base">{getAttributeName('genders', user?.genderId)}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Estado civil</label>
-            <div className="flex items-center gap-2 mt-1">
-              <Heart className="w-4 h-4 text-gray-400" />
-              <p className="text-gray-200 text-base">{getAttributeName('maritalStatuses', user?.maritalStatusId)}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Nivel educativo</label>
-            <div className="flex items-center gap-2 mt-1">
-              <GraduationCap className="w-4 h-4 text-gray-400" />
-              <p className="text-gray-200 text-base">{getAttributeName('educationLevels', user?.educationLevelId)}</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Profesión</label>
-            <div className="flex items-center gap-2 mt-1">
-              <Briefcase className="w-4 h-4 text-gray-400" />
-              <p className="text-gray-200 text-base">{user?.profession || <span className="text-gray-500 italic">No especificado</span>}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Características Físicas */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-200">Características Físicas</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm text-gray-400">Estatura</label>
-            <div className="flex items-center gap-2 mt-1">
-              <Ruler className="w-4 h-4 text-gray-400" />
-              <p className="text-gray-200 text-base">
-                {user?.height ? `${user.height} cm` : <span className="text-gray-500 italic">No especificado</span>}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Tipo de cuerpo</label>
-            <p className="text-gray-200 text-base mt-1">{getAttributeName('bodyTypes', user?.bodyTypeId)}</p>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Color de ojos</label>
-            <p className="text-gray-200 text-base mt-1">{getAttributeName('eyeColors', user?.eyeColorId)}</p>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400">Color de cabello</label>
-            <p className="text-gray-200 text-base mt-1">{getAttributeName('hairColors', user?.hairColorId)}</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Religión */}
-      {user?.religionId && (
-        <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-200">Creencias</h3>
-          <div>
-            <label className="text-sm text-gray-400">Religión</label>
-            <p className="text-gray-200 text-base mt-1">{getAttributeName('religions', user?.religionId)}</p>
-          </div>
-        </section>
-      )}
+      {/* Modal para editar características */}
+      <Modal
+        isOpen={isEditOpen}
+        onOpenChange={onEditOpenChange}
+        size="5xl"
+        scrollBehavior="inside"
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50',
+          closeButton: 'hover:bg-gray-800/50'
+        }}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h3 className="text-lg font-bold text-gray-200">Editar Características</h3>
+                <p className="text-sm text-gray-400">Actualiza tu descripción, intereses y características físicas</p>
+              </ModalHeader>
+              <ModalBody className="py-6">
+                <StepCharacteristics {...stepCharacteristicsProps} />
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={handleCancel} startContent={<X className="w-4 h-4" />} isDisabled={loading}>
+                  Cancelar
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleSave}
+                  startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                  isDisabled={loading}>
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

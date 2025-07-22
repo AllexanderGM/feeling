@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ErrorManager } from '@utils/errorManager'
+import { isPublicRoute } from '@constants/apiRoutes'
 
 const API_URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8081'
 
@@ -57,15 +58,26 @@ const emitAuthError = error => {
 // Interceptor para requests
 api.interceptors.request.use(
   config => {
-    // Solo obtener token de cookies
-    const token = getCookieValue('access_token')
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Solo agregar token si NO es una ruta pública
+    if (!isPublicRoute(config.url)) {
+      const token = getCookieValue('access_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
 
+    // Si es FormData, eliminar Content-Type para que el browser lo maneje automáticamente
     if (config.data instanceof FormData) {
+      console.log('🔍 FormData detectado, eliminando Content-Type headers')
+      console.log('Headers antes:', config.headers)
+      
+      // Eliminar todas las variantes de Content-Type
       delete config.headers['Content-Type']
+      delete config.headers['content-type']
+      delete config.headers['Content-type']
+      delete config.headers['CONTENT-TYPE']
+      
+      console.log('Headers después:', config.headers)
     }
 
     return config

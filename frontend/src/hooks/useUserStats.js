@@ -8,13 +8,13 @@ const useUserStats = users => {
       (acc, user) => {
         acc.total++
 
-        if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        if (user.status?.role === 'ADMIN') {
           acc.admins++
         } else {
           acc.users++
         }
 
-        if (user.verified) {
+        if (user.status?.verified) {
           acc.verified++
         } else {
           acc.unverified++
