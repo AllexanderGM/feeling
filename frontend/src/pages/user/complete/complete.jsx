@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@heroui/react'
+import { Button, Divider } from '@heroui/react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 // Hooks
@@ -51,7 +51,15 @@ const ProfileComplete = () => {
   const categoryInterests = useCategoryInterests()
 
   // Valores por defecto del formulario usando esquema centralizado
-  const defaultValues = useMemo(() => getDefaultValuesForStep(currentStep, user), [currentStep, user])
+  const defaultValues = useMemo(() => {
+    // Obtener valores por defecto para todos los pasos, no solo el actual
+    const allDefaultValues = {}
+    for (let step = 1; step <= TOTAL_STEPS; step++) {
+      const stepValues = getDefaultValuesForStep(step, user)
+      Object.assign(allDefaultValues, stepValues)
+    }
+    return allDefaultValues
+  }, [user])
 
   // React Hook Form
   const {
@@ -169,7 +177,7 @@ const ProfileComplete = () => {
           />
         )
       case 4:
-        return <StepConfiguration {...baseProps} categoryOptions={hookData.categoryInterests.categoryOptions} />
+        return <StepConfiguration {...baseProps} categoryOptions={hookData.categoryInterests.categoryOptions} userAttributes={hookData.userAttributes} />
       default:
         return null
     }
@@ -197,7 +205,7 @@ const ProfileComplete = () => {
   if (hookData.categoryInterests.error) return <LoadDataError>Error al cargar categorías de interés</LoadDataError>
 
   return (
-    <main className="flex-1 flex flex-col items-center px-4 py-8 max-w-3xl mx-auto w-full">
+    <main className="flex-1 flex flex-col items-center max-w-3xl mx-auto w-full">
       <div className="w-full space-y-6">
         {/* Indicador de progreso */}
         <div className="mb-8">
@@ -216,11 +224,23 @@ const ProfileComplete = () => {
           </div>
         </div>
 
+        {/* Header */}
+        <header className="text-center">
+          <p className="text-gray-300">Hola {user?.profile?.name}, ayúdanos a conocerte mejor</p>
+          <p className="text-gray-400 text-xs">
+            Usuario asociado al correo: <span className="font-bold">{user?.profile?.email}</span>
+          </p>
+        </header>
+
+        <Divider />
+
         {/* Contenido del paso */}
         <div className="min-h-[400px]">{renderStepContent}</div>
 
+        <Divider />
+
         {/* Navegación */}
-        <div className="flex justify-between items-center pt-6 border-t border-gray-700/50">
+        <div className="flex justify-between items-center">
           <Button
             variant="bordered"
             onPress={stepActions.prevStep}

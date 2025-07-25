@@ -46,6 +46,18 @@ public class CachedUserService {
     }
 
     /**
+     * Verifica si un usuario puede completar su perfil (verificado pero no necesariamente aprobado)
+     * Usa un cache separado para esta validación específica
+     */
+    @Cacheable(value = "user-profile-completion", key = "#email")
+    public Boolean isUserValidForProfileCompletion(String email) {
+        logger.debug("Validando usuario para completar perfil desde BD (cache miss): {}", email);
+        return userRepository.findByEmail(email)
+                .map(user -> user.isVerified() && !user.isAccountDeactivated() && user.isAccountNonLocked())
+                .orElse(false);
+    }
+
+    /**
      * Obtiene información básica del usuario para el contexto de seguridad
      * Solo los datos necesarios para Spring Security
      */
@@ -67,7 +79,7 @@ public class CachedUserService {
     /**
      * Invalida el cache cuando un usuario es modificado
      */
-    @CacheEvict(value = {"users", "user-validation", "user-security-context"}, key = "#email")
+    @CacheEvict(value = {"users", "user-validation", "user-profile-completion", "user-security-context"}, key = "#email")
     public void evictUserCache(String email) {
         logger.debug("Invalidando cache para usuario: {}", email);
     }
@@ -75,7 +87,7 @@ public class CachedUserService {
     /**
      * Invalida todo el cache de usuarios (usar con precaución)
      */
-    @CacheEvict(value = {"users", "user-validation", "user-security-context"}, allEntries = true)
+    @CacheEvict(value = {"users", "user-validation", "user-profile-completion", "user-security-context"}, allEntries = true)
     public void evictAllUserCache() {
         logger.info("Invalidando todo el cache de usuarios");
     }

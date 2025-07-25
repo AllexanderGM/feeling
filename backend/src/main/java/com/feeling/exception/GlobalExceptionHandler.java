@@ -48,6 +48,20 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponseDTO.conflict(ex.getMessage()));
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleEmailNotVerifiedException(EmailNotVerifiedException ex) {
+        logger.warn("Email existe pero no verificado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponseDTO("EMAIL_NOT_VERIFIED", ex.getMessage(), "422"));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponseDTO> handleTooManyRequestsException(TooManyRequestsException ex) {
+        logger.warn("Demasiadas solicitudes: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponseDTO("TOO_MANY_REQUESTS", ex.getMessage(), "429"));
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponseDTO> handleBadRequestException(BadRequestException ex) {
         logger.warn("Solicitud incorrecta: {}", ex.getMessage());

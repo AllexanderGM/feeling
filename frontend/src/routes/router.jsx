@@ -22,10 +22,12 @@ import Profile from '@pages/user/profile/Profile.jsx'
 import Settings from '@pages/user/settings/Settings.jsx'
 import Help from '@pages/help/Help.jsx'
 import Matches from '@pages/matches/Matches.jsx'
+import MatchesNew from '@pages/matches/MatchesNew.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 // Páginas de administración
 import UsersManagement from '@pages/user/usersManagement/UsersManagement.jsx'
+import PlansManagement from '@pages/matches/plansManagement/PlansManagement.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -66,7 +68,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.MATCHES.slice(1),
             element: (
               <RequireCompleteProfile>
-                <Matches />
+                <MatchesNew />
               </RequireCompleteProfile>
             )
           },
@@ -173,6 +175,14 @@ const router = createBrowserRouter([
             element: (
               <RequireAdmin>
                 <div>Gestión de Eventos - Por implementar</div>
+              </RequireAdmin>
+            )
+          },
+          {
+            path: APP_PATHS.ADMIN.MATCH_PLANS.slice(1),
+            element: (
+              <RequireAdmin>
+                <PlansManagement />
               </RequireAdmin>
             )
           },

@@ -1,11 +1,10 @@
 package com.feeling.domain.services.user;
 
 import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.domain.dto.user.UserModifyDTO;
-import com.feeling.domain.dto.user.UserProfileRequestDTO;
-import com.feeling.domain.dto.user.UserResponseDTO;
+import com.feeling.domain.dto.user.*;
 import com.feeling.domain.services.email.EmailService;
 import com.feeling.domain.services.storage.StorageService;
+import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
@@ -45,6 +44,9 @@ public class UserService {
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final CachedUserService cachedUserService;
     private final EmailService emailService;
+    
+    @Value("${admin.username}")
+    private String adminEmail;
 
     public UserResponseDTO get(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
@@ -376,6 +378,19 @@ public class UserService {
 
     public MessageResponseDTO delete(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+        
+        // Primera línea de defensa: Verificar si el usuario está protegido contra eliminación
+        if (user.isProtectedUser()) {
+            logger.logUserOperation("user_deletion_blocked_protected", user.getEmail(), null);
+            throw new BadRequestException("Este usuario está protegido y no puede ser eliminado por seguridad del sistema");
+        }
+        
+        // Segunda línea de defensa: Verificar si es el email del administrador principal
+        if (adminEmail != null && adminEmail.equalsIgnoreCase(email)) {
+            logger.logUserOperation("user_deletion_blocked_admin_email", email, null);
+            throw new BadRequestException("El usuario administrador principal no puede ser eliminado por seguridad del sistema");
+        }
+        
         //Eliminar los tokens del usuario
         List<UserToken> userTokens = tokenRepository.findByUser(user);
         tokenRepository.deleteAll(userTokens);
@@ -566,5 +581,12 @@ public class UserService {
         logger.logUserOperation("account_reactivated_by_admin", user.getEmail(), null);
 
         return new MessageResponseDTO("Cuenta reactivada correctamente");
+    }
+
+    /**
+     * Convierte una entidad User a UserPublicResponseDTO usando el mapper
+     */
+    public UserPublicResponseDTO convertToUserPublicResponseDTO(User user) {
+        return UserDTOMapper.toUserPublicResponseDTO(user);
     }
 }

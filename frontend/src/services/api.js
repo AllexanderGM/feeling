@@ -70,13 +70,13 @@ api.interceptors.request.use(
     if (config.data instanceof FormData) {
       console.log('🔍 FormData detectado, eliminando Content-Type headers')
       console.log('Headers antes:', config.headers)
-      
+
       // Eliminar todas las variantes de Content-Type
       delete config.headers['Content-Type']
       delete config.headers['content-type']
       delete config.headers['Content-type']
       delete config.headers['CONTENT-TYPE']
-      
+
       console.log('Headers después:', config.headers)
     }
 

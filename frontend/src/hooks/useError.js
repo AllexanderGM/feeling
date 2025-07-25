@@ -177,6 +177,7 @@ export const useError = (authContext = null) => {
         return {
           message: customMessage || extractErrorMessage(error),
           type: 'AUTHENTICATION_ERROR',
+          status: error?.response?.status || error?.status || 401,
           fieldErrors: null,
           handled: true,
           redirected: true
@@ -204,6 +205,7 @@ export const useError = (authContext = null) => {
       return {
         message: errorMessage,
         type: error?.errorType || error?.type,
+        status: error?.response?.status || error?.status,
         fieldErrors,
         handled: true
       }

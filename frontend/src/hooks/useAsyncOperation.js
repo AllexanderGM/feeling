@@ -72,6 +72,7 @@ const useAsyncOperation = (options = {}) => {
             message: errorResult.message,
             errors: errorResult.fieldErrors,
             errorType: errorResult.type,
+            status: errorResult.status,
             operation
           }
         }

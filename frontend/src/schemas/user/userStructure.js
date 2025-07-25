@@ -161,7 +161,7 @@ export const USER_DEFAULT_VALUES = {
     genderId: null,
     maritalStatus: null,
     maritalStatusId: null,
-    height: null,
+    height: 170,
     eyeColor: null,
     eyeColorId: null,
     hairColor: null,
@@ -354,6 +354,59 @@ export const formatFormDataToApi = (formData, section = 'profile') => {
   })
 
   return organizedData
+}
+
+/**
+ * Formatear datos para completar perfil - solo campos que espera UserProfileRequestDTO
+ */
+export const formatProfileCompletionData = (formData) => {
+  if (!formData) return {}
+
+  // Campos que espera el UserProfileRequestDTO del backend
+  const expectedFields = [
+    'name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'description',
+    'country', 'city', 'department', 'locality', 'categoryInterest',
+    'genderId', 'maritalStatusId', 'height', 'eyeColorId', 'hairColorId', 'bodyTypeId',
+    'educationId', 'profession', 'tags', 'religionId', 'spiritualMoments', 'spiritualPractices',
+    'sexualRoleId', 'relationshipId', 'agePreferenceMin', 'agePreferenceMax',
+    'locationPreferenceRadius', 'allowNotifications', 'showAge', 'showLocation', 'showMeInSearch'
+  ]
+
+  const profileData = {}
+
+  // Si los datos vienen organizados por secciones, extraer de todas las secciones
+  if (formData.profile || formData.privacy || formData.notifications) {
+    const allData = {
+      ...formData.profile,
+      ...formData.privacy,
+      ...formData.notifications
+    }
+    
+    expectedFields.forEach(field => {
+      if (allData[field] !== undefined) {
+        profileData[field] = allData[field]
+      }
+    })
+    
+    // Mapear birthDate a dateOfBirth si existe
+    if (allData.birthDate !== undefined) {
+      profileData.dateOfBirth = allData.birthDate
+    }
+  } else {
+    // Si los datos vienen planos, extraer directamente
+    expectedFields.forEach(field => {
+      if (formData[field] !== undefined) {
+        profileData[field] = formData[field]
+      }
+    })
+    
+    // Mapear birthDate a dateOfBirth si existe
+    if (formData.birthDate !== undefined) {
+      profileData.dateOfBirth = formData.birthDate
+    }
+  }
+
+  return profileData
 }
 
 // ========================================

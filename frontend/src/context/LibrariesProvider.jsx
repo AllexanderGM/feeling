@@ -10,11 +10,14 @@ const LibrariesProvider = ({ children }) => {
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const navigate = useNavigate()
 
+  // Si no hay client_id, usar un valor por defecto para evitar el crash
+  const safeClientId = CLIENT_ID || '884262150346-gi86tg7mmpuh58b8sk1l8uc53qbukq5g.apps.googleusercontent.com'
+
   return (
-    <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES">
+    <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES" skipFramerMotionAnimations={false} disableRipple={false}>
       <HelmetProvider>
         <CookiesProvider defaultSetOptions={{ path: '/' }}>
-          <GoogleOAuthProvider clientId={CLIENT_ID}>{children}</GoogleOAuthProvider>
+          <GoogleOAuthProvider clientId={safeClientId}>{children}</GoogleOAuthProvider>
         </CookiesProvider>
       </HelmetProvider>
       <ToastProvider />

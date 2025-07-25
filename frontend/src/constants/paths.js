@@ -39,6 +39,7 @@ export const APP_PATHS = {
     ROOT: '/admin',
     USERS: '/admin/users',
     EVENTS: '/admin/events',
+    MATCH_PLANS: '/admin/match-plans',
     STATS: '/admin/statistics',
     REQUESTS: '/admin/claims',
     SETTINGS: '/admin/configuration',

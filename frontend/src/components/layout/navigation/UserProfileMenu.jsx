@@ -26,6 +26,38 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
   const { isOpen: isLogoutModalOpen, onOpen: onLogoutModalOpen, onClose: onLogoutModalClose } = useDisclosure()
 
   // ========================================
+  // HELPERS PARA NUEVA ESTRUCTURA DE USUARIO
+  // ========================================
+  
+  const getUserData = () => {
+    // Si el usuario tiene la nueva estructura organizada
+    if (user?.profile) {
+      return {
+        name: user.profile.name,
+        lastName: user.profile.lastName,
+        email: user.profile.email,
+        images: user.profile.images || [],
+        displayName: user.profile.name || (isAdmin ? 'Admin' : 'Usuario'),
+        fullName: `${user.profile.name || ''} ${user.profile.lastName || ''}`.trim(),
+        avatar: user.profile.images?.[0] || imgProfile
+      }
+    }
+    
+    // Fallback para estructura legacy o datos incompletos
+    return {
+      name: user?.name,
+      lastName: user?.lastName,
+      email: user?.email,
+      images: user?.images || [],
+      displayName: user?.name || (isAdmin ? 'Admin' : 'Usuario'),
+      fullName: `${user?.name || ''} ${user?.lastName || ''}`.trim(),
+      avatar: user?.images?.[0] || user?.avatar || imgProfile
+    }
+  }
+
+  const userData = getUserData()
+
+  // ========================================
   // HANDLERS
   // ========================================
 
@@ -97,8 +129,8 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
       <Popover placement={placement} backdrop="blur" isOpen={isOpen} onOpenChange={onOpenChange}>
         <PopoverTrigger>
           <Avatar
-            src={user?.images?.[user?.selectedProfileImageIndex || 0] || user?.avatar || imgProfile}
-            name={user?.name || (isAdmin ? 'Admin' : 'Usuario')}
+            src={userData.avatar}
+            name={userData.displayName}
             size="sm"
             className={`
               cursor-pointer transition-all duration-300 ease-in-out
@@ -114,16 +146,16 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
             <div className="px-4 py-3 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <Avatar
-                  src={user?.images?.[user?.selectedProfileImageIndex || 0] || user?.avatar}
-                  name={user?.name || (isAdmin ? 'Admin' : 'Usuario')}
+                  src={userData.avatar}
+                  name={userData.displayName}
                   size="md"
                   className="flex-shrink-0"
                 />
                 <div className="flex flex-col flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-200 truncate">
-                    {user?.name} {user?.lastName}
+                    {userData.fullName}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                  <p className="text-xs text-gray-500 truncate">{userData.email}</p>
                   {isAdmin && (
                     <div className="flex items-center gap-1 mt-1">
                       <Chip className="text-xs text-orange-600 ">

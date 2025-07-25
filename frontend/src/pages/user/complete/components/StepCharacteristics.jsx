@@ -55,7 +55,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
   // ========================================
   const [tagQuery, setTagQuery] = useState('')
   const [showingSuggestions, setShowingSuggestions] = useState(true)
-  const [heightInput, setHeightInput] = useState('')
+  const [heightInput, setHeightInput] = useState('170')
   const [addAttributeModal, setAddAttributeModal] = useState({
     isOpen: false,
     type: null,
@@ -72,7 +72,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
   // Sincronizar height input
   useEffect(() => {
-    setHeightInput(height?.toString() || '')
+    setHeightInput(height?.toString() || '170')
   }, [height])
 
   // ========================================
@@ -351,13 +351,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
   // Render principal
   // ========================================
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <header className="text-center">
-        <h2 className="text-xl font-bold text-gray-200">Cuéntanos sobre ti</h2>
-        <p className="text-gray-400 mt-2">Esta información ayuda a otros usuarios a conocerte mejor</p>
-      </header>
-
+    <>
       <section className="space-y-4">
         {/* Descripción personal */}
         <Controller
@@ -875,7 +869,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </>
   )
 }
 

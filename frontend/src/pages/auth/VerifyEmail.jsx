@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import useAuth from '@hooks/useAuth'
 import { useNotification } from '@hooks/useNotification'
-import { verifyEmailSchema } from '@schemas'
+import { verifyEmailSchema, extractVerifyEmailData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -24,7 +24,7 @@ const VerifyEmail = () => {
   const [resendCountdown, setResendCountdown] = useState(120)
 
   const stateData = location.state || {}
-  const { email: stateEmail, fromRegister, fromGoogle, autoVerified, message: stateMessage, userType = 'local' } = stateData
+  const { email: stateEmail, fromRegister, fromGoogle, autoVerified, message: stateMessage, userType = 'local', autoResend = false } = stateData
 
   const {
     control,
@@ -58,8 +58,47 @@ const VerifyEmail = () => {
     if (fromRegister && stateEmail) {
       setMessage('Se ha enviado un código de verificación a tu correo electrónico.')
       startResendCountdown()
+    } else if (stateEmail && stateMessage) {
+      // Cuando viene de un intento de registro pero email no verificado
+      setMessage(stateMessage)
+      setCanResend(true) // Permitir reenvío inmediato en este caso
+      
+      // Reenviar código automáticamente si viene marcado para auto-reenvío
+      if (autoResend) {
+        const autoResendCode = async () => {
+          setMessage('Enviando nuevo código de verificación...')
+          const result = await resendVerificationCode(stateEmail)
+          if (result.success) {
+            setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
+            startResendCountdown()
+          } else if (result.status === 429) {
+            // Manejar rate limiting en auto-resend
+            const waitTime = extractWaitTimeFromMessage(result.message || '')
+            setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
+            setCanResend(false)
+            setResendCountdown(waitTime)
+            
+            // Iniciar countdown con el tiempo específico del backend
+            const interval = setInterval(() => {
+              setResendCountdown(prev => {
+                if (prev <= 1) {
+                  setCanResend(true)
+                  clearInterval(interval)
+                  return 0
+                }
+                return prev - 1
+              })
+            }, 1000)
+          } else {
+            setMessage(stateMessage) // Volver al mensaje original si falla por otro motivo
+          }
+        }
+        
+        // Pequeño delay para que el usuario vea el mensaje inicial
+        setTimeout(autoResendCode, 1500)
+      }
     }
-  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, setValue])
+  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, setValue, resendVerificationCode, autoResend])
 
   const startResendCountdown = () => {
     setCanResend(false)
@@ -111,6 +150,24 @@ const VerifyEmail = () => {
     }
   }
 
+  // Función para extraer el tiempo de espera del mensaje del backend
+  const extractWaitTimeFromMessage = (message) => {
+    // Busca patrones como "2 minuto(s)" o "1 minuto" en el mensaje
+    const minuteMatch = message.match(/(\d+)\s*minuto/i)
+    if (minuteMatch) {
+      return parseInt(minuteMatch[1]) * 60 // Convertir a segundos
+    }
+    
+    // Busca patrones como "30 segundo(s)" 
+    const secondMatch = message.match(/(\d+)\s*segundo/i)
+    if (secondMatch) {
+      return parseInt(secondMatch[1])
+    }
+    
+    // Por defecto, 120 segundos si no puede extraer el tiempo
+    return 120
+  }
+
   const handleResendCode = async () => {
     const email = getValues('email')
     if (!email) return
@@ -122,6 +179,24 @@ const VerifyEmail = () => {
       setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
       showInfo('Código reenviado exitosamente')
       startResendCountdown()
+    } else if (result.status === 429) {
+      // Manejar error de demasiadas solicitudes
+      const waitTime = extractWaitTimeFromMessage(result.message || '')
+      setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
+      setCanResend(false)
+      setResendCountdown(waitTime)
+      
+      // Iniciar countdown con el tiempo específico del backend
+      const interval = setInterval(() => {
+        setResendCountdown(prev => {
+          if (prev <= 1) {
+            setCanResend(true)
+            clearInterval(interval)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
     }
 
     setResendLoading(false)
@@ -179,9 +254,17 @@ const VerifyEmail = () => {
           <h2 className="text-xl font-medium text-white mb-2">Verificar Email</h2>
 
           {message && (
-            <div className="bg-blue-900/30 border border-blue-800/50 text-blue-300 px-4 py-3 rounded-lg backdrop-blur-sm w-full">
+            <div className={`px-4 py-3 rounded-lg backdrop-blur-sm w-full ${
+              message.includes('esperar') || message.includes('solicitud') 
+                ? 'bg-yellow-900/30 border border-yellow-800/50 text-yellow-300'
+                : 'bg-blue-900/30 border border-blue-800/50 text-blue-300'
+            }`}>
               <div className="flex items-center gap-2">
-                <Info className="text-blue-400" />
+                <Info className={
+                  message.includes('esperar') || message.includes('solicitud')
+                    ? 'text-yellow-400'
+                    : 'text-blue-400'
+                } />
                 {message}
               </div>
             </div>

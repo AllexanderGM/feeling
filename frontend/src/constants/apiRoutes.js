@@ -91,10 +91,28 @@ export const API_ENDPOINTS = {
     PAYMENT: '/api/events/payment'
   },
 
+  // Matches
+  MATCHES: {
+    BASE: '/api/matches',
+    PLANS: '/api/matches/plans',
+    SEND: '/api/matches/send',
+    ACCEPT: '/api/matches/{id}/accept',
+    REJECT: '/api/matches/{id}/reject',
+    CONTACT: '/api/matches/{id}/contact',
+    SENT: '/api/matches/sent',
+    RECEIVED: '/api/matches/received',
+    ACCEPTED: '/api/matches/accepted',
+    FAVORITES: '/api/matches/favorites',
+    STATS: '/api/matches/stats',
+    NOTIFICATIONS: '/api/matches/notifications',
+    ATTEMPTS: '/api/matches/attempts'
+  },
+
   // Admin
   ADMIN: {
     BASE: '/api/admin',
     USERS: '/api/admin/users',
-    EVENTS: '/api/admin/events'
+    EVENTS: '/api/admin/events',
+    MATCH_PLANS: '/api/admin/match-plans'
   }
 }

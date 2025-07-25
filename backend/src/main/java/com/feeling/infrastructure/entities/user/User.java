@@ -309,6 +309,22 @@ public class User implements UserDetails {
     @Column(name = "deactivation_reason")
     private String deactivationReason;
 
+    /**
+     * Indica si el usuario está protegido contra eliminación accidental.
+     * Usuarios como el administrador principal no deben ser eliminados.
+     */
+    @Column(name = "protected_user")
+    @Builder.Default
+    private Boolean protectedUser = false;
+
+    /**
+     * Método helper para verificar si el usuario está protegido
+     * Maneja valores null de manera segura
+     */
+    public boolean isProtectedUser() {
+        return protectedUser != null && protectedUser;
+    }
+
     // ========================================
     // CAMPOS DE AUTENTICACIÓN MÚLTIPLE
     // ========================================
@@ -440,11 +456,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        // Los usuarios OAuth están habilitados automáticamente si están verificados por el proveedor
-        if (userAuthProvider.isExternalOAuth()) {
-            return verified && approved && !accountDeactivated; // Ya verificado por Google/Facebook/etc., aprobado por admin y no desactivado
-        }
-        return verified && approved && !accountDeactivated; // Para usuarios locales, deben verificar email, ser aprobados por admin y no estar desactivados
+        return verified && !accountDeactivated; // Deben verificar email y no estar desactivados
     }
 
     // ========================================

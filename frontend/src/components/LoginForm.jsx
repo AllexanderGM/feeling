@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, Image } from '@heroui/react'
 
-import { login } from '../services/authService.js'
+import authService from '../services/authService.js'
 import loginImg from '../assets/Backgrounds/forestwoman.webp'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -61,19 +61,18 @@ const LoginForm = ({ loginMessage }) => {
 
   const onSubmit = async e => {
     e.preventDefault()
-    const data = Object.fromEntries(new FormData(e.currentTarget))
 
     // Custom validation checks
     const newErrors = {}
 
-    if (!data.email) {
+    if (!email) {
       newErrors.email = 'Por favor. Ingresa tu correo electrónico'
-    } else if (!/\S+@\S+\.\S+/.test(data.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Ingresa un correo electrónico válido'
     }
 
     // Password validation
-    const passwordError = getPasswordError(data.password)
+    const passwordError = getPasswordError(password)
 
     if (passwordError) {
       newErrors.password = passwordError
@@ -90,7 +89,7 @@ const LoginForm = ({ loginMessage }) => {
     setIsLoading(true)
 
     try {
-      const result = await login(data.email, data.password)
+      const result = await authService.login(email, password)
       console.log('Login exitoso', result)
 
       setUser(result.user)

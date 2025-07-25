@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Users, FileText, MessageSquare, Settings, BarChart3 } from 'lucide-react'
+import { User, Users, FileText, MessageSquare, Settings, BarChart3, Package } from 'lucide-react'
 import { Button, Badge } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
 import UserProfileMenu from './UserProfileMenu.jsx'
@@ -35,6 +35,13 @@ const NavAdmin = ({ user }) => {
       label: 'Eventos',
       path: APP_PATHS.ADMIN.EVENTS,
       description: 'Gestión de eventos'
+    },
+    {
+      id: 'admin-match-plans',
+      icon: Package,
+      label: 'Planes Match',
+      path: APP_PATHS.ADMIN.MATCH_PLANS,
+      description: 'Gestión de planes de match'
     },
     {
       id: 'admin-pqr',

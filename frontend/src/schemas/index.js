@@ -32,6 +32,7 @@ export {
   extractRegisterData,
   extractResetPasswordData,
   extractForgotPasswordData,
+  extractVerifyEmailData,
   validateTokenFormat,
   isValidEmailFormat,
   getPasswordStrength
@@ -62,6 +63,7 @@ export {
   isSpecialField,
   isProfileComplete,
   formatFormDataToApi,
+  formatProfileCompletionData,
   getDefaultValuesForUser
 } from './user/userStructure'
 

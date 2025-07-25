@@ -107,12 +107,16 @@ const PreferencesSection = ({ user }) => {
 
   // Función para verificar si el usuario tiene campos específicos de SPIRIT
   const hasSpiritFields = () => {
-    return user?.religionId || user?.church || user?.spiritualMoments || user?.spiritualPractices
+    return (user?.profile?.religionId || user?.religionId) || 
+           (user?.profile?.church || user?.church) || 
+           (user?.profile?.spiritualMoments || user?.spiritualMoments) || 
+           (user?.profile?.spiritualPractices || user?.spiritualPractices)
   }
 
   // Función para verificar si el usuario tiene campos específicos de ROUSE
   const hasRoueFields = () => {
-    return user?.sexualRoleId || user?.relationshipTypeId
+    return (user?.profile?.sexualRoleId || user?.sexualRoleId) || 
+           (user?.profile?.relationshipTypeId || user?.relationshipTypeId)
   }
 
   // Props para StepPreferences
@@ -155,16 +159,16 @@ const PreferencesSection = ({ user }) => {
         {/* Categoría de interés */}
         <div className="mb-4 pb-4 border-b border-gray-700/30">
           <div className="flex items-center gap-2">
-            {getCategoryIcon(user?.categoryInterest)}
+            {getCategoryIcon(user?.profile?.categoryInterest || user?.categoryInterest)}
             <span className="text-xs text-gray-400">Categoría de interés: </span>
             <span className="text-xs text-gray-300 font-medium">
-              {getCategoryDetails(user?.categoryInterest)?.label || 'No especificado'}
+              {getCategoryDetails(user?.profile?.categoryInterest || user?.categoryInterest)?.label || 'No especificado'}
             </span>
           </div>
         </div>
 
         {/* Campos específicos para SPIRIT */}
-        {user?.categoryInterest === 'SPIRIT' && hasSpiritFields() && (
+        {(user?.profile?.categoryInterest || user?.categoryInterest) === 'SPIRIT' && hasSpiritFields() && (
           <div className="mb-4 pb-4 border-b border-gray-700/30">
             <div className="flex items-center gap-2 mb-2">
               <Church className="w-3 h-3 text-purple-400" />
@@ -172,47 +176,47 @@ const PreferencesSection = ({ user }) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-400">
               {/* Religión */}
-              {user?.religionId && (
+              {(user?.profile?.religionId || user?.religionId) && (
                 <div className="flex items-center gap-2">
                   <Church className="w-3 h-3" />
                   <span>
-                    Religión: <span className="text-gray-300">{getAttributeName('religionOptions', user.religionId)}</span>
+                    Religión: <span className="text-gray-300">{getAttributeName('religionOptions', user?.profile?.religionId || user?.religionId)}</span>
                   </span>
                 </div>
               )}
 
               {/* Iglesia */}
-              {user?.church && (
+              {(user?.profile?.church || user?.church) && (
                 <div className="flex items-center gap-2">
                   <Building className="w-3 h-3" />
                   <span>
-                    Iglesia: <span className="text-gray-300">{user.church}</span>
+                    Iglesia: <span className="text-gray-300">{user?.profile?.church || user?.church}</span>
                   </span>
                 </div>
               )}
             </div>
 
             {/* Momentos espirituales */}
-            {user?.spiritualMoments && (
+            {(user?.profile?.spiritualMoments || user?.spiritualMoments) && (
               <div className="mt-3">
                 <div className="flex items-start gap-2">
                   <Sparkles className="w-3 h-3 mt-0.5" />
                   <div className="w-full">
                     <span className="text-xs text-gray-400">Momentos espirituales: </span>
-                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user.spiritualMoments}</p>
+                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user?.profile?.spiritualMoments || user?.spiritualMoments}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Prácticas espirituales */}
-            {user?.spiritualPractices && (
+            {(user?.profile?.spiritualPractices || user?.spiritualPractices) && (
               <div className="mt-3">
                 <div className="flex items-start gap-2">
                   <MessageCircle className="w-3 h-3 mt-0.5" />
                   <div className="w-full">
                     <span className="text-xs text-gray-400">Prácticas espirituales: </span>
-                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user.spiritualPractices}</p>
+                    <p className="text-xs text-gray-300 leading-relaxed mt-1">{user?.profile?.spiritualPractices || user?.spiritualPractices}</p>
                   </div>
                 </div>
               </div>
@@ -221,7 +225,7 @@ const PreferencesSection = ({ user }) => {
         )}
 
         {/* Campos específicos para ROUSE */}
-        {user?.categoryInterest === 'ROUSE' && hasRoueFields() && (
+        {(user?.profile?.categoryInterest || user?.categoryInterest) === 'ROUSE' && hasRoueFields() && (
           <div className="mb-4 pb-4 border-b border-gray-700/30">
             <div className="flex items-center gap-2 mb-2">
               <Flame className="w-3 h-3 text-red-400" />
@@ -229,22 +233,22 @@ const PreferencesSection = ({ user }) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-400">
               {/* Rol sexual */}
-              {user?.sexualRoleId && (
+              {(user?.profile?.sexualRoleId || user?.sexualRoleId) && (
                 <div className="flex items-center gap-2">
                   <Target className="w-3 h-3" />
                   <span>
-                    Rol sexual: <span className="text-gray-300">{getAttributeName('sexualRoleOptions', user.sexualRoleId)}</span>
+                    Rol sexual: <span className="text-gray-300">{getAttributeName('sexualRoleOptions', user?.profile?.sexualRoleId || user?.sexualRoleId)}</span>
                   </span>
                 </div>
               )}
 
               {/* Tipo de relación */}
-              {user?.relationshipTypeId && (
+              {(user?.profile?.relationshipTypeId || user?.relationshipTypeId) && (
                 <div className="flex items-center gap-2">
                   <Users className="w-3 h-3" />
                   <span>
                     Tipo de relación:{' '}
-                    <span className="text-gray-300">{getAttributeName('relationshipTypeOptions', user.relationshipTypeId)}</span>
+                    <span className="text-gray-300">{getAttributeName('relationshipTypeOptions', user?.profile?.relationshipTypeId || user?.relationshipTypeId)}</span>
                   </span>
                 </div>
               )}
@@ -259,8 +263,8 @@ const PreferencesSection = ({ user }) => {
             <span>
               Rango de edad:{' '}
               <span className="text-gray-300">
-                {user?.agePreferenceMin && user?.agePreferenceMax
-                  ? `${user.agePreferenceMin}-${user.agePreferenceMax} años`
+                {(user?.profile?.agePreferenceMin || user?.agePreferenceMin) && (user?.profile?.agePreferenceMax || user?.agePreferenceMax)
+                  ? `${user?.profile?.agePreferenceMin || user?.agePreferenceMin}-${user?.profile?.agePreferenceMax || user?.agePreferenceMax} años`
                   : 'No especificado'}
               </span>
             </span>
@@ -272,14 +276,14 @@ const PreferencesSection = ({ user }) => {
             <span>
               Radio de búsqueda:{' '}
               <span className="text-gray-300">
-                {user?.locationPreferenceRadius ? `${user.locationPreferenceRadius} km` : 'No especificado'}
+                {(user?.profile?.locationPreferenceRadius || user?.locationPreferenceRadius) ? `${user?.profile?.locationPreferenceRadius || user?.locationPreferenceRadius} km` : 'No especificado'}
               </span>
             </span>
           </div>
         </div>
 
         {/* Verificación requerida */}
-        {user?.requireVerification && (
+        {(user?.profile?.requireVerification || user?.requireVerification) && (
           <div className="pt-3 border-t border-gray-700/30">
             <div className="flex items-center gap-2 mb-2">
               <Search className="w-3 h-3 text-blue-400" />

@@ -51,7 +51,29 @@ const Register = () => {
 
     const userData = extractRegisterData(formData)
     const result = await register(userData)
-    if (result.success) navigate(APP_PATHS.AUTH.VERIFY_EMAIL, { replace: true })
+
+    if (result.success) {
+      navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
+        state: {
+          email: userData.email,
+          fromRegister: true,
+          userType: 'local'
+        },
+        replace: true
+      })
+    } else if (result.status === 422) {
+      // Usuario ya existe pero email no verificado - redirigir a verify-email
+      navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
+        state: {
+          email: userData.email,
+          fromRegister: false,
+          userType: 'local',
+          autoResend: true, // Flag para indicar que debe reenviar automáticamente
+          message: result.error?.message || 'Tu cuenta existe pero el correo electrónico aún no ha sido verificado. Revisa tu bandeja de entrada.'
+        },
+        replace: true
+      })
+    }
   }
 
   const googleRegistration = useGoogleLogin({

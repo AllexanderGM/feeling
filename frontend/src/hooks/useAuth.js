@@ -69,6 +69,12 @@ const useAuth = () => {
   const register = useCallback(
     async (userData, showNotifications = true) => {
       const result = await withLoading(() => authService.register(userData), 'Registro')
+
+      console.log(result)
+
+      // Para EMAIL_NOT_VERIFIED (422), no mostrar notificación automática para que el componente maneje la redirección
+      if (result?.status === 422) return result
+
       return handleApiResponse(result, '¡Registro exitoso! Revisa tu email para verificar tu cuenta.', { showNotifications })
     },
     [withLoading, handleApiResponse]

@@ -11,6 +11,35 @@
   }
 }
 
+/* Soporte para modo de alto contraste y colores forzados */
+@media (forced-colors: active) {
+  .forced-colors-adjust {
+    forced-color-adjust: none;
+  }
+  
+  /* Asegurar que los elementos focusables sean visibles en modo de alto contraste */
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus,
+  [tabindex]:focus {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+}
+
+/* Mejoras para accesibilidad de elementos ocultos */
+@layer base {
+  /* Asegurar que elementos con aria-hidden no interfieran con el foco */
+  [aria-hidden="true"] * {
+    pointer-events: none;
+  }
+  
+  [aria-hidden="true"] *:focus {
+    outline: none;
+  }
+}
+
 @keyframes heartbeat {
   0%,
   100% {

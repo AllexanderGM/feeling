@@ -267,14 +267,10 @@ const StepPreferences = ({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-200">¿Qué tipo de conexiones buscas?</h2>
-        <p className="text-gray-400 mt-2">Elige la categoría y configura tus preferencias</p>
-      </div>
-
       {/* SECCIÓN DE CATEGORÍAS DE INTERÉS */}
       <section className="space-y-4">
+        <h2 className="text-center text-gray-300">¿Qué tipo de conexiones buscas?</h2>
+
         {/* Cards de categorías */}
         <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {categoryOptions.slice(0, 3).map(category => (
@@ -403,7 +399,7 @@ const StepPreferences = ({
             <label className="text-gray-300 text-sm block">
               Rango de edad:{' '}
               <span className="text-primary-400 font-semibold">
-                {agePreferenceMin || 18} - {agePreferenceMax || 50} años
+                {agePreferenceMin || 18} - {agePreferenceMax || 40} años
               </span>
             </label>
             <Controller
@@ -419,7 +415,7 @@ const StepPreferences = ({
                       color="primary"
                       minValue={18}
                       maxValue={80}
-                      value={[minField.value || 18, maxField.value || 50]}
+                      value={[minField.value || 18, maxField.value || 40]}
                       onChange={value => {
                         formHandlers.handleInputChange('agePreferenceMin', value[0])
                         formHandlers.handleInputChange('agePreferenceMax', value[1])

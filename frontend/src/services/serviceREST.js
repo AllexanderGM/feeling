@@ -42,6 +42,7 @@ export class ServiceREST {
       return {
         success: false,
         error: formattedError,
+        status: error?.response?.status || formattedError.status,
         originalError: error
       }
     }

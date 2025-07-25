@@ -20,11 +20,11 @@ const PersonalInfoSection = ({ user }) => {
   // Hooks necesarios para StepBasicInfo
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: user?.country || 'Colombia',
-      defaultCity: user?.city || 'Bogotá',
+      defaultCountry: user?.profile?.country || user?.country || 'Colombia',
+      defaultCity: user?.profile?.city || user?.city || 'Bogotá',
       loadAll: true
     }),
-    [user?.country, user?.city]
+    [user?.profile?.country, user?.profile?.city, user?.country, user?.city]
   )
 
   const location = useLocation(locationConfig)
@@ -99,15 +99,17 @@ const PersonalInfoSection = ({ user }) => {
 
   // Obtener datos del país con bandera
   const getCountryData = useMemo(() => {
-    if (!user?.country || !location.formattedCountries) return null
-    return location.formattedCountries.find(country => country.name === user.country)
-  }, [user?.country, location.formattedCountries])
+    const country = user?.profile?.country || user?.country
+    if (!country || !location.formattedCountries) return null
+    return location.formattedCountries.find(c => c.name === country)
+  }, [user?.profile?.country, user?.country, location.formattedCountries])
 
   // Obtener datos del país para teléfono
   const getPhoneCountryData = useMemo(() => {
-    if (!user?.phoneCode || !location.formattedCountries) return null
-    return location.formattedCountries.find(country => country.phone === user.phoneCode)
-  }, [user?.phoneCode, location.formattedCountries])
+    const phoneCode = user?.profile?.phoneCode || user?.phoneCode
+    if (!phoneCode || !location.formattedCountries) return null
+    return location.formattedCountries.find(country => country.phone === phoneCode)
+  }, [user?.profile?.phoneCode, user?.phoneCode, location.formattedCountries])
 
   // Datos para StepBasicInfo
   const stepBasicInfoProps = {
@@ -129,7 +131,7 @@ const PersonalInfoSection = ({ user }) => {
 
   // Preparar imágenes para la galería
   const prepareGalleryImages = () => {
-    const allImages = user?.images || []
+    const allImages = user?.profile?.images || user?.images || []
     return allImages.filter(img => img && img.trim() !== '')
   }
 
@@ -179,7 +181,11 @@ const PersonalInfoSection = ({ user }) => {
             <User className="w-3 h-3" />
             <span>
               Nombre:{' '}
-              <span className="text-gray-300">{user?.name && user?.lastName ? `${user.name} ${user.lastName}` : 'No especificado'}</span>
+              <span className="text-gray-300">
+                {(user?.profile?.name || user?.name) && (user?.profile?.lastName || user?.lastName) 
+                  ? `${user?.profile?.name || user?.name} ${user?.profile?.lastName || user?.lastName}` 
+                  : 'No especificado'}
+              </span>
             </span>
           </div>
 
@@ -187,7 +193,7 @@ const PersonalInfoSection = ({ user }) => {
           <div className="flex items-center gap-2">
             <IdCard className="w-3 h-3" />
             <span>
-              Documento: <span className="text-gray-300">{user?.document || 'No especificado'}</span>
+              Documento: <span className="text-gray-300">{user?.profile?.document || user?.document || 'No especificado'}</span>
             </span>
           </div>
 
@@ -197,10 +203,10 @@ const PersonalInfoSection = ({ user }) => {
             <span>
               Nacimiento:{' '}
               <span className="text-gray-300">
-                {user?.birthDate ? (
+                {(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) ? (
                   <>
-                    {new Date(user.birthDate).toLocaleDateString('es-ES')}
-                    {calculateAge(user.birthDate) && ` (${calculateAge(user.birthDate)} años)`}
+                    {new Date(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth).toLocaleDateString('es-ES')}
+                    {calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) && ` (${calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth)} años)`}
                   </>
                 ) : (
                   'No especificado'
@@ -213,7 +219,7 @@ const PersonalInfoSection = ({ user }) => {
           <div className="flex items-center gap-2">
             <Phone className="w-3 h-3" />
             <span>Teléfono: </span>
-            {user?.phoneCode && user?.phone ? (
+            {(user?.profile?.phoneCode || user?.phoneCode) && (user?.profile?.phone || user?.phone) ? (
               <div className="flex items-center gap-1">
                 {getPhoneCountryData && (
                   <img
@@ -223,7 +229,7 @@ const PersonalInfoSection = ({ user }) => {
                   />
                 )}
                 <span className="text-gray-300">
-                  {user.phoneCode} {user.phone}
+                  {user?.profile?.phoneCode || user?.phoneCode} {user?.profile?.phone || user?.phone}
                 </span>
               </div>
             ) : (
@@ -235,14 +241,14 @@ const PersonalInfoSection = ({ user }) => {
           <div className="flex items-center gap-2 sm:col-span-2">
             <MapPin className="w-3 h-3" />
             <span>Ubicación: </span>
-            {user?.city && user?.country ? (
+            {(user?.profile?.city || user?.city) && (user?.profile?.country || user?.country) ? (
               <div className="flex items-center gap-1">
                 {getCountryData && (
                   <img src={getCountryData.image} alt={`Bandera de ${getCountryData.name}`} className="w-3 h-3 rounded-full object-cover" />
                 )}
                 <span className="text-gray-300">
-                  {user?.locality ? `${user.locality}, ` : ''}
-                  {user.city}, {user.country}
+                  {(user?.profile?.locality || user?.locality) ? `${user?.profile?.locality || user?.locality}, ` : ''}
+                  {user?.profile?.city || user?.city}, {user?.profile?.country || user?.country}
                 </span>
               </div>
             ) : (

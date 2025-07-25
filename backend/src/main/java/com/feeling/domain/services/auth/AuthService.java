@@ -10,8 +10,10 @@ import com.feeling.domain.dto.user.UserMetricsDTO;
 import com.feeling.domain.dto.user.UserAuthDTO;
 import com.feeling.domain.dto.user.UserAccountStatusDTO;
 import com.feeling.domain.services.email.EmailService;
+import com.feeling.exception.EmailNotVerifiedException;
 import com.feeling.exception.ExistEmailException;
 import com.feeling.exception.NotFoundException;
+import com.feeling.exception.TooManyRequestsException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
 import com.feeling.infrastructure.logging.StructuredLoggerFactory;
@@ -66,12 +68,21 @@ public class AuthService {
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
 
+                // Si el usuario existe pero NO está verificado, dar mensaje específico
+                if (!user.isVerified()) {
+                    String unverifiedMessage = "Cuenta no verificada. Revisa tu email o solicita un nuevo código de verificación.";
+                    
+                    logger.logAuth("register", newUser.email(), "failed - email exists but not verified");
+                    throw new EmailNotVerifiedException(unverifiedMessage);
+                }
+
+                // Si el usuario existe Y está verificado, dar mensaje según el proveedor
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
                             "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
                     case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
                             "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
-                    case LOCAL -> "El correo electrónico ya está registrado. " +
+                    case LOCAL -> "El correo electrónico ya está registrado y verificado. " +
                             "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
                     default -> "El correo electrónico ya está registrado con otro método.";
                 };
@@ -119,7 +130,7 @@ public class AuthService {
             logger.logAuth("register", newUser.email(), "success - LOCAL registration");
             return new MessageResponseDTO("Usuario registrado exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.");
 
-        } catch (ExistEmailException e) {
+        } catch (ExistEmailException | EmailNotVerifiedException e) {
             logger.error("Error al registrar usuario: " + e.getMessage());
             throw e;
         } catch (Exception e) {
@@ -145,6 +156,15 @@ public class AuthService {
 
             if (existingUser.isPresent()) {
                 User user = existingUser.get();
+                
+                // Si el usuario existe pero NO está verificado (solo para LOCAL), dar mensaje específico
+                if (!user.isVerified() && user.getUserAuthProvider() == UserAuthProvider.LOCAL) {
+                    String unverifiedMessage = "Cuenta no verificada. Revisa tu email o solicita un nuevo código de verificación.";
+                    
+                    logger.logAuth("google_register", googleUser.email(), "failed - email exists but not verified");
+                    throw new EmailNotVerifiedException(unverifiedMessage);
+                }
+                
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
                             "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
@@ -220,7 +240,7 @@ public class AuthService {
             logger.logAuth("google_register", googleUser.email(), "success");
             return response;
 
-        } catch (ExistEmailException e) {
+        } catch (ExistEmailException | EmailNotVerifiedException e) {
             logger.logAuth("google_register", "unknown", "failed - email already exists: " + e.getMessage());
             throw e;
         } catch (UnauthorizedException e) {
@@ -374,11 +394,23 @@ public class AuthService {
      * LOGIN
      * Autentica un usuario con email y contraseña
      */
+    @Transactional
     public AuthLoginResponseDTO login(AuthLoginRequestDTO auth) {
         try {
             // Buscar usuario ANTES de la autenticación para verificar el proveedor
-            Optional<User> userOptional = userRepository.findByEmail(auth.email().toLowerCase().trim());
+            String normalizedEmail = auth.email().toLowerCase().trim();
+            logger.info("Debug login", Map.of(
+                "originalEmail", auth.email(),
+                "normalizedEmail", normalizedEmail,
+                "category", "LOGIN_DEBUG"
+            ));
+            
+            Optional<User> userOptional = userRepository.findByEmail(normalizedEmail);
             if (userOptional.isEmpty()) {
+                logger.warn("Usuario no encontrado", Map.of(
+                    "normalizedEmail", normalizedEmail,
+                    "category", "LOGIN_ERROR"
+                ));
                 throw new UnauthorizedException("Usuario no encontrado");
             }
 
@@ -398,7 +430,7 @@ public class AuthService {
             // Validar credenciales
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            auth.email().toLowerCase().trim(),
+                            normalizedEmail,
                             auth.password()
                     )
             );
@@ -411,8 +443,23 @@ public class AuthService {
                 );
             }
 
+            // Verificar estado de aprobación (informativo, no bloquea login)
+            if (!user.isApproved()) {
+                logger.logAuth("login", auth.email(), "success - user not approved");
+                // Nota: No bloqueamos el login, solo informamos
+            }
+
+            // Cargar usuario con todas las colecciones necesarias para evitar LazyInitializationException
+            User userWithCollections = userRepository.findByEmail(normalizedEmail).orElseThrow();
+            
+            // Inicializar collections necesarias para el DTO
+            userWithCollections.getImages().size(); // Force lazy loading
+            if (userWithCollections.getTags() != null) {
+                userWithCollections.getTags().size(); // Force lazy loading
+            }
+            
             // Generar tokens y crear respuesta
-            AuthLoginResponseDTO response = generateTokensAndCreateResponse(user);
+            AuthLoginResponseDTO response = generateTokensAndCreateResponse(userWithCollections);
 
             logger.logAuth("login", auth.email(), "success");
             return response;
@@ -586,7 +633,7 @@ public class AuthService {
 
                 if (minutesElapsed < 2) {
                     long waitTime = 2 - minutesElapsed;
-                    throw new UnauthorizedException(
+                    throw new TooManyRequestsException(
                             String.format("Debes esperar %d minuto(s) antes de solicitar un nuevo código", waitTime)
                     );
                 }
@@ -598,7 +645,7 @@ public class AuthService {
             logger.logUserOperation("verification_code_resent", email, null);
             return new MessageResponseDTO("Se ha enviado un nuevo código de verificación a tu correo electrónico");
 
-        } catch (NotFoundException | UnauthorizedException e) {
+        } catch (NotFoundException | TooManyRequestsException e) {
             // Re-lanzar excepciones conocidas
             throw e;
         } catch (Exception e) {

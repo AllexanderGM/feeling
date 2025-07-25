@@ -3,10 +3,20 @@ import useAuth from '@hooks/useAuth'
 import userService from '@services/userService.js'
 import { useError } from '@hooks/useError'
 import useAsyncOperation from '@hooks/useAsyncOperation'
-import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField, formatFormDataToApi } from '@schemas'
+import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField, formatProfileCompletionData } from '@schemas'
 
 const useUser = () => {
-  const { user, updateUser: updateAuthUser } = useAuth()
+  const { 
+    user, 
+    updateUser: updateAuthUser,
+    updateUserStatus,
+    updateUserProfile: updateAuthUserProfile,
+    updateUserMetrics,
+    updateUserPrivacy,
+    updateUserNotifications,
+    updateUserAuth,
+    updateUserAccount
+  } = useAuth()
   const { handleApiResponse } = useError()
 
   // Hook centralizado para operaciones asíncronas
@@ -54,16 +64,29 @@ const useUser = () => {
         if (!formData) throw new Error('Los datos del perfil son requeridos')
 
         const images = formData.images ? formData.images.filter(img => img instanceof File) : []
-        const userFormData = formatFormDataToApi(formData)
+        const userFormData = formatProfileCompletionData(formData)
         const data = await userService.completeUser(userFormData, images)
-        updateAuthUser(data)
+        
+        // Actualizar secciones específicas del usuario como en el login
+        if (data.status) updateUserStatus(data.status)
+        if (data.profile) updateAuthUserProfile(data.profile)
+        if (data.metrics) updateUserMetrics(data.metrics)
+        if (data.privacy) updateUserPrivacy(data.privacy)
+        if (data.notifications) updateUserNotifications(data.notifications)
+        if (data.auth) updateUserAuth(data.auth)
+        if (data.account) updateUserAccount(data.account)
+        
+        // Si el data viene como objeto plano, usar el método general
+        if (!data.status && !data.profile) {
+          updateAuthUser(data)
+        }
 
         return data
       }, 'Completar perfil')
 
       return handleApiResponse(result, '¡Perfil completado exitosamente! Ya puedes usar todas las funciones.', { showNotifications })
     },
-    [withSubmitting, updateAuthUser, handleApiResponse]
+    [withSubmitting, updateAuthUser, updateUserStatus, updateAuthUserProfile, updateUserMetrics, updateUserPrivacy, updateUserNotifications, updateUserAuth, updateUserAccount, handleApiResponse]
   )
 
   const updateUser = useCallback(

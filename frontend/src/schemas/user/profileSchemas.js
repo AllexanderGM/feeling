@@ -57,8 +57,19 @@ export const stepConfigurationSchema = yup.object().shape({
   // Configuración de privacidad (sin validaciones obligatorias por ahora)
   showAge: yup.boolean(),
   showLocation: yup.boolean(),
+  showPhone: yup.boolean(),
+  publicAccount: yup.boolean(),
+  searchVisibility: yup.boolean(),
+  locationPublic: yup.boolean(),
+  showMeInSearch: yup.boolean(),
   allowNotifications: yup.boolean(),
-  showMeInSearch: yup.boolean()
+  // Configuración de notificaciones
+  notificationsEmailEnabled: yup.boolean(),
+  notificationsPhoneEnabled: yup.boolean(),
+  notificationsMatchesEnabled: yup.boolean(),
+  notificationsEventsEnabled: yup.boolean(),
+  notificationsLoginEnabled: yup.boolean(),
+  notificationsPaymentsEnabled: yup.boolean()
 })
 
 // ========================================

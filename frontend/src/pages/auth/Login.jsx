@@ -19,6 +19,9 @@ const Login = () => {
 
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
+  
+  // Verificar si Google OAuth está disponible
+  const isGoogleAvailable = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
   const successMessage = location.state?.message
@@ -35,10 +38,11 @@ const Login = () => {
 
   const onSubmit = async formData => {
     const data = extractLoginData(formData)
-    const result = await login(data)
+    const result = await login(data.email, data.password)
     if (result.success) navigate(fromPath, { replace: true })
   }
 
+  // Siempre llamar useGoogleLogin, pero manejar el error graciosamente
   const googleLogin = useGoogleLogin({
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
@@ -49,14 +53,24 @@ const Login = () => {
         setIsGoogleAuthenticating(false)
       }
     },
-    onError: () => setIsGoogleAuthenticating(false),
-    onNonOAuthError: () => setIsGoogleAuthenticating(false),
+    onError: (error) => {
+      console.error('Google login error:', error)
+      setIsGoogleAuthenticating(false)
+    },
+    onNonOAuthError: (error) => {
+      console.error('Google non-OAuth error:', error)
+      setIsGoogleAuthenticating(false)
+    },
     flow: 'implicit'
   })
 
   const handleGoogleSignIn = () => {
-    setIsGoogleAuthenticating(true)
-    googleLogin()
+    if (googleLogin && isGoogleAvailable) {
+      setIsGoogleAuthenticating(true)
+      googleLogin()
+    } else {
+      console.warn('Google OAuth no está configurado')
+    }
   }
 
   return (
@@ -141,24 +155,28 @@ const Login = () => {
             {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-gray-700"></div>
-            <span className="flex-shrink mx-4 text-xs text-gray-500">o</span>
-            <div className="flex-grow border-t border-gray-700"></div>
-          </div>
+          {isGoogleAvailable && (
+            <>
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-gray-700"></div>
+                <span className="flex-shrink mx-4 text-xs text-gray-500">o</span>
+                <div className="flex-grow border-t border-gray-700"></div>
+              </div>
 
-          <Button
-            type="button"
-            variant="flat"
-            radius="full"
-            color="primary"
-            startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
-            className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
-            isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating || loading}
-            onPress={handleGoogleSignIn}>
-            {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
-          </Button>
+              <Button
+                type="button"
+                variant="flat"
+                radius="full"
+                color="primary"
+                startContent={<img src={googleIcon} alt="Google" className="w-5 h-5" />}
+                className="w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
+                isLoading={isGoogleAuthenticating}
+                isDisabled={isGoogleAuthenticating || loading}
+                onPress={handleGoogleSignIn}>
+                {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
+              </Button>
+            </>
+          )}
         </div>
 
         <div className="w-full text-center text-xs text-gray-500 mt-6">
