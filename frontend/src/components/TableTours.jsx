@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, Chip, Tooltip } from '@heroui/react'
 import { normalizeWords } from '@utils/normalizeWords.js'
-import { deleteTour } from '@services/tourService.js'
+import { deleteTour } from '@services'
+import { Logger } from '@utils/logger.js'
 
 import { Eye, Trash2, Edit, Search, ChevronDown, Plus } from 'lucide-react'
 import CrearTourForm from './CrearTourForm.jsx'
@@ -135,7 +136,7 @@ const TableTours = () => {
       setLoading(true)
       setError(null)
 
-      console.log('Fetching tours from:', `${URL}/tours`)
+      Logger.info('Obteniendo tours', Logger.CATEGORIES.SERVICE, { url: `${URL}/tours` })
       const response = await fetch(`${URL}/tours`)
 
       if (!response.ok) {
@@ -143,7 +144,7 @@ const TableTours = () => {
       }
 
       const data = await response.json()
-      console.log('Tours recibidos:', data)
+      Logger.info('Tours recibidos exitosamente', Logger.CATEGORIES.SERVICE, { count: Array.isArray(data) ? data.length : 0 })
 
       // Procesar los datos según la estructura real del backend
       const processedData = Array.isArray(data)
@@ -169,7 +170,7 @@ const TableTours = () => {
 
       setLugares(processedData)
     } catch (error) {
-      console.error('Error fetching tours:', error)
+      Logger.error('Error obteniendo tours', Logger.CATEGORIES.SERVICE, { error: error.message, stack: error.stack })
       setError(error.message)
 
       // Si estamos en modo desarrollo y falla, intentar cargar datos de ejemplo
@@ -198,7 +199,7 @@ const TableTours = () => {
             setError('Usando datos de desarrollo (mock)')
           }
         } catch (mockError) {
-          console.error('Error cargando datos de ejemplo:', mockError)
+          Logger.error('Error cargando datos de ejemplo', Logger.CATEGORIES.SERVICE, { error: mockError.message })
         }
       }
     } finally {
@@ -223,7 +224,7 @@ const TableTours = () => {
 
   const handleTourUpdated = useCallback(
     updatedTour => {
-      console.log('Tour actualizado:', updatedTour)
+      Logger.info('Tour actualizado exitosamente', Logger.CATEGORIES.UI, { tourId: updatedTour?.id || updatedTour?.idPaquete })
       fetchLugares() // Actualizamos la lista después de editar
     },
     [fetchLugares]
@@ -261,7 +262,7 @@ const TableTours = () => {
         setDeleteError('No se pudo eliminar el tour. Intenta nuevamente.')
       }
     } catch (error) {
-      console.error('Error al eliminar tour:', error)
+      Logger.error('Error al eliminar tour', Logger.CATEGORIES.SERVICE, { tourId: tourToDelete?.idPaquete, error: error.message })
       setDeleteError(`Error: ${error.message || 'No se pudo eliminar el tour'}`)
     } finally {
       setDeleteLoading(false)
@@ -289,7 +290,7 @@ const TableTours = () => {
         case 'categoria':
           if (!Array.isArray(lugar.tags) || lugar.tags.length === 0) {
             return (
-              <Chip className="capitalize bg-gray-100 text-gray-700" size="sm" variant="flat">
+              <Chip className='capitalize bg-gray-100 text-gray-700' size='sm' variant='flat'>
                 No definida
               </Chip>
             )
@@ -300,8 +301,8 @@ const TableTours = () => {
             return (
               <Chip
                 className={`capitalize ${categoryStyleMap[normalizeWords(lugar.tags[0])] || 'bg-gray-100 text-gray-700'}`}
-                size="sm"
-                variant="flat">
+                size='sm'
+                variant='flat'>
                 {normalizeWords(lugar.tags[0])}
               </Chip>
             )
@@ -309,31 +310,31 @@ const TableTours = () => {
 
           // Si hay múltiples categorías, mostrar la primera y un indicador
           return (
-            <div className="flex items-center gap-1">
+            <div className='flex items-center gap-1'>
               <Chip
                 className={`capitalize ${categoryStyleMap[normalizeWords(lugar.tags[0])] || 'bg-gray-100 text-gray-700'}`}
-                size="sm"
-                variant="flat">
+                size='sm'
+                variant='flat'>
                 {normalizeWords(lugar.tags[0])}
               </Chip>
               <Tooltip
                 content={
-                  <div className="px-1 py-2">
-                    <p className="font-bold text-small mb-2">Otras categorías:</p>
-                    <div className="flex flex-col gap-2">
+                  <div className='px-1 py-2'>
+                    <p className='font-bold text-small mb-2'>Otras categorías:</p>
+                    <div className='flex flex-col gap-2'>
                       {lugar.tags.slice(1).map(tag => (
                         <Chip
                           key={tag}
                           className={`capitalize ${categoryStyleMap[normalizeWords(tag)] || 'bg-gray-100 text-gray-700'}`}
-                          size="sm"
-                          variant="flat">
+                          size='sm'
+                          variant='flat'>
                           {normalizeWords(tag)}
                         </Chip>
                       ))}
                     </div>
                   </div>
                 }>
-                <Chip className="capitalize cursor-help bg-gray-100 text-gray-700" size="sm" variant="flat">
+                <Chip className='capitalize cursor-help bg-gray-100 text-gray-700' size='sm' variant='flat'>
                   +{lugar.tags.length - 1}
                 </Chip>
               </Tooltip>
@@ -354,19 +355,19 @@ const TableTours = () => {
           return cellValue || 'Sin destino'
         case 'actions':
           return (
-            <div className="relative flex items-center justify-center gap-2">
-              <Tooltip content="Detalles">
-                <Link to={`/tour/${lugar.idPaquete}`} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+            <div className='relative flex items-center justify-center gap-2'>
+              <Tooltip content='Detalles'>
+                <Link to={`/tour/${lugar.idPaquete}`} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
                   <EyeIcon />
                 </Link>
               </Tooltip>
-              <Tooltip content="Editar">
-                <span onClick={() => handleOpenEditModal(lugar)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+              <Tooltip content='Editar'>
+                <span onClick={() => handleOpenEditModal(lugar)} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
                   <EditIcon />
                 </span>
               </Tooltip>
-              <Tooltip color="danger" content="Eliminar">
-                <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => handleOpenDeleteModal(lugar)}>
+              <Tooltip color='danger' content='Eliminar'>
+                <span className='text-lg text-danger cursor-pointer active:opacity-50' onClick={() => handleOpenDeleteModal(lugar)}>
                   <DeleteIcon />
                 </span>
               </Tooltip>
@@ -392,7 +393,7 @@ const TableTours = () => {
   }, [page])
 
   const onRowsPerPageChange = useCallback(newValue => {
-    console.log('TableTours - Setting rows per page to:', newValue)
+    Logger.debug('Cambiando filas por página', Logger.CATEGORIES.UI, { newValue })
     setRowsPerPage(newValue)
     setPage(1)
   }, [])
@@ -425,7 +426,7 @@ const TableTours = () => {
 
   const handleTourCreated = useCallback(
     newTour => {
-      console.log('Tour creado:', newTour)
+      Logger.info('Tour creado exitosamente', Logger.CATEGORIES.UI, { tourId: newTour?.id || newTour?.idPaquete })
       fetchLugares() // Actualizamos la lista después de crear
     },
     [fetchLugares]
@@ -485,15 +486,15 @@ const TableTours = () => {
     <>
       <Table
         isHeaderSticky
-        aria-label="Tours Table"
-        className="w-full max-w-6xl mt-6"
+        aria-label='Tours Table'
+        className='w-full max-w-6xl mt-6'
         bottomContent={bottomContent}
-        bottomContentPlacement="outside"
+        bottomContentPlacement='outside'
         selectedKeys={selectedKeys}
-        selectionMode="multiple"
+        selectionMode='multiple'
         sortDescriptor={sortDescriptor}
         topContent={topContent}
-        topContentPlacement="outside"
+        topContentPlacement='outside'
         onSelectionChange={setSelectedKeys}
         onSortChange={setSortDescriptor}>
         <TableHeader columns={headerColumns}>

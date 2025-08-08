@@ -15,7 +15,7 @@ const Users = () => {
 
   return (
     <>
-      <ul className="ml-20 mt-20">
+      <ul className='ml-20 mt-20'>
         {users.map(user => (
           <ol key={user.id}>{user.nombre}</ol>
         ))}

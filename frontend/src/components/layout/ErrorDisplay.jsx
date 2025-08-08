@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button, Alert, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
-import useError from '@hooks/useError'
+import { useError } from '@hooks'
 
 const ErrorDisplay = () => {
   const { error, isModalOpen, alertType, alerts, closeErrorModal, closeAlert } = useError()
@@ -42,39 +42,39 @@ const ErrorDisplay = () => {
   return (
     <>
       {alerts.length > 0 && (
-        <div className="flex flex-col gap-4 fixed right-0 p-4 z-50 top-0 sm:bottom-0 sm:top-auto max-w-md">
+        <div className='flex flex-col gap-4 fixed right-0 p-4 z-50 top-0 sm:bottom-0 sm:top-auto max-w-md'>
           {alerts.map(alert => (
             <Alert
               key={alert.id}
-              color="danger"
+              color='danger'
               description={safeRender(alert.message)}
               isVisible={true}
               title={safeRender(alert.title)}
-              variant="faded"
+              variant='faded'
               onClose={() => closeAlert(alert.id)}
-              className="transform transition-all duration-300 ease-in-out"
+              className='transform transition-all duration-300 ease-in-out'
             />
           ))}
         </div>
       )}
 
       {isModalOpen && alertType === 'modal' && error && (
-        <Modal backdrop="blur" isOpen={isOpen} onClose={handleClose} placement="center">
+        <Modal backdrop='blur' isOpen={isOpen} onClose={handleClose} placement='center'>
           <ModalContent>
             {onClose => (
               <>
-                <ModalHeader className="flex flex-col gap-1">{safeRender(error.title || 'Error')}</ModalHeader>
+                <ModalHeader className='flex flex-col gap-1'>{safeRender(error.title || 'Error')}</ModalHeader>
                 <ModalBody>
-                  <p className="mb-4">{safeRender(error.message)}</p>
+                  <p className='mb-4'>{safeRender(error.message)}</p>
 
                   {error.details && (
                     <>
-                      <Button color="primary" variant="light" size="sm" className="mb-2" onPress={toggleDetails}>
+                      <Button color='primary' variant='light' size='sm' className='mb-2' onPress={toggleDetails}>
                         {showDetails ? 'Ocultar detalles técnicos' : 'Mostrar detalles técnicos'}
                       </Button>
 
                       {showDetails && (
-                        <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto">
+                        <pre className='bg-gray-100 p-3 rounded text-xs overflow-auto'>
                           {typeof error.details === 'object' ? JSON.stringify(error.details, null, 2) : safeRender(error.details)}
                         </pre>
                       )}
@@ -83,8 +83,8 @@ const ErrorDisplay = () => {
                 </ModalBody>
                 <ModalFooter>
                   <Button
-                    color="danger"
-                    variant="light"
+                    color='danger'
+                    variant='light'
                     onPress={() => {
                       onClose()
                       closeErrorModal()

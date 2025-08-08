@@ -9,6 +9,17 @@ export class ErrorManager {
     UNKNOWN: 'UNKNOWN_ERROR'
   }
 
+  // Mensajes amigables por tipo de error
+  static ERROR_TYPE_MESSAGES = {
+    NETWORK_ERROR: 'Problema de conexión con el servidor',
+    AUTHENTICATION_ERROR: 'Error de autenticación',
+    VALIDATION_ERROR: 'Datos inválidos',
+    SERVER_ERROR: 'Error interno del servidor',
+    NOT_FOUND_ERROR: 'No encontrado',
+    PERMISSION_ERROR: 'Sin permisos',
+    UNKNOWN_ERROR: 'Error desconocido'
+  }
+
   /**
    * Obtiene el tipo de error basado en la respuesta del servidor
    * @param {Error} error - Error original
@@ -140,5 +151,14 @@ export class ErrorManager {
       return data.message || data.error || data.msg || null
     }
     return null
+  }
+
+  /**
+   * Obtiene mensaje amigable por tipo de error
+   * @param {string} errorType - Tipo de error
+   * @returns {string} Mensaje amigable
+   */
+  static getFriendlyMessage(errorType) {
+    return this.ERROR_TYPE_MESSAGES[errorType] || this.ERROR_TYPE_MESSAGES.UNKNOWN_ERROR
   }
 }

@@ -2,6 +2,7 @@ import { Spinner, Button } from '@heroui/react'
 import { useSearch } from '@context/SearchContext'
 import { useState, useEffect } from 'react'
 import { Plus, ArrowUp } from 'lucide-react'
+import { Logger } from '@utils/logger.js'
 
 import CardMain from '../../../components/ui/CardTour.jsx'
 
@@ -41,7 +42,7 @@ const Body = () => {
   // Escuchar evento de creación de tour
   useEffect(() => {
     const handleTourCreated = () => {
-      console.log('Tour creado detectado, recargando tours aleatorios...')
+      Logger.info('Tour creado detectado, recargando tours aleatorios', Logger.CATEGORIES.UI)
       loadAllRandomTours() // Recargar los tours cuando se crea uno nuevo
     }
 
@@ -77,33 +78,33 @@ const Body = () => {
   }
 
   return (
-    <div className="home_body-container">
-      <h1 className="title">{title}</h1>
+    <div className='home_body-container'>
+      <h1 className='title'>{title}</h1>
 
-      <div className="home_body-content">
+      <div className='home_body-content'>
         {loading ? (
-          <div className="grid content-center gap-8">
-            <Spinner classNames={{ label: 'text-foreground mt-4' }} label="Cargando" variant="wave" />
+          <div className='grid content-center gap-8'>
+            <Spinner classNames={{ label: 'text-foreground mt-4' }} label='Cargando' variant='wave' />
           </div>
         ) : success ? (
           <>
-            <div className="home_body-grid">
+            <div className='home_body-grid'>
               {data.slice(0, visibleItems).map(place => (
                 <CardMain key={place.id} data={place} />
               ))}
             </div>
             {hasMoreItems && (
-              <div className="flex justify-center mt-8">
-                <Button color="primary" variant="flat" onPress={handleLoadMore} className="px-8">
-                  <Plus className="mr-2" />
+              <div className='flex justify-center mt-8'>
+                <Button color='primary' variant='flat' onPress={handleLoadMore} className='px-8'>
+                  <Plus className='mr-2' />
                   Cargar más tours
                 </Button>
               </div>
             )}
           </>
         ) : (
-          <div className="grid content-center gap-8">
-            <p className="text-center text-gray-500">Error al cargar los datos. Por favor, inténtalo de nuevo más tarde.</p>
+          <div className='grid content-center gap-8'>
+            <p className='text-center text-gray-500'>Error al cargar los datos. Por favor, inténtalo de nuevo más tarde.</p>
           </div>
         )}
       </div>
@@ -111,14 +112,14 @@ const Body = () => {
       {/* Botón flotante para volver arriba */}
       <Button
         isIconOnly
-        color="primary"
-        variant="flat"
+        color='primary'
+        variant='flat'
         onPress={scrollToTop}
         className={`fixed right-[4vw] bottom-24 z-50 rounded-full shadow-lg transition-all duration-300 ${
           showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
         }`}
-        aria-label="Volver arriba">
-        <ArrowUp className="text-2xl" />
+        aria-label='Volver arriba'>
+        <ArrowUp className='text-2xl' />
       </Button>
     </div>
   )

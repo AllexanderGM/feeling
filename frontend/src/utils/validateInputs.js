@@ -1,6 +1,7 @@
 /**
  * Utilidades de validación corregidas y optimizadas
  */
+import { Logger } from './logger.js'
 
 // Expresiones regulares reutilizables
 const REGEX = {
@@ -338,9 +339,11 @@ export const validateStep = (step, formData) => {
   const currentValidators = stepValidators[step] || {}
 
   // Log para debugging
-  console.log(`🔍 Validando Step ${step}:`, {
-    formData: formData,
-    validators: Object.keys(currentValidators)
+  Logger.debug(Logger.CATEGORIES.VALIDATION, 'validar paso', `Validando Step ${step}`, {
+    context: {
+      formData: formData,
+      validators: Object.keys(currentValidators)
+    }
   })
 
   return validateForm(formData, currentValidators)
@@ -373,20 +376,18 @@ export const validateFields = (fields, validatorMap) => {
  * Utilidad para debugging de validaciones
  */
 export const debugValidation = (step, formData) => {
-  console.group(`🔍 Debug Validación - Step ${step}`)
-
   const validation = validateStep(step, formData)
 
-  console.log('FormData:', formData)
-  console.log('Validation Result:', validation)
-
   if (!validation.isValid) {
-    console.log('❌ Errores encontrados:', validation.errors)
+    Logger.debug(Logger.CATEGORIES.VALIDATION, 'debug validación', `Step ${step} - Errores encontrados`, {
+      context: {
+        formData,
+        validation: validation.errors
+      }
+    })
   } else {
-    console.log('✅ Validación exitosa')
+    Logger.debug(Logger.CATEGORIES.VALIDATION, 'debug validación', `Step ${step} - Validación exitosa`)
   }
-
-  console.groupEnd()
 
   return validation
 }

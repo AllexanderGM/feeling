@@ -3,7 +3,7 @@
  *
  * Contiene todas las utilidades técnicas necesarias para el funcionamiento del ImageManager:
  * - Validación técnica de archivos de imagen
- * - Procesamiento de URLs de previsualización  
+ * - Procesamiento de URLs de previsualización
  * - Utilidades de crop
  */
 
@@ -161,28 +161,18 @@ export const createCroppedImage = (imageSrc, pixelCrop, outputFormat = 'image/jp
   return new Promise((resolve, reject) => {
     const image = new Image()
     image.crossOrigin = 'anonymous'
-    
+
     image.onload = () => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
-      
+
       canvas.width = pixelCrop.width
       canvas.height = pixelCrop.height
-      
-      ctx.drawImage(
-        image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        pixelCrop.width,
-        pixelCrop.height
-      )
-      
+
+      ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
+
       canvas.toBlob(
-        (blob) => {
+        blob => {
           if (!blob) {
             reject(new Error('Canvas is empty'))
             return
@@ -193,7 +183,7 @@ export const createCroppedImage = (imageSrc, pixelCrop, outputFormat = 'image/jp
         quality
       )
     }
-    
+
     image.onerror = reject
     image.src = imageSrc
   })

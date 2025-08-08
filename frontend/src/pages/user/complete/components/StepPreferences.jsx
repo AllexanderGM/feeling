@@ -125,7 +125,7 @@ const StepPreferences = ({
           control={control}
           render={({ field }) => (
             <Select
-              variant="underlined"
+              variant='underlined'
               label={label}
               aria-label={ariaLabel}
               placeholder={placeholder}
@@ -142,8 +142,8 @@ const StepPreferences = ({
                 return items.map(item => {
                   const option = options.find(opt => opt.key === item.key)
                   return (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                    <div key={item.key} className='flex items-center gap-2'>
+                      <AttributeDetailRenderer detail={option?.detail} size='sm' />
                       <span>{option?.label}</span>
                     </div>
                   )
@@ -157,8 +157,8 @@ const StepPreferences = ({
                   classNames={{
                     base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
                   }}>
-                  <div className="flex items-center gap-3">
-                    <AttributeDetailRenderer detail={option.detail} size="sm" />
+                  <div className='flex items-center gap-3'>
+                    <AttributeDetailRenderer detail={option.detail} size='sm' />
                     <span>{option.label}</span>
                   </div>
                 </SelectItem>
@@ -185,7 +185,7 @@ const StepPreferences = ({
           render={({ field }) => (
             <Textarea
               {...field}
-              variant="bordered"
+              variant='bordered'
               label={label}
               placeholder={placeholder}
               isRequired={isRequired}
@@ -223,7 +223,7 @@ const StepPreferences = ({
           render={({ field }) => (
             <Input
               {...field}
-              variant="underlined"
+              variant='underlined'
               label={label}
               aria-label={ariaLabel}
               placeholder={placeholder}
@@ -243,10 +243,10 @@ const StepPreferences = ({
 
   if (categoriesLoading || attributesLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
-          <p className="text-gray-400">Cargando opciones...</p>
+      <div className='flex items-center justify-center py-12'>
+        <div className='text-center space-y-4'>
+          <div className='w-8 h-8 border-3 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto' />
+          <p className='text-gray-400'>Cargando opciones...</p>
         </div>
       </div>
     )
@@ -254,10 +254,10 @@ const StepPreferences = ({
 
   if (categoriesError) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-4">
-          <p className="text-red-400">Error al cargar categorías</p>
-          <Button variant="bordered" size="sm" onPress={() => window.location.reload()}>
+      <div className='flex items-center justify-center py-12'>
+        <div className='text-center space-y-4'>
+          <p className='text-red-400'>Error al cargar categorías</p>
+          <Button variant='bordered' size='sm' onPress={() => window.location.reload()}>
             Reintentar
           </Button>
         </div>
@@ -266,13 +266,13 @@ const StepPreferences = ({
   }
 
   return (
-    <div className="space-y-8">
+    <div className='space-y-8'>
       {/* SECCIÓN DE CATEGORÍAS DE INTERÉS */}
-      <section className="space-y-4">
-        <h2 className="text-center text-gray-300">¿Qué tipo de conexiones buscas?</h2>
+      <section className='space-y-4'>
+        <h2 className='text-center text-gray-300'>¿Qué tipo de conexiones buscas?</h2>
 
         {/* Cards de categorías */}
-        <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+        <div className='pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4'>
           {categoryOptions.slice(0, 3).map(category => (
             <div
               key={category.key}
@@ -282,26 +282,26 @@ const StepPreferences = ({
                   : 'bg-gray-800/50 border border-gray-700 hover:bg-gray-700/50'
               }`}
               onClick={() => handleCategoryCardSelect(category.key)}>
-              <div className="text-center space-y-4 p-4">
-                <div className="text-4xl">{category.icon}</div>
-                <div className="space-y-1">
-                  <h5 className="text-lg font-semibold text-white">{category.label}</h5>
-                  <p className="text-sm text-gray-300 leading-relaxed">{category.shortDescription}</p>
+              <div className='text-center space-y-4 p-4'>
+                <div className='text-4xl'>{category.icon}</div>
+                <div className='space-y-1'>
+                  <h5 className='text-lg font-semibold text-white'>{category.label}</h5>
+                  <p className='text-sm text-gray-300 leading-relaxed'>{category.shortDescription}</p>
                 </div>
 
                 <Button
-                  type="button"
-                  variant="bordered"
-                  radius="lg"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  type='button'
+                  variant='bordered'
+                  radius='lg'
+                  className='border-gray-600 text-gray-300 hover:bg-gray-700'
                   onPress={() => handleCategoryInfo(category.key)}>
                   Ver detalles
                 </Button>
 
                 {selectedCategoryCard === category.key && (
-                  <div className="absolute top-3 right-3">
-                    <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm">✓</span>
+                  <div className='absolute top-3 right-3'>
+                    <div className='w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center'>
+                      <span className='text-white text-sm'>✓</span>
                     </div>
                   </div>
                 )}
@@ -312,26 +312,26 @@ const StepPreferences = ({
 
         {/* Mensaje informativo */}
         {selectedCategoryCard && (
-          <div className="bg-primary-500/10 border border-primary-500/20 rounded-lg p-4">
-            <div className="flex gap-3">
-              <span className="text-primary-400">✨</span>
-              <div className="text-sm">
-                <p className="text-primary-300">Excelente elección. Puedes cambiar tu categoría más tarde desde tu perfil.</p>
+          <div className='bg-primary-500/10 border border-primary-500/20 rounded-lg p-4'>
+            <div className='flex gap-3'>
+              <span className='text-primary-400'>✨</span>
+              <div className='text-sm'>
+                <p className='text-primary-300'>Excelente elección. Puedes cambiar tu categoría más tarde desde tu perfil.</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Error de categoría */}
-        {errors.categoryInterest && <p className="text-red-400 text-sm text-center">{errors.categoryInterest?.message}</p>}
+        {errors.categoryInterest && <p className='text-red-400 text-sm text-center'>{errors.categoryInterest?.message}</p>}
       </section>
 
       {/* CAMPOS ESPECÍFICOS PARA SPIRIT */}
       {categoryUtils.isSpiritCategory && (
-        <section className="space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-200">Información espiritual</h3>
-            <p className="text-gray-400 mt-1">Comparte detalles sobre tu fe y vida espiritual</p>
+        <section className='space-y-4'>
+          <div className='text-center'>
+            <h3 className='text-lg font-semibold text-gray-200'>Información espiritual</h3>
+            <p className='text-gray-400 mt-1'>Comparte detalles sobre tu fe y vida espiritual</p>
           </div>
 
           {/* Religión */}
@@ -366,13 +366,13 @@ const StepPreferences = ({
 
       {/* CAMPOS ESPECÍFICOS PARA ROUSE */}
       {categoryUtils.isRoueCategory && (
-        <section className="space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-200">Preferencias personales</h3>
-            <p className="text-gray-400 mt-1">Información para mejores conexiones en la comunidad</p>
+        <section className='space-y-4'>
+          <div className='text-center'>
+            <h3 className='text-lg font-semibold text-gray-200'>Preferencias personales</h3>
+            <p className='text-gray-400 mt-1'>Información para mejores conexiones en la comunidad</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             {/* Rol sexual */}
             {renderSelect('sexualRoleId', sexualRoleOptions, {
               label: 'Rol sexual',
@@ -393,26 +393,26 @@ const StepPreferences = ({
       )}
 
       {/* PREFERENCIAS DE EDAD */}
-      <section className="space-y-4">
-        <div className="space-y-4">
-          <div className="space-y-3">
-            <label className="text-gray-300 text-sm block">
+      <section className='space-y-4'>
+        <div className='space-y-4'>
+          <div className='space-y-3'>
+            <label className='text-gray-300 text-sm block'>
               Rango de edad:{' '}
-              <span className="text-primary-400 font-semibold">
+              <span className='text-primary-400 font-semibold'>
                 {agePreferenceMin || 18} - {agePreferenceMax || 40} años
               </span>
             </label>
             <Controller
-              name="agePreferenceMin"
+              name='agePreferenceMin'
               control={control}
               render={({ field: minField }) => (
                 <Controller
-                  name="agePreferenceMax"
+                  name='agePreferenceMax'
                   control={control}
                   render={({ field: maxField }) => (
                     <Slider
-                      label="Rango de edad que te interesa para hacer conexiones"
-                      color="primary"
+                      label='Rango de edad que te interesa para hacer conexiones'
+                      color='primary'
                       minValue={18}
                       maxValue={80}
                       value={[minField.value || 18, maxField.value || 40]}
@@ -420,14 +420,14 @@ const StepPreferences = ({
                         formHandlers.handleInputChange('agePreferenceMin', value[0])
                         formHandlers.handleInputChange('agePreferenceMax', value[1])
                       }}
-                      className="max-w-full"
+                      className='max-w-full'
                       showTooltip={true}
                       formatOptions={{
                         style: 'unit',
                         unit: 'year',
                         unitDisplay: 'short'
                       }}
-                      aria-label="Rango de edad que te interesa para hacer conexiones"
+                      aria-label='Rango de edad que te interesa para hacer conexiones'
                       marks={[
                         { value: 18, label: '18' },
                         { value: 30, label: '30 años' },
@@ -444,7 +444,7 @@ const StepPreferences = ({
         </div>
 
         {(errors.agePreferenceMin || errors.agePreferenceMax) && (
-          <div className="text-red-400 text-sm">
+          <div className='text-red-400 text-sm'>
             {errors.agePreferenceMin && <p>{errors.agePreferenceMin?.message}</p>}
             {errors.agePreferenceMax && <p>{errors.agePreferenceMax?.message}</p>}
           </div>
@@ -454,26 +454,26 @@ const StepPreferences = ({
       <Divider />
 
       {/* PREFERENCIAS DE UBICACIÓN */}
-      <section className="space-y-4">
-        <div className="space-y-3">
-          <label className="text-gray-300 text-sm block">
-            Radio de búsqueda: <span className="text-primary-400 font-semibold">{locationPreferenceRadius || 50} km</span>
+      <section className='space-y-4'>
+        <div className='space-y-3'>
+          <label className='text-gray-300 text-sm block'>
+            Radio de búsqueda: <span className='text-primary-400 font-semibold'>{locationPreferenceRadius || 50} km</span>
           </label>
           <Controller
-            name="locationPreferenceRadius"
+            name='locationPreferenceRadius'
             control={control}
             render={({ field }) => (
               <Slider
-                label="Seleccionar radio de búsqueda"
+                label='Seleccionar radio de búsqueda'
                 step={10}
-                color="primary"
+                color='primary'
                 minValue={5}
                 maxValue={200}
                 value={field.value || 50}
                 onChange={value => formHandlers.handleInputChange('locationPreferenceRadius', value)}
-                className="max-w-full"
+                className='max-w-full'
                 showTooltip={true}
-                aria-label="Radio de búsqueda en kilómetros"
+                aria-label='Radio de búsqueda en kilómetros'
                 marks={[
                   { value: 5, label: '5 km' },
                   { value: 50, label: '50 km' },
@@ -486,16 +486,16 @@ const StepPreferences = ({
           />
         </div>
 
-        {errors.locationPreferenceRadius && <p className="text-red-400 text-sm">{errors.locationPreferenceRadius?.message}</p>}
+        {errors.locationPreferenceRadius && <p className='text-red-400 text-sm'>{errors.locationPreferenceRadius?.message}</p>}
       </section>
 
       {/* Información sobre el paso */}
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-6">
-        <div className="flex gap-3">
-          <span className="text-blue-400">💡</span>
-          <div className="text-sm">
-            <h4 className="text-blue-400 font-medium mb-2">¿Por qué estos datos?</h4>
-            <p className="text-blue-300/80">
+      <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-6'>
+        <div className='flex gap-3'>
+          <span className='text-blue-400'>💡</span>
+          <div className='text-sm'>
+            <h4 className='text-blue-400 font-medium mb-2'>¿Por qué estos datos?</h4>
+            <p className='text-blue-300/80'>
               {categoryUtils.isSpiritCategory
                 ? 'Esta información nos ayuda a conectarte con personas que comparten tu fe, valores espirituales y están en tu rango de edad y ubicación preferidos.'
                 : categoryUtils.isRoueCategory
@@ -510,9 +510,9 @@ const StepPreferences = ({
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        size="2xl"
-        scrollBehavior="outside"
-        placement="center"
+        size='2xl'
+        scrollBehavior='outside'
+        placement='center'
         classNames={{
           base: 'bg-gray-900 text-white',
           header: 'border-b border-gray-700',
@@ -522,34 +522,34 @@ const StepPreferences = ({
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl p-3 bg-primary-500/20 rounded-xl">{selectedCategoryForModal?.icon}</div>
+              <ModalHeader className='flex flex-col gap-1'>
+                <div className='flex items-center gap-4'>
+                  <div className='text-4xl p-3 bg-primary-500/20 rounded-xl'>{selectedCategoryForModal?.icon}</div>
                   <div>
-                    <h3 className="text-2xl font-bold">{selectedCategoryForModal?.label}</h3>
-                    <p className="text-sm text-gray-400 font-normal mt-1">{selectedCategoryForModal?.shortDescription}</p>
+                    <h3 className='text-2xl font-bold'>{selectedCategoryForModal?.label}</h3>
+                    <p className='text-sm text-gray-400 font-normal mt-1'>{selectedCategoryForModal?.shortDescription}</p>
                   </div>
                 </div>
               </ModalHeader>
               <ModalBody>
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl p-4">
-                    <h4 className="font-semibold text-primary-400 mb-3 flex items-center gap-2">
+                <div className='space-y-4'>
+                  <div className='bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl p-4'>
+                    <h4 className='font-semibold text-primary-400 mb-3 flex items-center gap-2'>
                       <span>🎯</span> ¿Qué puedes encontrar?
                     </h4>
-                    <p className="text-gray-300 leading-relaxed">{selectedCategoryForModal?.fullDescription}</p>
+                    <p className='text-gray-300 leading-relaxed'>{selectedCategoryForModal?.fullDescription}</p>
                   </div>
 
                   {selectedCategoryForModal?.features && (
-                    <div className="bg-gray-800/50 rounded-xl p-4">
-                      <h4 className="font-semibold text-primary-400 mb-3 flex items-center gap-2">
+                    <div className='bg-gray-800/50 rounded-xl p-4'>
+                      <h4 className='font-semibold text-primary-400 mb-3 flex items-center gap-2'>
                         <span>✨</span> Características principales
                       </h4>
-                      <div className="space-y-4">
+                      <div className='space-y-4'>
                         {selectedCategoryForModal.features.map((feature, index) => (
-                          <div key={index} className="flex items-start gap-3 bg-gray-700/30 rounded-lg p-3">
-                            <span className="text-primary-400 mt-0.5">•</span>
-                            <span className="text-gray-300 text-sm leading-relaxed">{feature}</span>
+                          <div key={index} className='flex items-start gap-3 bg-gray-700/30 rounded-lg p-3'>
+                            <span className='text-primary-400 mt-0.5'>•</span>
+                            <span className='text-gray-300 text-sm leading-relaxed'>{feature}</span>
                           </div>
                         ))}
                       </div>
@@ -557,24 +557,24 @@ const StepPreferences = ({
                   )}
 
                   {selectedCategoryForModal?.targetAudience && (
-                    <div className="bg-blue-900/20 border border-blue-800/30 rounded-xl p-4">
-                      <h4 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                    <div className='bg-blue-900/20 border border-blue-800/30 rounded-xl p-4'>
+                      <h4 className='font-semibold text-blue-400 mb-3 flex items-center gap-2'>
                         <span>👥</span> Ideal para
                       </h4>
-                      <p className="text-blue-100 leading-relaxed">{selectedCategoryForModal.targetAudience}</p>
+                      <p className='text-blue-100 leading-relaxed'>{selectedCategoryForModal.targetAudience}</p>
                     </div>
                   )}
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="light" onPress={onClose}>
+                <Button variant='light' onPress={onClose}>
                   Regresar
                 </Button>
                 <Button
-                  color="primary"
+                  color='primary'
                   onPress={handleCategorySelectFromModal}
                   startContent={<span>✓</span>}
-                  className="bg-gradient-to-r from-primary-600 to-primary-700">
+                  className='bg-gradient-to-r from-primary-600 to-primary-700'>
                   Seleccionar {selectedCategoryForModal?.label}
                 </Button>
               </ModalFooter>

@@ -1,6 +1,6 @@
 /**
  * CONSTANTES Y ENUMS DE LA APLICACIÓN
- * 
+ *
  * Define todos los valores constantes utilizados en la aplicación,
  * organizados por categorías para fácil mantenimiento.
  */
@@ -16,7 +16,7 @@ export const USER_ROLES = {
 
 export const CATEGORY_INTERESTS = {
   SPIRIT: 'SPIRIT',
-  ROUSE: 'ROUSE', 
+  ROUSE: 'ROUSE',
   ESSENCE: 'ESSENCE'
 }
 
@@ -73,18 +73,9 @@ export const VALIDATION_LIMITS = {
   DOCUMENT_MIN_LENGTH: 7
 }
 
-export const SUPPORTED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/png', 
-  'image/webp'
-]
+export const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-export const SUPPORTED_IMAGE_EXTENSIONS = [
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.webp'
-]
+export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
 // ========================================
 // CONSTANTES DE CONFIGURACIÓN
@@ -323,7 +314,7 @@ export const ERROR_MESSAGES = {
   SERVER_ERROR: 'Error del servidor. Intenta más tarde.',
   UNAUTHORIZED: 'No tienes permisos para realizar esta acción',
   SESSION_EXPIRED: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
-  
+
   // Mensajes específicos de eventos
   EVENT_NOT_FOUND: 'Evento no encontrado',
   EVENT_FULL: 'El evento está lleno',

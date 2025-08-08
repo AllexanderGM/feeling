@@ -3,7 +3,8 @@ import { Card, CardBody, CardHeader, Avatar, Divider, Button } from '@heroui/rea
 import { useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../../context/AuthContext.jsx'
-import { getUserByEmail } from '../../services/userService.js'
+import { getUserByEmail } from '../../services/user/userService.js'
+import { Logger } from '@utils/logger.js'
 
 const ProfilePage = () => {
   const { user } = useAuth()
@@ -17,7 +18,7 @@ const ProfilePage = () => {
       try {
         if (user?.email) {
           const data = await getUserByEmail(user.email)
-          console.log('Datos del usuario recibidos:', data)
+          Logger.debug('Datos del usuario recibidos', { data }, { category: Logger.CATEGORIES.USER })
           setUserData({
             ...data,
             name: data.name || user.name,
@@ -28,7 +29,7 @@ const ProfilePage = () => {
           })
         }
       } catch (error) {
-        console.error('Error al cargar datos del usuario:', error)
+        Logger.error('Error al cargar datos del usuario:', error, { category: Logger.CATEGORIES.USER })
         setError('Error al cargar los datos del usuario')
       } finally {
         setLoading(false)
@@ -40,20 +41,20 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-pulse">Cargando perfil...</div>
+      <div className='flex justify-center items-center min-h-screen'>
+        <div className='animate-pulse'>Cargando perfil...</div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Card className="max-w-md w-full">
+      <div className='flex justify-center items-center min-h-screen'>
+        <Card className='max-w-md w-full'>
           <CardBody>
-            <div className="text-center">
-              <p className="text-xl text-red-600">{error}</p>
-              <p className="mt-2">Por favor, intenta de nuevo más tarde</p>
+            <div className='text-center'>
+              <p className='text-xl text-red-600'>{error}</p>
+              <p className='mt-2'>Por favor, intenta de nuevo más tarde</p>
             </div>
           </CardBody>
         </Card>
@@ -63,12 +64,12 @@ const ProfilePage = () => {
 
   if (!user || !userData) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Card className="max-w-md w-full">
+      <div className='flex justify-center items-center min-h-screen'>
+        <Card className='max-w-md w-full'>
           <CardBody>
-            <div className="text-center">
-              <p className="text-xl text-red-600">No se ha encontrado información del usuario</p>
-              <p className="mt-2">Por favor, inicia sesión para ver tu perfil</p>
+            <div className='text-center'>
+              <p className='text-xl text-red-600'>No se ha encontrado información del usuario</p>
+              <p className='mt-2'>Por favor, inicia sesión para ver tu perfil</p>
             </div>
           </CardBody>
         </Card>
@@ -77,21 +78,21 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-100 py-10 px-4">
-      <Card className="max-w-xl w-full p-5">
-        <CardHeader className="flex flex-col items-center pb-0">
+    <div className='flex flex-col items-center justify-center w-full min-h-screen bg-gray-100 py-10 px-4'>
+      <Card className='max-w-xl w-full p-5'>
+        <CardHeader className='flex flex-col items-center pb-0'>
           <Avatar
             src={userData.image}
-            size="lg"
+            size='lg'
             isBordered
             color={userData.role === 'admin' ? 'danger' : 'primary'}
-            className="w-20 h-20 text-large"
+            className='w-20 h-20 text-large'
           />
-          <h1 className="text-2xl font-bold mt-4">
+          <h1 className='text-2xl font-bold mt-4'>
             {userData.name} {userData.lastName}
           </h1>
-          <p className="text-gray-500">{userData.email}</p>
-          <div className="mt-2">
+          <p className='text-gray-500'>{userData.email}</p>
+          <div className='mt-2'>
             <span
               className={`px-3 py-1 rounded-full text-xs ${
                 userData.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
@@ -101,37 +102,37 @@ const ProfilePage = () => {
           </div>
         </CardHeader>
 
-        <CardBody className="py-8">
-          <Divider className="my-4" />
+        <CardBody className='py-8'>
+          <Divider className='my-4' />
 
-          <div className="space-y-6">
+          <div className='space-y-6'>
             <div>
-              <h2 className="text-lg font-semibold mb-2">Información Personal</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500">ID de Usuario</p>
+              <h2 className='text-lg font-semibold mb-2'>Información Personal</h2>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='space-y-1'>
+                  <p className='text-sm text-gray-500'>ID de Usuario</p>
                   <p>{userData.id || user.id}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500">Documento</p>
+                <div className='space-y-1'>
+                  <p className='text-sm text-gray-500'>Documento</p>
                   <p>{userData.document || 'No especificado'}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500">Teléfono</p>
+                <div className='space-y-1'>
+                  <p className='text-sm text-gray-500'>Teléfono</p>
                   <p>{userData.phone || 'No especificado'}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-500">Fecha de Nacimiento</p>
+                <div className='space-y-1'>
+                  <p className='text-sm text-gray-500'>Fecha de Nacimiento</p>
                   <p>{userData.dateOfBirth ? new Date(userData.dateOfBirth).toLocaleDateString() : 'No especificada'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end gap-4">
-              <Button color="danger" variant="light" onPress={() => navigate('/')}>
+            <div className='pt-4 flex justify-end gap-4'>
+              <Button color='danger' variant='light' onPress={() => navigate('/')}>
                 Volver
               </Button>
-              <Button color="primary" className="bg-[#E86C6E]" onPress={() => navigate('/edit-profile')}>
+              <Button color='primary' className='bg-[#E86C6E]' onPress={() => navigate('/edit-profile')}>
                 Editar Perfil
               </Button>
             </div>

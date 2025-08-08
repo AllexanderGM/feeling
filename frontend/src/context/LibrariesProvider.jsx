@@ -14,7 +14,7 @@ const LibrariesProvider = ({ children }) => {
   const safeClientId = CLIENT_ID || '884262150346-gi86tg7mmpuh58b8sk1l8uc53qbukq5g.apps.googleusercontent.com'
 
   return (
-    <HeroUIProvider navigate={navigate} useHref={useHref} locale="es-ES" skipFramerMotionAnimations={false} disableRipple={false}>
+    <HeroUIProvider navigate={navigate} useHref={useHref} locale='es-ES' skipFramerMotionAnimations={false} disableRipple={false}>
       <HelmetProvider>
         <CookiesProvider defaultSetOptions={{ path: '/' }}>
           <GoogleOAuthProvider clientId={safeClientId}>{children}</GoogleOAuthProvider>

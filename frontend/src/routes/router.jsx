@@ -26,8 +26,13 @@ import MatchesNew from '@pages/matches/MatchesNew.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 // Páginas de administración
-import UsersManagement from '@pages/user/usersManagement/UsersManagement.jsx'
+import AdminDashboard from '@pages/admin/AdminDashboard.jsx'
+import AdminUsersManagement from '@pages/admin/users/AdminUsersManagement.jsx'
 import PlansManagement from '@pages/matches/plansManagement/PlansManagement.jsx'
+import ComplaintManagement from '@pages/support/ComplaintManagement.jsx'
+import UserComplaints from '@pages/support/UserComplaints.jsx'
+import EventManagement from '@pages/admin/events/EventManagement.jsx'
+import ConfigurationManagement from '@pages/admin/configuration/ConfigurationManagement.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -124,13 +129,13 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.NOTIFICATIONS.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div className="max-w-4xl mx-auto p-6">
-                  <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Notificaciones</h1>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                      <p className="text-blue-800">📱 Sistema de notificaciones por implementar</p>
-                      <p className="text-blue-600 text-sm mt-2">Próximamente podrás ver todas tus notificaciones aquí:</p>
-                      <ul className="text-blue-600 text-sm mt-3 space-y-1">
+                <div className='max-w-4xl mx-auto p-6'>
+                  <div className='text-center'>
+                    <h1 className='text-2xl font-bold text-gray-900 mb-4'>Notificaciones</h1>
+                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-6'>
+                      <p className='text-blue-800'>📱 Sistema de notificaciones por implementar</p>
+                      <p className='text-blue-600 text-sm mt-2'>Próximamente podrás ver todas tus notificaciones aquí:</p>
+                      <ul className='text-blue-600 text-sm mt-3 space-y-1'>
                         <li>• Nuevos matches</li>
                         <li>• Mensajes recibidos</li>
                         <li>• Actualizaciones del sistema</li>
@@ -139,6 +144,14 @@ const router = createBrowserRouter([
                     </div>
                   </div>
                 </div>
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.SUPPORT.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <UserComplaints />
               </RequireCompleteProfile>
             )
           },
@@ -158,7 +171,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.ROOT.slice(1),
             element: (
               <RequireAdmin>
-                <div>Dashboard de Administración - Por implementar</div>
+                <AdminDashboard />
               </RequireAdmin>
             )
           },
@@ -166,7 +179,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.USERS.slice(1),
             element: (
               <RequireAdmin>
-                <UsersManagement />
+                <AdminUsersManagement />
               </RequireAdmin>
             )
           },
@@ -174,7 +187,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.EVENTS.slice(1),
             element: (
               <RequireAdmin>
-                <div>Gestión de Eventos - Por implementar</div>
+                <EventManagement />
               </RequireAdmin>
             )
           },
@@ -190,7 +203,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.REQUESTS.slice(1),
             element: (
               <RequireAdmin>
-                <div>Gestión de PQR (Peticiones, Quejas y Reclamos) - Por implementar</div>
+                <ComplaintManagement />
               </RequireAdmin>
             )
           },
@@ -198,7 +211,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.SETTINGS.slice(1),
             element: (
               <RequireAdmin>
-                <div>Configuración de la Plataforma - Por implementar</div>
+                <ConfigurationManagement />
               </RequireAdmin>
             )
           },

@@ -23,13 +23,13 @@ const ModalToLogin = ({ isRegisterSuccess, closeModal }) => {
 
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} backdrop="blur" isDismissable={false} isKeyboardDismissDisabled={true}>
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange} backdrop='blur' isDismissable={false} isKeyboardDismissDisabled={true}>
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center">
-                  <span className="material-symbols-outlined text-green-600 mr-1 mt-1 text-1xl">check_circle</span>
+              <ModalHeader className='flex flex-col gap-1'>
+                <div className='flex items-center'>
+                  <span className='material-symbols-outlined text-green-600 mr-1 mt-1 text-1xl'>check_circle</span>
                   <p>¡Registro Exitoso!</p>
                 </div>
               </ModalHeader>
@@ -38,8 +38,8 @@ const ModalToLogin = ({ isRegisterSuccess, closeModal }) => {
               </ModalBody>
               <ModalFooter>
                 <Button
-                  color="danger"
-                  variant="light"
+                  color='danger'
+                  variant='light'
                   onPress={() => {
                     handleClose()
                     onClose()
@@ -47,7 +47,7 @@ const ModalToLogin = ({ isRegisterSuccess, closeModal }) => {
                   Cerrar
                 </Button>
                 <Button
-                  color="primary"
+                  color='primary'
                   onPress={() => {
                     handleGoToLogin()
                     onClose()

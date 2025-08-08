@@ -1,135 +1,163 @@
-import js from '@eslint/js'
-import globals from 'globals'
+import { defineConfig, globalIgnores } from 'eslint/config'
+import { fixupConfigRules, fixupPluginRules } from '@eslint/compat'
 import react from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
+import unusedImports from 'eslint-plugin-unused-imports'
+import _import from 'eslint-plugin-import'
+import typescriptEslint from '@typescript-eslint/eslint-plugin'
+import jsxA11Y from 'eslint-plugin-jsx-a11y'
 import prettier from 'eslint-plugin-prettier'
-import importPlugin from 'eslint-plugin-import'
-import unicorn from 'eslint-plugin-unicorn'
-import markdown from 'eslint-plugin-markdown'
-import html from 'eslint-plugin-html'
+import globals from 'globals'
+import tsParser from '@typescript-eslint/parser'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import js from '@eslint/js'
+import { FlatCompat } from '@eslint/eslintrc'
 
-export default [
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all
+})
+
+export default defineConfig([
+  globalIgnores([
+    '.now/*',
+    '**/*.css',
+    '**/.changeset',
+    '**/dist',
+    'esm/*',
+    'public/*',
+    'tests/*',
+    'scripts/*',
+    '**/*.config.js',
+    '**/.DS_Store',
+    '**/node_modules',
+    '**/coverage',
+    '**/.next',
+    '**/build',
+    '!**/.commitlintrc.cjs',
+    '!**/.lintstagedrc.cjs',
+    '!**/jest.config.js',
+    '!**/plopfile.js',
+    '!**/react-shim.js',
+    '!**/tsup.config.ts'
+  ]),
   {
-    ignores: ['dist', '**/*.min.js', '**/dist/', '**/vendor/', '/js/coverage/']
-  },
-  {
-    files: ['**/*.{js,jsx}'],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: {
-        ...globals.browser,
-        $: 'readonly',
-        jQuery: 'readonly'
-      },
-      parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module'
-      }
+    extends: fixupConfigRules(
+      compat.extends(
+        'plugin:react/recommended',
+        'plugin:prettier/recommended',
+        'plugin:react-hooks/recommended',
+        'plugin:jsx-a11y/recommended',
+        'plugin:@next/next/recommended'
+      )
+    ),
+
+    plugins: {
+      react: fixupPluginRules(react),
+      'unused-imports': unusedImports,
+      import: fixupPluginRules(_import),
+      '@typescript-eslint': typescriptEslint,
+      'jsx-a11y': fixupPluginRules(jsxA11Y),
+      prettier: fixupPluginRules(prettier)
     },
-    settings: {
-      react: { version: '18.3' },
-      'import/resolver': {
-        alias: {
-          map: [
-            ['@components', './src/components'],
-            ['@styles', './src/styles'],
-            ['@utils', './src/utils'],
-            ['@hooks', './src/hooks']
-          ],
-          extensions: ['.js', '.jsx', '.ts', '.tsx']
+
+    languageOptions: {
+      globals: {
+        ...Object.fromEntries(Object.entries(globals.browser).map(([key]) => [key, 'off'])),
+        ...globals.node
+      },
+
+      parser: tsParser,
+      ecmaVersion: 12,
+      sourceType: 'module',
+
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true
         }
       }
     },
-    plugins: {
-      react,
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-      prettier,
-      import: importPlugin,
-      unicorn,
-      markdown,
-      html
+
+    settings: {
+      react: {
+        version: 'detect'
+      }
     },
+
+    files: ['**/*.ts', '**/*.tsx'],
+
     rules: {
-      ...js.configs.recommended.rules,
-      ...react.configs.recommended.rules,
-      ...react.configs['jsx-runtime'].rules,
-      ...reactHooks.configs.recommended.rules,
-      'react/jsx-no-target-blank': 'off',
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'prettier/prettier': 'error',
-      'arrow-body-style': 'off',
-      'capitalized-comments': 'off',
-      'comma-dangle': ['error', 'never'],
-      'import/extensions': ['error', 'ignorePackages', { js: 'always' }],
-      'import/first': 'error',
-      'import/newline-after-import': 'error',
-      'import/no-absolute-path': 'error',
-      'import/no-amd': 'error',
-      'import/no-cycle': ['error', { ignoreExternal: true }],
-      'import/no-duplicates': 'error',
-      'import/no-mutable-exports': 'error',
-      'import/no-named-as-default': 'off',
-      'import/no-named-as-default-member': 'off',
-      'import/no-named-default': 'error',
-      'import/no-self-import': 'error',
-      'import/no-unassigned-import': ['off'],
-      'import/no-useless-path-segments': 'error',
-      'import/order': [
-        'error',
+      'no-console': 'warn',
+      'react/prop-types': 'off',
+      'react/jsx-uses-react': 'off',
+      'react/react-in-jsx-scope': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+      'jsx-a11y/click-events-have-key-events': 'warn',
+      'jsx-a11y/interactive-supports-focus': 'warn',
+      'prettier/prettier': 'warn',
+      'no-unused-vars': 'off',
+      'unused-imports/no-unused-vars': 'off',
+      'unused-imports/no-unused-imports': 'warn',
+
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
         {
-          groups: [
-            ['builtin', 'external', 'internal'],
-            ['sibling', 'parent', 'index']
+          args: 'after-used',
+          ignoreRestSiblings: false,
+          argsIgnorePattern: '^_.*?$'
+        }
+      ],
+
+      'import/order': [
+        'warn',
+        {
+          groups: ['type', 'builtin', 'object', 'external', 'internal', 'parent', 'sibling', 'index'],
+
+          pathGroups: [
+            {
+              pattern: '~/**',
+              group: 'external',
+              position: 'after'
+            }
           ],
+
           'newlines-between': 'always'
         }
       ],
-      indent: ['error', 2, { MemberExpression: 'off', SwitchCase: 1 }],
-      'logical-assignment-operators': 'off',
-      'max-params': ['warn', 5],
 
-      'new-cap': ['error', { properties: false }],
-      'no-console': 'off',
-      'no-negated-condition': 'off',
-      'object-curly-spacing': ['error', 'always'],
-      'operator-linebreak': 'off',
-      'prefer-object-has-own': 'off',
-      'prefer-template': 'error',
-      semi: ['error', 'never'],
-      strict: 'error',
-      'react/prop-types': 'off'
-    }
-  },
-  {
-    files: ['dist/**'],
-    env: {
-      browser: false,
-      node: true
-    },
-    parserOptions: {
-      sourceType: 'module'
-    },
-    rules: {
-      'no-console': 'off',
-      'unicorn/prefer-top-level-await': 'off'
-    }
-  },
-  {
-    files: ['**/*.md'],
-    plugins: { markdown },
-    processor: 'markdown/markdown'
-  },
-  {
-    files: ['**/*.md/*.js', '**/*.md/*.mjs'],
-    extends: 'plugin:markdown/recommended-legacy',
-    parserOptions: {
-      sourceType: 'module'
-    },
-    rules: {
-      'unicorn/prefer-node-protocol': 'off'
+      'react/self-closing-comp': 'warn',
+
+      'react/jsx-sort-props': [
+        'warn',
+        {
+          callbacksLast: true,
+          shorthandFirst: true,
+          noSortAlphabetically: false,
+          reservedFirst: true
+        }
+      ],
+
+      'padding-line-between-statements': [
+        'warn',
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: 'return'
+        },
+        {
+          blankLine: 'always',
+          prev: ['const', 'let', 'var'],
+          next: '*'
+        },
+        {
+          blankLine: 'any',
+          prev: ['const', 'let', 'var'],
+          next: ['const', 'let', 'var']
+        }
+      ]
     }
   }
-]
+])

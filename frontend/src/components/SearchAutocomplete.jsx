@@ -89,20 +89,20 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
         left: `${position.left}px`,
         width: `${position.width}px`
       }}
-      role="listbox"
-      aria-label="Sugerencias de búsqueda">
-      <div className="bg-white/90 backdrop-blur rounded-lg shadow-lg overflow-hidden">
+      role='listbox'
+      aria-label='Sugerencias de búsqueda'>
+      <div className='bg-white/90 backdrop-blur rounded-lg shadow-lg overflow-hidden'>
         {suggestions.map((suggestion, index) => (
           <div
             key={`${suggestion.text}-${index}`}
-            role="option"
+            role='option'
             aria-selected={index === selectedIndex}
             className={`px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer text-left flex items-center gap-2 ${
               index === selectedIndex ? 'bg-gray-100' : ''
             }`}
             onClick={() => onSelect(suggestion.text)}
             onMouseEnter={() => setSelectedIndex(index)}>
-            <span className="material-symbols-outlined icon text-gray-500">{suggestion.icon}</span>
+            <span className='material-symbols-outlined icon text-gray-500'>{suggestion.icon}</span>
             <span>{suggestion.text}</span>
           </div>
         ))}
@@ -112,7 +112,7 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
 
   return (
     <>
-      <div ref={containerRef} className="w-full" />
+      <div ref={containerRef} className='w-full' />
       <Portal>{dropdownContent}</Portal>
     </>
   )

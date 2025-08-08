@@ -1,6 +1,7 @@
 /**
  * Utilidades para el manejo de fechas en la aplicación
  */
+import { Logger } from './logger.js'
 
 /**
  * Convierte una fecha a formato ISO string manteniendo la zona horaria local
@@ -37,7 +38,9 @@ export const toISOString = date => {
     jsDate = new Date(jsDate.getTime() - offset * 60 * 1000)
     return jsDate.toISOString()
   } catch (e) {
-    console.error('Error convirtiendo fecha a ISO:', e)
+    Logger.error(Logger.CATEGORIES.NETWORK, 'convertir fecha ISO', e, {
+      context: { inputDate: date }
+    })
     return null
   }
 }
@@ -63,7 +66,9 @@ export const formatDateForDisplay = (dateString, options = {}) => {
 
     return date.toLocaleDateString('es-ES', defaultOptions)
   } catch (e) {
-    console.error('Error formateando fecha:', e)
+    Logger.error(Logger.CATEGORIES.NETWORK, 'formatear fecha', e, {
+      context: { inputDate: dateString, options }
+    })
     return 'Fecha inválida'
   }
 }
@@ -84,7 +89,9 @@ export const formatTimeForDisplay = dateString => {
       hour12: false
     })
   } catch (e) {
-    console.error('Error formateando hora:', e)
+    Logger.error(Logger.CATEGORIES.NETWORK, 'formatear hora', e, {
+      context: { inputDate: dateString }
+    })
     return ''
   }
 }
@@ -166,4 +173,92 @@ export const normalizeDate = date => {
   const normalized = new Date(date)
   normalized.setHours(0, 0, 0, 0)
   return normalized
+}
+
+/**
+ * Convierte un array de fecha de Java (LocalDateTime/LocalDate) a objeto Date de JavaScript
+ * @param {Array|String|Date} dateValue - Fecha como array [año, mes, día, hora, minuto, segundo, nanosegundos] o formato normal
+ * @returns {Date|null} - Objeto Date de JavaScript o null si es inválido
+ */
+export const parseJavaDate = dateValue => {
+  if (!dateValue) return null
+
+  try {
+    // Si es un array de números (formato LocalDateTime/LocalDate de Java)
+    if (Array.isArray(dateValue) && dateValue.length >= 3) {
+      // [año, mes, día, hora, minuto, segundo, nanosegundos]
+      // Nota: En JavaScript los meses van de 0-11, en Java de 1-12
+      const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue
+      return new Date(year, month - 1, day, hour, minute, second)
+    }
+
+    // Si es un string o Date, usar el constructor normal
+    const date = new Date(dateValue)
+    return isNaN(date.getTime()) ? null : date
+  } catch (error) {
+    Logger.error(Logger.CATEGORIES.NETWORK, 'parsear fecha Java', error, {
+      context: { inputValue: dateValue }
+    })
+    return null
+  }
+}
+
+/**
+ * Formatea una fecha de Java para mostrar al usuario en español
+ * @param {Array|String|Date} dateValue - Fecha como array de Java o formato normal
+ * @param {Object} options - Opciones de formato (ver toLocaleDateString)
+ * @returns {String} - Fecha formateada para mostrar al usuario
+ */
+export const formatJavaDateForDisplay = (dateValue, options = {}) => {
+  if (!dateValue) return 'No disponible'
+
+  const date = parseJavaDate(dateValue)
+  if (!date) return 'Fecha inválida'
+
+  const defaultOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...options
+  }
+
+  return date.toLocaleDateString('es-ES', defaultOptions)
+}
+
+/**
+ * Calcula los días transcurridos desde una fecha de Java hasta hoy
+ * @param {Array|String|Date} dateValue - Fecha como array de Java o formato normal
+ * @returns {Number|null} - Número de días transcurridos o null si es inválido
+ */
+export const daysSinceJavaDate = dateValue => {
+  if (!dateValue) return null
+
+  const date = parseJavaDate(dateValue)
+  if (!date) return null
+
+  const today = new Date()
+  const diffTime = Math.abs(today - date)
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * Calcula la edad basada en una fecha de nacimiento de Java
+ * @param {Array|String|Date} birthDateValue - Fecha de nacimiento como array de Java o formato normal
+ * @returns {Number|null} - Edad en años o null si es inválido
+ */
+export const calculateAgeFromJavaDate = birthDateValue => {
+  if (!birthDateValue) return null
+
+  const birthDate = parseJavaDate(birthDateValue)
+  if (!birthDate) return null
+
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+
+  return age
 }

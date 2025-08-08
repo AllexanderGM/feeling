@@ -95,23 +95,23 @@ const NavAdmin = ({ user }) => {
     return (
       <Badge
         key={item.id}
-        content=""
-        color="secondary"
-        placement="top-right"
-        shape="circle"
+        content=''
+        color='secondary'
+        placement='top-right'
+        shape='circle'
         isInvisible={!active}
         classNames={{
           badge: 'animate-pulse'
         }}>
         {isProfileButton ? (
-          <UserProfileMenu user={user} isAdmin={true} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement="top" />
+          <UserProfileMenu user={user} isAdmin={true} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' />
         ) : (
           <Button
             isIconOnly
             variant={active ? 'solid' : 'light'}
             color={active ? 'primary' : 'default'}
-            radius="lg"
-            size="md"
+            radius='lg'
+            size='md'
             className={`
               transition-all duration-300 ease-in-out
               ${active ? 'transform scale-105' : 'hover:scale-102'}
@@ -130,9 +130,9 @@ const NavAdmin = ({ user }) => {
   // ========================================
 
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-4">
-      <div className="bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-4 py-3 ring-1 ring-primary-500/10">
-        <div className="flex items-center space-x-2">{adminNavigationItems.map(item => renderNavigationItem(item))}</div>
+    <div className='fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-4'>
+      <div className='bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-4 py-3 ring-1 ring-primary-500/10'>
+        <div className='flex items-center space-x-2'>{adminNavigationItems.map(item => renderNavigationItem(item))}</div>
       </div>
     </div>
   )

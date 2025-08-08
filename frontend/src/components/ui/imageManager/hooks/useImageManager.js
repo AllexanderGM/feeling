@@ -7,8 +7,9 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { useNotification } from '@hooks/useNotification'
+import { useNotification } from '@hooks'
 import { validateImageFile, createPreviewUrl, cleanupPreviewUrl, cleanupPreviewUrls } from '../utils'
+import { Logger } from '@utils/logger.js'
 
 const useImageManager = ({
   maxImages = 5,
@@ -137,7 +138,10 @@ const useImageManager = ({
         }
 
         if (availablePositions.length === 0) {
-          console.warn('No hay posiciones disponibles')
+          Logger.warn('No hay posiciones disponibles para nuevas imágenes', Logger.CATEGORIES.UI, {
+            currentCount: images.length,
+            maxImages
+          })
           return
         }
 
@@ -178,7 +182,7 @@ const useImageManager = ({
           onImagesChange(filteredImages)
         }
       } catch (error) {
-        console.error('Error adding images:', error)
+        Logger.error('Error agregando imágenes', Logger.CATEGORIES.UI, { error: error.message, filesCount: acceptedFiles.length })
       } finally {
         setIsValidating(false)
       }

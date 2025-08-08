@@ -5,6 +5,7 @@
  * que automáticamente añade el token de autenticación a todas las peticiones
  * que coincidan con la URL de la API
  */
+import { Logger } from './logger.js'
 
 // Funciones auxiliares para el manejo de tokens
 const getAuthToken = () => {
@@ -20,7 +21,7 @@ const getAuthToken = () => {
  * @param {string} apiUrl - URL base de la API (se añadirá el token solo a peticiones que la contengan)
  */
 export const initializeAuthInterceptor = (apiUrl = '') => {
-  console.log('🔄 Inicializando interceptor de autenticación para peticiones fetch')
+  Logger.debug(Logger.CATEGORIES.SYSTEM, 'inicializar interceptor', 'Inicializando interceptor de autenticación para peticiones fetch')
 
   // Guardamos la implementación original de fetch
   const originalFetch = window.fetch
@@ -34,7 +35,7 @@ export const initializeAuthInterceptor = (apiUrl = '') => {
       const token = getAuthToken()
 
       if (token) {
-        console.log(`🔐 Interceptando petición a ${url.substring(0, 30)}... y añadiendo token`)
+        Logger.debug(Logger.CATEGORIES.SYSTEM, 'interceptar petición', `Añadiendo token a ${url.substring(0, 50)}...`)
 
         // Crear un nuevo objeto de configuración con los headers de autorización
         const modifiedInit = {
@@ -48,7 +49,7 @@ export const initializeAuthInterceptor = (apiUrl = '') => {
         // Usar la implementación original de fetch con nuestros headers modificados
         return originalFetch.call(this, input, modifiedInit)
       } else {
-        console.warn(`⚠️ Petición a ${url.substring(0, 30)}... sin token de autenticación`)
+        Logger.warn(Logger.CATEGORIES.SYSTEM, 'petición sin token', `Petición a ${url.substring(0, 50)}... sin token de autenticación`)
       }
     }
 
@@ -56,7 +57,7 @@ export const initializeAuthInterceptor = (apiUrl = '') => {
     return originalFetch.call(this, input, init)
   }
 
-  console.log('✅ Interceptor de autenticación inicializado correctamente')
+  Logger.debug(Logger.CATEGORIES.SYSTEM, 'interceptor listo', 'Interceptor de autenticación inicializado correctamente')
 }
 
 /**
@@ -65,7 +66,7 @@ export const initializeAuthInterceptor = (apiUrl = '') => {
 export const removeAuthInterceptor = () => {
   if (window._originalFetch) {
     window.fetch = window._originalFetch
-    console.log('🔙 Restaurada implementación original de fetch')
+    Logger.debug(Logger.CATEGORIES.SYSTEM, 'remover interceptor', 'Restaurada implementación original de fetch')
   }
 }
 

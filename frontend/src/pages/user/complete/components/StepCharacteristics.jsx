@@ -267,43 +267,43 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
       if (!options || options.length === 0) {
         return (
-          <div className="space-y-2">
-            <label className="text-sm text-gray-400">{label}</label>
-            <p className="text-sm text-red-400">No hay opciones disponibles para {label}</p>
+          <div className='space-y-2'>
+            <label className='text-sm text-gray-400'>{label}</label>
+            <p className='text-sm text-red-400'>No hay opciones disponibles para {label}</p>
           </div>
         )
       }
 
       return (
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">{label}</label>
-          <div className="flex flex-wrap gap-2">
+        <div className='space-y-2'>
+          <label className='text-sm text-gray-400'>{label}</label>
+          <div className='flex flex-wrap gap-2'>
             {options.map(option => {
               const isSelected = selectedId === parseInt(option.key)
 
               return (
-                <Badge key={option.key} content={<span className="text-white text-xs">✓</span>} shape="circle" isInvisible={!isSelected}>
+                <Badge key={option.key} content={<span className='text-white text-xs'>✓</span>} shape='circle' isInvisible={!isSelected}>
                   <Tooltip
                     content={
-                      <div className="flex items-center gap-2">
+                      <div className='flex items-center gap-2'>
                         <span>{option.label}</span>
                         {option.isPending && (
-                          <Badge color="warning" variant="solid" size="sm">
+                          <Badge color='warning' variant='solid' size='sm'>
                             Pendiente
                           </Badge>
                         )}
                       </div>
                     }
-                    placement="bottom"
-                    className="capitalize"
-                    color="primary">
+                    placement='bottom'
+                    className='capitalize'
+                    color='primary'>
                     <Button
-                      size="sm"
+                      size='sm'
                       onPress={() => formHandlers.handleInputChange(fieldName, parseInt(option.key))}
                       aria-label={`Seleccionar ${label.toLowerCase()} ${option.label}`}
                       radius={type === 'eye' ? 'full' : 'lg'}
                       isIconOnly
-                      color="neutral"
+                      color='neutral'
                       className={`
                       relative group transition-all duration-200 border-2 shadow-md
                       ${isSelected ? 'scale-110' : 'hover:scale-105'}
@@ -313,12 +313,12 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                       style={isColor(option.detail) ? { backgroundColor: option.detail } : { backgroundColor: '#374151' }}>
                       {!isColor(option.detail) && option.detail && (
                         <span
-                          className="material-symbols-outlined text-white"
+                          className='material-symbols-outlined text-white'
                           style={{ fontVariationSettings: '"FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24' }}>
                           {option.detail}
                         </span>
                       )}
-                      {option.isPending && <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />}
+                      {option.isPending && <div className='absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse' />}
                     </Button>
                   </Tooltip>
                 </Badge>
@@ -327,20 +327,20 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
             {/* Botón agregar nuevo */}
             <Button
-              size="sm"
-              variant="bordered"
+              size='sm'
+              variant='bordered'
               onPress={() => modalHandlers.openModal(type)}
               radius={type === 'eye' ? 'full' : 'lg'}
-              color="primary"
+              color='primary'
               isIconOnly
               aria-label={`Agregar nuevo ${label.toLowerCase()}`}
-              className="border-2 border-dashed border-gray-600 flex items-center justify-center
+              className='border-2 border-dashed border-gray-600 flex items-center justify-center
               hover:border-primary-500 transition-all duration-200
-              hover:bg-primary-500/10 group">
-              <span className="text-gray-500 group-hover:text-primary-400 text-lg pb-1">+</span>
+              hover:bg-primary-500/10 group'>
+              <span className='text-gray-500 group-hover:text-primary-400 text-lg pb-1'>+</span>
             </Button>
           </div>
-          {errors[fieldName] && <p className="text-red-400 text-sm">{errors[fieldName]}</p>}
+          {errors[fieldName] && <p className='text-red-400 text-sm'>{errors[fieldName]}</p>}
         </div>
       )
     },
@@ -352,18 +352,18 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
   // ========================================
   return (
     <>
-      <section className="space-y-4">
+      <section className='space-y-4'>
         {/* Descripción personal */}
         <Controller
-          name="description"
+          name='description'
           control={control}
           render={({ field }) => (
             <Textarea
               {...field}
-              variant="bordered"
+              variant='bordered'
               isRequired
-              label="Descripción personal"
-              placeholder="Cuéntanos sobre ti, tus intereses, lo que buscas y qué te hace único..."
+              label='Descripción personal'
+              placeholder='Cuéntanos sobre ti, tus intereses, lo que buscas y qué te hace único...'
               isInvalid={!!errors.description}
               errorMessage={errors.description?.message}
               minRows={3}
@@ -379,19 +379,19 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
         />
 
         {/* Tips para el perfil */}
-        <Accordion variant="splitted" className="mt-6 px-0">
+        <Accordion variant='splitted' className='mt-6 px-0'>
           <AccordionItem
-            key="profile-tips"
-            aria-label="Tips para tu perfil"
-            startContent={<Brain className="text-blue-400 text-xl pt-1" />}
-            title="Tips para tu perfil"
+            key='profile-tips'
+            aria-label='Tips para tu perfil'
+            startContent={<Brain className='text-blue-400 text-xl pt-1' />}
+            title='Tips para tu perfil'
             classNames={{
               trigger: 'p-1',
               base: 'bg-blue-500/10 border border-blue-500/20',
               title: 'text-blue-400 text-sm',
               content: 'text-sm'
             }}>
-            <ul className="text-blue-300/80 space-y-1 list-disc pl-5">
+            <ul className='text-blue-300/80 space-y-1 list-disc pl-5'>
               {PROFILE_TIPS.map((tip, index) => (
                 <li key={index}>
                   <strong>{tip.label}:</strong> {tip.tip}
@@ -402,12 +402,12 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
         </Accordion>
 
         {/* Sección de intereses y tags */}
-        <div className="space-y-2">
+        <div className='space-y-2'>
           <Autocomplete
-            label="Agregar intereses"
-            variant="underlined"
+            label='Agregar intereses'
+            variant='underlined'
             isRequired
-            placeholder="Busca y agrega tus intereses..."
+            placeholder='Busca y agrega tus intereses...'
             inputValue={tagQuery}
             onInputChange={handleTagSearch}
             onSelectionChange={key => {
@@ -428,16 +428,16 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 handleAddTag(tagQuery)
               }
             }}
-            startContent={<Sparkles className="text-sm" />}
+            startContent={<Sparkles className='text-sm' />}
             classNames={{
               base: 'max-w-full',
               listboxWrapper: 'max-h-72',
               popoverContent: 'w-full'
             }}>
             {tagData.options.map(tag => (
-              <AutocompleteItem key={tag.key} textValue={tag.name} className="text-gray-200 data-[hover=true]:bg-gray-700">
-                <div className="flex items-center gap-2">
-                  <Tag className="text-primary-400 text-sm" />
+              <AutocompleteItem key={tag.key} textValue={tag.name} className='text-gray-200 data-[hover=true]:bg-gray-700'>
+                <div className='flex items-center gap-2'>
+                  <Tag className='text-primary-400 text-sm' />
                   <span>{tag.name}</span>
                 </div>
               </AutocompleteItem>
@@ -446,9 +446,9 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
           {/* Tags seleccionados */}
           {tagData.currentTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className='flex flex-wrap gap-2 mt-3'>
               {tagData.currentTags.map((tag, index) => (
-                <Chip key={`${tag}-${index}`} onClose={() => removeTag(tag)} variant="flat" color="primary" className="cursor-pointer">
+                <Chip key={`${tag}-${index}`} onClose={() => removeTag(tag)} variant='flat' color='primary' className='cursor-pointer'>
                   {tag}
                 </Chip>
               ))}
@@ -457,14 +457,14 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
           {/* Tags sugeridos */}
           {tagData.suggested.length > 0 && tagData.currentTags.length < 10 && showingSuggestions && !searchLoading && (
-            <div className="space-y-2 mt-4">
-              <p className="text-xs text-gray-400">Sugerencias populares:</p>
-              <div className="flex flex-wrap gap-2">
+            <div className='space-y-2 mt-4'>
+              <p className='text-xs text-gray-400'>Sugerencias populares:</p>
+              <div className='flex flex-wrap gap-2'>
                 {tagData.suggested.slice(0, 7).map(tag => (
                   <div
                     key={tag}
                     onClick={() => handleAddTag(tag)}
-                    className="px-3 py-1 text-sm border border-gray-600 rounded-full cursor-pointer hover:bg-primary-500/10 hover:border-primary-500/50 transition-colors text-gray-300">
+                    className='px-3 py-1 text-sm border border-gray-600 rounded-full cursor-pointer hover:bg-primary-500/10 hover:border-primary-500/50 transition-colors text-gray-300'>
                     + {tag}
                   </div>
                 ))}
@@ -473,21 +473,21 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
           )}
 
           {/* Contador de tags */}
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">{tagData.currentTags.length}/10 intereses</span>
+          <div className='flex justify-between items-center'>
+            <span className='text-xs text-gray-500'>{tagData.currentTags.length}/10 intereses</span>
           </div>
         </div>
 
         {/* Información básica */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {/* Género */}
           <Controller
-            name="genderId"
+            name='genderId'
             control={control}
             render={({ field }) => (
               <Select
-                label="Seleccionar género"
-                placeholder="Selecciona tu género"
+                label='Seleccionar género'
+                placeholder='Selecciona tu género'
                 isRequired
                 selectedKeys={field.value ? [field.value.toString()] : []}
                 onSelectionChange={keys => {
@@ -496,13 +496,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 isInvalid={!!errors.genderId}
                 errorMessage={errors.genderId?.message}
-                variant="underlined"
+                variant='underlined'
                 renderValue={items => {
                   return items.map(item => {
                     const option = genderOptions.find(opt => opt.key === item.key)
                     return (
-                      <div key={item.key} className="flex items-center gap-2">
-                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                      <div key={item.key} className='flex items-center gap-2'>
+                        <AttributeDetailRenderer detail={option?.detail} size='sm' />
                         <span>{option?.label}</span>
                       </div>
                     )
@@ -516,8 +516,8 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                     classNames={{
                       base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
                     }}>
-                    <div className="flex items-center gap-3">
-                      <AttributeDetailRenderer detail={option.detail} size="md" />
+                    <div className='flex items-center gap-3'>
+                      <AttributeDetailRenderer detail={option.detail} size='md' />
                       <span>{option.label}</span>
                     </div>
                   </SelectItem>
@@ -528,13 +528,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
           {/* Estado civil */}
           <Controller
-            name="maritalStatusId"
+            name='maritalStatusId'
             control={control}
             render={({ field }) => (
               <Select
-                variant="underlined"
-                label="Estado civil"
-                placeholder="Selecciona tu estado civil"
+                variant='underlined'
+                label='Estado civil'
+                placeholder='Selecciona tu estado civil'
                 selectedKeys={field.value ? [field.value.toString()] : []}
                 onSelectionChange={keys => {
                   const selectedKey = Array.from(keys)[0]
@@ -542,13 +542,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 isInvalid={!!errors.maritalStatusId}
                 errorMessage={errors.maritalStatusId?.message}
-                startContent={<Heart className="text-sm" />}
+                startContent={<Heart className='text-sm' />}
                 renderValue={items => {
                   return items.map(item => {
                     const option = maritalStatusOptions.find(opt => opt.key === item.key)
                     return (
-                      <div key={item.key} className="flex items-center gap-2">
-                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                      <div key={item.key} className='flex items-center gap-2'>
+                        <AttributeDetailRenderer detail={option?.detail} size='sm' />
                         <span>{option?.label}</span>
                       </div>
                     )
@@ -562,8 +562,8 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                     classNames={{
                       base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
                     }}>
-                    <div className="flex items-center gap-3">
-                      <AttributeDetailRenderer detail={option.detail} size="sm" />
+                    <div className='flex items-center gap-3'>
+                      <AttributeDetailRenderer detail={option.detail} size='sm' />
                       <span>{option.label}</span>
                     </div>
                   </SelectItem>
@@ -573,16 +573,16 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {/* Nivel de estudios */}
           <Controller
-            name="educationLevelId"
+            name='educationLevelId'
             control={control}
             render={({ field }) => (
               <Select
-                variant="underlined"
-                label="Nivel de estudios"
-                placeholder="Selecciona tu nivel educativo"
+                variant='underlined'
+                label='Nivel de estudios'
+                placeholder='Selecciona tu nivel educativo'
                 selectedKeys={field.value ? [field.value.toString()] : []}
                 onSelectionChange={keys => {
                   const selectedKey = Array.from(keys)[0]
@@ -590,13 +590,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 isInvalid={!!errors.educationLevelId}
                 errorMessage={errors.educationLevelId?.message}
-                startContent={<GraduationCap className="text-sm" />}
+                startContent={<GraduationCap className='text-sm' />}
                 renderValue={items => {
                   return items.map(item => {
                     const option = educationLevelOptions.find(opt => opt.key === item.key)
                     return (
-                      <div key={item.key} className="flex items-center gap-2">
-                        <AttributeDetailRenderer detail={option?.detail} size="sm" />
+                      <div key={item.key} className='flex items-center gap-2'>
+                        <AttributeDetailRenderer detail={option?.detail} size='sm' />
                         <span>{option?.label}</span>
                       </div>
                     )
@@ -610,8 +610,8 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                     classNames={{
                       base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
                     }}>
-                    <div className="flex items-center gap-3">
-                      <AttributeDetailRenderer detail={option.detail} size="sm" />
+                    <div className='flex items-center gap-3'>
+                      <AttributeDetailRenderer detail={option.detail} size='sm' />
                       <span>{option.label}</span>
                     </div>
                   </SelectItem>
@@ -622,18 +622,18 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
           {/* Profesión */}
           <Controller
-            name="profession"
+            name='profession'
             control={control}
             render={({ field }) => (
               <Input
                 {...field}
-                variant="underlined"
-                label="Profesión"
-                placeholder="Tu profesión u ocupación"
+                variant='underlined'
+                label='Profesión'
+                placeholder='Tu profesión u ocupación'
                 value={field.value || ''}
                 isInvalid={!!errors.profession}
                 errorMessage={errors.profession?.message}
-                startContent={<Briefcase className="text-sm" />}
+                startContent={<Briefcase className='text-sm' />}
               />
             )}
           />
@@ -641,13 +641,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
 
         {/* Tipo de cuerpo */}
         <Controller
-          name="bodyTypeId"
+          name='bodyTypeId'
           control={control}
           render={({ field }) => (
             <Select
-              variant="underlined"
-              label="Seleccionar tipo de cuerpo"
-              placeholder="Selecciona tu tipo de cuerpo"
+              variant='underlined'
+              label='Seleccionar tipo de cuerpo'
+              placeholder='Selecciona tu tipo de cuerpo'
               selectedKeys={field.value ? [field.value.toString()] : []}
               onSelectionChange={keys => {
                 const selectedKey = Array.from(keys)[0]
@@ -655,13 +655,13 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
               }}
               isInvalid={!!errors.bodyTypeId}
               errorMessage={errors.bodyTypeId?.message}
-              startContent={<Accessibility className="text-sm" />}
+              startContent={<Accessibility className='text-sm' />}
               renderValue={items => {
                 return items.map(item => {
                   const option = bodyTypeOptions.find(opt => opt.key === item.key)
                   return (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <AttributeDetailRenderer detail={option?.detail} size="md" />
+                    <div key={item.key} className='flex items-center gap-2'>
+                      <AttributeDetailRenderer detail={option?.detail} size='md' />
                       <span>{option?.label}</span>
                     </div>
                   )
@@ -675,8 +675,8 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                   classNames={{
                     base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
                   }}>
-                  <div className="flex items-center gap-3">
-                    <AttributeDetailRenderer detail={option.detail} size="lg" />
+                  <div className='flex items-center gap-3'>
+                    <AttributeDetailRenderer detail={option.detail} size='lg' />
                     <span>{option.label}</span>
                   </div>
                 </SelectItem>
@@ -686,14 +686,14 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
         />
 
         {/* Estatura */}
-        <div className="space-y-4">
+        <div className='space-y-4'>
           <Controller
-            name="height"
+            name='height'
             control={control}
             render={({ field }) => (
               <Input
-                type="number"
-                placeholder="Ingresa tu estatura"
+                type='number'
+                placeholder='Ingresa tu estatura'
                 value={heightInput}
                 onChange={e => {
                   const value = e.target.value
@@ -705,26 +705,26 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                 }}
                 min={140}
                 max={220}
-                variant="underlined"
+                variant='underlined'
                 isInvalid={!!errors.height}
                 errorMessage={errors.height?.message}
                 startContent={
-                  <div className="flex text-gray-400">
+                  <div className='flex text-gray-400'>
                     <Ruler />
-                    <span className="ml-2">Estatura: </span>
+                    <span className='ml-2'>Estatura: </span>
                   </div>
                 }
-                endContent={<span className="text-gray-500 text-sm">cm</span>}
+                endContent={<span className='text-gray-500 text-sm'>cm</span>}
               />
             )}
           />
 
           <Controller
-            name="height"
+            name='height'
             control={control}
             render={({ field }) => (
               <Slider
-                color="primary"
+                color='primary'
                 minValue={140}
                 maxValue={220}
                 value={field.value || 170}
@@ -732,7 +732,7 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
                   setHeightInput(value.toString())
                   field.onChange(value)
                 }}
-                aria-label="Seleccionar estatura en centímetros"
+                aria-label='Seleccionar estatura en centímetros'
                 showTooltip={true}
               />
             )}
@@ -753,8 +753,8 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
       <Modal
         isOpen={addAttributeModal.isOpen}
         onClose={modalHandlers.closeModal}
-        size="lg"
-        placement="center"
+        size='lg'
+        placement='center'
         isDismissable={!addAttributeModal.isLoading}
         classNames={{
           base: 'bg-gray-900 text-white',
@@ -765,103 +765,103 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl p-2 bg-primary-500/20 rounded-lg">{addAttributeModal.type === 'eye' ? '👁️' : '💇'}</div>
+              <ModalHeader className='flex flex-col gap-1'>
+                <div className='flex items-center gap-3'>
+                  <div className='text-3xl p-2 bg-primary-500/20 rounded-lg'>{addAttributeModal.type === 'eye' ? '👁️' : '💇'}</div>
                   <div>
-                    <h3 className="text-xl font-bold">Agregar nuevo color de {addAttributeModal.type === 'eye' ? 'ojos' : 'cabello'}</h3>
-                    <p className="text-sm text-gray-400 font-normal">Completa la información para crear un nuevo atributo</p>
+                    <h3 className='text-xl font-bold'>Agregar nuevo color de {addAttributeModal.type === 'eye' ? 'ojos' : 'cabello'}</h3>
+                    <p className='text-sm text-gray-400 font-normal'>Completa la información para crear un nuevo atributo</p>
                   </div>
                 </div>
               </ModalHeader>
               <ModalBody>
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4">
-                  <div className="flex gap-2">
-                    <span className="text-amber-400">⏳</span>
-                    <p className="text-amber-300 text-sm">
+                <div className='bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4'>
+                  <div className='flex gap-2'>
+                    <span className='text-amber-400'>⏳</span>
+                    <p className='text-amber-300 text-sm'>
                       Los nuevos atributos requieren aprobación. Aparecerán temporalmente en tu perfil hasta ser revisados.
                     </p>
                   </div>
                 </div>
 
                 {addAttributeModal.error && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
-                    <div className="flex gap-2">
-                      <span className="text-red-400">❌</span>
-                      <p className="text-red-300 text-sm">{addAttributeModal.error}</p>
+                  <div className='bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4'>
+                    <div className='flex gap-2'>
+                      <span className='text-red-400'>❌</span>
+                      <p className='text-red-300 text-sm'>{addAttributeModal.error}</p>
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className='space-y-4'>
                   {/* Vista previa del color */}
-                  <div className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg">
+                  <div className='flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg'>
                     <div
                       className={`w-12 h-12 border-2 border-gray-600 shadow-lg ${
                         addAttributeModal.type === 'eye' ? 'rounded-full' : 'rounded-lg'
                       }`}
                       style={{ backgroundColor: addAttributeModal.data.detail }}
                     />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-400">Vista previa</p>
-                      <p className="text-white font-medium">{addAttributeModal.data.name || 'Nuevo color'}</p>
+                    <div className='flex-1'>
+                      <p className='text-sm text-gray-400'>Vista previa</p>
+                      <p className='text-white font-medium'>{addAttributeModal.data.name || 'Nuevo color'}</p>
                     </div>
                   </div>
 
                   {/* Nombre del atributo */}
                   <Input
-                    label="Nombre"
+                    label='Nombre'
                     placeholder={`Ej: ${addAttributeModal.type === 'eye' ? 'Verde esmeralda' : 'Castaño claro'}`}
                     value={addAttributeModal.data.name}
                     onChange={e => modalHandlers.updateModalData('name', e.target.value)}
-                    variant="bordered"
+                    variant='bordered'
                     isDisabled={addAttributeModal.isLoading}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
                     }}
-                    description="Nombre descriptivo que verán los usuarios"
+                    description='Nombre descriptivo que verán los usuarios'
                   />
 
                   {/* Selector de color */}
-                  <div className="space-y-2">
-                    <label className="text-sm text-gray-400">Color</label>
-                    <div className="flex items-center gap-3">
+                  <div className='space-y-2'>
+                    <label className='text-sm text-gray-400'>Color</label>
+                    <div className='flex items-center gap-3'>
                       <input
-                        type="color"
+                        type='color'
                         value={addAttributeModal.data.detail}
                         onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
                         disabled={addAttributeModal.isLoading}
-                        className="w-12 h-12 rounded-lg border-2 border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                        className='w-12 h-12 rounded-lg border-2 border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50'
                       />
                       <Input
-                        placeholder="#000000"
+                        placeholder='#000000'
                         value={addAttributeModal.data.detail}
                         onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
-                        variant="bordered"
+                        variant='bordered'
                         isDisabled={addAttributeModal.isLoading}
-                        className="flex-1"
+                        className='flex-1'
                         classNames={{
                           input: 'text-gray-200 font-mono',
                           inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
                         }}
-                        startContent={<span className="text-gray-500">#</span>}
+                        startContent={<span className='text-gray-500'>#</span>}
                       />
                     </div>
-                    <p className="text-xs text-gray-500">Selecciona el color usando el selector o ingresa el código hexadecimal</p>
+                    <p className='text-xs text-gray-500'>Selecciona el color usando el selector o ingresa el código hexadecimal</p>
                   </div>
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="light" onPress={modalHandlers.closeModal} isDisabled={addAttributeModal.isLoading}>
+                <Button variant='light' onPress={modalHandlers.closeModal} isDisabled={addAttributeModal.isLoading}>
                   Cancelar
                 </Button>
                 <Button
-                  color="primary"
+                  color='primary'
                   onPress={modalHandlers.submitAttribute}
                   isDisabled={!addAttributeModal.data.name.trim() || !addAttributeModal.data.detail.trim()}
                   isLoading={addAttributeModal.isLoading}
-                  className="bg-gradient-to-r from-primary-600 to-primary-700">
+                  className='bg-gradient-to-r from-primary-600 to-primary-700'>
                   {addAttributeModal.isLoading ? 'Creando...' : 'Crear atributo'}
                 </Button>
               </ModalFooter>

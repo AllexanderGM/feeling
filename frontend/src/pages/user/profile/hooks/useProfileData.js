@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-export const useProfileData = (user) => {
+export const useProfileData = user => {
   // Basic user info helpers - memoized for performance
   const userHelpers = useMemo(() => {
     if (!user) return {}
@@ -14,26 +14,26 @@ export const useProfileData = (user) => {
       getUserCountry: () => user?.profile?.country || user?.country || '',
       getUserCity: () => user?.profile?.city || user?.city || '',
       getUserId: () => user?.id || '',
-      
+
       // Status Information
       isUserVerified: () => user?.status?.verified || user?.verified || false,
       isUserApproved: () => user?.status?.approved || user?.approved || false,
       isProfileComplete: () => user?.status?.profileComplete || user?.profileComplete || false,
       getUserCreatedAt: () => user?.status?.createdAt || user?.createdAt,
       getUserLastActive: () => user?.status?.lastActive || user?.lastActive,
-      
+
       // Match Information
       getMatchAttempts: () => user?.metrics?.availableAttempts || user?.matchAttempts || user?.availableAttempts || 5,
       getTodayMatches: () => user?.metrics?.todayMatches || user?.todayMatches || 0,
       getTotalMatches: () => user?.metrics?.matchesCount || user?.totalMatches || user?.matchesCount || 0,
       getMaxDailyAttempts: () => user?.maxDailyAttempts || 10,
-      
+
       // Privacy Settings
-      getProfilePrivacy: () => user?.privacy?.publicAccount ? 'Público' : 'Privado',
+      getProfilePrivacy: () => (user?.privacy?.publicAccount ? 'Público' : 'Privado'),
       isSearchable: () => user?.privacy?.searchVisibility || user?.searchable || false,
       isLocationShared: () => user?.privacy?.locationPublic || user?.shareLocation || false,
       showInSearch: () => user?.privacy?.showMeInSearch || user?.showMeInSearch || false,
-      
+
       // Account Information
       getAccountType: () => user?.accountType || 'Básica',
       getRegion: () => user?.region || 'América',
@@ -53,7 +53,7 @@ export const useProfileData = (user) => {
     }
 
     // Calculate age
-    const calculateAge = (birthDate) => {
+    const calculateAge = birthDate => {
       if (!birthDate) return null
       const today = new Date()
       const birth = new Date(birthDate)
@@ -78,3 +78,5 @@ export const useProfileData = (user) => {
     profileData
   }
 }
+
+export default useProfileData

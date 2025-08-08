@@ -1,10 +1,9 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
-import { useError } from '@hooks/useError.js'
+import { useAuth, useTour, useError } from '@hooks'
 import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { Calendar, Clock, MapPin } from 'lucide-react'
-import useAuth from '@hooks/useAuth.js'
-import useTour from '@hooks/useTour.js'
+import { Logger } from '@utils/logger.js'
+import { Calendar, Clock } from 'lucide-react'
 import GenericTableControls from '@components/ui/GenericTableControls.jsx'
 import TablePagination from '@components/ui/TablePagination.jsx'
 import { EVENT_COLUMNS } from '@constants/tableConstants.js'
@@ -19,11 +18,11 @@ const EventsManagement = memo(() => {
   const { user: currentUser } = useAuth()
   const { tours: events, loading, refreshTours: refreshEvents } = useTour()
   const { handleError, handleSuccess } = useError()
-  
+
   // Estados para eventos pendientes
   const [pendingEvents, setPendingEvents] = useState([])
   const [loadingPending, setLoadingPending] = useState(false)
-  
+
   // Estado para las tabs
   const [selectedTab, setSelectedTab] = useState('active')
 
@@ -91,14 +90,15 @@ const EventsManagement = memo(() => {
   // Filter events based on search
   const filteredEvents = useMemo(() => {
     if (!debouncedFilter) return events || []
-    
-    return (events || []).filter(event => 
-      event.name?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
-      event.description?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
-      event.destination?.city?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
-      event.destination?.country?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
-      event.tags?.some(tag => tag?.toLowerCase().includes(debouncedFilter.toLowerCase())) ||
-      event.status?.toLowerCase().includes(debouncedFilter.toLowerCase())
+
+    return (events || []).filter(
+      event =>
+        event.name?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
+        event.description?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
+        event.destination?.city?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
+        event.destination?.country?.toLowerCase().includes(debouncedFilter.toLowerCase()) ||
+        event.tags?.some(tag => tag?.toLowerCase().includes(debouncedFilter.toLowerCase())) ||
+        event.status?.toLowerCase().includes(debouncedFilter.toLowerCase())
     )
   }, [events, debouncedFilter])
 
@@ -124,11 +124,12 @@ const EventsManagement = memo(() => {
   // Filtered and paginated pending events
   const filteredPendingEvents = useMemo(() => {
     if (!pendingDebouncedFilter) return pendingEvents
-    return pendingEvents.filter(event => 
-      event.name?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
-      event.description?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
-      event.destination?.city?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
-      event.destination?.country?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase())
+    return pendingEvents.filter(
+      event =>
+        event.name?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+        event.description?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+        event.destination?.city?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
+        event.destination?.country?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase())
     )
   }, [pendingEvents, pendingDebouncedFilter])
 
@@ -153,7 +154,7 @@ const EventsManagement = memo(() => {
         setSelectedEvent(event)
         setIsEditModalOpen(true)
       } catch (error) {
-        console.error('Error getting complete event data:', error)
+        Logger.error('Error getting complete event data:', error, { category: Logger.CATEGORIES.SERVICE })
         handleError('Error al cargar datos del evento.')
       }
     },
@@ -163,7 +164,7 @@ const EventsManagement = memo(() => {
   const handleOpenDeleteModal = useCallback(
     event => {
       if (!event || !event.id) {
-        console.error('Error: Incomplete event data', event)
+        Logger.error('Incomplete event data for deletion', { event }, { category: Logger.CATEGORIES.UI })
         handleError('No se puede eliminar el evento: datos incompletos')
         return
       }
@@ -182,7 +183,7 @@ const EventsManagement = memo(() => {
   }, [])
 
   const handleOperationSuccess = useCallback(() => {
-    console.log('Operation successful, updating event list')
+    Logger.info('Operation successful, updating event list', { category: Logger.CATEGORIES.UI })
     refreshEvents()
     fetchPendingEvents()
     setIsCreateModalOpen(false)
@@ -193,7 +194,7 @@ const EventsManagement = memo(() => {
 
   // Función para actualizar eventos activos
   const handleRefreshActiveEvents = useCallback(() => {
-    console.log('Refreshing active events...')
+    Logger.debug('Refreshing active events...', { category: Logger.CATEGORIES.UI })
     refreshEvents()
   }, [refreshEvents])
 
@@ -238,31 +239,37 @@ const EventsManagement = memo(() => {
     }
   }, [handleError])
 
-  const handleApproveEvent = useCallback(async (eventId) => {
-    try {
-      // Simulación - reemplazar con llamada real al backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setPendingEvents(prev => prev.filter(event => event.id !== eventId))
-      handleSuccess('Evento aprobado correctamente')
-    } catch (error) {
-      handleError('Error al aprobar evento')
-    }
-  }, [handleSuccess, handleError])
+  const handleApproveEvent = useCallback(
+    async eventId => {
+      try {
+        // Simulación - reemplazar con llamada real al backend
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        setPendingEvents(prev => prev.filter(event => event.id !== eventId))
+        handleSuccess('Evento aprobado correctamente')
+      } catch (error) {
+        handleError('Error al aprobar evento')
+      }
+    },
+    [handleSuccess, handleError]
+  )
 
-  const handleRejectEvent = useCallback(async (eventId) => {
-    try {
-      // Simulación - reemplazar con llamada real al backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setPendingEvents(prev => prev.filter(event => event.id !== eventId))
-      handleSuccess('Evento rechazado correctamente')
-    } catch (error) {
-      handleError('Error al rechazar evento')
-    }
-  }, [handleSuccess, handleError])
+  const handleRejectEvent = useCallback(
+    async eventId => {
+      try {
+        // Simulación - reemplazar con llamada real al backend
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        setPendingEvents(prev => prev.filter(event => event.id !== eventId))
+        handleSuccess('Evento rechazado correctamente')
+      } catch (error) {
+        handleError('Error al rechazar evento')
+      }
+    },
+    [handleSuccess, handleError]
+  )
 
   // Función para actualizar eventos pendientes
   const handleRefreshPendingEvents = useCallback(() => {
-    console.log('Refreshing pending events...')
+    Logger.debug('Refreshing pending events...', { category: Logger.CATEGORIES.UI })
     fetchPendingEvents()
   }, [fetchPendingEvents])
 
@@ -340,22 +347,33 @@ const EventsManagement = memo(() => {
         filterValue={filterValue}
         onClear={onClear}
         onSearchChange={onSearchChange}
-        filterPlaceholder="Buscar por nombre, destino, etiquetas o estado..."
+        filterPlaceholder='Buscar por nombre, destino, etiquetas o estado...'
         columns={EVENT_COLUMNS}
         visibleColumns={visibleColumns}
         setVisibleColumns={setVisibleColumns}
         onCreateItem={handleOpenCreateModal}
-        createButtonLabel="Crear Evento"
+        createButtonLabel='Crear Evento'
         onRefresh={handleRefreshActiveEvents}
         loading={loading}
         error={null}
         totalItems={totalItems}
-        itemsLabel="eventos"
+        itemsLabel='eventos'
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={onRowsPerPageChange}
       />
     ),
-    [filterValue, onClear, onSearchChange, visibleColumns, handleOpenCreateModal, handleRefreshActiveEvents, loading, rowsPerPage, onRowsPerPageChange, totalItems]
+    [
+      filterValue,
+      onClear,
+      onSearchChange,
+      visibleColumns,
+      handleOpenCreateModal,
+      handleRefreshActiveEvents,
+      loading,
+      rowsPerPage,
+      onRowsPerPageChange,
+      totalItems
+    ]
   )
 
   const bottomContent = useMemo(
@@ -380,14 +398,14 @@ const EventsManagement = memo(() => {
         filterValue={pendingFilterValue}
         onClear={onPendingClear}
         onSearchChange={onPendingSearchChange}
-        filterPlaceholder="Buscar eventos pendientes..."
+        filterPlaceholder='Buscar eventos pendientes...'
         columns={EVENT_COLUMNS}
         visibleColumns={visibleColumns}
         setVisibleColumns={setVisibleColumns}
         loading={loadingPending}
         error={null}
         totalItems={filteredPendingEvents.length}
-        itemsLabel="eventos pendientes"
+        itemsLabel='eventos pendientes'
         rowsPerPage={pendingRowsPerPage}
         onRowsPerPageChange={onPendingRowsPerPageChange}
         hideCreateButton={true}
@@ -430,68 +448,65 @@ const EventsManagement = memo(() => {
     const totalEvents = events?.length || 0
     const totalPending = pendingEvents.length
     const totalRevenue = events?.reduce((sum, event) => sum + (event.adultPrice || 0), 0) || 0
-    const popularDestinations = events?.reduce((acc, event) => {
-      const city = event.destination?.city
-      if (city) {
-        acc[city] = (acc[city] || 0) + 1
-      }
-      return acc
-    }, {}) || {}
+    const popularDestinations =
+      events?.reduce((acc, event) => {
+        const city = event.destination?.city
+        if (city) {
+          acc[city] = (acc[city] || 0) + 1
+        }
+        return acc
+      }, {}) || {}
 
     return {
       totalEvents,
       totalPending,
       totalRevenue,
       popularDestinations: Object.entries(popularDestinations)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 5)
         .map(([city, count]) => ({ city, count }))
     }
   }, [events, pendingEvents])
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
+    <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Gestión de Eventos | Admin</title>
-        <meta name="description" content="Panel de administración para gestionar eventos del sistema" />
+        <meta name='description' content='Panel de administración para gestionar eventos del sistema' />
       </Helmet>
 
       {/* Header */}
-      <div className="flex flex-col gap-4">
+      <div className='flex flex-col gap-4'>
         <div>
-          <h1 className="text-2xl font-bold text-gray-200">Gestión de Eventos</h1>
-          <p className="text-gray-400">Administra los eventos y tours del sistema</p>
+          <h1 className='text-2xl font-bold text-gray-200'>Gestión de Eventos</h1>
+          <p className='text-gray-400'>Administra los eventos y tours del sistema</p>
         </div>
       </div>
 
       {/* Pestañas para eventos activos y pendientes */}
-      <div className="flex w-full flex-col">
+      <div className='flex w-full flex-col'>
         <Tabs
           selectedKey={selectedTab}
           onSelectionChange={setSelectedTab}
-          aria-label="Gestión de eventos"
-          color="primary"
-          variant="bordered"
-        >
+          aria-label='Gestión de eventos'
+          color='primary'
+          variant='bordered'>
           <Tab
-            key="active"
+            key='active'
             title={
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
+              <div className='flex items-center space-x-2'>
+                <Calendar className='w-4 h-4' />
                 <span>Eventos Activos</span>
                 {events && events.length > 0 && (
-                  <div className="bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs font-medium">
-                    {totalItems}
-                  </div>
+                  <div className='bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs font-medium'>{totalItems}</div>
                 )}
               </div>
-            }
-          >
-            <div className="py-4">
+            }>
+            <div className='py-4'>
               <UnifiedEventTable
                 events={paginatedEvents}
                 loading={loading}
-                tableType="active"
+                tableType='active'
                 currentUser={currentUser}
                 onEdit={handleOpenEditModal}
                 onDelete={handleOpenDeleteModal}
@@ -505,26 +520,23 @@ const EventsManagement = memo(() => {
               />
             </div>
           </Tab>
-          
+
           <Tab
-            key="pending"
+            key='pending'
             title={
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4" />
+              <div className='flex items-center space-x-2'>
+                <Clock className='w-4 h-4' />
                 <span>Pendientes de Aprobación</span>
                 {pendingEvents.length > 0 && (
-                  <div className="bg-warning-100 text-warning-600 px-2 py-1 rounded-full text-xs font-medium">
-                    {pendingEvents.length}
-                  </div>
+                  <div className='bg-warning-100 text-warning-600 px-2 py-1 rounded-full text-xs font-medium'>{pendingEvents.length}</div>
                 )}
               </div>
-            }
-          >
-            <div className="py-4">
+            }>
+            <div className='py-4'>
               <UnifiedEventTable
                 events={paginatedPendingEvents}
                 loading={loadingPending}
-                tableType="pending"
+                tableType='pending'
                 onApprove={handleApproveEvent}
                 onReject={handleRejectEvent}
                 visibleColumns={visibleColumns}

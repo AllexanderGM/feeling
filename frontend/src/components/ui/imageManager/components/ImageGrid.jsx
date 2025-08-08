@@ -81,25 +81,25 @@ const ImageGrid = memo(
       return (
         <div className={`space-y-6 ${className}`}>
           {/* Título simplificado */}
-          <div className="text-center">
-            <h3 className="text-gray-300 font-medium mb-1">Fotos de perfil</h3>
-            <p className="text-gray-500 text-xs">Sube fotos verticales • Máximo 5MB • Mínimo 400x400px</p>
-            <p className="text-gray-500 text-xs mt-1">Arrastra para reordenar • Formatos: JPG, PNG, WebP</p>
+          <div className='text-center'>
+            <h3 className='text-gray-300 font-medium mb-1'>Fotos de perfil</h3>
+            <p className='text-gray-500 text-xs'>Sube fotos verticales • Máximo 5MB • Mínimo 400x400px</p>
+            <p className='text-gray-500 text-xs mt-1'>Arrastra para reordenar • Formatos: JPG, PNG, WebP</p>
           </div>
 
           {/* Grid dinámico de imágenes */}
-          <div className="space-y-4">
+          <div className='space-y-4'>
             {/* Grid centrado y dinámico - Responsive */}
-            <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+            <div className='flex flex-wrap justify-center gap-3 md:gap-4'>
               {/* Imágenes existentes con sortable */}
               {existingImages.length > 0 && (
                 <ReactSortable
                   list={existingImages}
                   setList={handleSortableChange}
                   {...sortableOptions}
-                  className="flex flex-wrap justify-center gap-3 md:gap-4">
+                  className='flex flex-wrap justify-center gap-3 md:gap-4'>
                   {existingImages.map(item => (
-                    <div key={item.id} className="w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0">
+                    <div key={item.id} className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                       <ImageCard
                         image={item.image}
                         previewUrl={item.url}
@@ -115,9 +115,9 @@ const ImageGrid = memo(
                         onPreview={onPreview}
                         dropzoneProps={dropzoneProps}
                         canAddMore={canAddMore}
-                        variant="portrait"
+                        variant='portrait'
                         size={size}
-                        className="w-full aspect-[3/4]"
+                        className='w-full aspect-[3/4]'
                       />
                     </div>
                   ))}
@@ -126,7 +126,7 @@ const ImageGrid = memo(
 
               {/* Card "Agregar imagen" */}
               {canAddMore && imageCount < maxImages && (
-                <div className="w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0">
+                <div className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                   <ImageCard
                     image={null}
                     previewUrl={null}
@@ -142,16 +142,16 @@ const ImageGrid = memo(
                     onPreview={onPreview}
                     dropzoneProps={dropzoneProps}
                     canAddMore={canAddMore}
-                    variant="portrait"
+                    variant='portrait'
                     size={size}
-                    className="w-full aspect-[3/4]"
+                    className='w-full aspect-[3/4]'
                   />
                 </div>
               )}
             </div>
 
             {/* Barra de progreso */}
-            <div className="max-w-md mx-auto pt-2">
+            <div className='max-w-md mx-auto pt-2'>
               <ImageProgress imageCount={imageCount} maxImages={maxImages} />
             </div>
           </div>
@@ -163,18 +163,18 @@ const ImageGrid = memo(
     return (
       <div className={`space-y-4 ${className}`}>
         {/* Título */}
-        <div className="text-center">
-          <h3 className="text-gray-300 font-medium mb-1">Fotos de perfil</h3>
-          <p className="text-gray-500 text-xs">Sube hasta {maxImages} fotos verticales</p>
+        <div className='text-center'>
+          <h3 className='text-gray-300 font-medium mb-1'>Fotos de perfil</h3>
+          <p className='text-gray-500 text-xs'>Sube hasta {maxImages} fotos verticales</p>
         </div>
 
         {/* Grid tradicional responsive */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3 justify-items-center">
+        <div className='grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3 justify-items-center'>
           {Array.from({ length: maxImages }, (_, index) => {
             const item = existingImages.find(img => img.index === index)
 
             return (
-              <div key={`slot-${index}`} className="w-full">
+              <div key={`slot-${index}`} className='w-full'>
                 <ImageCard
                   image={item?.image || null}
                   previewUrl={item?.url || null}
@@ -190,9 +190,9 @@ const ImageGrid = memo(
                   onPreview={onPreview}
                   dropzoneProps={dropzoneProps}
                   canAddMore={canAddMore}
-                  variant="portrait"
+                  variant='portrait'
                   size={size}
-                  className="w-full aspect-[3/4]"
+                  className='w-full aspect-[3/4]'
                 />
               </div>
             )
@@ -200,7 +200,7 @@ const ImageGrid = memo(
         </div>
 
         {/* Progreso */}
-        <div className="max-w-md mx-auto pt-2">
+        <div className='max-w-md mx-auto pt-2'>
           <ImageProgress imageCount={imageCount} maxImages={maxImages} />
         </div>
       </div>

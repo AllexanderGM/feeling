@@ -2,6 +2,7 @@ import { Card, CardBody, CardFooter } from '@heroui/react'
 // Descomentar para habilitar los tooltips
 // import { Tooltip } from '@heroui/react'
 import { useNavigate } from 'react-router-dom'
+import { Logger } from '@utils/logger.js'
 
 import './cardCategories.scss'
 
@@ -38,7 +39,7 @@ const CardCategories = ({ item }) => {
   const navigate = useNavigate()
 
   const handleCardClick = () => {
-    console.log(`Navegando a la categoría: ${item.title} (tag: ${item.tag})`)
+    Logger.info('Navegando a categoría', Logger.CATEGORIES.USER, { category: item.title, tag: item.tag })
     navigate(`/categoria/${item.title.toLowerCase()}`)
   }
 
@@ -48,11 +49,11 @@ const CardCategories = ({ item }) => {
 
   // Versión con diseño original
   return (
-    <Card className="card-categories" isPressable shadow="sm" onPress={handleCardClick}>
-      <CardBody className="card-categories-body">
-        <span className="material-symbols-outlined">{item.icon}</span>
+    <Card className='card-categories' isPressable shadow='sm' onPress={handleCardClick}>
+      <CardBody className='card-categories-body'>
+        <span className='material-symbols-outlined'>{item.icon}</span>
       </CardBody>
-      <CardFooter className="card-categories-footer">{item.title}</CardFooter>
+      <CardFooter className='card-categories-footer'>{item.title}</CardFooter>
     </Card>
   )
 

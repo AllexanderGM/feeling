@@ -15,26 +15,26 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
   return (
     <div
       className={`space-y-2 ${className}`}
-      role="progressbar"
+      role='progressbar'
       aria-valuenow={percentage}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-label={`Progreso de subida de fotos: ${imageCount} de ${maxImages} imágenes`}>
       {/* Progreso visual */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 md:gap-2">
+      <div className='space-y-1.5'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-1.5 md:gap-2'>
             {isComplete ? (
-              <Check className="w-3 h-3 md:w-4 md:h-4 text-green-400" />
+              <Check className='w-3 h-3 md:w-4 md:h-4 text-green-400' />
             ) : (
-              <Camera className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+              <Camera className='w-3 h-3 md:w-4 md:h-4 text-gray-400' />
             )}
-            <span className="text-xs md:text-sm font-medium text-gray-300">Fotos subidas</span>
+            <span className='text-xs md:text-sm font-medium text-gray-300'>Fotos subidas</span>
           </div>
 
           <Chip
-            size="sm"
-            variant="flat"
+            size='sm'
+            variant='flat'
             color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
             className={`
               ${
@@ -50,10 +50,10 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
         </div>
 
         <Progress
-          size="sm"
+          size='sm'
           value={percentage}
           color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
-          className="w-full h-1.5"
+          className='w-full h-1.5'
           aria-label={`Progreso de subida de fotos: ${imageCount} de ${maxImages} imágenes subidas`}
           aria-valuetext={`${percentage}% completado. ${imageCount} de ${maxImages} fotos subidas`}
           classNames={{
@@ -64,13 +64,13 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
       </div>
 
       {/* Estado y mensajes */}
-      <div className="text-center px-2" role="status" aria-live="polite">
+      <div className='text-center px-2' role='status' aria-live='polite'>
         {isComplete ? (
-          <p className="text-green-400 text-xs md:text-sm font-medium">¡Perfil completo!</p>
+          <p className='text-green-400 text-xs md:text-sm font-medium'>¡Perfil completo!</p>
         ) : imageCount > 0 ? (
-          <p className="text-gray-400 text-xs">Agrega {maxImages - imageCount} más para completar</p>
+          <p className='text-gray-400 text-xs'>Agrega {maxImages - imageCount} más para completar</p>
         ) : (
-          <p className="text-gray-500 text-xs">Sube tu primera foto</p>
+          <p className='text-gray-500 text-xs'>Sube tu primera foto</p>
         )}
       </div>
     </div>

@@ -41,46 +41,46 @@ const ImageInput = ({ images = [''], onChange, maxImages = 5 }) => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">
+    <div className='space-y-3'>
+      <div className='flex justify-between items-center'>
+        <p className='text-sm font-medium'>
           Imágenes (URLs) - {imageUrls.length}/{maxImages}
         </p>
         {imageUrls.length < maxImages && (
           <Button
-            size="sm"
-            color="primary"
-            variant="flat"
+            size='sm'
+            color='primary'
+            variant='flat'
             onPress={handleAddImage}
-            startContent={<span className="material-symbols-outlined">add</span>}>
+            startContent={<span className='material-symbols-outlined'>add</span>}>
             Añadir imagen
           </Button>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className='space-y-3'>
         {imageUrls.map((url, index) => (
-          <div key={index} className="flex gap-2 items-center">
+          <div key={index} className='flex gap-2 items-center'>
             <Input
               placeholder={`URL de la imagen ${index + 1}`}
               value={url}
               onChange={e => handleImageChange(index, e.target.value)}
-              className="flex-grow"
+              className='flex-grow'
             />
             <Button
               isIconOnly
-              size="sm"
-              variant="flat"
-              color="danger"
+              size='sm'
+              variant='flat'
+              color='danger'
               onPress={() => handleRemoveImage(index)}
               disabled={imageUrls.length === 1 && index === 0}>
-              <span className="material-symbols-outlined">delete</span>
+              <span className='material-symbols-outlined'>delete</span>
             </Button>
           </div>
         ))}
       </div>
 
-      {imageUrls.length >= maxImages && <p className="text-xs text-gray-500">Has alcanzado el límite máximo de {maxImages} imágenes.</p>}
+      {imageUrls.length >= maxImages && <p className='text-xs text-gray-500'>Has alcanzado el límite máximo de {maxImages} imágenes.</p>}
     </div>
   )
 }

@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:format": "npm run format && npm run lint",
     "preview": "vite preview"
   },
   "dependencies": {

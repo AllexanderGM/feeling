@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, Chip } from '@heroui/react'
 import { useAuth } from '@context/AuthContext.jsx'
-import { getAllUsers, getUserByEmail } from '@services/userService'
+import { getAllUsers, getUserByEmail } from '@services'
+import { Logger } from '@utils/logger.js'
 
 import GenericTableControls from './ui/GenericTableControls.jsx'
 import TableActionCell from './ui/TableActionCell.jsx'
 import TablePagination from './ui/TablePagination.jsx'
-import CrearUserForm from '../pages/user/usersManagement/components/CrearUserForm.jsx'
-import EditarUserForm from '../pages/user/usersManagement/components/EditarUserForm.jsx'
-import DeleteUserModal from '../pages/user/usersManagement/components/DeleteUserModal.jsx'
+import CrearUserForm from '../pages/user/management/components/CrearUserForm.js'
+import EditarUserForm from '../pages/user/management/components/EditarUserForm.js'
+import DeleteUserModal from '../pages/user/management/components/DeleteUserModal.jsx'
 import { USER_ROLES, USER_ROLE_COLORS, USER_COLUMNS } from '../constants/tableConstants.js'
 
 const TableUsers = () => {
@@ -92,7 +93,7 @@ const TableUsers = () => {
       const data = await getAllUsers()
       setUsers(data)
     } catch (error) {
-      console.error('Error al cargar usuarios:', error)
+      Logger.error('Error al cargar usuarios', Logger.CATEGORIES.SERVICE, { error: error.message, stack: error.stack })
       setError(error.message)
     } finally {
       setLoading(false)
@@ -111,7 +112,10 @@ const TableUsers = () => {
     try {
       // Obtener datos completos del usuario
       const fullUserData = await getUserByEmail(user.email)
-      console.log('Datos completos del usuario:', fullUserData)
+      Logger.debug('Datos completos del usuario obtenidos', Logger.CATEGORIES.SERVICE, {
+        userId: fullUserData.id,
+        email: fullUserData.email
+      })
 
       // Mapear los datos recibidos al formato esperado por el formulario
       const mappedUserData = {
@@ -130,11 +134,14 @@ const TableUsers = () => {
         role: fullUserData.role
       }
 
-      console.log('Datos mapeados del usuario:', mappedUserData)
+      Logger.debug('Datos del usuario mapeados para edición', Logger.CATEGORIES.UI, { userId: mappedUserData.id })
       setSelectedUser(mappedUserData)
       setIsEditModalOpen(true)
     } catch (error) {
-      console.error('Error al obtener datos completos del usuario:', error)
+      Logger.error('Error al obtener datos completos del usuario', Logger.CATEGORIES.SERVICE, {
+        userEmail: user?.email,
+        error: error.message
+      })
       // Fallback a datos básicos si falla la llamada
       setSelectedUser(user)
       setIsEditModalOpen(true)
@@ -144,11 +151,11 @@ const TableUsers = () => {
   const handleOpenDeleteModal = useCallback(user => {
     // Asegurarnos de que tenemos la información correcta del usuario
     if (!user || !user.email) {
-      console.error('Error: Datos de usuario incompletos', user)
+      Logger.error('Datos de usuario incompletos para eliminación', Logger.CATEGORIES.USER, { user })
       return
     }
 
-    console.log('Abriendo modal para eliminar usuario:', user.email)
+    Logger.info('Abriendo modal de eliminación de usuario', Logger.CATEGORIES.UI, { userEmail: user.email, userId: user.id })
     setSelectedUser({
       id: user.id,
       email: user.email,
@@ -167,7 +174,7 @@ const TableUsers = () => {
   }, [])
 
   const handleSuccess = useCallback(() => {
-    console.log('Operación exitosa, actualizando lista de usuarios')
+    Logger.info('Operación de usuario exitosa, actualizando lista', Logger.CATEGORIES.USER)
     fetchUsers()
     setIsCreateModalOpen(false)
     setIsEditModalOpen(false)
@@ -193,7 +200,7 @@ const TableUsers = () => {
           )
         case 'role':
           return (
-            <Chip className="capitalize" color={USER_ROLE_COLORS[user.role] || 'default'} size="sm" variant="flat">
+            <Chip className='capitalize' color={USER_ROLE_COLORS[user.role] || 'default'} size='sm' variant='flat'>
               {user.role?.toLowerCase() || 'user'}
             </Chip>
           )
@@ -255,16 +262,16 @@ const TableUsers = () => {
         filterValue={filterValue}
         onClear={onClear}
         onSearchChange={onSearchChange}
-        filterPlaceholder="Buscar por nombre o email..."
+        filterPlaceholder='Buscar por nombre o email...'
         columns={USER_COLUMNS}
         visibleColumns={visibleColumns}
         setVisibleColumns={setVisibleColumns}
         onCreateItem={handleOpenCreateModal}
-        createButtonLabel="Crear Usuario"
+        createButtonLabel='Crear Usuario'
         loading={loading}
         error={error}
         totalItems={users.length}
-        itemsLabel="usuarios"
+        itemsLabel='usuarios'
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={onRowsPerPageChange}
       />
@@ -302,15 +309,15 @@ const TableUsers = () => {
     <>
       <Table
         isHeaderSticky
-        aria-label="Tabla de Usuarios"
-        className="w-full max-w-6xl mt-6"
+        aria-label='Tabla de Usuarios'
+        className='w-full max-w-6xl mt-6'
         bottomContent={bottomContent}
-        bottomContentPlacement="outside"
+        bottomContentPlacement='outside'
         selectedKeys={selectedKeys}
-        selectionMode="multiple"
+        selectionMode='multiple'
         sortDescriptor={sortDescriptor}
         topContent={topContent}
-        topContentPlacement="outside"
+        topContentPlacement='outside'
         onSelectionChange={setSelectedKeys}
         onSortChange={setSortDescriptor}>
         <TableHeader columns={headerColumns}>

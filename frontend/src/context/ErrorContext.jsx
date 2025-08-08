@@ -1,4 +1,5 @@
 import { createContext, useState } from 'react'
+import { Logger } from '@utils/logger.js'
 
 const ErrorContext = createContext()
 
@@ -79,7 +80,9 @@ export const ErrorProvider = ({ children }) => {
   }
 
   const handleError = (error, type = 'alert') => {
-    console.error('Error capturado:', error)
+    Logger.error(Logger.CATEGORIES.SYSTEM, 'handleError', error, {
+      context: { errorType: type, errorDetails: error }
+    })
 
     let errorMessage = 'Ha ocurrido un error inesperado'
     let errorDetails = null

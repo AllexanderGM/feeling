@@ -36,41 +36,41 @@ const ShareButtons = ({ tour, currentUrl }) => {
   }
 
   return (
-    <div className="flex flex-col items-start">
-      <Popover placement="bottom">
+    <div className='flex flex-col items-start'>
+      <Popover placement='bottom'>
         <PopoverTrigger>
-          <Button isIconOnly color="primary" variant="light" startContent={<Share />} className="mb-0"></Button>
+          <Button isIconOnly color='primary' variant='light' startContent={<Share />} className='mb-0'></Button>
         </PopoverTrigger>
         <PopoverContent>
-          <div className="p-2">
-            <h3 className="text-lg font-semibold mb-3">Compartir este tour</h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <FacebookShareButton url={shareUrl} quote={title} className="social-share-button">
+          <div className='p-2'>
+            <h3 className='text-lg font-semibold mb-3'>Compartir este tour</h3>
+            <div className='flex flex-wrap gap-2 mb-4'>
+              <FacebookShareButton url={shareUrl} quote={title} className='social-share-button'>
                 <FacebookIcon size={40} round />
               </FacebookShareButton>
 
-              <TwitterShareButton url={shareUrl} title={title} hashtags={hashtags} className="social-share-button">
+              <TwitterShareButton url={shareUrl} title={title} hashtags={hashtags} className='social-share-button'>
                 <TwitterIcon size={40} round />
               </TwitterShareButton>
 
-              <WhatsappShareButton url={shareUrl} title={title} className="social-share-button">
+              <WhatsappShareButton url={shareUrl} title={title} className='social-share-button'>
                 <WhatsappIcon size={40} round />
               </WhatsappShareButton>
 
-              <TelegramShareButton url={shareUrl} title={title} className="social-share-button">
+              <TelegramShareButton url={shareUrl} title={title} className='social-share-button'>
                 <TelegramIcon size={40} round />
               </TelegramShareButton>
 
-              <EmailShareButton url={shareUrl} subject={title} body={description} className="social-share-button">
+              <EmailShareButton url={shareUrl} subject={title} body={description} className='social-share-button'>
                 <EmailIcon size={40} round />
               </EmailShareButton>
             </div>
 
-            <div className="mt-3">
-              <div className="flex items-center">
-                <input type="text" value={shareUrl} readOnly className="flex-grow p-2 text-sm border rounded-l-md bg-gray-50" />
+            <div className='mt-3'>
+              <div className='flex items-center'>
+                <input type='text' value={shareUrl} readOnly className='flex-grow p-2 text-sm border rounded-l-md bg-gray-50' />
                 <Tooltip content={copied ? '¡Enlace copiado!' : 'Copiar enlace'}>
-                  <Button color={copied ? 'success' : 'primary'} onPress={handleCopyLink} className="rounded-l-none h-full">
+                  <Button color={copied ? 'success' : 'primary'} onPress={handleCopyLink} className='rounded-l-none h-full'>
                     {copied ? <Check /> : <Copy />}
                   </Button>
                 </Tooltip>

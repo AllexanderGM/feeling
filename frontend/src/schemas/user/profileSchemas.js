@@ -4,10 +4,10 @@ import { USER_DEFAULT_VALUES } from './userStructure'
 
 /**
  * ESQUEMAS DE VALIDACIÓN PARA PERFIL DE USUARIO
- * 
+ *
  * Contiene validaciones específicas para:
  * - Completar perfil por pasos
- * - Editar perfil básico  
+ * - Editar perfil básico
  * - Validaciones específicas por categoría
  */
 
@@ -132,7 +132,7 @@ export const preferencesEditSchema = yup.object().shape({
 /**
  * Función para obtener los campos a validar según el paso
  */
-export const getFieldsForStep = (step) => {
+export const getFieldsForStep = step => {
   const stepFields = {
     1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'birthDate', 'country', 'city', 'images'],
     2: ['description', 'genderId', 'height', 'tags'],
@@ -153,7 +153,7 @@ export const getFieldsForStep = (step) => {
 /**
  * Obtener esquema de validación según el paso
  */
-export const getSchemaForStep = (step) => {
+export const getSchemaForStep = step => {
   const schemas = {
     1: stepBasicInfoSchema,
     2: stepCharacteristicsSchema,
@@ -174,7 +174,7 @@ export const validateCategoryRequiredFields = (categoryInterest, userData) => {
   }
 
   const fieldsToCheck = requiredFields[categoryInterest] || []
-  
+
   return fieldsToCheck.every(field => {
     const value = userData[field]
     return value && value.toString().trim() !== ''
@@ -184,22 +184,22 @@ export const validateCategoryRequiredFields = (categoryInterest, userData) => {
 /**
  * Crear esquema dinámico basado en la categoría de interés
  */
-export const createCategorySpecificSchema = (categoryInterest) => {
+export const createCategorySpecificSchema = categoryInterest => {
   const baseSchema = stepPreferencesSchema.fields
-  
+
   // Crear un esquema que incluya solo las validaciones relevantes para la categoría
   const relevantFields = { ...baseSchema }
-  
+
   // Remover validaciones condicionales que no aplican
   if (categoryInterest !== 'SPIRIT') {
     delete relevantFields.religionId
   }
-  
+
   if (categoryInterest !== 'ROUSE') {
     delete relevantFields.sexualRoleId
     delete relevantFields.relationshipTypeId
   }
-  
+
   return yup.object().shape(relevantFields)
 }
 
@@ -212,28 +212,28 @@ export const createCategorySpecificSchema = (categoryInterest) => {
 export const getDefaultValuesForStep = (step, user = null) => {
   const stepFields = getFieldsForStep(step)
   const defaultValues = {}
-  
+
   stepFields.forEach(field => {
     let value
-    
+
     // Intentar obtener valor del usuario existente
     if (user) {
       // Priorizar estructura organizada (user.profile.field)
-      value = user.profile?.[field] 
-      
+      value = user.profile?.[field]
+
       // Fallback a estructura plana (user.field) para compatibilidad
       if (value === undefined || value === null) {
         value = user[field]
       }
     }
-    
+
     // Si no hay valor en el usuario, usar valores por defecto
     if (value === undefined || value === null) {
       value = USER_DEFAULT_VALUES.profile[field]
     }
-    
+
     defaultValues[field] = value
   })
-  
+
   return defaultValues
 }

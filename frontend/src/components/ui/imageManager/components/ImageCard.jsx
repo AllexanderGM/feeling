@@ -110,7 +110,7 @@ const ImageCard = memo(
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handlePreviewClick}
-        role="button"
+        role='button'
         tabIndex={0}
         aria-label={`${isMain ? 'Imagen principal' : `Imagen ${index + 1}`}`}>
         {/* Imagen */}
@@ -123,7 +123,7 @@ const ImageCard = memo(
           ${imageLoaded ? 'opacity-100' : 'opacity-0'}
         `}
           onLoad={handleImageLoad}
-          loading="lazy"
+          loading='lazy'
         />
 
         {/* Loading placeholder */}
@@ -133,40 +133,40 @@ const ImageCard = memo(
           absolute inset-0 bg-gray-800/30 animate-pulse flex items-center justify-center
           ${variant === 'circular' ? 'rounded-full' : 'rounded-lg'}
         `}>
-            <Camera className="w-6 h-6 text-gray-400" />
+            <Camera className='w-6 h-6 text-gray-400' />
           </div>
         )}
 
         {/* Overlay con controles */}
         {isHovered && imageLoaded && (
           <div className={overlayClasses}>
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               {/* Botón editar/crop */}
               {enableCrop && (
-                <Tooltip content="Editar imagen" size="sm">
+                <Tooltip content='Editar imagen' size='sm'>
                   <Button
                     isIconOnly
-                    size="sm"
-                    variant="solid"
-                    color="primary"
+                    size='sm'
+                    variant='solid'
+                    color='primary'
                     onClick={handleCropClick}
-                    className="bg-primary-500/90 hover:bg-primary-500">
-                    <Edit3 className="w-4 h-4" />
+                    className='bg-primary-500/90 hover:bg-primary-500'>
+                    <Edit3 className='w-4 h-4' />
                   </Button>
                 </Tooltip>
               )}
 
               {/* Botón hacer principal (solo para imágenes adicionales) */}
               {!isMain && onSetAsMain && (
-                <Tooltip content="Hacer principal" size="sm">
+                <Tooltip content='Hacer principal' size='sm'>
                   <Button
                     isIconOnly
-                    size="sm"
-                    variant="solid"
-                    color="warning"
+                    size='sm'
+                    variant='solid'
+                    color='warning'
                     onClick={handleSetMainClick}
-                    className="bg-yellow-500/90 hover:bg-yellow-500">
-                    <Star className="w-4 h-4" />
+                    className='bg-yellow-500/90 hover:bg-yellow-500'>
+                    <Star className='w-4 h-4' />
                   </Button>
                 </Tooltip>
               )}
@@ -177,7 +177,7 @@ const ImageCard = memo(
         {/* Botón eliminar */}
         {enableRemove && imageLoaded && (
           <button
-            type="button"
+            type='button'
             onClick={handleRemoveClick}
             className={`
             absolute bg-red-500 rounded-full flex items-center justify-center text-white
@@ -191,8 +191,8 @@ const ImageCard = memo(
 
         {/* Badge de imagen principal */}
         {isMain && (
-          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-            <Chip color="primary" size="sm" startContent={<Star className="w-3 h-3" />} variant="shadow" className="text-xs font-medium">
+          <div className='absolute -bottom-2 left-1/2 transform -translate-x-1/2'>
+            <Chip color='primary' size='sm' startContent={<Star className='w-3 h-3' />} variant='shadow' className='text-xs font-medium'>
               Principal
             </Chip>
           </div>
@@ -200,10 +200,10 @@ const ImageCard = memo(
 
         {/* Error indicator */}
         {error && (
-          <div className="absolute -top-1 -left-1">
-            <Tooltip content={error} color="danger" size="sm">
-              <div className="bg-red-500 rounded-full p-1">
-                <AlertCircle className="w-3 h-3 text-white" />
+          <div className='absolute -top-1 -left-1'>
+            <Tooltip content={error} color='danger' size='sm'>
+              <div className='bg-red-500 rounded-full p-1'>
+                <AlertCircle className='w-3 h-3 text-white' />
               </div>
             </Tooltip>
           </div>
@@ -249,7 +249,7 @@ const EmptyImageSlot = memo(({ variant, size, isMain, canAddMore, dropzoneProps,
           ${variant === 'circular' ? 'rounded-full' : 'rounded-lg'} p-2
         `}>
           <Camera className={iconSize} />
-          <span className="text-xs mt-1 text-center leading-tight">{isMain ? 'Principal' : `Foto ${index + 1}`}</span>
+          <span className='text-xs mt-1 text-center leading-tight'>{isMain ? 'Principal' : `Foto ${index + 1}`}</span>
         </div>
       </div>
     )
@@ -259,7 +259,7 @@ const EmptyImageSlot = memo(({ variant, size, isMain, canAddMore, dropzoneProps,
     <div
       {...(dropzoneProps?.getRootProps ? dropzoneProps.getRootProps() : {})}
       className={getEmptyClasses()}
-      role="button"
+      role='button'
       tabIndex={0}
       aria-label={`Agregar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}>
       {dropzoneProps?.getInputProps && <input {...dropzoneProps.getInputProps()} />}
@@ -271,13 +271,13 @@ const EmptyImageSlot = memo(({ variant, size, isMain, canAddMore, dropzoneProps,
         ${variant === 'circular' ? 'rounded-full' : 'rounded-lg'} p-2
       `}>
         <Camera className={`${iconSize} mb-1 md:mb-2 transition-transform duration-300 ${isDragActive ? 'scale-110' : ''}`} />
-        <div className="text-center">
-          <div className="text-xs font-medium leading-tight">{isDragActive ? 'Suelta aquí' : isMain ? 'Principal' : `Foto ${index}`}</div>
-          <div className="text-xs mt-0.5 md:mt-1 leading-tight transition-colors duration-300">
+        <div className='text-center'>
+          <div className='text-xs font-medium leading-tight'>{isDragActive ? 'Suelta aquí' : isMain ? 'Principal' : `Foto ${index}`}</div>
+          <div className='text-xs mt-0.5 md:mt-1 leading-tight transition-colors duration-300'>
             {isDragActive ? (
-              <span className="text-primary-400">Agregar imagen</span>
+              <span className='text-primary-400'>Agregar imagen</span>
             ) : (
-              <span className="text-gray-500">Clic para agregar</span>
+              <span className='text-gray-500'>Clic para agregar</span>
             )}
           </div>
         </div>

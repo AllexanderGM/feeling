@@ -130,14 +130,14 @@ const ImageManager = forwardRef(
       <div className={`image-manager ${className}`}>
         {/* Encabezado */}
         {(title || description) && (
-          <div className="mb-6">
-            {title && <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>}
-            {description && <p className="text-gray-600 text-sm">{description}</p>}
+          <div className='mb-6'>
+            {title && <h3 className='text-lg font-semibold text-gray-900 mb-2'>{title}</h3>}
+            {description && <p className='text-gray-600 text-sm'>{description}</p>}
           </div>
         )}
 
         {/* Grid de imágenes - siempre visible para mostrar slots vacíos */}
-        <div className="mb-6">
+        <div className='mb-6'>
           <ImageGrid
             images={imageManager.images}
             previewUrls={imageManager.previewUrls}
@@ -170,7 +170,7 @@ const ImageManager = forwardRef(
           initialAspectRatio={cropAspectRatio}
           outputFormat={cropOutputFormat}
           outputQuality={cropOutputQuality}
-          title="Ajustar imagen"
+          title='Ajustar imagen'
           showAspectRatioControls={false}
           {...cropModalProps}
         />

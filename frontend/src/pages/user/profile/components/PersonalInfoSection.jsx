@@ -3,10 +3,10 @@ import { Button, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFoot
 import { MapPin, Calendar, Phone, Mail, Edit2, Check, X, IdCard, Camera, User, Briefcase, Eye, ZoomIn, Settings } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import useUser from '@hooks/useUser.js'
-import useLocation from '@hooks/useLocation.js'
+import { useUser, useLocation } from '@hooks/useUser.js'
 import { stepBasicInfoSchema, getDefaultValuesForStep } from '@schemas'
 import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
+import { Logger } from '@utils/logger.js'
 
 const PersonalInfoSection = ({ user }) => {
   const [loading, setLoading] = useState(false)
@@ -65,7 +65,7 @@ const PersonalInfoSection = ({ user }) => {
       await updateUserProfile(formData)
       onEditOpenChange()
     } catch (error) {
-      console.error('Error updating personal info:', error)
+      Logger.error(Logger.CATEGORIES.USER, 'update_personal_info', 'Error updating personal info', { error })
     } finally {
       setLoading(false)
     }
@@ -156,57 +156,58 @@ const PersonalInfoSection = ({ user }) => {
 
   // Vista de solo lectura
   return (
-    <div className="space-y-6 w-full">
+    <div className='space-y-6 w-full'>
       {/* Información personal con diseño similar al estado general */}
-      <div className="bg-gray-800/50 border border-gray-700/30 rounded-lg p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-blue-400" />
-            <span className="text-sm font-medium text-gray-200">Información Personal</span>
+      <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4 sm:p-6 space-y-4'>
+        <div className='flex items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <User className='w-4 h-4 text-blue-400' />
+            <span className='text-sm font-medium text-gray-200'>Información Personal</span>
           </div>
           <Button
-            size="sm"
-            variant="solid"
-            color="primary"
-            className="bg-primary-600 hover:bg-primary-700"
-            startContent={<Settings className="w-3 h-3" />}
+            size='sm'
+            variant='solid'
+            color='primary'
+            className='bg-primary-600 hover:bg-primary-700'
+            startContent={<Settings className='w-3 h-3' />}
             onPress={handleEdit}>
             Editar
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400">
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400'>
           {/* Nombre completo */}
-          <div className="flex items-center gap-2">
-            <User className="w-3 h-3" />
+          <div className='flex items-center gap-2'>
+            <User className='w-3 h-3' />
             <span>
               Nombre:{' '}
-              <span className="text-gray-300">
-                {(user?.profile?.name || user?.name) && (user?.profile?.lastName || user?.lastName) 
-                  ? `${user?.profile?.name || user?.name} ${user?.profile?.lastName || user?.lastName}` 
+              <span className='text-gray-300'>
+                {(user?.profile?.name || user?.name) && (user?.profile?.lastName || user?.lastName)
+                  ? `${user?.profile?.name || user?.name} ${user?.profile?.lastName || user?.lastName}`
                   : 'No especificado'}
               </span>
             </span>
           </div>
 
           {/* Documento */}
-          <div className="flex items-center gap-2">
-            <IdCard className="w-3 h-3" />
+          <div className='flex items-center gap-2'>
+            <IdCard className='w-3 h-3' />
             <span>
-              Documento: <span className="text-gray-300">{user?.profile?.document || user?.document || 'No especificado'}</span>
+              Documento: <span className='text-gray-300'>{user?.profile?.document || user?.document || 'No especificado'}</span>
             </span>
           </div>
 
           {/* Fecha de nacimiento y edad */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3 h-3" />
+          <div className='flex items-center gap-2'>
+            <Calendar className='w-3 h-3' />
             <span>
               Nacimiento:{' '}
-              <span className="text-gray-300">
-                {(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) ? (
+              <span className='text-gray-300'>
+                {user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth ? (
                   <>
                     {new Date(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth).toLocaleDateString('es-ES')}
-                    {calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) && ` (${calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth)} años)`}
+                    {calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) &&
+                      ` (${calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth)} años)`}
                   </>
                 ) : (
                   'No especificado'
@@ -216,43 +217,43 @@ const PersonalInfoSection = ({ user }) => {
           </div>
 
           {/* Teléfono con bandera */}
-          <div className="flex items-center gap-2">
-            <Phone className="w-3 h-3" />
+          <div className='flex items-center gap-2'>
+            <Phone className='w-3 h-3' />
             <span>Teléfono: </span>
             {(user?.profile?.phoneCode || user?.phoneCode) && (user?.profile?.phone || user?.phone) ? (
-              <div className="flex items-center gap-1">
+              <div className='flex items-center gap-1'>
                 {getPhoneCountryData && (
                   <img
                     src={getPhoneCountryData.image}
                     alt={`Bandera de ${getPhoneCountryData.name}`}
-                    className="w-3 h-3 rounded-full object-cover"
+                    className='w-3 h-3 rounded-full object-cover'
                   />
                 )}
-                <span className="text-gray-300">
+                <span className='text-gray-300'>
                   {user?.profile?.phoneCode || user?.phoneCode} {user?.profile?.phone || user?.phone}
                 </span>
               </div>
             ) : (
-              <span className="text-gray-300">No especificado</span>
+              <span className='text-gray-300'>No especificado</span>
             )}
           </div>
 
           {/* Ubicación con bandera */}
-          <div className="flex items-center gap-2 sm:col-span-2">
-            <MapPin className="w-3 h-3" />
+          <div className='flex items-center gap-2 sm:col-span-2'>
+            <MapPin className='w-3 h-3' />
             <span>Ubicación: </span>
             {(user?.profile?.city || user?.city) && (user?.profile?.country || user?.country) ? (
-              <div className="flex items-center gap-1">
+              <div className='flex items-center gap-1'>
                 {getCountryData && (
-                  <img src={getCountryData.image} alt={`Bandera de ${getCountryData.name}`} className="w-3 h-3 rounded-full object-cover" />
+                  <img src={getCountryData.image} alt={`Bandera de ${getCountryData.name}`} className='w-3 h-3 rounded-full object-cover' />
                 )}
-                <span className="text-gray-300">
-                  {(user?.profile?.locality || user?.locality) ? `${user?.profile?.locality || user?.locality}, ` : ''}
+                <span className='text-gray-300'>
+                  {user?.profile?.locality || user?.locality ? `${user?.profile?.locality || user?.locality}, ` : ''}
                   {user?.profile?.city || user?.city}, {user?.profile?.country || user?.country}
                 </span>
               </div>
             ) : (
-              <span className="text-gray-300">No especificado</span>
+              <span className='text-gray-300'>No especificado</span>
             )}
           </div>
         </div>
@@ -260,35 +261,35 @@ const PersonalInfoSection = ({ user }) => {
 
       {/* Galería de imágenes compacta */}
       {galleryImages.length > 0 && (
-        <div className="bg-gray-800/30 border border-gray-700/20 rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Camera className="w-4 h-4 text-blue-400" />
-              <span className="text-sm font-medium text-gray-200">Galería de Fotos</span>
+        <div className='bg-gray-800/30 border border-gray-700/20 rounded-lg p-4 space-y-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <Camera className='w-4 h-4 text-blue-400' />
+              <span className='text-sm font-medium text-gray-200'>Galería de Fotos</span>
             </div>
-            <span className="text-xs text-gray-400">{galleryImages.length} de 5</span>
+            <span className='text-xs text-gray-400'>{galleryImages.length} de 5</span>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          <div className='grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2'>
             {galleryImages.slice(0, 5).map((image, index) => (
               <div
                 key={index}
-                className="relative group cursor-pointer overflow-hidden rounded-lg border border-gray-700/50 hover:border-primary-500 transition-all duration-300"
+                className='relative group cursor-pointer overflow-hidden rounded-lg border border-gray-700/50 hover:border-primary-500 transition-all duration-300'
                 onClick={() => openImageModal(image, index)}>
                 <img
                   src={image}
                   alt={`Foto ${index + 1} del perfil`}
-                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                  className='w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105'
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-black/50 rounded-full p-2">
-                      <ZoomIn className="w-4 h-4 text-white" />
+                <div className='absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center'>
+                  <div className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+                    <div className='bg-black/50 rounded-full p-2'>
+                      <ZoomIn className='w-4 h-4 text-white' />
                     </div>
                   </div>
                 </div>
                 {index === 0 && (
-                  <div className="absolute top-1 left-1 bg-primary-500 text-white text-xs px-1 py-0.5 rounded">Principal</div>
+                  <div className='absolute top-1 left-1 bg-primary-500 text-white text-xs px-1 py-0.5 rounded'>Principal</div>
                 )}
               </div>
             ))}
@@ -300,7 +301,7 @@ const PersonalInfoSection = ({ user }) => {
       <Modal
         isOpen={isImageOpen}
         onOpenChange={onImageOpenChange}
-        size="5xl"
+        size='5xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
@@ -310,23 +311,23 @@ const PersonalInfoSection = ({ user }) => {
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center justify-between w-full">
-                  <h3 className="text-lg font-bold text-gray-200">
+              <ModalHeader className='flex flex-col gap-1'>
+                <div className='flex items-center justify-between w-full'>
+                  <h3 className='text-lg font-bold text-gray-200'>
                     Foto {currentImageIndex + 1} de {galleryImages.length}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    {currentImageIndex === 0 && <span className="bg-primary-500 text-white text-xs px-2 py-1 rounded-full">Principal</span>}
+                  <div className='flex items-center gap-2'>
+                    {currentImageIndex === 0 && <span className='bg-primary-500 text-white text-xs px-2 py-1 rounded-full'>Principal</span>}
                   </div>
                 </div>
               </ModalHeader>
-              <ModalBody className="p-0">
-                <div className="relative">
+              <ModalBody className='p-0'>
+                <div className='relative'>
                   {selectedImage && (
                     <img
                       src={selectedImage}
                       alt={`Foto ${currentImageIndex + 1} del perfil`}
-                      className="w-full h-auto max-h-[70vh] object-contain"
+                      className='w-full h-auto max-h-[70vh] object-contain'
                     />
                   )}
 
@@ -335,20 +336,20 @@ const PersonalInfoSection = ({ user }) => {
                     <>
                       <Button
                         isIconOnly
-                        variant="flat"
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                        variant='flat'
+                        className='absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70'
                         onPress={() => navigateImage('prev')}>
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        <svg className='w-6 h-6 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M15 19l-7-7 7-7' />
                         </svg>
                       </Button>
                       <Button
                         isIconOnly
-                        variant="flat"
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70"
+                        variant='flat'
+                        className='absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70'
                         onPress={() => navigateImage('next')}>
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        <svg className='w-6 h-6 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
                         </svg>
                       </Button>
                     </>
@@ -356,10 +357,10 @@ const PersonalInfoSection = ({ user }) => {
                 </div>
               </ModalBody>
               <ModalFooter>
-                <div className="flex justify-between items-center w-full">
-                  <div className="flex items-center gap-2">
+                <div className='flex justify-between items-center w-full'>
+                  <div className='flex items-center gap-2'>
                     {galleryImages.length > 1 && (
-                      <div className="flex gap-1">
+                      <div className='flex gap-1'>
                         {galleryImages.map((_, index) => (
                           <div
                             key={index}
@@ -371,7 +372,7 @@ const PersonalInfoSection = ({ user }) => {
                       </div>
                     )}
                   </div>
-                  <Button color="danger" variant="light" onPress={onClose}>
+                  <Button color='danger' variant='light' onPress={onClose}>
                     Cerrar
                   </Button>
                 </div>
@@ -385,8 +386,8 @@ const PersonalInfoSection = ({ user }) => {
       <Modal
         isOpen={isEditOpen}
         onOpenChange={onEditOpenChange}
-        size="5xl"
-        scrollBehavior="inside"
+        size='5xl'
+        scrollBehavior='inside'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
@@ -396,21 +397,21 @@ const PersonalInfoSection = ({ user }) => {
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <h3 className="text-lg font-bold text-gray-200">Editar Información Personal</h3>
-                <p className="text-sm text-gray-400">Actualiza tus datos básicos y fotos de perfil</p>
+              <ModalHeader className='flex flex-col gap-1'>
+                <h3 className='text-lg font-bold text-gray-200'>Editar Información Personal</h3>
+                <p className='text-sm text-gray-400'>Actualiza tus datos básicos y fotos de perfil</p>
               </ModalHeader>
-              <ModalBody className="py-6">
+              <ModalBody className='py-6'>
                 <StepBasicInfo {...stepBasicInfoProps} />
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={handleCancel} startContent={<X className="w-4 h-4" />} isDisabled={loading}>
+                <Button color='danger' variant='light' onPress={handleCancel} startContent={<X className='w-4 h-4' />} isDisabled={loading}>
                   Cancelar
                 </Button>
                 <Button
-                  color="primary"
+                  color='primary'
                   onPress={handleSave}
-                  startContent={loading ? <Spinner size="sm" /> : <Check className="w-4 h-4" />}
+                  startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
                   isDisabled={loading}>
                   {loading ? 'Guardando...' : 'Guardar cambios'}
                 </Button>

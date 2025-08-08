@@ -13,14 +13,14 @@ const TableActionCell = ({
   deleteTooltip = 'Eliminar'
 }) => {
   return (
-    <div className="relative flex items-center justify-center gap-2">
+    <div className='relative flex items-center justify-center gap-2'>
       <Tooltip content={viewTooltip}>
         {viewPath ? (
-          <Link to={viewPath} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+          <Link to={viewPath} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
             <Eye />
           </Link>
         ) : (
-          <span onClick={() => onView?.(item)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+          <span onClick={() => onView?.(item)} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
             <Eye />
           </span>
         )}
@@ -32,7 +32,7 @@ const TableActionCell = ({
           <Edit />
         </span>
       </Tooltip>
-      <Tooltip color="danger" content={deleteTooltip}>
+      <Tooltip color='danger' content={deleteTooltip}>
         <span
           className={`text-lg ${onDelete ? 'text-danger cursor-pointer active:opacity-50' : 'text-default-200 cursor-not-allowed opacity-50 line-through'}`}
           onClick={() => onDelete?.(item)}>

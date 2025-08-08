@@ -145,12 +145,12 @@ const ContactPage = () => {
 
   const contactInfo = [
     {
-      icon: <Phone className="text-2xl text-red-500" />,
+      icon: <Phone className='text-2xl text-red-500' />,
       title: 'Teléfono',
       content: '+57 305 332 8285'
     },
     {
-      icon: <Mail className="text-2xl text-red-500" />,
+      icon: <Mail className='text-2xl text-red-500' />,
       title: 'Email',
       content: 'preguntepues.glocal@gmail.com'
     }
@@ -161,81 +161,81 @@ const ContactPage = () => {
       <Helmet>
         <title>Contacto | Glocal Tours</title>
         <meta
-          name="description"
-          content="Contáctanos para obtener más información sobre nuestros tours o para resolver cualquier duda que tengas."
+          name='description'
+          content='Contáctanos para obtener más información sobre nuestros tours o para resolver cualquier duda que tengas.'
         />
       </Helmet>
 
       {/* Hero Section */}
-      <div className="contact-hero">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Contáctanos</h1>
-        <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+      <div className='contact-hero'>
+        <h1 className='text-3xl font-bold text-gray-900 mb-4'>Contáctanos</h1>
+        <p className='text-lg text-gray-600 max-w-3xl mx-auto'>
           Estamos aquí para ayudarte con cualquier consulta sobre nuestros tours y servicios. Completa el formulario y nos pondremos en
           contacto contigo lo antes posible.
         </p>
       </div>
 
-      <div className="contact-content">
-        <div className="contact-grid">
+      <div className='contact-content'>
+        <div className='contact-grid'>
           {/* Formulario de Contacto */}
-          <div className="contact-form-container">
-            <Card className="w-full">
-              <CardHeader className="pb-3">
+          <div className='contact-form-container'>
+            <Card className='w-full'>
+              <CardHeader className='pb-3'>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Envíanos un mensaje</h2>
-                  <p className="text-sm text-gray-600 mt-1">Completa el formulario a continuación</p>
+                  <h2 className='text-xl font-bold text-gray-800'>Envíanos un mensaje</h2>
+                  <p className='text-sm text-gray-600 mt-1'>Completa el formulario a continuación</p>
                 </div>
               </CardHeader>
               <CardBody>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className='space-y-4'>
                   <Input
-                    type="text"
-                    label="Nombre completo"
-                    name="name"
+                    type='text'
+                    label='Nombre completo'
+                    name='name'
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Ingresa tu nombre completo"
+                    placeholder='Ingresa tu nombre completo'
                     isInvalid={!!errors.name}
                     errorMessage={errors.name}
-                    variant="bordered"
-                    startContent={<User className="text-gray-400" />}
+                    variant='bordered'
+                    startContent={<User className='text-gray-400' />}
                   />
 
                   <Input
-                    type="email"
-                    label="Correo electrónico"
-                    name="email"
+                    type='email'
+                    label='Correo electrónico'
+                    name='email'
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="tucorreo@ejemplo.com"
+                    placeholder='tucorreo@ejemplo.com'
                     isInvalid={!!errors.email}
                     errorMessage={errors.email}
-                    variant="bordered"
-                    startContent={<Mail className="text-gray-400" />}
+                    variant='bordered'
+                    startContent={<Mail className='text-gray-400' />}
                   />
 
                   <Input
-                    type="text"
-                    label="Asunto"
-                    name="subject"
+                    type='text'
+                    label='Asunto'
+                    name='subject'
                     value={formData.subject}
                     onChange={handleChange}
-                    placeholder="¿Sobre qué quieres hablar?"
+                    placeholder='¿Sobre qué quieres hablar?'
                     isInvalid={!!errors.subject}
                     errorMessage={errors.subject}
-                    variant="bordered"
-                    startContent={<FileText className="text-gray-400" />}
+                    variant='bordered'
+                    startContent={<FileText className='text-gray-400' />}
                   />
 
                   <Textarea
-                    label="Mensaje"
-                    name="message"
+                    label='Mensaje'
+                    name='message'
                     value={formData.message}
                     onChange={handleChange}
-                    placeholder="Escribe tu mensaje aquí..."
+                    placeholder='Escribe tu mensaje aquí...'
                     isInvalid={!!errors.message}
                     errorMessage={errors.message}
-                    variant="bordered"
+                    variant='bordered'
                     minRows={4}
                   />
 
@@ -244,17 +244,17 @@ const ContactPage = () => {
                       className={`p-3 rounded-lg ${
                         submitStatus.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                       }`}>
-                      <div className="flex items-start gap-2">
+                      <div className='flex items-start gap-2'>
                         {submitStatus.type === 'success' ? <CheckCircle /> : <AlertCircle />}
                         <span>{submitStatus.message}</span>
                       </div>
                     </div>
                   )}
 
-                  <Button type="submit" color="primary" className="w-full" disabled={isSubmitting} startContent={!isSubmitting && <Send />}>
+                  <Button type='submit' color='primary' className='w-full' disabled={isSubmitting} startContent={!isSubmitting && <Send />}>
                     {isSubmitting ? (
                       <>
-                        <Spinner size="sm" color="white" className="mr-2" />
+                        <Spinner size='sm' color='white' className='mr-2' />
                         Enviando...
                       </>
                     ) : (
@@ -267,22 +267,22 @@ const ContactPage = () => {
           </div>
 
           {/* Información de Contacto y Mapa */}
-          <div className="contact-info-container">
-            <Card className="w-full mb-6">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Contact className="text-lg text-primary" />
-                  <h2 className="text-xl font-bold text-gray-800">Información de contacto</h2>
+          <div className='contact-info-container'>
+            <Card className='w-full mb-6'>
+              <CardHeader className='pb-3'>
+                <div className='flex items-center gap-2'>
+                  <Contact className='text-lg text-primary' />
+                  <h2 className='text-xl font-bold text-gray-800'>Información de contacto</h2>
                 </div>
               </CardHeader>
               <CardBody>
-                <div className="space-y-6">
+                <div className='space-y-6'>
                   {contactInfo.map((item, index) => (
-                    <div key={index} className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">{item.icon}</div>
+                    <div key={index} className='flex items-start gap-4'>
+                      <div className='flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center'>{item.icon}</div>
                       <div>
-                        <h3 className="text-lg font-medium text-gray-800">{item.title}</h3>
-                        <p className="text-gray-600">{item.content}</p>
+                        <h3 className='text-lg font-medium text-gray-800'>{item.title}</h3>
+                        <p className='text-gray-600'>{item.content}</p>
                       </div>
                     </div>
                   ))}
@@ -291,81 +291,81 @@ const ContactPage = () => {
             </Card>
 
             {/* Redes Sociales */}
-            <Card className="w-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <Share className="text-xl text-primary" />
-                  <h2 className="text-xl font-bold text-gray-800">Nuestras redes sociales</h2>
+            <Card className='w-full'>
+              <CardHeader className='pb-3'>
+                <div className='flex items-center gap-3'>
+                  <Share className='text-xl text-primary' />
+                  <h2 className='text-xl font-bold text-gray-800'>Nuestras redes sociales</h2>
                 </div>
               </CardHeader>
               <CardBody>
-                <div className="flex gap-4">
+                <div className='flex gap-4'>
                   <Button
-                    as="a"
+                    as='a'
                     href={url_facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target='_blank'
+                    rel='noopener noreferrer'
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="Facebook"
-                    className="bg-blue-100">
-                    <Facebook className="text-blue-600" />
+                    color='primary'
+                    variant='light'
+                    aria-label='Facebook'
+                    className='bg-blue-100'>
+                    <Facebook className='text-blue-600' />
                   </Button>
                   <Button
-                    as="a"
+                    as='a'
                     href={url_insta}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target='_blank'
+                    rel='noopener noreferrer'
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="Instagram"
-                    className="bg-pink-100">
-                    <Instagram className="text-pink-600" />
+                    color='primary'
+                    variant='light'
+                    aria-label='Instagram'
+                    className='bg-pink-100'>
+                    <Instagram className='text-pink-600' />
                   </Button>
                   <Button
-                    as="a"
+                    as='a'
                     href={url_github}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target='_blank'
+                    rel='noopener noreferrer'
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="GitHub"
-                    className="bg-gray-100">
-                    <Github className="text-gray-600" />
+                    color='primary'
+                    variant='light'
+                    aria-label='GitHub'
+                    className='bg-gray-100'>
+                    <Github className='text-gray-600' />
                   </Button>
                   <Button
-                    as="a"
-                    href="https://wa.me/573053328285"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    as='a'
+                    href='https://wa.me/573053328285'
+                    target='_blank'
+                    rel='noopener noreferrer'
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="WhatsApp"
-                    className="bg-green-100">
-                    <MessageCircle className="text-green-600" />
+                    color='primary'
+                    variant='light'
+                    aria-label='WhatsApp'
+                    className='bg-green-100'>
+                    <MessageCircle className='text-green-600' />
                   </Button>
                 </div>
               </CardBody>
             </Card>
 
             {/* Panel de Asistencia 24/7 */}
-            <Card className="w-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <Headphones className="text-xl text-primary" />
-                  <h2 className="text-xl font-bold text-gray-800">Asistencia 24/7</h2>
+            <Card className='w-full'>
+              <CardHeader className='pb-3'>
+                <div className='flex items-center gap-3'>
+                  <Headphones className='text-xl text-primary' />
+                  <h2 className='text-xl font-bold text-gray-800'>Asistencia 24/7</h2>
                 </div>
               </CardHeader>
               <CardBody>
-                <div className="p-4 bg-primary-50 rounded-lg">
-                  <div className="flex flex-col gap-2">
-                    <h3 className="font-medium text-gray-800">Siempre a tu disposición</h3>
-                    <p className="text-gray-600">Para emergencias durante un tour, contáctanos al:</p>
-                    <p className="font-medium text-primary text-lg">+57 305 332 8285</p>
+                <div className='p-4 bg-primary-50 rounded-lg'>
+                  <div className='flex flex-col gap-2'>
+                    <h3 className='font-medium text-gray-800'>Siempre a tu disposición</h3>
+                    <p className='text-gray-600'>Para emergencias durante un tour, contáctanos al:</p>
+                    <p className='font-medium text-primary text-lg'>+57 305 332 8285</p>
                   </div>
                 </div>
               </CardBody>
@@ -374,32 +374,32 @@ const ContactPage = () => {
         </div>
 
         {/* Preguntas Frecuentes */}
-        <Card className="w-full mt-12">
-          <CardHeader className="pb-3">
+        <Card className='w-full mt-12'>
+          <CardHeader className='pb-3'>
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Preguntas frecuentes</h2>
-              <p className="text-gray-600 mt-1">Encuentra respuestas rápidas a las consultas más comunes</p>
+              <h2 className='text-2xl font-bold text-gray-800'>Preguntas frecuentes</h2>
+              <p className='text-gray-600 mt-1'>Encuentra respuestas rápidas a las consultas más comunes</p>
             </div>
           </CardHeader>
           <CardBody>
-            <Accordion variant="splitted" className="p-2">
+            <Accordion variant='splitted' className='p-2'>
               {faqItems.map((item, index) => (
                 <AccordionItem
                   key={index}
                   aria-label={item.title}
                   title={item.title}
-                  startContent={<HelpCircle className="text-primary" />}>
-                  <div className="px-2 py-1">
-                    <p className="text-gray-700">{item.content}</p>
+                  startContent={<HelpCircle className='text-primary' />}>
+                  <div className='px-2 py-1'>
+                    <p className='text-gray-700'>{item.content}</p>
                   </div>
                 </AccordionItem>
               ))}
             </Accordion>
           </CardBody>
           <CardFooter>
-            <p className="text-sm text-gray-600 text-center w-full">
+            <p className='text-sm text-gray-600 text-center w-full'>
               ¿No encuentras lo que buscas?{' '}
-              <Button color="primary" variant="light" className="px-2 py-0">
+              <Button color='primary' variant='light' className='px-2 py-0'>
                 Contáctanos
               </Button>
             </p>

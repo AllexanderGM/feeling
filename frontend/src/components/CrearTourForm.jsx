@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Textarea, Tabs, Tab } from '@heroui/react'
-import { createTour } from '@services/tourService.js'
+import { createTour } from '@services'
+import { Logger } from '@utils/logger.js'
 
 import ImageInput from './ImageInput.jsx' // Importamos el nuevo componente
 import CountryCitySelector from './CountryCitySelector.jsx' // Importamos el nuevo componente
@@ -242,7 +243,7 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
         }
       } else {
         // Para cualquier otro nivel de anidación
-        console.warn('Campo con múltiples niveles no esperado:', field)
+        Logger.warn('Campo con múltiples niveles no esperado en formulario', Logger.CATEGORIES.UI, { field })
         setFormData({
           ...formData,
           [field]: value
@@ -484,7 +485,7 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
         throw new Error(result.message || 'Error al crear el tour')
       }
 
-      console.log('Tour creado exitosamente:', result)
+      Logger.info('Tour creado exitosamente', Logger.CATEGORIES.SERVICE, { tourId: result?.id, tourName: formData.name })
 
       // Resetear el formulario
       setFormData({
@@ -522,7 +523,10 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
       onSuccess && onSuccess(result)
       onClose()
     } catch (error) {
-      console.error('Error al crear el tour:', error)
+      Logger.error('Error al crear el tour', Logger.CATEGORIES.SERVICE, {
+        error: error.message,
+        formData: { name: formData.name, destination: formData.destination }
+      })
       setError(error.message)
     } finally {
       setLoading(false)
@@ -538,49 +542,49 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
   const errorStyle = 'text-red-500 text-sm mt-2'
 
   return (
-    <Modal size="3xl" isOpen={isOpen} onClose={onClose}>
-      <ModalContent className="max-h-[90vh]">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <ModalHeader className="flex flex-col gap-1">Crear nuevo tour</ModalHeader>
-          <ModalBody className="overflow-y-auto max-h-[70vh]">
+    <Modal size='3xl' isOpen={isOpen} onClose={onClose}>
+      <ModalContent className='max-h-[90vh]'>
+        <form onSubmit={handleSubmit} className='flex flex-col gap-2'>
+          <ModalHeader className='flex flex-col gap-1'>Crear nuevo tour</ModalHeader>
+          <ModalBody className='overflow-y-auto max-h-[70vh]'>
             {error && <div className={errorStyle}>{error}</div>}
 
-            <Tabs aria-label="Secciones del formulario">
-              <Tab key="informacion" title="Información básica">
-                <div className="space-y-4 py-2">
+            <Tabs aria-label='Secciones del formulario'>
+              <Tab key='informacion' title='Información básica'>
+                <div className='space-y-4 py-2'>
                   <Input
-                    label="Nombre del tour"
-                    placeholder="Ej: Playas del Caribe"
+                    label='Nombre del tour'
+                    placeholder='Ej: Playas del Caribe'
                     value={formData.name}
                     onChange={e => handleInputChange('name', e.target.value)}
                     required
                   />
 
                   <Textarea
-                    label="Descripción"
-                    placeholder="Describe la experiencia del tour..."
+                    label='Descripción'
+                    placeholder='Describe la experiencia del tour...'
                     value={formData.description}
                     onChange={e => handleInputChange('description', e.target.value)}
                     required
                     minRows={3}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <Input
-                      type="number"
-                      label="Precio adultos"
-                      placeholder="Precio en USD"
-                      startContent={<div className="pointer-events-none">$</div>}
+                      type='number'
+                      label='Precio adultos'
+                      placeholder='Precio en USD'
+                      startContent={<div className='pointer-events-none'>$</div>}
                       value={formData.adultPrice}
                       onChange={e => handleInputChange('adultPrice', e.target.value)}
                       required
                     />
 
                     <Input
-                      type="number"
-                      label="Precio niños"
-                      placeholder="Precio en USD"
-                      startContent={<div className="pointer-events-none">$</div>}
+                      type='number'
+                      label='Precio niños'
+                      placeholder='Precio en USD'
+                      startContent={<div className='pointer-events-none'>$</div>}
                       value={formData.childPrice}
                       onChange={e => handleInputChange('childPrice', e.target.value)}
                     />
@@ -599,15 +603,15 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               </Tab>
 
-              <Tab key="destino" title="Destino y Hotel">
-                <div className="space-y-4 py-2">
+              <Tab key='destino' title='Destino y Hotel'>
+                <div className='space-y-4 py-2'>
                   {/* Región (mantiene el componente existente) */}
-                  <div className="mb-4">
-                    <label htmlFor="region" className={labelStyle}>
+                  <div className='mb-4'>
+                    <label htmlFor='region' className={labelStyle}>
                       Región
                     </label>
                     <select
-                      id="region"
+                      id='region'
                       className={selectStyle}
                       value={formData.destination.region}
                       onChange={e => handleInputChange('destination.region', e.target.value)}
@@ -630,14 +634,14 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                   />
 
                   {/* Hotel */}
-                  <div className="mb-4">
-                    <label className="text-sm font-medium text-gray-700">Hotel</label>
+                  <div className='mb-4'>
+                    <label className='text-sm font-medium text-gray-700'>Hotel</label>
                     <select
-                      className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]"
+                      className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
                       value={formData.hotel}
                       onChange={e => handleInputChange('hotel', parseInt(e.target.value))}
                       required>
-                      <option value="">Seleccione un hotel</option>
+                      <option value=''>Seleccione un hotel</option>
                       {PREDEFINED_HOTELS.map(hotel => (
                         <option key={hotel.id} value={hotel.id}>
                           {hotel.name} ({hotel.stars} ⭐)
@@ -648,14 +652,14 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               </Tab>
 
-              <Tab key="categorias" title="Categorías">
-                <div className="space-y-4 py-2">
-                  <p className="text-sm font-medium mb-3">Categorías del tour</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <Tab key='categorias' title='Categorías'>
+                <div className='space-y-4 py-2'>
+                  <p className='text-sm font-medium mb-3'>Categorías del tour</p>
+                  <div className='grid grid-cols-2 md:grid-cols-3 gap-2'>
                     {CATEGORIAS.map(categoria => (
                       <div key={categoria.value} className={checkboxContainerStyle}>
                         <input
-                          type="checkbox"
+                          type='checkbox'
                           id={`categoria-${categoria.value}`}
                           className={checkboxStyle}
                           value={categoria.value}
@@ -671,14 +675,14 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               </Tab>
 
-              <Tab key="servicios" title="Servicios incluidos">
-                <div className="space-y-4 py-2">
-                  <p className="text-sm font-medium mb-3">Selecciona los servicios incluidos</p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <Tab key='servicios' title='Servicios incluidos'>
+                <div className='space-y-4 py-2'>
+                  <p className='text-sm font-medium mb-3'>Selecciona los servicios incluidos</p>
+                  <div className='grid grid-cols-2 md:grid-cols-3 gap-2'>
                     {SERVICIOS.map(servicio => (
                       <div key={servicio.value} className={checkboxContainerStyle}>
                         <input
-                          type="checkbox"
+                          type='checkbox'
                           id={`servicio-${servicio.value}`}
                           className={checkboxStyle}
                           value={servicio.value}
@@ -686,8 +690,8 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                           onChange={() => handleServiceToggle(servicio.value)}
                         />
                         <label htmlFor={`servicio-${servicio.value}`} className={labelStyle}>
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined">{servicio.icon}</span>
+                          <div className='flex items-center gap-2'>
+                            <span className='material-symbols-outlined'>{servicio.icon}</span>
                             {servicio.label}
                           </div>
                         </label>
@@ -696,24 +700,24 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                   </div>
 
                   {formData.includes.length > 0 && (
-                    <div className="mt-4 border p-4 rounded-lg">
-                      <p className="text-sm font-medium mb-3">Detalles de los servicios incluidos</p>
-                      <div className="space-y-4">
+                    <div className='mt-4 border p-4 rounded-lg'>
+                      <p className='text-sm font-medium mb-3'>Detalles de los servicios incluidos</p>
+                      <div className='space-y-4'>
                         {formData.includes.length > 0 && (
-                          <div className="mt-4 border p-4 rounded-lg">
-                            <p className="text-sm font-medium mb-3">Detalles de los servicios incluidos</p>
-                            <div className="space-y-4">
+                          <div className='mt-4 border p-4 rounded-lg'>
+                            <p className='text-sm font-medium mb-3'>Detalles de los servicios incluidos</p>
+                            <div className='space-y-4'>
                               {formData.includes.map(service => {
                                 const serviceInfo = SERVICIOS.find(s => s.value === service)
                                 return (
-                                  <div key={service} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex items-center gap-2">
-                                      <span className="material-symbols-outlined">{serviceInfo?.icon || 'check'}</span>
-                                      <span className="font-medium">{service}</span>
+                                  <div key={service} className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                    <div className='flex items-center gap-2'>
+                                      <span className='material-symbols-outlined'>{serviceInfo?.icon || 'check'}</span>
+                                      <span className='font-medium'>{service}</span>
                                     </div>
 
-                                    <div className="space-y-2">
-                                      <Input size="sm" label="Detalles" value={serviceInfo?.defaultDetails} disabled readOnly />
+                                    <div className='space-y-2'>
+                                      <Input size='sm' label='Detalles' value={serviceInfo?.defaultDetails} disabled readOnly />
                                     </div>
                                   </div>
                                 )
@@ -728,46 +732,46 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
               </Tab>
 
               {/* Nueva pestaña de disponibilidad */}
-              <Tab key="disponibilidad" title="Disponibilidad">
-                <div className="space-y-4 py-2">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm font-medium mb-3">Fechas de disponibilidad</p>
-                    <Button size="sm" color="primary" variant="flat" onClick={handleAddAvailability}>
-                      <span className="material-symbols-outlined mr-1">add</span>
+              <Tab key='disponibilidad' title='Disponibilidad'>
+                <div className='space-y-4 py-2'>
+                  <div className='flex justify-between items-center'>
+                    <p className='text-sm font-medium mb-3'>Fechas de disponibilidad</p>
+                    <Button size='sm' color='primary' variant='flat' onClick={handleAddAvailability}>
+                      <span className='material-symbols-outlined mr-1'>add</span>
                       Añadir fecha
                     </Button>
                   </div>
 
                   {formData.availability.map((avail, index) => (
-                    <div key={index} className="mb-8 p-4 border rounded-lg bg-gray-50">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-md font-medium">Disponibilidad {index + 1}</h3>
+                    <div key={index} className='mb-8 p-4 border rounded-lg bg-gray-50'>
+                      <div className='flex justify-between items-center mb-4'>
+                        <h3 className='text-md font-medium'>Disponibilidad {index + 1}</h3>
                         {formData.availability.length > 1 && (
-                          <Button size="sm" color="danger" variant="light" onClick={() => handleRemoveAvailability(index)}>
-                            <span className="material-symbols-outlined">delete</span>
+                          <Button size='sm' color='danger' variant='light' onClick={() => handleRemoveAvailability(index)}>
+                            <span className='material-symbols-outlined'>delete</span>
                           </Button>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className='grid grid-cols-1 gap-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                           <div>
                             <Input
-                              type="datetime-local"
-                              label="Fecha disponible para reserva"
-                              placeholder="Seleccione fecha y hora"
+                              type='datetime-local'
+                              label='Fecha disponible para reserva'
+                              placeholder='Seleccione fecha y hora'
                               value={avail.availableDate}
                               onChange={e => handleAvailabilityChange(index, 'availableDate', e.target.value)}
                               required
                             />
-                            <p className="text-xs text-gray-500 mt-1">Fecha límite para reservar</p>
+                            <p className='text-xs text-gray-500 mt-1'>Fecha límite para reservar</p>
                           </div>
                           <div>
                             <Input
-                              type="number"
-                              label="Cupos disponibles"
-                              placeholder="Número de plazas"
-                              min="1"
+                              type='number'
+                              label='Cupos disponibles'
+                              placeholder='Número de plazas'
+                              min='1'
                               value={avail.availableSlots}
                               onChange={e => handleAvailabilityChange(index, 'availableSlots', e.target.value)}
                               required
@@ -775,12 +779,12 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
                           <div>
                             <Input
-                              type="datetime-local"
-                              label="Fecha y hora de salida"
-                              placeholder="Seleccione fecha y hora"
+                              type='datetime-local'
+                              label='Fecha y hora de salida'
+                              placeholder='Seleccione fecha y hora'
                               value={avail.departureTime}
                               onChange={e => handleAvailabilityChange(index, 'departureTime', e.target.value)}
                               required
@@ -788,9 +792,9 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                           </div>
                           <div>
                             <Input
-                              type="datetime-local"
-                              label="Fecha y hora de regreso"
-                              placeholder="Seleccione fecha y hora"
+                              type='datetime-local'
+                              label='Fecha y hora de regreso'
+                              placeholder='Seleccione fecha y hora'
                               value={avail.returnTime}
                               onChange={e => handleAvailabilityChange(index, 'returnTime', e.target.value)}
                               required
@@ -801,9 +805,9 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
                     </div>
                   ))}
 
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md mt-4">
-                    <p className="text-sm text-blue-800">
-                      <span className="font-medium">Nota:</span> Puedes agregar múltiples fechas de disponibilidad para este tour. La fecha
+                  <div className='p-3 bg-blue-50 border border-blue-200 rounded-md mt-4'>
+                    <p className='text-sm text-blue-800'>
+                      <span className='font-medium'>Nota:</span> Puedes agregar múltiples fechas de disponibilidad para este tour. La fecha
                       de disponibilidad indica hasta cuándo los clientes pueden reservar este tour. Las fechas de salida y regreso definen
                       cuándo comienza y termina el tour.
                     </p>
@@ -813,10 +817,10 @@ const CrearTourForm = ({ isOpen, onClose, onSuccess }) => {
             </Tabs>
           </ModalBody>
           <ModalFooter>
-            <Button variant="flat" type="button" onPress={onClose}>
+            <Button variant='flat' type='button' onPress={onClose}>
               Cancelar
             </Button>
-            <Button color="primary" type="submit" isLoading={loading}>
+            <Button color='primary' type='submit' isLoading={loading}>
               Crear Tour
             </Button>
           </ModalFooter>

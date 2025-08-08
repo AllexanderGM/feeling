@@ -10,12 +10,14 @@
       "@styles/*": ["./src/styles/*"],
       "@assets/*": ["./src/assets/*"],
       "@services/*": ["./src/services/*"],
+      "@services": ["./src/services/index.js"],
       "@utils/*": ["./src/utils/*"],
       "@pages/*": ["./src/pages/*"],
       "@hooks/*": ["./src/hooks/*"],
+      "@hooks": ["./src/hooks/index.js"],
       "@config/*": ["./src/config/*"],
-      "@schemas": ["./src/schemas/index.js"],
-      "@schemas/*": ["./src/schemas/*"]
+      "@schemas/*": ["./src/schemas/*"],
+      "@schemas": ["./src/schemas/index.js"]
     }
   }
 }

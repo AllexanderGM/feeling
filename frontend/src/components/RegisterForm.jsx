@@ -2,9 +2,10 @@ import { Form, Input, Button, Card, CardBody, Image } from '@heroui/react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { register } from '../services/authService.js'
+import { register } from '../services/auth/authService.js'
 import walkingmanImage from '../assets/Backgrounds/walkingman.webp'
 import ModalToLogin from './ModalToLogin.jsx'
+import { Logger } from '@utils/logger.js'
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -87,11 +88,11 @@ const RegisterForm = () => {
       }
 
       const result = await register(userData)
-      console.log('Registro exitoso', result)
+      Logger.info('Registro exitoso', Logger.CATEGORIES.USER, { userEmail: formData.email, userId: result?.user?.id })
 
       setIsRegisterSuccess(true)
     } catch (error) {
-      console.log('Registro fallido', error)
+      Logger.error('Registro fallido', Logger.CATEGORIES.USER, { userEmail: formData.email, error: error.message })
       setRegisterError(error.message || 'Error al registrarse. Inténtalo de nuevo.')
     } finally {
       setIsLoading(false)
@@ -115,36 +116,36 @@ const RegisterForm = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 mt-8">
-      <Card className="w-[800px] h-full md:h-[750px] md:max-h-[830px] overflow-hidden">
-        <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-0 p-0">
-          <div className="h-full flex items-end justify-end">
+    <div className='flex items-center justify-center min-h-screen bg-gray-100 mt-8'>
+      <Card className='w-[800px] h-full md:h-[750px] md:max-h-[830px] overflow-hidden'>
+        <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-0 p-0'>
+          <div className='h-full flex items-end justify-end'>
             <Image
               removeWrapper
               src={walkingmanImage}
-              alt="Un hombre mirando el horizonte sobre un bosque montañoso"
-              className="w-full h-full object-cover object-[13%_center] rounded-none"
+              alt='Un hombre mirando el horizonte sobre un bosque montañoso'
+              className='w-full h-full object-cover object-[13%_center] rounded-none'
             />
           </div>
 
           <Form
-            className="w-full justify-center items-center space-y-3 py-0"
+            className='w-full justify-center items-center space-y-3 py-0'
             validationErrors={errors}
             onReset={handleReset}
             onSubmit={onSubmit}>
-            <h2 className="text-xl font-semibold text-center text-gray-800 mb-4">Crear Cuenta</h2>
+            <h2 className='text-xl font-semibold text-center text-gray-800 mb-4'>Crear Cuenta</h2>
 
-            {registerError && <div className="bg-red-100 text-red-700 p-3 rounded-none max-w-md w-full mx-12">{registerError}</div>}
+            {registerError && <div className='bg-red-100 text-red-700 p-3 rounded-none max-w-md w-full mx-12'>{registerError}</div>}
 
-            <div className="flex flex-col gap-5 max-w-md w-full px-12">
+            <div className='flex flex-col gap-5 max-w-md w-full px-12'>
               <Input
                 isRequired
                 errorMessage={errors.name}
                 isInvalid={!!errors.name}
-                label="Nombre"
-                labelPlacement="outside"
-                name="name"
-                placeholder="Ingresa tu nombre"
+                label='Nombre'
+                labelPlacement='outside'
+                name='name'
+                placeholder='Ingresa tu nombre'
                 value={formData.name}
                 onValueChange={value => handleChange('name', value)}
               />
@@ -152,10 +153,10 @@ const RegisterForm = () => {
                 isRequired
                 errorMessage={errors.lastName}
                 isInvalid={!!errors.lastName}
-                label="Apellido"
-                labelPlacement="outside"
-                name="lastName"
-                placeholder="Ingresa tu apellido"
+                label='Apellido'
+                labelPlacement='outside'
+                name='lastName'
+                placeholder='Ingresa tu apellido'
                 value={formData.lastName}
                 onValueChange={value => handleChange('lastName', value)}
               />
@@ -163,11 +164,11 @@ const RegisterForm = () => {
                 isRequired
                 errorMessage={errors.email}
                 isInvalid={!!errors.email}
-                label="Email"
-                labelPlacement="outside"
-                name="email"
-                placeholder="correo@ejemplo.com"
-                type="email"
+                label='Email'
+                labelPlacement='outside'
+                name='email'
+                placeholder='correo@ejemplo.com'
+                type='email'
                 value={formData.email}
                 onValueChange={value => handleChange('email', value)}
               />
@@ -175,11 +176,11 @@ const RegisterForm = () => {
                 isRequired
                 errorMessage={errors.password}
                 isInvalid={!!errors.password}
-                label="Contraseña"
-                labelPlacement="outside"
-                name="password"
-                placeholder="Ingresa tu contraseña"
-                type="password"
+                label='Contraseña'
+                labelPlacement='outside'
+                name='password'
+                placeholder='Ingresa tu contraseña'
+                type='password'
                 value={formData.password}
                 onValueChange={value => handleChange('password', value)}
               />
@@ -188,27 +189,27 @@ const RegisterForm = () => {
                 isRequired
                 errorMessage={errors.confirmPassword}
                 isInvalid={!!errors.confirmPassword}
-                label="Confirmar contraseña"
-                labelPlacement="outside"
-                name="confirmPassword"
-                placeholder="Repite tu contraseña"
-                type="password"
+                label='Confirmar contraseña'
+                labelPlacement='outside'
+                name='confirmPassword'
+                placeholder='Repite tu contraseña'
+                type='password'
                 value={formData.confirmPassword}
                 onValueChange={value => handleChange('confirmPassword', value)}
               />
 
-              <div className="flex gap-4 mt-2">
-                <Button className="w-full bg-[#E86C6E]" color="primary" type="submit" isLoading={isLoading} disabled={isLoading}>
+              <div className='flex gap-4 mt-2'>
+                <Button className='w-full bg-[#E86C6E]' color='primary' type='submit' isLoading={isLoading} disabled={isLoading}>
                   {isLoading ? 'Procesando...' : 'Registrarse'}
                 </Button>
-                <Button type="reset" variant="bordered" disabled={isLoading}>
+                <Button type='reset' variant='bordered' disabled={isLoading}>
                   Reset
                 </Button>
               </div>
             </div>
-            <p className="text-sm text-gray-600 text-center mt-4">
+            <p className='text-sm text-gray-600 text-center mt-4'>
               ¿Ya tienes cuenta?{' '}
-              <Link to="/login" className="text-primary-500 hover:underline">
+              <Link to='/login' className='text-primary-500 hover:underline'>
                 Inicia sesión aquí
               </Link>
             </p>

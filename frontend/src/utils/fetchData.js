@@ -1,3 +1,5 @@
+import { Logger } from './logger.js'
+
 const fetchData = async (url, options = {}) => {
   try {
     const defaultHeaders = {
@@ -20,7 +22,9 @@ const fetchData = async (url, options = {}) => {
 
     return { success: true, data: await response.json() }
   } catch (error) {
-    console.error('Fetch error:', error.message)
+    Logger.error(Logger.CATEGORIES.NETWORK, 'fetch data', error, {
+      context: { url, options }
+    })
     return { success: false, error: error.message }
   }
 }

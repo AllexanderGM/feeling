@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Logger } from '@utils/logger.js'
 
 const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryChange, onCityChange, selectedRegion = '' }) => {
   // Estado para almacenar los datos cargados de países y ciudades
@@ -39,7 +40,7 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
 
         setIsLoading(false)
       } catch (err) {
-        console.error('Error cargando datos:', err)
+        Logger.error('Error cargando datos geográficos', Logger.CATEGORIES.SERVICE, { error: err.message })
         setError(err.message)
         setIsLoading(false)
       }
@@ -164,25 +165,25 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
 
   // Renderizar componente con selectores nativos
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {isLoading ? (
-        <div className="text-center py-2">Cargando datos...</div>
+        <div className='text-center py-2'>Cargando datos...</div>
       ) : error ? (
-        <div className="text-red-500 text-center py-2">Error: {error}</div>
+        <div className='text-red-500 text-center py-2'>Error: {error}</div>
       ) : (
         <>
           {/* Selector de País - Usando select nativo */}
           <div>
-            <label htmlFor="country-select" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='country-select' className='block text-sm font-medium text-gray-700 mb-1'>
               País *
             </label>
             <select
-              id="country-select"
+              id='country-select'
               value={selectedCountry}
               onChange={handleCountryChange}
-              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]"
+              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
               required>
-              <option value="">Selecciona un país</option>
+              <option value=''>Selecciona un país</option>
               {Object.entries(filteredCountries).map(([code, countryData]) => (
                 <option key={code} value={code}>
                   {countryData.name}
@@ -193,17 +194,17 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
 
           {/* Selector de Ciudad - Usando select nativo */}
           <div>
-            <label htmlFor="city-select" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='city-select' className='block text-sm font-medium text-gray-700 mb-1'>
               Ciudad *
             </label>
             <select
-              id="city-select"
+              id='city-select'
               value={selectedCity}
               onChange={handleCityChange}
               disabled={!selectedCountry || availableCities.length === 0}
-              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]"
+              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
               required>
-              <option value="">
+              <option value=''>
                 {!selectedCountry
                   ? 'Primero selecciona un país'
                   : availableCities.length === 0

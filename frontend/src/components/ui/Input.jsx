@@ -4,14 +4,14 @@ import { Input as InputHeroUi } from '@heroui/react'
 const Input = ({ value, label, name, placeholder, type, handleChange, errors }) => {
   return (
     <InputHeroUi
-      variant="underlined"
+      variant='underlined'
       isRequired
-      label="Correo electrónico"
-      name="email"
-      placeholder="usuario@correo.com"
-      type="email"
-      autoComplete="email"
-      aria-label="Email"
+      label='Correo electrónico'
+      name='email'
+      placeholder='usuario@correo.com'
+      type='email'
+      autoComplete='email'
+      aria-label='Email'
       value={value}
       onChange={handleChange}
       isInvalid={!!errors}

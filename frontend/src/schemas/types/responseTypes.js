@@ -1,6 +1,6 @@
 /**
  * TIPOS DE RESPUESTA DEL BACKEND
- * 
+ *
  * Define la estructura esperada de las respuestas del backend
  * para mantener consistencia en el frontend.
  */
@@ -371,70 +371,68 @@ export const MULTIPLE_FILE_UPLOAD_RESPONSE_TYPE = {
 /**
  * Verificar si un objeto tiene la estructura de usuario esperada
  */
-export const isValidUserStructure = (user) => {
-  return user && 
-         typeof user === 'object' &&
-         user.status &&
-         user.profile &&
-         user.metrics &&
-         typeof user.status === 'object' &&
-         typeof user.profile === 'object' &&
-         typeof user.metrics === 'object'
+export const isValidUserStructure = user => {
+  return (
+    user &&
+    typeof user === 'object' &&
+    user.status &&
+    user.profile &&
+    user.metrics &&
+    typeof user.status === 'object' &&
+    typeof user.profile === 'object' &&
+    typeof user.metrics === 'object'
+  )
 }
 
 /**
  * Verificar si un objeto tiene la estructura de respuesta de login esperada
  */
-export const isValidLoginResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         typeof response.accessToken === 'string' &&
-         typeof response.refreshToken === 'string' &&
-         response.status &&
-         response.profile &&
-         typeof response.status === 'object' &&
-         typeof response.profile === 'object'
+export const isValidLoginResponse = response => {
+  return (
+    response &&
+    typeof response === 'object' &&
+    typeof response.accessToken === 'string' &&
+    typeof response.refreshToken === 'string' &&
+    response.status &&
+    response.profile &&
+    typeof response.status === 'object' &&
+    typeof response.profile === 'object'
+  )
 }
 
 /**
  * Verificar si una respuesta es de error
  */
-export const isErrorResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         response.success === false &&
-         response.error &&
-         typeof response.error === 'object'
+export const isErrorResponse = response => {
+  return response && typeof response === 'object' && response.success === false && response.error && typeof response.error === 'object'
 }
 
 /**
  * Verificar si una respuesta es de éxito
  */
-export const isSuccessResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         response.success === true
+export const isSuccessResponse = response => {
+  return response && typeof response === 'object' && response.success === true
 }
 
 /**
  * Extraer mensaje de error de una respuesta
  */
-export const extractErrorMessage = (response) => {
+export const extractErrorMessage = response => {
   if (!isErrorResponse(response)) return 'Error desconocido'
-  
+
   if (response.error.validationErrors) {
     // Si hay errores de validación, tomar el primero
     const firstError = Object.values(response.error.validationErrors)[0]
     return Array.isArray(firstError) ? firstError[0] : firstError
   }
-  
+
   return response.error.message || 'Error del servidor'
 }
 
 /**
  * Extraer datos de una respuesta exitosa
  */
-export const extractResponseData = (response) => {
+export const extractResponseData = response => {
   if (!isSuccessResponse(response)) return null
   return response.data || response
 }
@@ -446,95 +444,95 @@ export const extractResponseData = (response) => {
 /**
  * Verificar si una respuesta es de evento válida
  */
-export const isValidEventResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         typeof response.id === 'number' &&
-         typeof response.title === 'string' &&
-         typeof response.eventDate === 'string' &&
-         typeof response.price === 'number' &&
-         typeof response.category === 'string'
+export const isValidEventResponse = response => {
+  return (
+    response &&
+    typeof response === 'object' &&
+    typeof response.id === 'number' &&
+    typeof response.title === 'string' &&
+    typeof response.eventDate === 'string' &&
+    typeof response.price === 'number' &&
+    typeof response.category === 'string'
+  )
 }
 
 /**
  * Verificar si una respuesta es de registro válida
  */
-export const isValidRegistrationResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         typeof response.id === 'number' &&
-         typeof response.eventId === 'number' &&
-         typeof response.paymentStatus === 'string'
+export const isValidRegistrationResponse = response => {
+  return (
+    response &&
+    typeof response === 'object' &&
+    typeof response.id === 'number' &&
+    typeof response.eventId === 'number' &&
+    typeof response.paymentStatus === 'string'
+  )
 }
 
 /**
  * Verificar si una respuesta de pago es válida
  */
-export const isValidPaymentResponse = (response) => {
-  return response &&
-         typeof response === 'object' &&
-         typeof response.paymentIntentId === 'string' &&
-         typeof response.clientSecret === 'string'
+export const isValidPaymentResponse = response => {
+  return (
+    response && typeof response === 'object' && typeof response.paymentIntentId === 'string' && typeof response.clientSecret === 'string'
+  )
 }
 
 /**
  * Extraer información de error específica de eventos
  */
-export const extractEventErrorMessage = (response) => {
+export const extractEventErrorMessage = response => {
   if (!isErrorResponse(response)) return 'Error desconocido'
-  
+
   const errorCode = response.error.code
   const eventErrorMessages = {
-    'EVENT_NOT_FOUND': 'Evento no encontrado',
-    'EVENT_FULL': 'El evento está lleno',
-    'EVENT_INACTIVE': 'El evento no está activo',
-    'ALREADY_REGISTERED': 'Ya estás registrado en este evento',
-    'PAYMENT_FAILED': 'Error en el procesamiento del pago',
-    'REGISTRATION_CLOSED': 'Las inscripciones están cerradas'
+    EVENT_NOT_FOUND: 'Evento no encontrado',
+    EVENT_FULL: 'El evento está lleno',
+    EVENT_INACTIVE: 'El evento no está activo',
+    ALREADY_REGISTERED: 'Ya estás registrado en este evento',
+    PAYMENT_FAILED: 'Error en el procesamiento del pago',
+    REGISTRATION_CLOSED: 'Las inscripciones están cerradas'
   }
-  
+
   return eventErrorMessages[errorCode] || response.error.message || 'Error del servidor'
 }
 
 /**
  * Verificar si un evento está disponible para registro
  */
-export const isEventAvailableForRegistration = (event) => {
+export const isEventAvailableForRegistration = event => {
   if (!isValidEventResponse(event)) return false
-  
+
   const eventDate = new Date(event.eventDate)
   const now = new Date()
-  
-  return event.isActive && 
-         !event.isFull && 
-         event.hasAvailableSpots && 
-         eventDate > now
+
+  return event.isActive && !event.isFull && event.hasAvailableSpots && eventDate > now
 }
 
 /**
  * Obtener estado de disponibilidad de evento
  */
-export const getEventAvailabilityStatus = (event) => {
+export const getEventAvailabilityStatus = event => {
   if (!isValidEventResponse(event)) return 'unknown'
-  
+
   if (!event.isActive) return 'inactive'
-  
+
   const eventDate = new Date(event.eventDate)
   const now = new Date()
-  
+
   if (eventDate <= now) return 'past'
   if (event.isFull) return 'full'
   if (event.availableSpots <= 5) return 'limited'
-  
+
   return 'available'
 }
 
 /**
  * Formatear evento para mostrar en UI
  */
-export const formatEventForDisplay = (event) => {
+export const formatEventForDisplay = event => {
   if (!isValidEventResponse(event)) return null
-  
+
   return {
     ...event,
     formattedDate: new Date(event.eventDate).toLocaleDateString('es-CO', {
@@ -545,11 +543,14 @@ export const formatEventForDisplay = (event) => {
       hour: '2-digit',
       minute: '2-digit'
     }),
-    formattedPrice: event.price === 0 ? 'Gratis' : new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(event.price),
+    formattedPrice:
+      event.price === 0
+        ? 'Gratis'
+        : new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            minimumFractionDigits: 0
+          }).format(event.price),
     availabilityStatus: getEventAvailabilityStatus(event)
   }
 }

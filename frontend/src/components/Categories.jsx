@@ -42,7 +42,7 @@ const Categories = () => {
   ]
 
   return (
-    <div className="categories">
+    <div className='categories'>
       {list.map((item, index) => (
         <CardCategories key={index} item={item} />
       ))}

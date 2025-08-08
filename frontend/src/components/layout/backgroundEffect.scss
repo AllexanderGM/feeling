@@ -47,11 +47,6 @@ $opacity-low: 0.2;
 
   // Contenido de la página que va encima del fondo
   .content {
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
     width: 100%;
     min-height: 100vh;
     z-index: 2;

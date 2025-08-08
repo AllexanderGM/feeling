@@ -13,7 +13,6 @@ const NavClient = ({ user }) => {
   const [isNavHidden, setIsNavHidden] = useState(true) // Inicialmente oculto en Home
   const [showMatchControls, setShowMatchControls] = useState(false)
 
-
   // Mostrar controles de match solo en página de Home
   useEffect(() => {
     const isHomePage = location.pathname === APP_PATHS.ROOT
@@ -92,23 +91,23 @@ const NavClient = ({ user }) => {
     return (
       <Badge
         key={item.id}
-        content=""
-        color="secondary"
-        placement="top-right"
-        shape="circle"
+        content=''
+        color='secondary'
+        placement='top-right'
+        shape='circle'
         isInvisible={!active}
         classNames={{
           badge: 'animate-pulse'
         }}>
         {isProfileButton ? (
-          <UserProfileMenu user={user} isAdmin={false} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement="top" />
+          <UserProfileMenu user={user} isAdmin={false} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' />
         ) : (
           <Button
             isIconOnly
             variant={active ? 'solid' : 'light'}
             color={active ? 'primary' : 'default'}
-            radius="lg"
-            size="md"
+            radius='lg'
+            size='md'
             className={`
               transition-all duration-300 ease-in-out
               ${active ? 'transform scale-105' : 'hover:scale-102'}
@@ -132,9 +131,9 @@ const NavClient = ({ user }) => {
     <>
       {/* Navegación vertical en Home - Solo si no está oculta */}
       {isHomePage && !isNavHidden && (
-        <div className="fixed left-6 top-1/2 transform -translate-y-1/2 z-50 py-4 transition-all duration-700 ease-in-out transform translate-x-0 opacity-100 scale-100">
-          <div className="bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-3 py-4 ring-1 ring-primary-500/10">
-            <div className="flex flex-col items-center space-y-2">{navigationItems.map(item => renderNavigationItem(item))}</div>
+        <div className='fixed left-6 top-1/2 transform -translate-y-1/2 z-50 py-4 transition-all duration-700 ease-in-out transform translate-x-0 opacity-100 scale-100'>
+          <div className='bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-3 py-4 ring-1 ring-primary-500/10'>
+            <div className='flex flex-col items-center space-y-2'>{navigationItems.map(item => renderNavigationItem(item))}</div>
           </div>
         </div>
       )}
@@ -147,15 +146,15 @@ const NavClient = ({ user }) => {
               ? 'transform translate-y-20 opacity-0 scale-95 pointer-events-none'
               : 'transform translate-y-0 opacity-100 scale-100'
           }`}>
-          <div className="bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-4 py-3 ring-1 ring-primary-500/10">
-            <div className="flex items-center space-x-2">{navigationItems.map(item => renderNavigationItem(item))}</div>
+          <div className='bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-4 py-3 ring-1 ring-primary-500/10'>
+            <div className='flex items-center space-x-2'>{navigationItems.map(item => renderNavigationItem(item))}</div>
           </div>
         </div>
       )}
 
       {/* Controles de match - solo en página Home */}
       {showMatchControls && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 px-4">
+        <div className='fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 px-4'>
           <MatchControls user={user} isAdmin={false} />
         </div>
       )}

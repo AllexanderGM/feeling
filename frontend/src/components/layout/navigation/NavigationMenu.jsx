@@ -127,10 +127,10 @@ const NavigationMenu = ({ isOpen, onClose, user, isAdmin }) => {
     return (
       <Badge
         key={item.id}
-        content=""
-        color="secondary"
-        placement="top-right"
-        shape="circle"
+        content=''
+        color='secondary'
+        placement='top-right'
+        shape='circle'
         isInvisible={!active}
         classNames={{
           badge: 'animate-pulse'
@@ -142,15 +142,15 @@ const NavigationMenu = ({ isOpen, onClose, user, isAdmin }) => {
             isOpen={isPopoverOpen}
             onOpenChange={setIsPopoverOpen}
             onMenuAction={() => onClose()}
-            placement="left"
+            placement='left'
           />
         ) : (
           <Button
             isIconOnly
             variant={active ? 'solid' : 'light'}
             color={active ? 'primary' : 'default'}
-            radius="lg"
-            size="md"
+            radius='lg'
+            size='md'
             className={`
               transition-all duration-300 ease-in-out
               ${active ? 'transform scale-105' : 'hover:scale-102'}
@@ -173,32 +173,32 @@ const NavigationMenu = ({ isOpen, onClose, user, isAdmin }) => {
       className={`absolute bottom-full right-0 mb-2 transition-all duration-300 ease-out transform ${
         isOpen ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
       }`}>
-      <div className="bg-background/90 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl py-4 px-3 ring-1 ring-primary-500/10">
+      <div className='bg-background/90 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl py-4 px-3 ring-1 ring-primary-500/10'>
         {isAdmin ? (
           // Renderizado para administradores (con secciones separadas)
-          <div className="flex flex-col items-center space-y-6">
+          <div className='flex flex-col items-center space-y-6'>
             {/* Sección de administración */}
-            <div className="flex flex-col items-center space-y-2">
-              <Chip size="sm" variant="flat" color="default" className="bg-gray-700/50 text-gray-300 text-xs">
+            <div className='flex flex-col items-center space-y-2'>
+              <Chip size='sm' variant='flat' color='default' className='bg-gray-700/50 text-gray-300 text-xs'>
                 Admin
               </Chip>
-              <div className="flex flex-col space-y-2">{adminNavigationItems.map(item => renderNavigationItem(item))}</div>
+              <div className='flex flex-col space-y-2'>{adminNavigationItems.map(item => renderNavigationItem(item))}</div>
             </div>
 
             {/* Separador horizontal */}
-            <div className="border-t border-gray-600/30 w-12"></div>
+            <div className='border-t border-gray-600/30 w-12'></div>
 
             {/* Sección básica */}
-            <div className="flex flex-col items-center space-y-2">
-              <Chip size="sm" variant="flat" color="default" className="bg-gray-700/50 text-gray-300 text-xs">
+            <div className='flex flex-col items-center space-y-2'>
+              <Chip size='sm' variant='flat' color='default' className='bg-gray-700/50 text-gray-300 text-xs'>
                 Nav
               </Chip>
-              <div className="flex flex-col space-y-2">{basicNavigationItems.map(item => renderNavigationItem(item))}</div>
+              <div className='flex flex-col space-y-2'>{basicNavigationItems.map(item => renderNavigationItem(item))}</div>
             </div>
           </div>
         ) : (
           // Renderizado para usuarios regulares (una sola columna)
-          <div className="flex flex-col items-center space-y-2">{basicNavigationItems.map(item => renderNavigationItem(item))}</div>
+          <div className='flex flex-col items-center space-y-2'>{basicNavigationItems.map(item => renderNavigationItem(item))}</div>
         )}
       </div>
     </div>

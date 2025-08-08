@@ -26,7 +26,8 @@ export const APP_PATHS = {
     MATCHES: '/matches',
     SEARCH: '/search',
     FAVORITES: '/favorites',
-    NOTIFICATIONS: '/notifications'
+    NOTIFICATIONS: '/notifications',
+    SUPPORT: '/support'
   },
 
   GENERAL: {

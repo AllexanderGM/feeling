@@ -3,7 +3,7 @@ import { baseValidations } from '../validation/baseValidations'
 
 /**
  * ESQUEMAS DE VALIDACIÓN PARA EVENTOS
- * 
+ *
  * Contiene todas las validaciones relacionadas con:
  * - Creación de eventos
  * - Edición de eventos
@@ -72,25 +72,17 @@ const eventValidations = {
     .oneOf(['CULTURAL', 'DEPORTIVO', 'MUSICAL', 'SOCIAL'], 'Selecciona una categoría válida')
     .required('La categoría es requerida'),
 
-  mainImage: yup
-    .string()
-    .url('Debe ser una URL válida')
-    .nullable(),
+  mainImage: yup.string().url('Debe ser una URL válida').nullable(),
 
   // Para búsquedas
-  searchQuery: yup
-    .string()
-    .min(2, 'La búsqueda debe tener al menos 2 caracteres')
-    .max(100, 'La búsqueda no puede exceder 100 caracteres'),
+  searchQuery: yup.string().min(2, 'La búsqueda debe tener al menos 2 caracteres').max(100, 'La búsqueda no puede exceder 100 caracteres'),
 
   // Para filtros de fecha
-  startDate: yup
-    .string()
-    .test('valid-date', 'Fecha de inicio inválida', function (value) {
-      if (!value) return true
-      const date = new Date(value)
-      return !isNaN(date.getTime())
-    }),
+  startDate: yup.string().test('valid-date', 'Fecha de inicio inválida', function (value) {
+    if (!value) return true
+    const date = new Date(value)
+    return !isNaN(date.getTime())
+  }),
 
   endDate: yup
     .string()
@@ -106,9 +98,7 @@ const eventValidations = {
     }),
 
   // Para filtros de precio
-  minPrice: yup
-    .number()
-    .min(0, 'El precio mínimo no puede ser negativo'),
+  minPrice: yup.number().min(0, 'El precio mínimo no puede ser negativo'),
 
   maxPrice: yup
     .number()
@@ -166,9 +156,7 @@ export const eventSearchSchema = yup.object().shape({
 })
 
 export const eventFilterSchema = yup.object().shape({
-  categories: yup.array().of(
-    yup.string().oneOf(['CULTURAL', 'DEPORTIVO', 'MUSICAL', 'SOCIAL'])
-  ),
+  categories: yup.array().of(yup.string().oneOf(['CULTURAL', 'DEPORTIVO', 'MUSICAL', 'SOCIAL'])),
   priceRange: yup.object().shape({
     min: eventValidations.minPrice,
     max: eventValidations.maxPrice
@@ -192,12 +180,12 @@ export const validateEventDateForEdit = (eventDate, originalDate) => {
   const event = new Date(eventDate)
   const original = new Date(originalDate)
   const now = new Date()
-  
+
   // Si es la fecha original y ya pasó, permitir (evento en curso)
   if (event.getTime() === original.getTime() && event > now.setHours(now.getHours() - 24)) {
     return true
   }
-  
+
   // Para fechas nuevas, debe ser en el futuro
   return event > new Date()
 }
@@ -205,17 +193,17 @@ export const validateEventDateForEdit = (eventDate, originalDate) => {
 /**
  * Calcula el tiempo restante hasta un evento
  */
-export const getTimeUntilEvent = (eventDate) => {
+export const getTimeUntilEvent = eventDate => {
   const event = new Date(eventDate)
   const now = new Date()
   const diff = event.getTime() - now.getTime()
-  
+
   if (diff <= 0) return { expired: true }
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  
+
   return { days, hours, minutes, expired: false }
 }
 
@@ -236,14 +224,14 @@ export const getAvailableSpots = (currentAttendees, maxCapacity) => {
 /**
  * Valida si un precio es gratuito
  */
-export const isFreeEvent = (price) => {
+export const isFreeEvent = price => {
   return price === 0 || price === '0'
 }
 
 /**
  * Formatea precio para mostrar
  */
-export const formatEventPrice = (price) => {
+export const formatEventPrice = price => {
   if (isFreeEvent(price)) return 'Gratis'
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -263,7 +251,7 @@ export const validateCapacityForEdit = (newCapacity, currentAttendees) => {
 /**
  * Crea esquema dinámico para editar evento basado en estado actual
  */
-export const createEditEventSchema = (currentEvent) => {
+export const createEditEventSchema = currentEvent => {
   return yup.object().shape({
     title: eventValidations.title,
     description: eventValidations.description,

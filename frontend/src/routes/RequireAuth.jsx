@@ -1,5 +1,5 @@
 import { Navigate, useNavigate, useLocation } from 'react-router-dom'
-import useAuth from '@hooks/useAuth'
+import { useAuth } from '@hooks'
 import LoadData from '@components/layout/LoadData'
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -35,12 +35,7 @@ const isUserAdmin = user => {
  * @param {boolean} requireCompleteProfile - Si requiere perfil completo (default: false)
  * @param {string|null} requiredRole - Rol requerido para acceder (null = cualquier rol autenticado)
  */
-const RequireAuth = ({
-  children,
-  requireVerification = true, 
-  requireCompleteProfile = false,
-  requiredRole = null
-}) => {
+const RequireAuth = ({ children, requireVerification = true, requireCompleteProfile = false, requiredRole = null }) => {
   const { user, isAuthenticated, isInitialized } = useAuth()
   const isAdmin = user?.status?.role?.toUpperCase() === 'ADMIN'
   const location = useLocation()
@@ -156,7 +151,7 @@ export const RequireCompleteProfile = ({ children }) => {
  */
 export const RequireAdmin = ({ children }) => {
   return (
-    <RequireAuth requireVerification={false} requireCompleteProfile={false} requiredRole="admin">
+    <RequireAuth requireVerification={false} requireCompleteProfile={false} requiredRole='admin'>
       {children}
     </RequireAuth>
   )

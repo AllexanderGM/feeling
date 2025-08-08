@@ -26,7 +26,7 @@ const TableCellRenderer = ({ columnKey, lugar, onEdit, onDelete }) => {
 
     case 'categoria':
       return (
-        <Chip className="capitalize" color={STATUS_COLOR_MAP[lugar.categoria] || 'default'} size="sm" variant="flat">
+        <Chip className='capitalize' color={STATUS_COLOR_MAP[lugar.categoria] || 'default'} size='sm' variant='flat'>
           {normalizeWords(cellValue) || 'No definida'}
         </Chip>
       )
@@ -46,19 +46,19 @@ const TableCellRenderer = ({ columnKey, lugar, onEdit, onDelete }) => {
 
     case 'actions':
       return (
-        <div className="relative flex items-center justify-center gap-2">
-          <Tooltip content="Detalles">
-            <Link to={`/tour/${lugar.idPaquete}`} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+        <div className='relative flex items-center justify-center gap-2'>
+          <Tooltip content='Detalles'>
+            <Link to={`/tour/${lugar.idPaquete}`} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
               <Eye />
             </Link>
           </Tooltip>
-          <Tooltip content="Editar">
-            <span onClick={() => onEdit(lugar)} className="text-lg text-default-400 cursor-pointer active:opacity-50">
+          <Tooltip content='Editar'>
+            <span onClick={() => onEdit(lugar)} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
               <Edit />
             </span>
           </Tooltip>
-          <Tooltip color="danger" content="Eliminar">
-            <span className="text-lg text-danger cursor-pointer active:opacity-50" onClick={() => onDelete(lugar)}>
+          <Tooltip color='danger' content='Eliminar'>
+            <span className='text-lg text-danger cursor-pointer active:opacity-50' onClick={() => onDelete(lugar)}>
               <Trash2 />
             </span>
           </Tooltip>

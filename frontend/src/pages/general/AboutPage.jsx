@@ -80,51 +80,51 @@ const AboutPage = () => {
   return (
     <>
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto text-center mb-16">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Sobre Glocal Tours</h1>
-        <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+      <div className='max-w-7xl mx-auto text-center mb-16'>
+        <h1 className='text-3xl font-bold text-gray-900 mb-4'>Sobre Glocal Tours</h1>
+        <p className='text-lg text-gray-600 max-w-3xl mx-auto'>
           Somos un equipo apasionado por el turismo y la tecnología, comprometidos con crear experiencias únicas para nuestros usuarios.
           Nuestra misión es conectar viajeros con destinos increíbles a través de una plataforma innovadora y fácil de usar.
         </p>
       </div>
 
       {/* Team Section */}
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-12">Nuestro Equipo</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className='max-w-7xl mx-auto'>
+        <h2 className='text-2xl font-bold text-gray-900 text-center mb-12'>Nuestro Equipo</h2>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'>
           {teamMembers.map((member, index) => (
-            <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
-              <CardHeader className="flex flex-col items-center pb-0">
-                <Avatar src={member.image} size="lg" isBordered color="primary" className="w-24 h-24" />
-                <h3 className="text-xl font-semibold mt-4">{member.name}</h3>
-                <p className="text-sm text-gray-500">{member.role}</p>
+            <Card key={index} className='hover:shadow-lg transition-shadow duration-300'>
+              <CardHeader className='flex flex-col items-center pb-0'>
+                <Avatar src={member.image} size='lg' isBordered color='primary' className='w-24 h-24' />
+                <h3 className='text-xl font-semibold mt-4'>{member.name}</h3>
+                <p className='text-sm text-gray-500'>{member.role}</p>
               </CardHeader>
-              <CardBody className="text-center flex flex-col h-[120px]">
-                <p className="text-sm text-gray-600 mb-4 flex-1">{member.description}</p>
-                <div className="flex justify-center gap-2">
+              <CardBody className='text-center flex flex-col h-[120px]'>
+                <p className='text-sm text-gray-600 mb-4 flex-1'>{member.description}</p>
+                <div className='flex justify-center gap-2'>
                   <Button
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="GitHub"
-                    as="a"
+                    color='primary'
+                    variant='light'
+                    aria-label='GitHub'
+                    as='a'
                     href={member.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2">
-                    <Github className="text-lg" />
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='p-2'>
+                    <Github className='text-lg' />
                   </Button>
                   <Button
                     isIconOnly
-                    color="primary"
-                    variant="light"
-                    aria-label="LinkedIn"
-                    as="a"
+                    color='primary'
+                    variant='light'
+                    aria-label='LinkedIn'
+                    as='a'
                     href={member.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2">
-                    <Linkedin className="text-lg" />
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='p-2'>
+                    <Linkedin className='text-lg' />
                   </Button>
                 </div>
               </CardBody>

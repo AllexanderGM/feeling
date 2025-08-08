@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, Image } from '@heroui/react'
 
-import authService from '../services/authService.js'
+import authService from '../services/auth/authService.js'
 import loginImg from '../assets/Backgrounds/forestwoman.webp'
 import { useAuth } from '../context/AuthContext.jsx'
+import { Logger } from '@utils/logger.js'
 
 const LoginForm = ({ loginMessage }) => {
   const [password, setPassword] = useState('')
@@ -90,12 +91,12 @@ const LoginForm = ({ loginMessage }) => {
 
     try {
       const result = await authService.login(email, password)
-      console.log('Login exitoso', result)
+      Logger.info('Login exitoso', Logger.CATEGORIES.USER, { userEmail: email, userId: result?.user?.id })
 
       setUser(result.user)
       setLoginSuccess(true)
     } catch (error) {
-      console.error('Error en login:', error)
+      Logger.error('Error en login', Logger.CATEGORIES.USER, { userEmail: email, error: error.message })
       setLoginError(error.message || 'Ha ocurrido un error al iniciar sesión. Por favor, intenta nuevamente.')
     } finally {
       setIsLoading(false)
@@ -113,44 +114,44 @@ const LoginForm = ({ loginMessage }) => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 -mt-8">
-      <Card className="w-[700px] h-full md:h-[550px] overflow-hidden rounded-none md:rounded-xl">
-        <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-0 p-0 ">
-          <div className="h-full relative flex">
+    <div className='flex items-center justify-center min-h-screen bg-gray-100 -mt-8'>
+      <Card className='w-[700px] h-full md:h-[550px] overflow-hidden rounded-none md:rounded-xl'>
+        <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-0 p-0 '>
+          <div className='h-full relative flex'>
             <Image
               src={loginImg}
-              alt="Un hombre mirando el horizonte sobre un bosque montañoso"
-              className="w-full h-full min-h-full object-cover rounded-none"
+              alt='Un hombre mirando el horizonte sobre un bosque montañoso'
+              className='w-full h-full min-h-full object-cover rounded-none'
             />
           </div>
 
           <Form
-            className="w-full flex flex-col justify-center items-center space-y-3 py-12 md:py-2"
+            className='w-full flex flex-col justify-center items-center space-y-3 py-12 md:py-2'
             validationErrors={errors}
             onReset={handleReset}
             onSubmit={onSubmit}>
-            <h2 className="text-xl font-semibold text-center text-gray-800 mb-4">Iniciar sesión</h2>
+            <h2 className='text-xl font-semibold text-center text-gray-800 mb-4'>Iniciar sesión</h2>
 
-            {loginMessage && <div className="bg-blue-100 text-blue-700 p-3 rounded-md max-w-md w-full mx-12">{loginMessage}</div>}
+            {loginMessage && <div className='bg-blue-100 text-blue-700 p-3 rounded-md max-w-md w-full mx-12'>{loginMessage}</div>}
 
-            {loginError && <div className="bg-red-100 text-red-700 p-3 rounded-none max-w-md w-full mx-12">{loginError}</div>}
+            {loginError && <div className='bg-red-100 text-red-700 p-3 rounded-none max-w-md w-full mx-12'>{loginError}</div>}
 
             {loginSuccess && (
-              <div className="bg-green-100 text-green-700 p-3 rounded-md max-w-md w-full mx-12">
+              <div className='bg-green-100 text-green-700 p-3 rounded-md max-w-md w-full mx-12'>
                 ¡Inicio de sesión exitoso! Redireccionando...
               </div>
             )}
 
-            <div className="flex flex-col gap-5 max-w-md w-full px-12 py-0">
+            <div className='flex flex-col gap-5 max-w-md w-full px-12 py-0'>
               <Input
                 isRequired
                 errorMessage={errors.email}
                 isInvalid={!!errors.email}
-                label="Correo electrónico"
-                labelPlacement="outside"
-                name="email"
-                placeholder="correo@ejemplo.com"
-                type="email"
+                label='Correo electrónico'
+                labelPlacement='outside'
+                name='email'
+                placeholder='correo@ejemplo.com'
+                type='email'
                 onValueChange={handleEmailChange}
                 value={email}
                 disabled={loginSuccess}
@@ -159,34 +160,34 @@ const LoginForm = ({ loginMessage }) => {
                 isRequired
                 errorMessage={errorMessage}
                 isInvalid={isInvalid}
-                label="Contraseña"
-                labelPlacement="outside"
-                name="password"
-                placeholder="Ingresa tu contraseña"
-                type="password"
+                label='Contraseña'
+                labelPlacement='outside'
+                name='password'
+                placeholder='Ingresa tu contraseña'
+                type='password'
                 value={password}
                 onValueChange={handlePasswordChange}
                 disabled={loginSuccess}
               />
 
-              <div className="flex gap-4">
+              <div className='flex gap-4'>
                 <Button
-                  className="w-full bg-[#E86C6E]"
-                  color="primary"
-                  type="submit"
+                  className='w-full bg-[#E86C6E]'
+                  color='primary'
+                  type='submit'
                   isLoading={isLoading}
                   disabled={isLoading || loginSuccess}>
                   {isLoading ? 'Procesando...' : 'Iniciar sesión'}
                 </Button>
-                <Button type="reset" variant="bordered" disabled={isLoading || loginSuccess}>
+                <Button type='reset' variant='bordered' disabled={isLoading || loginSuccess}>
                   Reset
                 </Button>
               </div>
             </div>
 
-            <p className="text-sm text-gray-600 text-center mt-4">
+            <p className='text-sm text-gray-600 text-center mt-4'>
               ¿No tienes cuenta?{' '}
-              <Link to="/register" className="text-primary-500 hover:underline">
+              <Link to='/register' className='text-primary-500 hover:underline'>
                 Registrate aquí
               </Link>
             </p>

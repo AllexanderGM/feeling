@@ -149,16 +149,16 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
   // ========================================
   const renderPhoneSection = useMemo(
     () => (
-      <div className="space-y-2">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className='space-y-2'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name="phoneCode"
+            name='phoneCode'
             control={control}
             render={({ field }) => (
               <Autocomplete
                 isRequired
-                label="Código de teléfono"
-                variant="underlined"
+                label='Código de teléfono'
+                variant='underlined'
                 selectedKey={field.value}
                 defaultItems={formattedCountries}
                 onSelectionChange={field.onChange}
@@ -173,7 +173,7 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                 startContent={
                   field.value && (
                     <img
-                      className="w-5 h-5 rounded-full object-cover"
+                      className='w-5 h-5 rounded-full object-cover'
                       src={derivedData.phoneCountryData.image}
                       alt={`Bandera de ${derivedData.phoneCountryData.name}`}
                     />
@@ -184,10 +184,10 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                     key={country.phone}
                     textValue={`${country.phone} ${country.name}`}
                     className={country.priority && 'bg-blue-500/10'}>
-                    <div className="flex items-center gap-2">
-                      <img src={country.image} alt={`Bandera de ${country.name}`} className="w-5 h-5 rounded-full object-cover" />
-                      <span className="font-medium">{country.phone}</span>
-                      <span className="text-gray-400 ml-1">{country.name}</span>
+                    <div className='flex items-center gap-2'>
+                      <img src={country.image} alt={`Bandera de ${country.name}`} className='w-5 h-5 rounded-full object-cover' />
+                      <span className='font-medium'>{country.phone}</span>
+                      <span className='text-gray-400 ml-1'>{country.name}</span>
                     </div>
                   </AutocompleteItem>
                 )}
@@ -196,21 +196,21 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
           />
 
           <Controller
-            name="phone"
+            name='phone'
             control={control}
             render={({ field }) => (
               <Input
                 {...field}
                 isRequired
-                label="Número de teléfono"
-                variant="underlined"
-                placeholder="123 456 789"
+                label='Número de teléfono'
+                variant='underlined'
+                placeholder='123 456 789'
                 isInvalid={!!errors.phone}
                 errorMessage={errors.phone?.message}
-                id="phone-number"
-                type="tel"
-                aria-label="Número de teléfono"
-                autoComplete="tel-national"
+                id='phone-number'
+                type='tel'
+                aria-label='Número de teléfono'
+                autoComplete='tel-national'
                 onChange={e => {
                   const cleanedPhone = e.target.value.replace(/\D/g, '')
                   field.onChange(cleanedPhone)
@@ -221,9 +221,9 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
         </div>
 
         {phoneCode && formValues.phone && (
-          <div className="bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2" role="status">
-            <span className="text-xs text-gray-400">Número completo:</span>
-            <span className="text-xs text-gray-300 font-mono">
+          <div className='bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2' role='status'>
+            <span className='text-xs text-gray-400'>Número completo:</span>
+            <span className='text-xs text-gray-300 font-mono'>
               {phoneCode} {formValues.phone}
             </span>
           </div>
@@ -237,12 +237,12 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
   // Render principal
   // ========================================
   return (
-    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
+    <div className='space-y-4 md:space-y-6 px-2 md:px-0'>
       {/* Sección de imágenes */}
-      <section className="space-y-4 md:space-y-6" aria-labelledby="images-section">
+      <section className='space-y-4 md:space-y-6' aria-labelledby='images-section'>
         {!hasInitialized ? (
-          <div className="text-center py-8">
-            <p className="text-blue-400 text-sm">Cargando imágenes...</p>
+          <div className='text-center py-8'>
+            <p className='text-blue-400 text-sm'>Cargando imágenes...</p>
           </div>
         ) : (
           <ImageManager
@@ -256,38 +256,37 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
             enableReorder={true}
             enablePreview={false}
             cropAspectRatio={3 / 4}
-            layout="dynamic"
-            size="default"
+            layout='dynamic'
+            size='default'
             gridCols={3}
             showEmptySlots={true}
-            className=""
+            className=''
           />
         )}
 
-
         {/* Error global de imágenes del formulario */}
         {(errors.images || errors.profileImage) && (
-          <div className="text-center">
-            <p className="text-red-400 text-sm font-medium bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 inline-block">
+          <div className='text-center'>
+            <p className='text-red-400 text-sm font-medium bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 inline-block'>
               {errors.images?.message || errors.profileImage?.message}
             </p>
           </div>
         )}
 
         {/* Tips para fotos */}
-        <Accordion variant="splitted" className="mt-6 px-0">
+        <Accordion variant='splitted' className='mt-6 px-0'>
           <AccordionItem
-            key="photo-tips"
-            aria-label="Tips para mejores resultados"
-            startContent={<Camera className="text-blue-400 text-xl pt-1" aria-hidden="true" />}
-            title="Tips para mejores resultados"
+            key='photo-tips'
+            aria-label='Tips para mejores resultados'
+            startContent={<Camera className='text-blue-400 text-xl pt-1' aria-hidden='true' />}
+            title='Tips para mejores resultados'
             classNames={{
               trigger: 'p-1',
               base: 'bg-blue-500/10 border border-blue-500/20',
               title: 'text-blue-400 text-sm',
               content: 'text-sm'
             }}>
-            <ul className="text-blue-300/80 space-y-1 list-disc pl-5">
+            <ul className='text-blue-300/80 space-y-1 list-disc pl-5'>
               {PHOTO_TIPS.map((tip, index) => (
                 <li key={index}>
                   <strong>{tip.label}:</strong> {tip.tip}
@@ -299,75 +298,75 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
       </section>
 
       {/* Información personal */}
-      <section className="space-y-4" aria-labelledby="personal-info-section">
-        <h2 id="personal-info-section" className="sr-only">
+      <section className='space-y-4' aria-labelledby='personal-info-section'>
+        <h2 id='personal-info-section' className='sr-only'>
           Información personal
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name="name"
+            name='name'
             control={control}
             render={({ field }) => (
               <Input
                 {...field}
-                variant="underlined"
+                variant='underlined'
                 isRequired
-                label="Nombre(s)"
-                placeholder="Tus nombre(s)"
+                label='Nombre(s)'
+                placeholder='Tus nombre(s)'
                 isInvalid={!!errors.name}
                 errorMessage={errors.name?.message}
-                id="first-name"
-                type="text"
-                aria-label="Nombres"
-                autoComplete="given-name"
+                id='first-name'
+                type='text'
+                aria-label='Nombres'
+                autoComplete='given-name'
               />
             )}
           />
 
           <Controller
-            name="lastName"
+            name='lastName'
             control={control}
             render={({ field }) => (
               <Input
                 {...field}
-                variant="underlined"
+                variant='underlined'
                 isRequired
-                label="Apellidos"
-                placeholder="Tus apellidos"
+                label='Apellidos'
+                placeholder='Tus apellidos'
                 isInvalid={!!errors.lastName}
                 errorMessage={errors.lastName?.message}
-                id="last-name"
-                type="text"
-                aria-label="Apellidos"
-                autoComplete="family-name"
+                id='last-name'
+                type='text'
+                aria-label='Apellidos'
+                autoComplete='family-name'
               />
             )}
           />
         </div>
 
         <Controller
-          name="document"
+          name='document'
           control={control}
           render={({ field }) => (
             <Input
               {...field}
-              variant="underlined"
+              variant='underlined'
               isRequired
-              label="Documento de identidad"
-              placeholder="Número de documento"
+              label='Documento de identidad'
+              placeholder='Número de documento'
               isInvalid={!!errors.document}
               errorMessage={errors.document?.message}
-              id="document-id"
-              type="text"
-              aria-label="Documento de identidad"
-              autoComplete="off"
+              id='document-id'
+              type='text'
+              aria-label='Documento de identidad'
+              autoComplete='off'
             />
           )}
         />
 
         <Controller
-          name="birthDate"
+          name='birthDate'
           control={control}
           render={({ field }) => (
             <DatePicker
@@ -380,40 +379,40 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
               errorMessage={errors.birthDate?.message}
               maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
               showMonthAndYearPickers
-              granularity="day"
+              granularity='day'
               placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
-              description="Debes ser mayor de 18 años"
-              id="birth-date"
-              aria-label="Fecha de nacimiento"
+              description='Debes ser mayor de 18 años'
+              id='birth-date'
+              aria-label='Fecha de nacimiento'
             />
           )}
         />
       </section>
 
       {/* Contacto */}
-      <section className="space-y-4" aria-labelledby="contact-section">
-        <h2 id="contact-section" className="sr-only">
+      <section className='space-y-4' aria-labelledby='contact-section'>
+        <h2 id='contact-section' className='sr-only'>
           Información de contacto
         </h2>
         {renderPhoneSection}
       </section>
 
       {/* Ubicación */}
-      <section className="space-y-4" aria-labelledby="location-section">
-        <h2 id="location-section" className="sr-only">
+      <section className='space-y-4' aria-labelledby='location-section'>
+        <h2 id='location-section' className='sr-only'>
           Información de ubicación
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name="country"
+            name='country'
             control={control}
             render={({ field }) => (
               <Autocomplete
-                variant="underlined"
+                variant='underlined'
                 isRequired
-                label="País"
-                placeholder="Buscar tu país..."
+                label='País'
+                placeholder='Buscar tu país...'
                 defaultItems={formattedCountries}
                 selectedKey={field.value}
                 onSelectionChange={key => {
@@ -433,7 +432,7 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                 startContent={
                   field.value && (
                     <img
-                      className="w-5 h-5 rounded-full object-cover"
+                      className='w-5 h-5 rounded-full object-cover'
                       src={derivedData.locationCountryData.image}
                       alt={`Bandera de ${derivedData.locationCountryData.name}`}
                     />
@@ -441,8 +440,8 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                 }>
                 {country => (
                   <AutocompleteItem key={country.name} textValue={country.name} className={country.priority && 'bg-blue-500/10'}>
-                    <div className="flex items-center gap-2">
-                      <img className="w-5 h-5 rounded-full object-cover" src={country.image} alt={`Bandera de ${country.name}`} />
+                    <div className='flex items-center gap-2'>
+                      <img className='w-5 h-5 rounded-full object-cover' src={country.image} alt={`Bandera de ${country.name}`} />
                       <span className={country.priority ? 'font-semibold' : ''}>{country.name}</span>
                     </div>
                   </AutocompleteItem>
@@ -453,14 +452,14 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
 
           {country && (
             <Controller
-              name="city"
+              name='city'
               control={control}
               render={({ field }) => (
                 <Autocomplete
-                  variant="underlined"
+                  variant='underlined'
                   isRequired
-                  label="Ciudad"
-                  placeholder="Buscar tu ciudad..."
+                  label='Ciudad'
+                  placeholder='Buscar tu ciudad...'
                   defaultItems={formattedCities}
                   selectedKey={field.value}
                   onSelectionChange={key => {
@@ -489,21 +488,21 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
         </div>
 
         {derivedData.shouldShowLocalities && (
-          <div className="space-y-4">
-            <div className="bg-gray-700/20 px-3 py-2 rounded-lg" role="status">
-              <span className="text-xs text-gray-400">
+          <div className='space-y-4'>
+            <div className='bg-gray-700/20 px-3 py-2 rounded-lg' role='status'>
+              <span className='text-xs text-gray-400'>
                 Como seleccionaste {city}, puedes especificar tu localidad para mejorar tus conexiones.
               </span>
             </div>
 
             <Controller
-              name="locality"
+              name='locality'
               control={control}
               render={({ field }) => (
                 <Autocomplete
-                  variant="underlined"
-                  label="Localidad (opcional)"
-                  placeholder="Buscar localidad..."
+                  variant='underlined'
+                  label='Localidad (opcional)'
+                  placeholder='Buscar localidad...'
                   defaultItems={formattedLocalities}
                   selectedKey={field.value || ''}
                   onSelectionChange={key => field.onChange(key || '')}

@@ -8,9 +8,10 @@ import 'lightgallery/css/lg-thumbnail.css'
 
 // Estilos personalizados para LightGallery
 import './DetalleGallery.scss'
+import { Logger } from '@utils/logger.js'
 
 const DetalleGallery = ({ tour }) => {
-  console.log('Tour en DetalleGallery:', tour)
+  Logger.debug('Tour cargado en galería de detalles', Logger.CATEGORIES.UI, { tourId: tour?.id, imagesCount: tour?.images?.length })
 
   // Verificamos que tour exista y que tenga imágenes
   const tourImages = tour && tour.images && Array.isArray(tour.images) ? tour.images : []
@@ -169,7 +170,7 @@ const DetalleGallery = ({ tour }) => {
   }
 
   return (
-    <div className="mb-10">
+    <div className='mb-10'>
       <LightGallery speed={500} plugins={[lgThumbnail, lgZoom]} elementClassNames={`grid gap-1 ${getGridClasses()} ${getHeightClass()}`}>
         {galleryItems.map((src, index) => (
           <a

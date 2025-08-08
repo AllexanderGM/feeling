@@ -16,9 +16,9 @@ import {
   ModalFooter,
   useDisclosure
 } from '@heroui/react'
-import useApiStatus from '@hooks/useApiStatus.js'
-import { useError } from '@hooks/useError.js'
+import { useApiStatus, useError } from '@hooks'
 import { API_URL } from '@config/config'
+import { Logger } from '@utils/logger.js'
 
 const ApiStatus = () => {
   // Estados para funcionalidades adicionales
@@ -99,7 +99,7 @@ const ApiStatus = () => {
         handleSuccess('Estado actualizado después de limpiar cache')
       }
     } catch (error) {
-      console.error('Error al limpiar cache:', error)
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'clear_cache', 'Error al limpiar cache', { error })
     }
   }, [clearCache, refresh, handleInfo, handleSuccess])
 
@@ -158,62 +158,62 @@ const ApiStatus = () => {
   return (
     <>
       {/* Header con información adicional */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div className="flex items-center gap-4">
+      <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4'>
+        <div className='flex items-center gap-4'>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2'>
               Estado del Sistema
               {isHealthy && (
-                <Badge color="success" size="sm">
+                <Badge color='success' size='sm'>
                   ONLINE
                 </Badge>
               )}
               {hasError && (
-                <Badge color="danger" size="sm">
+                <Badge color='danger' size='sm'>
                   OFFLINE
                 </Badge>
               )}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Monitoreo en tiempo real de la API de Feeling</p>
+            <p className='text-gray-600 dark:text-gray-400 mt-2'>Monitoreo en tiempo real de la API de Feeling</p>
           </div>
 
           {/* Indicador de ping en tiempo real */}
           {pingResult && (
-            <div className="hidden md:block">
-              <Chip color={pingResult.success ? 'success' : 'danger'} variant="flat" size="sm">
+            <div className='hidden md:block'>
+              <Chip color={pingResult.success ? 'success' : 'danger'} variant='flat' size='sm'>
                 Ping: {pingResult.success ? `${pingResult.responseTime}ms` : 'Error'}
               </Chip>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className='flex gap-2 flex-wrap'>
           <Button
-            color="primary"
-            variant="flat"
+            color='primary'
+            variant='flat'
             onPress={refresh}
             isLoading={loading}
-            aria-label="Actualizar estado del sistema"
-            startContent={!loading && <span className="material-symbols-outlined">refresh</span>}>
+            aria-label='Actualizar estado del sistema'
+            startContent={!loading && <span className='material-symbols-outlined'>refresh</span>}>
             Actualizar
           </Button>
 
           <Button
-            color="secondary"
-            variant="flat"
+            color='secondary'
+            variant='flat'
             onPress={handlePing}
             isLoading={pingLoading}
-            aria-label="Realizar ping al servidor"
-            startContent={!pingLoading && <span className="material-symbols-outlined">network_ping</span>}>
+            aria-label='Realizar ping al servidor'
+            startContent={!pingLoading && <span className='material-symbols-outlined'>network_ping</span>}>
             {pingLoading ? 'Ping...' : 'Ping'}
           </Button>
 
           <Button
-            color="warning"
-            variant="flat"
+            color='warning'
+            variant='flat'
             onPress={handleClearCacheAndRefresh}
-            aria-label="Limpiar cache del sistema"
-            startContent={<span className="material-symbols-outlined">cleaning_services</span>}>
+            aria-label='Limpiar cache del sistema'
+            startContent={<span className='material-symbols-outlined'>cleaning_services</span>}>
             Limpiar Cache
           </Button>
 
@@ -222,13 +222,13 @@ const ApiStatus = () => {
             variant={isAutoRefreshing ? 'solid' : 'flat'}
             onPress={toggleAutoRefresh}
             aria-label={`${isAutoRefreshing ? 'Pausar' : 'Activar'} auto-actualización`}
-            startContent={<span className="material-symbols-outlined">{isAutoRefreshing ? 'pause' : 'play_arrow'}</span>}>
+            startContent={<span className='material-symbols-outlined'>{isAutoRefreshing ? 'pause' : 'play_arrow'}</span>}>
             {isAutoRefreshing ? 'Pausar' : 'Auto-actualizar'}
           </Button>
 
-          <Tooltip content="Ver detalles técnicos">
-            <Button color="default" variant="flat" isIconOnly onPress={handleGetCacheStats} aria-label="Ver detalles técnicos del sistema">
-              <span className="material-symbols-outlined">info</span>
+          <Tooltip content='Ver detalles técnicos'>
+            <Button color='default' variant='flat' isIconOnly onPress={handleGetCacheStats} aria-label='Ver detalles técnicos del sistema'>
+              <span className='material-symbols-outlined'>info</span>
             </Button>
           </Tooltip>
         </div>
@@ -236,23 +236,23 @@ const ApiStatus = () => {
 
       {/* Ping Result Card - Solo cuando hay resultado */}
       {pingResult && (
-        <Card className="mb-6">
+        <Card className='mb-6'>
           <CardBody>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-3'>
                 <span className={`material-symbols-outlined text-2xl ${pingResult.success ? 'text-success' : 'text-danger'}`}>
                   {pingResult.success ? 'network_check' : 'network_offline'}
                 </span>
                 <div>
-                  <p className="text-lg font-semibold">Resultado del Ping</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(pingResult.timestamp).toLocaleString()}</p>
+                  <p className='text-lg font-semibold'>Resultado del Ping</p>
+                  <p className='text-sm text-gray-600 dark:text-gray-400'>{new Date(pingResult.timestamp).toLocaleString()}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <Chip color={pingResult.success ? 'success' : 'danger'} variant="flat" size="lg">
+              <div className='text-right'>
+                <Chip color={pingResult.success ? 'success' : 'danger'} variant='flat' size='lg'>
                   {pingResult.success ? `${pingResult.responseTime}ms` : 'Error'}
                 </Chip>
-                {!pingResult.success && <p className="text-xs text-danger mt-1">{pingResult.error}</p>}
+                {!pingResult.success && <p className='text-xs text-danger mt-1'>{pingResult.error}</p>}
               </div>
             </div>
           </CardBody>
@@ -260,25 +260,25 @@ const ApiStatus = () => {
       )}
 
       {/* Estado General Mejorado */}
-      <Card className="mb-6">
-        <CardHeader className="flex gap-3">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-2xl">
+      <Card className='mb-6'>
+        <CardHeader className='flex gap-3'>
+          <div className='flex items-center gap-3'>
+            <span className='material-symbols-outlined text-2xl'>
               {overallHealth.status === 'healthy' ? 'health_and_safety' : overallHealth.status === 'error' ? 'warning' : 'help'}
             </span>
             <div>
-              <p className="text-lg font-semibold">Estado General del Sistema</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className='text-lg font-semibold'>Estado General del Sistema</p>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
                 {lastUpdate ? `Última actualización: ${lastUpdate.toLocaleString()}` : 'Sin datos'}
               </p>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <Chip color={overallHealth.color} variant="flat" size="lg">
+          <div className='ml-auto flex items-center gap-2'>
+            <Chip color={overallHealth.color} variant='flat' size='lg'>
               {overallHealth.text}
             </Chip>
             {isAutoRefreshing && (
-              <Chip color="primary" variant="flat" size="sm">
+              <Chip color='primary' variant='flat' size='sm'>
                 Auto-refresh: 30s
               </Chip>
             )}
@@ -287,68 +287,68 @@ const ApiStatus = () => {
 
         <CardBody>
           {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <Spinner size="lg" label="Cargando estado del sistema..." aria-label="Cargando estado del sistema" />
+            <div className='flex justify-center items-center py-8'>
+              <Spinner size='lg' label='Cargando estado del sistema...' aria-label='Cargando estado del sistema' />
             </div>
           ) : hasError ? (
-            <div className="text-center py-8">
-              <span className="material-symbols-outlined text-6xl text-danger mb-4">error_outline</span>
-              <h3 className="text-xl font-semibold text-danger mb-2">Error de Conexión</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-              <div className="flex gap-2 justify-center">
-                <Button color="danger" variant="flat" onPress={refresh}>
+            <div className='text-center py-8'>
+              <span className='material-symbols-outlined text-6xl text-danger mb-4'>error_outline</span>
+              <h3 className='text-xl font-semibold text-danger mb-2'>Error de Conexión</h3>
+              <p className='text-gray-600 dark:text-gray-400 mb-4'>{error}</p>
+              <div className='flex gap-2 justify-center'>
+                <Button color='danger' variant='flat' onPress={refresh}>
                   Reintentar
                 </Button>
-                <Button color="warning" variant="flat" onPress={handleClearCacheAndRefresh}>
+                <Button color='warning' variant='flat' onPress={handleClearCacheAndRefresh}>
                   Limpiar Cache y Reintentar
                 </Button>
               </div>
             </div>
           ) : serverInfo ? (
-            <div className="space-y-6">
+            <div className='space-y-6'>
               {/* Barra de salud general */}
               {stats && (
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Salud del Sistema</span>
-                    <span className="text-sm text-gray-600">{stats.healthPercentage}%</span>
+                  <div className='flex justify-between items-center mb-2'>
+                    <span className='text-sm font-medium'>Salud del Sistema</span>
+                    <span className='text-sm text-gray-600'>{stats.healthPercentage}%</span>
                   </div>
                   <Progress
                     value={stats.healthPercentage}
                     color={stats.healthPercentage >= 80 ? 'success' : stats.healthPercentage >= 60 ? 'warning' : 'danger'}
-                    className="mb-4"
+                    className='mb-4'
                     aria-label={`Salud del sistema: ${stats.healthPercentage}%`}
                     label={`Salud del sistema: ${stats.healthPercentage}%`}
                   />
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
                 {/* Información del Servidor */}
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">computer</span>
+                <div className='space-y-3'>
+                  <h4 className='font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2'>
+                    <span className='material-symbols-outlined text-sm'>computer</span>
                     Información del Servidor
                   </h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Servidor:</span>
-                      <span className="text-sm font-medium">{serverInfo.server}</span>
+                  <div className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>Servidor:</span>
+                      <span className='text-sm font-medium'>{serverInfo.server}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Tiempo activo:</span>
-                      <span className="text-sm font-medium">{serverInfo.uptime}</span>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>Tiempo activo:</span>
+                      <span className='text-sm font-medium'>{serverInfo.uptime}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Estado:</span>
-                      <Chip color={serverInfo.health === 'OK' ? 'success' : 'danger'} size="sm" variant="flat">
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>Estado:</span>
+                      <Chip color={serverInfo.health === 'OK' ? 'success' : 'danger'} size='sm' variant='flat'>
                         {serverInfo.health}
                       </Chip>
                     </div>
                     {serverInfo.requestId && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Request ID:</span>
-                        <span className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                      <div className='flex items-center justify-between'>
+                        <span className='text-sm text-gray-600'>Request ID:</span>
+                        <span className='text-xs font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded'>
                           {serverInfo.requestId.slice(-8)}...
                         </span>
                       </div>
@@ -357,31 +357,31 @@ const ApiStatus = () => {
                 </div>
 
                 {/* Conectividad */}
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm">wifi</span>
+                <div className='space-y-3'>
+                  <h4 className='font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2'>
+                    <span className='material-symbols-outlined text-sm'>wifi</span>
                     Conectividad
                   </h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">API:</span>
+                  <div className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>API:</span>
                       <Chip
                         color={isHealthy ? 'success' : 'danger'}
-                        size="sm"
-                        variant="flat"
-                        startContent={<span className="material-symbols-outlined text-xs">{isHealthy ? 'wifi' : 'wifi_off'}</span>}>
+                        size='sm'
+                        variant='flat'
+                        startContent={<span className='material-symbols-outlined text-xs'>{isHealthy ? 'wifi' : 'wifi_off'}</span>}>
                         {isHealthy ? 'Disponible' : 'No Disponible'}
                       </Chip>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Endpoint:</span>
-                      <Chip color={hasData ? 'success' : 'warning'} size="sm" variant="flat">
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>Endpoint:</span>
+                      <Chip color={hasData ? 'success' : 'warning'} size='sm' variant='flat'>
                         {hasData ? 'Activo' : 'Inactivo'}
                       </Chip>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Cache:</span>
-                      <Chip color={serverInfo.cached ? 'primary' : 'default'} size="sm" variant="flat">
+                    <div className='flex items-center justify-between'>
+                      <span className='text-sm text-gray-600'>Cache:</span>
+                      <Chip color={serverInfo.cached ? 'primary' : 'default'} size='sm' variant='flat'>
                         {serverInfo.cached ? 'Cacheado' : 'Directo'}
                       </Chip>
                     </div>
@@ -390,32 +390,32 @@ const ApiStatus = () => {
 
                 {/* Métricas */}
                 {metricsInfo && (
-                  <div className="space-y-3">
-                    <h4 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-sm">analytics</span>
+                  <div className='space-y-3'>
+                    <h4 className='font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2'>
+                      <span className='material-symbols-outlined text-sm'>analytics</span>
                       Métricas
                     </h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Respuesta:</span>
-                        <Chip color={metricsInfo.responseTime.color} size="sm" variant="flat">
+                    <div className='space-y-2'>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-sm text-gray-600'>Respuesta:</span>
+                        <Chip color={metricsInfo.responseTime.color} size='sm' variant='flat'>
                           {metricsInfo.responseTime.text}
                         </Chip>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Última verificación:</span>
-                        <span className="text-sm font-medium">{metricsInfo.lastCheck}</span>
+                      <div className='flex items-center justify-between'>
+                        <span className='text-sm text-gray-600'>Última verificación:</span>
+                        <span className='text-sm font-medium'>{metricsInfo.lastCheck}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Auto-actualización:</span>
-                        <Chip color={isAutoRefreshing ? 'success' : 'default'} size="sm" variant="flat">
+                      <div className='flex items-center justify-between'>
+                        <span className='text-sm text-gray-600'>Auto-actualización:</span>
+                        <Chip color={isAutoRefreshing ? 'success' : 'default'} size='sm' variant='flat'>
                           {metricsInfo.autoRefreshStatus}
                         </Chip>
                       </div>
                       {stats && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Servicios activos:</span>
-                          <span className="text-sm font-medium">
+                        <div className='flex items-center justify-between'>
+                          <span className='text-sm text-gray-600'>Servicios activos:</span>
+                          <span className='text-sm font-medium'>
                             {stats.healthyServices}/{stats.totalServices}
                           </span>
                         </div>
@@ -433,26 +433,26 @@ const ApiStatus = () => {
       {hasData && statusData?.services && Object.keys(statusData.services).length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined">electrical_services</span>
+            <div className='flex items-center justify-between w-full'>
+              <div className='flex items-center gap-3'>
+                <span className='material-symbols-outlined'>electrical_services</span>
                 <div>
-                  <p className="text-lg font-semibold">Estado de Servicios</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className='text-lg font-semibold'>Estado de Servicios</p>
+                  <p className='text-sm text-gray-600 dark:text-gray-400'>
                     Componentes del sistema y sus estados
                     {stats && ` (${stats.healthyServices}/${stats.totalServices} operativos)`}
                   </p>
                 </div>
               </div>
               {stats && stats.healthPercentage < 100 && (
-                <Badge color="warning" variant="flat">
+                <Badge color='warning' variant='flat'>
                   {stats.totalServices - stats.healthyServices} con problemas
                 </Badge>
               )}
             </div>
           </CardHeader>
           <CardBody>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               {Object.entries(statusData.services).map(([serviceName, serviceStatus]) => {
                 const status = serviceHealth[serviceName] || {
                   status: 'unknown',
@@ -462,16 +462,16 @@ const ApiStatus = () => {
                 }
 
                 return (
-                  <div key={serviceName} className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                  <div key={serviceName} className='p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-3'>
                         <span className={`material-symbols-outlined text-${status.color}`}>{status.icon}</span>
                         <div>
-                          <h5 className="font-medium">{serviceName}</h5>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{status.message || serviceStatus}</p>
+                          <h5 className='font-medium'>{serviceName}</h5>
+                          <p className='text-sm text-gray-600 dark:text-gray-400'>{status.message || serviceStatus}</p>
                         </div>
                       </div>
-                      <Chip color={status.color} variant="flat" size="sm">
+                      <Chip color={status.color} variant='flat' size='sm'>
                         {status.status === 'healthy' ? 'Operativo' : status.status === 'error' ? 'Error' : 'Advertencia'}
                       </Chip>
                     </div>
@@ -484,17 +484,17 @@ const ApiStatus = () => {
       )}
 
       {/* Modal de detalles técnicos */}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl'>
         <ModalContent>
           {onClose => (
             <>
-              <ModalHeader className="flex flex-col gap-1">Detalles Técnicos del Sistema</ModalHeader>
+              <ModalHeader className='flex flex-col gap-1'>Detalles Técnicos del Sistema</ModalHeader>
               <ModalBody>
-                <div className="space-y-4">
+                <div className='space-y-4'>
                   {/* Información de la API */}
                   <div>
-                    <h4 className="font-semibold mb-2">Configuración de la API</h4>
-                    <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm">
+                    <h4 className='font-semibold mb-2'>Configuración de la API</h4>
+                    <div className='bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm'>
                       <p>
                         <strong>URL:</strong> {API_URL}
                       </p>
@@ -513,8 +513,8 @@ const ApiStatus = () => {
                   {/* Estadísticas del cache (mock) */}
                   {cacheStats && (
                     <div>
-                      <h4 className="font-semibold mb-2">Estadísticas del Cache</h4>
-                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm">
+                      <h4 className='font-semibold mb-2'>Estadísticas del Cache</h4>
+                      <div className='bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm'>
                         <p>
                           <strong>Entradas totales:</strong> {cacheStats.total}
                         </p>
@@ -537,8 +537,8 @@ const ApiStatus = () => {
                   {/* Metadatos de la última respuesta */}
                   {statusData?.metadata && (
                     <div>
-                      <h4 className="font-semibold mb-2">Última Respuesta</h4>
-                      <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm font-mono">
+                      <h4 className='font-semibold mb-2'>Última Respuesta</h4>
+                      <div className='bg-gray-100 dark:bg-gray-800 p-3 rounded-lg text-sm font-mono'>
                         <pre>{JSON.stringify(statusData.metadata, null, 2)}</pre>
                       </div>
                     </div>
@@ -546,7 +546,7 @@ const ApiStatus = () => {
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button color="primary" onPress={onClose}>
+                <Button color='primary' onPress={onClose}>
                   Cerrar
                 </Button>
               </ModalFooter>
@@ -556,13 +556,13 @@ const ApiStatus = () => {
       </Modal>
 
       {/* Información adicional */}
-      <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+      <div className='mt-8 text-center text-sm text-gray-500 dark:text-gray-400'>
         <p>
           Esta página muestra el estado en tiempo real de la API de Feeling.
           {isAutoRefreshing && ' Se actualiza automáticamente cada 30 segundos.'}
         </p>
         {statusData?.metadata && (
-          <p className="mt-1">
+          <p className='mt-1'>
             Request ID: {statusData.metadata.requestId} | Respuesta: {statusData.metadata.responseTime}ms
             {statusData.metadata.cached && ' | (En caché)'}
           </p>

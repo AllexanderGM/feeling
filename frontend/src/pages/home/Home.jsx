@@ -3,9 +3,8 @@ import { Button, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } fr
 import { Heart, RotateCcw, Settings, Users, Sparkles, Flame, Star } from 'lucide-react'
 
 // Hooks
-import useAuth from '@hooks/useAuth.js'
-import useUser from '@hooks/useUser.js'
-import { useCategoryInterests } from '@hooks/useCategoryInterests.js'
+import { useAuth, useUser, useUserInterests } from '@hooks'
+import { Logger } from '@utils/logger.js'
 
 // Components
 import LoadData from '@components/layout/LoadData.jsx'
@@ -15,7 +14,7 @@ import UserCard from '@components/ui/UserCard.jsx'
 const Home = () => {
   const { user, loading: authLoading } = useAuth()
   const { suggestions, suggestionsPagination, fetchUserSuggestions, loading: userLoading } = useUser()
-  const { getCategoryByEnum, loading: categoryLoading } = useCategoryInterests()
+  const { getInterestByEnum, loading: interestLoading } = useUserInterests()
 
   const [swipeDirection, setSwipeDirection] = useState(null)
   const [filterCategory, setFilterCategory] = useState('all')
@@ -34,7 +33,7 @@ const Home = () => {
   // Filtrar sugerencias basado en categoría y cards no removidas
   const availableCards = useMemo(() => {
     if (!suggestions || suggestions.length === 0) return []
-    
+
     let filtered = suggestions.filter(match => !removedCards.has(match.id))
 
     // Filtro por categoría
@@ -61,20 +60,20 @@ const Home = () => {
   const getCategoryIcon = categoryKey => {
     switch (categoryKey?.toUpperCase()) {
       case 'ESSENCE':
-        return <Sparkles className="w-4 h-4 text-blue-400" />
+        return <Sparkles className='w-4 h-4 text-blue-400' />
       case 'ROUSE':
-        return <Flame className="w-4 h-4 text-red-400" />
+        return <Flame className='w-4 h-4 text-red-400' />
       case 'SPIRIT':
-        return <Star className="w-4 h-4 text-purple-400" />
+        return <Star className='w-4 h-4 text-purple-400' />
       default:
-        return <Heart className="w-4 h-4 text-gray-400" />
+        return <Heart className='w-4 h-4 text-gray-400' />
     }
   }
 
   // Funciones de manejo del stack
   const handleLike = () => {
     if (currentCard) {
-      console.log('Like a:', currentCard.name)
+      Logger.info('Like action', { userName: currentCard.name }, { category: Logger.CATEGORIES.UI })
       setSwipeDirection('right')
       setTimeout(() => {
         nextCard()
@@ -85,7 +84,7 @@ const Home = () => {
 
   const handlePass = () => {
     if (currentCard) {
-      console.log('Pass a:', currentCard.name)
+      Logger.info('Pass action', { userName: currentCard.name }, { category: Logger.CATEGORIES.UI })
       setSwipeDirection('left')
       setTimeout(() => {
         nextCard()
@@ -96,7 +95,7 @@ const Home = () => {
 
   const handleSuperLike = () => {
     if (currentCard) {
-      console.log('Super Like a:', currentCard.name)
+      Logger.info('Super Like action', { userName: currentCard.name }, { category: Logger.CATEGORIES.UI })
       setSwipeDirection('up')
       setTimeout(() => {
         nextCard()
@@ -108,7 +107,7 @@ const Home = () => {
   const nextCard = () => {
     if (currentCard) {
       setRemovedCards(prev => new Set([...prev, currentCard.id]))
-      
+
       // Si quedan pocas cartas (menos de 3), cargar más sugerencias
       if (availableCards.length <= 3 && suggestionsPagination.hasNext) {
         fetchUserSuggestions(suggestionsPagination.page + 1, 10)
@@ -131,7 +130,7 @@ const Home = () => {
   }
 
   const handleViewProfile = profile => {
-    console.log('Ver perfil de:', profile.name)
+    Logger.info('Ver perfil de usuario', { userName: profile.name }, { category: Logger.CATEGORIES.UI })
   }
 
   const resetStack = () => {
@@ -171,50 +170,50 @@ const Home = () => {
     { value: 'spirit', label: 'Spirit' }
   ]
 
-  const isLoading = authLoading || categoryLoading || userLoading
+  const isLoading = authLoading || interestLoading || userLoading
 
   if (isLoading) return <LoadData>Cargando sugerencias...</LoadData>
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
 
   return (
-    <div className="flex flex-col relative min-h-screen">
+    <div className='flex flex-col relative min-h-screen'>
       {/* Área principal - Stack de cards */}
-      <div className="flex-1 flex items-center justify-center pb-24 relative">
+      <div className='flex-1 flex items-center justify-center pb-24 relative'>
         {!currentCard ? (
-          <div className="text-center max-w-sm mx-auto">
-            <div className="w-24 h-24 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Users className="w-12 h-12 text-gray-600" />
+          <div className='text-center max-w-sm mx-auto'>
+            <div className='w-24 h-24 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6'>
+              <Users className='w-12 h-12 text-gray-600' />
             </div>
-            <h3 className="text-xl font-bold text-gray-300 mb-2">¡No hay más perfiles!</h3>
-            <p className="text-gray-500 mb-6">
+            <h3 className='text-xl font-bold text-gray-300 mb-2'>¡No hay más perfiles!</h3>
+            <p className='text-gray-500 mb-6'>
               {removedCards.size > 0
                 ? 'Has visto todos los perfiles disponibles. Vuelve más tarde para ver nuevas sugerencias.'
                 : 'No hay perfiles que coincidan con tus filtros actuales.'}
             </p>
-            <div className="space-y-3">
+            <div className='space-y-3'>
               {removedCards.size > 0 && (
                 <Button
-                  color="primary"
-                  variant="bordered"
-                  startContent={<RotateCcw className="w-4 h-4" />}
+                  color='primary'
+                  variant='bordered'
+                  startContent={<RotateCcw className='w-4 h-4' />}
                   onPress={resetStack}
-                  className="w-full">
+                  className='w-full'>
                   Ver de nuevo
                 </Button>
               )}
               <Button
-                variant="light"
-                startContent={<Settings className="w-4 h-4" />}
+                variant='light'
+                startContent={<Settings className='w-4 h-4' />}
                 onPress={onFiltersOpen}
-                className="w-full text-gray-400">
+                className='w-full text-gray-400'>
                 Ajustar filtros
               </Button>
             </div>
           </div>
         ) : (
-          <div className="relative w-full max-w-sm mx-auto">
+          <div className='relative w-full max-w-sm mx-auto'>
             {/* Stack de cards con fondo opaco arreglado */}
-            <div className="relative h-[600px]">
+            <div className='relative h-[600px]'>
               {visibleCards.map((card, index) => (
                 <div
                   key={card.id}
@@ -236,7 +235,7 @@ const Home = () => {
                   <div className={index > 0 ? 'pointer-events-none' : ''}>
                     <UserCard
                       user={card}
-                      variant="discovery"
+                      variant='discovery'
                       onViewProfile={handleViewProfile}
                       showCompatibility={true}
                       showDistance={true}
@@ -253,7 +252,7 @@ const Home = () => {
       <Modal
         isOpen={isFiltersOpen}
         onOpenChange={onFiltersOpenChange}
-        placement="bottom"
+        placement='bottom'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
@@ -263,16 +262,16 @@ const Home = () => {
           {onClose => (
             <>
               <ModalHeader>
-                <h3 className="text-lg font-semibold text-gray-200">Filtros de búsqueda</h3>
+                <h3 className='text-lg font-semibold text-gray-200'>Filtros de búsqueda</h3>
               </ModalHeader>
-              <ModalBody className="pb-6">
-                <div className="space-y-4">
+              <ModalBody className='pb-6'>
+                <div className='space-y-4'>
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Categoría de interés</label>
+                    <label className='block text-sm font-medium text-gray-300 mb-2'>Categoría de interés</label>
                     <select
                       value={filterCategory}
                       onChange={e => setFilterCategory(e.target.value)}
-                      className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-gray-200">
+                      className='w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-gray-200'>
                       {categoryOptions.map(option => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -281,11 +280,11 @@ const Home = () => {
                     </select>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <Button variant="light" onPress={onClose} className="flex-1">
+                  <div className='flex gap-3 pt-4'>
+                    <Button variant='light' onPress={onClose} className='flex-1'>
                       Cancelar
                     </Button>
-                    <Button color="primary" onPress={onClose} className="flex-1">
+                    <Button color='primary' onPress={onClose} className='flex-1'>
                       Aplicar
                     </Button>
                   </div>

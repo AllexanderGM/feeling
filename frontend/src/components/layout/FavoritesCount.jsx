@@ -7,9 +7,9 @@ const FavoritesCount = () => {
   const favoritesCount = 0
 
   return (
-    <div className="relative">
-      <Badge content={favoritesCount} color="primary" variant="solid" size="sm" className={favoritesCount > 0 ? '' : 'hidden'}>
-        <Heart size={20} className="text-gray-600 hover:text-primary-500 transition-colors cursor-pointer" />
+    <div className='relative'>
+      <Badge content={favoritesCount} color='primary' variant='solid' size='sm' className={favoritesCount > 0 ? '' : 'hidden'}>
+        <Heart size={20} className='text-gray-600 hover:text-primary-500 transition-colors cursor-pointer' />
       </Badge>
     </div>
   )

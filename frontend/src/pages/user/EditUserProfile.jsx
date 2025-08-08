@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, CardHeader, Divider } from '@heroui/react'
 
 import { useAuth } from '../../context/AuthContext.jsx'
-import { getUserByEmail, updateUser } from '../../services/userService.js'
+import { getUserByEmail, updateUser } from '../../services/user/userService.js'
+import { Logger } from '@utils/logger.js'
 
 // Funciones auxiliares
 const generateRandomDocument = () => Math.floor(10000000 + Math.random() * 90000000).toString()
@@ -61,7 +62,7 @@ const EditUserProfile = () => {
           })
         }
       } catch (error) {
-        console.error('Error al cargar datos del usuario:', error)
+        Logger.error('Error al cargar datos del usuario:', error, { category: Logger.CATEGORIES.USER })
         setError('Error al cargar los datos del usuario')
       }
     }
@@ -127,7 +128,7 @@ const EditUserProfile = () => {
         navigate('/profile-user')
       }, 1500)
     } catch (error) {
-      console.error('Error al actualizar perfil:', error)
+      Logger.error('Error al actualizar perfil:', error, { category: Logger.CATEGORIES.USER })
       setError(error.message || 'Ha ocurrido un error al actualizar tu perfil')
     } finally {
       setIsLoading(false)
@@ -135,40 +136,40 @@ const EditUserProfile = () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-gray-100">
-      <Card className="max-w-xl w-full p-6">
-        <CardHeader className="flex flex-col">
-          <h1 className="text-2xl font-bold">Editar Perfil</h1>
-          <p className="text-gray-500 text-center">Actualiza tu información personal</p>
+    <div className='flex flex-col items-center justify-center w-full min-h-screen bg-gray-100'>
+      <Card className='max-w-xl w-full p-6'>
+        <CardHeader className='flex flex-col'>
+          <h1 className='text-2xl font-bold'>Editar Perfil</h1>
+          <p className='text-gray-500 text-center'>Actualiza tu información personal</p>
         </CardHeader>
 
         <CardBody>
-          {error && <div className="bg-red-100 text-red-700 p-3 rounded-md w-full mb-4">{error}</div>}
+          {error && <div className='bg-red-100 text-red-700 p-3 rounded-md w-full mb-4'>{error}</div>}
 
           {success && (
-            <div className="bg-green-100 text-green-700 p-3 rounded-md w-full mb-4">
+            <div className='bg-green-100 text-green-700 p-3 rounded-md w-full mb-4'>
               ¡Perfil actualizado correctamente! Redireccionando...
             </div>
           )}
 
-          <Form className="flex flex-col items-center w-full" onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-5">
+          <Form className='flex flex-col items-center w-full' onSubmit={handleSubmit}>
+            <div className='space-y-6'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-5'>
                 <Input
-                  label="Nombre"
-                  labelPlacement="outside"
-                  name="name"
-                  placeholder="Tu nombre"
+                  label='Nombre'
+                  labelPlacement='outside'
+                  name='name'
+                  placeholder='Tu nombre'
                   value={formData.name}
                   onValueChange={value => handleChange('name', value)}
                   isDisabled={isLoading || success}
                 />
 
                 <Input
-                  label="Apellido"
-                  labelPlacement="outside"
-                  name="lastName"
-                  placeholder="Tu apellido"
+                  label='Apellido'
+                  labelPlacement='outside'
+                  name='lastName'
+                  placeholder='Tu apellido'
                   value={formData.lastName}
                   onValueChange={value => handleChange('lastName', value)}
                   isDisabled={isLoading || success}
@@ -176,34 +177,34 @@ const EditUserProfile = () => {
               </div>
 
               <Input
-                label="Correo electrónico"
-                labelPlacement="outside"
-                name="email"
-                placeholder="correo@ejemplo.com"
-                type="email"
+                label='Correo electrónico'
+                labelPlacement='outside'
+                name='email'
+                placeholder='correo@ejemplo.com'
+                type='email'
                 value={formData.email}
                 isReadOnly
-                description="El correo electrónico no se puede modificar"
+                description='El correo electrónico no se puede modificar'
                 isDisabled={true}
-                className="py-4"
+                className='py-4'
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Input
-                  label="Documento"
-                  labelPlacement="outside"
-                  name="document"
-                  placeholder="Tu documento"
+                  label='Documento'
+                  labelPlacement='outside'
+                  name='document'
+                  placeholder='Tu documento'
                   value={formData.document}
                   onValueChange={value => handleChange('document', value)}
                   isDisabled={isLoading || success}
                 />
 
                 <Input
-                  label="Teléfono"
-                  labelPlacement="outside"
-                  name="phone"
-                  placeholder="Tu teléfono (9 dígitos)"
+                  label='Teléfono'
+                  labelPlacement='outside'
+                  name='phone'
+                  placeholder='Tu teléfono (9 dígitos)'
                   value={formData.phone}
                   onValueChange={value => handleChange('phone', value)}
                   isDisabled={isLoading || success}
@@ -211,47 +212,47 @@ const EditUserProfile = () => {
               </div>
 
               <Input
-                label="Fecha de Nacimiento"
-                labelPlacement="outside"
-                name="dateOfBirth"
-                type="date"
+                label='Fecha de Nacimiento'
+                labelPlacement='outside'
+                name='dateOfBirth'
+                type='date'
                 value={formData.dateOfBirth}
                 onValueChange={value => handleChange('dateOfBirth', value)}
                 isDisabled={isLoading || success}
                 max={MAX_BIRTHDATE}
-                description="Debes ser mayor de 18 años"
-                className="py-4"
+                description='Debes ser mayor de 18 años'
+                className='py-4'
               />
 
               <Input
-                label="URL de Imagen"
-                labelPlacement="outside"
-                name="image"
-                placeholder="URL de tu imagen de perfil"
+                label='URL de Imagen'
+                labelPlacement='outside'
+                name='image'
+                placeholder='URL de tu imagen de perfil'
                 value={formData.image}
                 onValueChange={value => handleChange('image', value)}
                 isDisabled={isLoading || success}
-                className="py-4"
+                className='py-4'
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Input
-                  type="password"
-                  label="Contraseña"
-                  labelPlacement="outside"
-                  name="password"
-                  placeholder="Tu contraseña"
+                  type='password'
+                  label='Contraseña'
+                  labelPlacement='outside'
+                  name='password'
+                  placeholder='Tu contraseña'
                   value={formData.password}
                   onValueChange={value => handleChange('password', value)}
                   isDisabled={isLoading || success}
                 />
 
                 <Input
-                  type="password"
-                  label="Confirmar Contraseña"
-                  labelPlacement="outside"
-                  name="confirmPassword"
-                  placeholder="Confirma tu contraseña"
+                  type='password'
+                  label='Confirmar Contraseña'
+                  labelPlacement='outside'
+                  name='confirmPassword'
+                  placeholder='Confirma tu contraseña'
                   value={formData.confirmPassword}
                   onValueChange={value => handleChange('confirmPassword', value)}
                   isDisabled={isLoading || success}
@@ -259,13 +260,13 @@ const EditUserProfile = () => {
               </div>
             </div>
 
-            <Divider className="my-4" />
+            <Divider className='my-4' />
 
-            <div className="flex gap-4 justify-end">
-              <Button type="button" variant="bordered" onPress={() => navigate('/profile-user')} isDisabled={isLoading || success}>
+            <div className='flex gap-4 justify-end'>
+              <Button type='button' variant='bordered' onPress={() => navigate('/profile-user')} isDisabled={isLoading || success}>
                 Cancelar
               </Button>
-              <Button type="submit" color="primary" className="bg-[#E86C6E]" isLoading={isLoading} isDisabled={success}>
+              <Button type='submit' color='primary' className='bg-[#E86C6E]' isLoading={isLoading} isDisabled={success}>
                 {isLoading ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
             </div>

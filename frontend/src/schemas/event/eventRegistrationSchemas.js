@@ -2,7 +2,7 @@ import * as yup from 'yup'
 
 /**
  * ESQUEMAS DE REGISTRO Y PAGOS DE EVENTOS
- * 
+ *
  * Contiene todas las validaciones relacionadas con:
  * - Registro en eventos
  * - Procesamiento de pagos
@@ -21,15 +21,9 @@ const registrationValidations = {
     .positive('El ID del evento debe ser positivo')
     .required('El ID del evento es requerido'),
 
-  paymentIntentId: yup
-    .string()
-    .min(10, 'ID de pago inválido')
-    .required('El ID de pago es requerido'),
+  paymentIntentId: yup.string().min(10, 'ID de pago inválido').required('El ID de pago es requerido'),
 
-  amountPaid: yup
-    .number()
-    .min(0, 'El monto no puede ser negativo')
-    .required('El monto pagado es requerido'),
+  amountPaid: yup.number().min(0, 'El monto no puede ser negativo').required('El monto pagado es requerido'),
 
   cancellationReason: yup
     .string()
@@ -38,18 +32,14 @@ const registrationValidations = {
     .required('La razón de cancelación es requerida'),
 
   // Para búsqueda de registros
-  registrationStatus: yup
-    .string()
-    .oneOf(['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'], 'Estado de registro inválido'),
+  registrationStatus: yup.string().oneOf(['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'], 'Estado de registro inválido'),
 
   // Para filtros de fecha de registro
-  registrationStartDate: yup
-    .string()
-    .test('valid-date', 'Fecha de inicio inválida', function (value) {
-      if (!value) return true
-      const date = new Date(value)
-      return !isNaN(date.getTime())
-    }),
+  registrationStartDate: yup.string().test('valid-date', 'Fecha de inicio inválida', function (value) {
+    if (!value) return true
+    const date = new Date(value)
+    return !isNaN(date.getTime())
+  }),
 
   registrationEndDate: yup
     .string()
@@ -93,23 +83,14 @@ export const createPaymentIntentSchema = yup.object().shape({
     .min(0, 'El monto no puede ser negativo')
     .max(10000000, 'El monto no puede exceder $10,000,000')
     .required('El monto es requerido'),
-  currency: yup
-    .string()
-    .oneOf(['COP', 'USD'], 'Moneda no soportada')
-    .default('COP'),
-  description: yup
-    .string()
-    .max(200, 'La descripción no puede exceder 200 caracteres')
+  currency: yup.string().oneOf(['COP', 'USD'], 'Moneda no soportada').default('COP'),
+  description: yup.string().max(200, 'La descripción no puede exceder 200 caracteres')
 })
 
 export const processPaymentSchema = yup.object().shape({
-  paymentMethodId: yup
-    .string()
-    .required('El método de pago es requerido'),
+  paymentMethodId: yup.string().required('El método de pago es requerido'),
   paymentIntentId: registrationValidations.paymentIntentId,
-  savePaymentMethod: yup
-    .boolean()
-    .default(false)
+  savePaymentMethod: yup.boolean().default(false)
 })
 
 // ========================================
@@ -117,10 +98,7 @@ export const processPaymentSchema = yup.object().shape({
 // ========================================
 
 export const registrationSearchSchema = yup.object().shape({
-  eventTitle: yup
-    .string()
-    .min(2, 'La búsqueda debe tener al menos 2 caracteres')
-    .max(100, 'La búsqueda no puede exceder 100 caracteres'),
+  eventTitle: yup.string().min(2, 'La búsqueda debe tener al menos 2 caracteres').max(100, 'La búsqueda no puede exceder 100 caracteres'),
   status: registrationValidations.registrationStatus,
   startDate: registrationValidations.registrationStartDate,
   endDate: registrationValidations.registrationEndDate,
@@ -129,9 +107,7 @@ export const registrationSearchSchema = yup.object().shape({
 })
 
 export const registrationFilterSchema = yup.object().shape({
-  statuses: yup.array().of(
-    yup.string().oneOf(['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'])
-  ),
+  statuses: yup.array().of(yup.string().oneOf(['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'])),
   dateRange: yup.object().shape({
     start: registrationValidations.registrationStartDate,
     end: registrationValidations.registrationEndDate
@@ -169,9 +145,7 @@ export const canRegisterForEvent = (event, userRegistrations = []) => {
   }
 
   // Verificar si el usuario ya está registrado
-  const existingRegistration = userRegistrations.find(
-    reg => reg.eventId === event.id && reg.paymentStatus !== 'CANCELLED'
-  )
+  const existingRegistration = userRegistrations.find(reg => reg.eventId === event.id && reg.paymentStatus !== 'CANCELLED')
   if (existingRegistration) {
     return { canRegister: false, reason: 'Ya estás registrado en este evento' }
   }
@@ -182,7 +156,7 @@ export const canRegisterForEvent = (event, userRegistrations = []) => {
 /**
  * Valida si un registro puede ser cancelado
  */
-export const canCancelRegistration = (registration) => {
+export const canCancelRegistration = registration => {
   // No se puede cancelar si ya está cancelado
   if (registration.paymentStatus === 'CANCELLED') {
     return { canCancel: false, reason: 'El registro ya está cancelado' }
@@ -197,7 +171,7 @@ export const canCancelRegistration = (registration) => {
   const eventDate = new Date(registration.eventDate)
   const now = new Date()
   const oneHourBefore = new Date(eventDate.getTime() - 60 * 60 * 1000)
-  
+
   if (now >= oneHourBefore) {
     return { canCancel: false, reason: 'No se puede cancelar menos de 1 hora antes del evento' }
   }
@@ -208,7 +182,7 @@ export const canCancelRegistration = (registration) => {
 /**
  * Calcula el tiempo límite para cancelar un registro
  */
-export const getCancellationDeadline = (eventDate) => {
+export const getCancellationDeadline = eventDate => {
   const event = new Date(eventDate)
   return new Date(event.getTime() - 60 * 60 * 1000) // 1 hora antes
 }
@@ -245,26 +219,26 @@ export const generatePaymentDescription = (event, userName) => {
 /**
  * Valida estado de pago
  */
-export const isPaymentCompleted = (paymentStatus) => {
+export const isPaymentCompleted = paymentStatus => {
   return paymentStatus === 'COMPLETED'
 }
 
-export const isPaymentPending = (paymentStatus) => {
+export const isPaymentPending = paymentStatus => {
   return paymentStatus === 'PENDING'
 }
 
-export const isPaymentFailed = (paymentStatus) => {
+export const isPaymentFailed = paymentStatus => {
   return paymentStatus === 'FAILED'
 }
 
-export const isPaymentCancelled = (paymentStatus) => {
+export const isPaymentCancelled = paymentStatus => {
   return paymentStatus === 'CANCELLED'
 }
 
 /**
  * Obtiene el color del estado de pago para UI
  */
-export const getPaymentStatusColor = (paymentStatus) => {
+export const getPaymentStatusColor = paymentStatus => {
   const colors = {
     PENDING: 'warning',
     COMPLETED: 'success',
@@ -277,7 +251,7 @@ export const getPaymentStatusColor = (paymentStatus) => {
 /**
  * Obtiene el texto del estado de pago en español
  */
-export const getPaymentStatusText = (paymentStatus) => {
+export const getPaymentStatusText = paymentStatus => {
   const texts = {
     PENDING: 'Pendiente',
     COMPLETED: 'Completado',
@@ -290,7 +264,7 @@ export const getPaymentStatusText = (paymentStatus) => {
 /**
  * Calcula estadísticas de registros
  */
-export const calculateRegistrationStats = (registrations) => {
+export const calculateRegistrationStats = registrations => {
   const stats = {
     total: registrations.length,
     completed: 0,

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { DateRangePicker as HeroDateRangePicker } from '@heroui/react'
 import { useSearch } from '@context/SearchContext'
 import { toISOString } from '@utils/dateUtils.js'
+import { Logger } from '@utils/logger.js'
 
 const DateRangePicker = () => {
   const { updateAdvancedSearchParams } = useSearch()
@@ -16,7 +17,7 @@ const DateRangePicker = () => {
   const pickerRef = useRef(null)
 
   const handleDateChange = range => {
-    console.log('DateRangePicker - Fecha seleccionada:', range)
+    Logger.debug('Fecha seleccionada en DateRangePicker', Logger.CATEGORIES.UI, { range })
 
     setDateRange(range)
 
@@ -29,14 +30,14 @@ const DateRangePicker = () => {
       end: range.end
     }
 
-    console.log('DateRangePicker - Formato para backend:', formattedRange)
+    Logger.debug('Formato de fecha para backend', Logger.CATEGORIES.UI, { formattedRange })
 
     updateAdvancedSearchParams({ dateRange: formattedRange })
   }
 
   useEffect(() => {
     const handleResetEvent = () => {
-      console.log('Reset event received in DateRangePicker')
+      Logger.debug('Evento de reset recibido en DateRangePicker', Logger.CATEGORIES.UI)
 
       setDateRange({
         startDate: null,
@@ -74,9 +75,9 @@ const DateRangePicker = () => {
       onChange={handleDateChange}
       minDate={today}
       maxDate={maxDate}
-      size="lg"
-      locale="es-ES" // Configurar la localización española
-      firstDayOfWeek="mon" // Establecer lunes como primer día de la semana
+      size='lg'
+      locale='es-ES' // Configurar la localización española
+      firstDayOfWeek='mon' // Establecer lunes como primer día de la semana
       classNames={{
         trigger: [
           'bg-default-100',

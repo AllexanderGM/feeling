@@ -1,8 +1,9 @@
 import { createContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { useCookies } from '@hooks/useCookies'
-import { registerAuthCallbacks } from '@services/api'
+import { useCookies } from '@hooks'
+import { registerAuthCallbacks } from '@services'
 import { getDefaultValuesForUser } from '@schemas'
 import { COOKIE_KEYS } from '@constants/cookieKeys'
+import { Logger } from '@utils/logger.js'
 
 /**
  * Crear estructura de usuario usando los esquemas
@@ -345,8 +346,14 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Escuchar eventos de error de autenticación
-    const handleAuthError = () => {
-      console.log('🔄 Evento de error de autenticación recibido en AuthContext')
+    const handleAuthError = event => {
+      // Verificar si realmente necesitamos limpiar todo
+      // Si ya no tenemos tokens, no hacer nada más
+      if (!accessToken && !refreshToken) {
+        return
+      }
+
+      Logger.info(Logger.CATEGORIES.AUTH, 'clearAuth', 'Limpiando autenticación por error de sesión')
       clearAllAuth()
     }
 
@@ -358,6 +365,78 @@ export const AuthProvider = ({ children }) => {
       window.removeEventListener('authError', handleAuthError)
     }
   }, [updateAccessToken, updateRefreshToken, updateTokens, clearAllAuth, updateUser])
+
+  // ========================================
+  // RENOVACIÓN AUTOMÁTICA DE TOKEN
+  // ========================================
+
+  // Función para verificar si el token está por expirar
+  const isTokenExpiringSoon = useCallback((token, minutesBeforeExpiry = 5) => {
+    if (!token) return true
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      const now = Date.now() / 1000
+      const timeLeft = payload.exp - now
+      return timeLeft < minutesBeforeExpiry * 60
+    } catch (error) {
+      Logger.warn(Logger.CATEGORIES.AUTH, 'tokenExpiration', 'Error al verificar expiración del token', { error })
+      return true
+    }
+  }, [])
+
+  // Función para renovar el token automáticamente
+  const renewTokenIfNeeded = useCallback(async () => {
+    if (!accessToken || !refreshToken) return false
+
+    if (isTokenExpiringSoon(accessToken)) {
+      try {
+        // Usar directamente api para evitar dependencias circulares
+        const response = await fetch(`${import.meta.env.VITE_URL_BACK || 'http://localhost:8081'}/auth/refresh-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ refreshToken })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const accessToken = data.accessToken || data.token
+          const refreshTokenNew = data.refreshToken
+
+          if (accessToken) {
+            updateAccessToken(accessToken)
+            // Si el backend retorna un nuevo refresh token, actualizarlo también
+            if (refreshTokenNew) {
+              updateRefreshToken(refreshTokenNew)
+            }
+            return true
+          }
+        } else {
+          if (response.status === 401) {
+            clearAllAuth()
+          }
+        }
+      } catch (error) {
+        clearAllAuth()
+      }
+    }
+    return false
+  }, [accessToken, refreshToken, isTokenExpiringSoon, updateAccessToken, clearAllAuth])
+
+  // Effect para configurar renovación automática del token
+  useEffect(() => {
+    if (!accessToken || !refreshToken) return
+
+    // Verificar inmediatamente si necesita renovación
+    renewTokenIfNeeded()
+
+    // Configurar interval para verificar cada 4 minutos
+    const interval = setInterval(renewTokenIfNeeded, 4 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [accessToken, refreshToken, renewTokenIfNeeded])
 
   // ========================================
   // SINCRONIZACIÓN CON COOKIES

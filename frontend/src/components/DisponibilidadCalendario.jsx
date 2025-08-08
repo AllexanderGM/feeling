@@ -5,6 +5,7 @@ import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 import { useNavigate } from 'react-router-dom'
 import { formatDateForDisplay, formatTimeForDisplay, normalizeAvailability } from '@utils/dateUtils.js'
 import { useAuth } from '@context/AuthContext.jsx'
+import { Logger } from '@utils/logger.js'
 
 const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
   const { user } = useAuth()
@@ -27,7 +28,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
             const returnDateTime = avail.returnTime ? new Date(avail.returnTime) : null
 
             if (!departureDateTime || isNaN(departureDateTime.getTime()) || !returnDateTime || isNaN(returnDateTime.getTime())) {
-              console.warn('Fechas inválidas en disponibilidad:', avail)
+              Logger.warn('Fechas inválidas en disponibilidad de tour', Logger.CATEGORIES.SYSTEM, { availId: avail.id, tourId: tour?.id })
               return null
             }
 
@@ -49,7 +50,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
               originalData: avail
             }
           } catch (error) {
-            console.error('Error procesando fecha de disponibilidad:', error)
+            Logger.error('Error procesando fecha de disponibilidad', Logger.CATEGORIES.SYSTEM, { error: error.message, tourId: tour?.id })
             return null
           }
         })
@@ -167,20 +168,20 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
   const defaultCalendarValue = today(getLocalTimeZone())
 
   return (
-    <Card className="mb-4 overflow-hidden shadow-sm">
-      <CardBody className="p-4">
+    <Card className='mb-4 overflow-hidden shadow-sm'>
+      <CardBody className='p-4'>
         {/* Calendario con foco en el primer mes con disponibilidad */}
-        <div className="mb-4 flex justify-center">
+        <div className='mb-4 flex justify-center'>
           <Calendar
-            aria-label="Calendario de disponibilidad"
+            aria-label='Calendario de disponibilidad'
             isDateUnavailable={isDateUnavailable}
             onChange={handleDateSelect}
             focusedValue={focusedDate || defaultCalendarValue}
             onFocusChange={setFocusedDate}
             calendarWidth={340}
             visibleMonths={1}
-            locale="es-ES"
-            firstDayOfWeek="mon"
+            locale='es-ES'
+            firstDayOfWeek='mon'
             renderCell={date => {
               const isAvailable = !isDateUnavailable(date)
               const availability = isAvailable ? getAvailabilityForDate(date) : null
@@ -203,10 +204,10 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
         {/* Mensaje cuando no hay fecha seleccionada */}
         {!selectedAvailability && (
-          <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
-            <span className="material-symbols-outlined text-4xl text-gray-400 mb-3">calendar_month</span>
-            <p className="text-gray-600 font-medium">Selecciona una fecha disponible</p>
-            <p className="text-gray-500 text-sm mt-2">
+          <div className='text-center p-6 bg-gray-50 rounded-lg border border-gray-200'>
+            <span className='material-symbols-outlined text-4xl text-gray-400 mb-3'>calendar_month</span>
+            <p className='text-gray-600 font-medium'>Selecciona una fecha disponible</p>
+            <p className='text-gray-500 text-sm mt-2'>
               Podrás ver los detalles de disponibilidad de este tour, y continuar el proceso de reserva
             </p>
           </div>
@@ -214,43 +215,43 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
         {/* Panel de detalles cuando hay fecha seleccionada */}
         {selectedAvailability && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="font-medium text-lg text-primary mb-3">Detalles de la fecha</h4>
-            <div className="space-y-3">
+          <div className='mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200'>
+            <h4 className='font-medium text-lg text-primary mb-3'>Detalles de la fecha</h4>
+            <div className='space-y-3'>
               {/* Fecha de salida */}
-              <div className="flex items-center">
-                <span className="material-symbols-outlined mr-2 text-gray-500">event</span>
+              <div className='flex items-center'>
+                <span className='material-symbols-outlined mr-2 text-gray-500'>event</span>
                 <div>
-                  <span className="font-medium">Salida:</span> {formatDateForDisplay(selectedAvailability.departureTime)}{' '}
-                  <span className="text-primary font-medium">{formatTimeForDisplay(selectedAvailability.departureTime)}</span>
+                  <span className='font-medium'>Salida:</span> {formatDateForDisplay(selectedAvailability.departureTime)}{' '}
+                  <span className='text-primary font-medium'>{formatTimeForDisplay(selectedAvailability.departureTime)}</span>
                 </div>
               </div>
 
               {/* Fecha de regreso */}
-              <div className="flex items-center">
-                <span className="material-symbols-outlined mr-2 text-gray-500">today</span>
+              <div className='flex items-center'>
+                <span className='material-symbols-outlined mr-2 text-gray-500'>today</span>
                 <div>
-                  <span className="font-medium">Regreso:</span> {formatDateForDisplay(selectedAvailability.returnTime)}{' '}
-                  <span className="text-primary font-medium">{formatTimeForDisplay(selectedAvailability.returnTime)}</span>
+                  <span className='font-medium'>Regreso:</span> {formatDateForDisplay(selectedAvailability.returnTime)}{' '}
+                  <span className='text-primary font-medium'>{formatTimeForDisplay(selectedAvailability.returnTime)}</span>
                 </div>
               </div>
 
               {/* Cupos disponibles */}
-              <div className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-gray-500" />
+              <div className='flex items-center'>
+                <Users className='h-5 w-5 mr-2 text-gray-500' />
                 <div>
-                  <span className="font-medium">Cupos disponibles:</span>{' '}
-                  <span className="text-primary font-medium">{selectedAvailability.availableSlots}</span>
+                  <span className='font-medium'>Cupos disponibles:</span>{' '}
+                  <span className='text-primary font-medium'>{selectedAvailability.availableSlots}</span>
                 </div>
               </div>
 
               {/* Fecha límite de reserva */}
               {selectedAvailability.bookUntilDate && (
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-gray-500" />
+                <div className='flex items-center'>
+                  <Clock className='h-5 w-5 mr-2 text-gray-500' />
                   <div>
-                    <span className="font-medium">Reservas hasta:</span>{' '}
-                    <span className="font-medium">{formatDateForDisplay(selectedAvailability.bookUntilDate)}</span>
+                    <span className='font-medium'>Reservas hasta:</span>{' '}
+                    <span className='font-medium'>{formatDateForDisplay(selectedAvailability.bookUntilDate)}</span>
                   </div>
                 </div>
               )}
@@ -258,7 +259,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
             {/* Botón de reserva modificado */}
             <Button
-              className="w-full mt-4 bg-[#E86C6E] hover:bg-red-600 text-white text-md font-medium py-3 rounded-lg shadow-sm transition-colors"
+              className='w-full mt-4 bg-[#E86C6E] hover:bg-red-600 text-white text-md font-medium py-3 rounded-lg shadow-sm transition-colors'
               onPress={handleReserveClick}>
               {user ? 'Iniciar reserva' : 'Iniciar sesión para reservar'}
             </Button>

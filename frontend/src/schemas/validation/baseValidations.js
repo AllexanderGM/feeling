@@ -2,10 +2,10 @@ import * as yup from 'yup'
 
 /**
  * VALIDACIONES BASE REUTILIZABLES
- * 
+ *
  * Este archivo contiene todas las validaciones básicas que pueden
  * ser reutilizadas en diferentes esquemas de la aplicación.
- * 
+ *
  * Organización:
  * - Validaciones de campos básicos
  * - Validaciones condicionales
@@ -18,12 +18,7 @@ import * as yup from 'yup'
 
 export const baseValidations = {
   // Autenticación y seguridad
-  email: yup
-    .string()
-    .trim()
-    .lowercase()
-    .email('Ingresa un email válido')
-    .required('El email es requerido'),
+  email: yup.string().trim().lowercase().email('Ingresa un email válido').required('El email es requerido'),
 
   password: yup.string().min(8, 'La contraseña debe tener al menos 8 caracteres').required('La contraseña es requerida'),
 
@@ -172,7 +167,7 @@ export const conditionalValidations = {
  * @param {Object} validationMap - Mapa de campos con sus validaciones
  * @returns {yup.ObjectSchema} Esquema de validación
  */
-export const createCustomSchema = (validationMap) => {
+export const createCustomSchema = validationMap => {
   const schemaFields = {}
 
   Object.entries(validationMap).forEach(([fieldName, validationType]) => {
@@ -214,20 +209,16 @@ export const combineSchemas = (...schemas) => {
 export const fileValidations = {
   image: yup
     .mixed()
-    .test('fileSize', 'La imagen no puede exceder 5MB', (value) => {
+    .test('fileSize', 'La imagen no puede exceder 5MB', value => {
       if (!value) return true
       return value.size <= 5 * 1024 * 1024 // 5MB
     })
-    .test('fileType', 'Solo se permiten imágenes JPG, PNG o WEBP', (value) => {
+    .test('fileType', 'Solo se permiten imágenes JPG, PNG o WEBP', value => {
       if (!value) return true
       return ['image/jpeg', 'image/png', 'image/webp'].includes(value.type)
     }),
 
-  multipleImages: yup
-    .array()
-    .of(yup.mixed())
-    .min(1, 'Debes subir al menos una imagen')
-    .max(6, 'Máximo 6 imágenes permitidas')
+  multipleImages: yup.array().of(yup.mixed()).min(1, 'Debes subir al menos una imagen').max(6, 'Máximo 6 imágenes permitidas')
 }
 
 /**
@@ -235,14 +226,14 @@ export const fileValidations = {
  */
 export const optionalValidations = {
   profession: yup.string().max(100, 'La profesión no puede exceder 100 caracteres'),
-  
+
   socialMedia: yup.string().url('Ingresa una URL válida'),
-  
+
   website: yup.string().url('Ingresa una URL válida'),
-  
+
   phoneCode: yup.string().required('Selecciona el código de país'),
-  
+
   department: yup.string().max(50, 'El departamento no puede exceder 50 caracteres'),
-  
+
   locality: yup.string().max(50, 'La localidad no puede exceder 50 caracteres')
 }

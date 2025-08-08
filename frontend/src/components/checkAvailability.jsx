@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Logger } from '@utils/logger.js'
 
 const URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8080'
 
@@ -19,10 +20,10 @@ const CheckAvailability = () => {
 
         const data = await response.json()
         setAvailabilityData(data)
-        console.log('Tour 1 availability data:', data)
+        Logger.info('Datos de disponibilidad obtenidos', Logger.CATEGORIES.SERVICE, { tourId: 1, dataCount: data?.length || 0 })
       } catch (err) {
         setError(err.message)
-        console.error('Error fetching availability:', err)
+        Logger.error('Error obteniendo disponibilidad', Logger.CATEGORIES.SERVICE, { tourId: 1, error: err.message })
       } finally {
         setLoading(false)
       }
@@ -32,23 +33,23 @@ const CheckAvailability = () => {
   }, [])
 
   if (loading) {
-    return <div className="p-4 bg-blue-100 rounded">Loading availability data...</div>
+    return <div className='p-4 bg-blue-100 rounded'>Loading availability data...</div>
   }
 
   if (error) {
-    return <div className="p-4 bg-red-100 rounded">Error: {error}</div>
+    return <div className='p-4 bg-red-100 rounded'>Error: {error}</div>
   }
 
   if (!availabilityData || availabilityData.length === 0) {
-    return <div className="p-4 bg-yellow-100 rounded">No availability data found for tour 1</div>
+    return <div className='p-4 bg-yellow-100 rounded'>No availability data found for tour 1</div>
   }
 
   return (
-    <div className="p-4 bg-green-100 rounded">
-      <h3 className="font-bold mb-2">Tour 1 Availability Data</h3>
-      <ul className="list-disc pl-5">
+    <div className='p-4 bg-green-100 rounded'>
+      <h3 className='font-bold mb-2'>Tour 1 Availability Data</h3>
+      <ul className='list-disc pl-5'>
         {availabilityData.map((item, index) => (
-          <li key={index} className="mb-2">
+          <li key={index} className='mb-2'>
             <div>
               <strong>Available Date:</strong> {item.availableDate}
             </div>

@@ -16,7 +16,7 @@
   .forced-colors-adjust {
     forced-color-adjust: none;
   }
-  
+
   /* Asegurar que los elementos focusables sean visibles en modo de alto contraste */
   button:focus,
   input:focus,
@@ -31,11 +31,11 @@
 /* Mejoras para accesibilidad de elementos ocultos */
 @layer base {
   /* Asegurar que elementos con aria-hidden no interfieran con el foco */
-  [aria-hidden="true"] * {
+  [aria-hidden='true'] * {
     pointer-events: none;
   }
-  
-  [aria-hidden="true"] *:focus {
+
+  [aria-hidden='true'] *:focus {
     outline: none;
   }
 }

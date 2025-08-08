@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import useAuth from '@hooks/useAuth'
-import { useNotification } from '@hooks/useNotification'
+import { useAuth, useNotification } from '@hooks'
 import { verifyEmailSchema, extractVerifyEmailData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
@@ -24,7 +23,15 @@ const VerifyEmail = () => {
   const [resendCountdown, setResendCountdown] = useState(120)
 
   const stateData = location.state || {}
-  const { email: stateEmail, fromRegister, fromGoogle, autoVerified, message: stateMessage, userType = 'local', autoResend = false } = stateData
+  const {
+    email: stateEmail,
+    fromRegister,
+    fromGoogle,
+    autoVerified,
+    message: stateMessage,
+    userType = 'local',
+    autoResend = false
+  } = stateData
 
   const {
     control,
@@ -62,7 +69,7 @@ const VerifyEmail = () => {
       // Cuando viene de un intento de registro pero email no verificado
       setMessage(stateMessage)
       setCanResend(true) // Permitir reenvío inmediato en este caso
-      
+
       // Reenviar código automáticamente si viene marcado para auto-reenvío
       if (autoResend) {
         const autoResendCode = async () => {
@@ -77,7 +84,7 @@ const VerifyEmail = () => {
             setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
             setCanResend(false)
             setResendCountdown(waitTime)
-            
+
             // Iniciar countdown con el tiempo específico del backend
             const interval = setInterval(() => {
               setResendCountdown(prev => {
@@ -93,7 +100,7 @@ const VerifyEmail = () => {
             setMessage(stateMessage) // Volver al mensaje original si falla por otro motivo
           }
         }
-        
+
         // Pequeño delay para que el usuario vea el mensaje inicial
         setTimeout(autoResendCode, 1500)
       }
@@ -151,19 +158,19 @@ const VerifyEmail = () => {
   }
 
   // Función para extraer el tiempo de espera del mensaje del backend
-  const extractWaitTimeFromMessage = (message) => {
+  const extractWaitTimeFromMessage = message => {
     // Busca patrones como "2 minuto(s)" o "1 minuto" en el mensaje
     const minuteMatch = message.match(/(\d+)\s*minuto/i)
     if (minuteMatch) {
       return parseInt(minuteMatch[1]) * 60 // Convertir a segundos
     }
-    
-    // Busca patrones como "30 segundo(s)" 
+
+    // Busca patrones como "30 segundo(s)"
     const secondMatch = message.match(/(\d+)\s*segundo/i)
     if (secondMatch) {
       return parseInt(secondMatch[1])
     }
-    
+
     // Por defecto, 120 segundos si no puede extraer el tiempo
     return 120
   }
@@ -185,7 +192,7 @@ const VerifyEmail = () => {
       setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
       setCanResend(false)
       setResendCountdown(waitTime)
-      
+
       // Iniciar countdown con el tiempo específico del backend
       const interval = setInterval(() => {
         setResendCountdown(prev => {
@@ -205,22 +212,22 @@ const VerifyEmail = () => {
   // Si es usuario de Google verificado automáticamente
   if (fromGoogle && autoVerified && status === 'success') {
     return (
-      <LiteContainer ariaLabel="Verificación de email automática">
-        <figure className="text-center pb-8">
-          <img src={logo} alt="Logo Feeling" className="w-52" />
+      <LiteContainer ariaLabel='Verificación de email automática'>
+        <figure className='text-center pb-8'>
+          <img src={logo} alt='Logo Feeling' className='w-52' />
         </figure>
 
-        <div className="flex flex-col w-full space-y-6 max-w-md">
-          <div className="text-center">
-            <div className="text-green-400 text-6xl mb-6">
-              <CheckCircle className="text-8xl drop-shadow-lg" />
+        <div className='flex flex-col w-full space-y-6 max-w-md'>
+          <div className='text-center'>
+            <div className='text-green-400 text-6xl mb-6'>
+              <CheckCircle className='text-8xl drop-shadow-lg' />
             </div>
-            <h2 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Bienvenido a Feeling!</h2>
-            <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
-            <p className="text-sm text-gray-400 mb-4">Redirigiendo para completar tu perfil...</p>
+            <h2 className='text-2xl font-medium text-white mb-4 drop-shadow-md'>¡Bienvenido a Feeling!</h2>
+            <p className='text-gray-300 mb-6 leading-relaxed'>{message}</p>
+            <p className='text-sm text-gray-400 mb-4'>Redirigiendo para completar tu perfil...</p>
 
-            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse"></div>
+            <div className='w-full bg-gray-700 rounded-full h-2 overflow-hidden'>
+              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse'></div>
             </div>
           </div>
         </div>
@@ -229,48 +236,45 @@ const VerifyEmail = () => {
   }
 
   return (
-    <LiteContainer ariaLabel="Página de verificación de email">
-      <figure className="text-center pb-8">
-        <img src={logo} alt="Logo Feeling" className="w-52" />
+    <LiteContainer ariaLabel='Página de verificación de email'>
+      <figure className='text-center pb-8'>
+        <img src={logo} alt='Logo Feeling' className='w-52' />
       </figure>
 
       {status === 'success' ? (
-        <div className="flex flex-col w-full space-y-6 max-w-md">
-          <div className="text-center">
-            <div className="text-green-400 text-6xl mb-6">
-              <CheckCircle className="text-8xl drop-shadow-lg" />
+        <div className='flex flex-col w-full space-y-6 max-w-md'>
+          <div className='text-center'>
+            <div className='text-green-400 text-6xl mb-6'>
+              <CheckCircle className='text-8xl drop-shadow-lg' />
             </div>
-            <h2 className="text-2xl font-medium text-white mb-4 drop-shadow-md">¡Verificación Exitosa!</h2>
-            <p className="text-gray-300 mb-6 leading-relaxed">{message}</p>
-            <p className="text-sm text-gray-400 mb-4">Redirigiendo...</p>
+            <h2 className='text-2xl font-medium text-white mb-4 drop-shadow-md'>¡Verificación Exitosa!</h2>
+            <p className='text-gray-300 mb-6 leading-relaxed'>{message}</p>
+            <p className='text-sm text-gray-400 mb-4'>Redirigiendo...</p>
 
-            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse"></div>
+            <div className='w-full bg-gray-700 rounded-full h-2 overflow-hidden'>
+              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse'></div>
             </div>
           </div>
         </div>
       ) : (
-        <Form className="flex flex-col w-full space-y-6" validationBehavior="aria" onSubmit={handleSubmit(onSubmit)}>
-          <h2 className="text-xl font-medium text-white mb-2">Verificar Email</h2>
+        <Form className='flex flex-col w-full space-y-6' validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
+          <h2 className='text-xl font-medium text-white mb-2'>Verificar Email</h2>
 
           {message && (
-            <div className={`px-4 py-3 rounded-lg backdrop-blur-sm w-full ${
-              message.includes('esperar') || message.includes('solicitud') 
-                ? 'bg-yellow-900/30 border border-yellow-800/50 text-yellow-300'
-                : 'bg-blue-900/30 border border-blue-800/50 text-blue-300'
-            }`}>
-              <div className="flex items-center gap-2">
-                <Info className={
-                  message.includes('esperar') || message.includes('solicitud')
-                    ? 'text-yellow-400'
-                    : 'text-blue-400'
-                } />
+            <div
+              className={`px-4 py-3 rounded-lg backdrop-blur-sm w-full ${
+                message.includes('esperar') || message.includes('solicitud')
+                  ? 'bg-yellow-900/30 border border-yellow-800/50 text-yellow-300'
+                  : 'bg-blue-900/30 border border-blue-800/50 text-blue-300'
+              }`}>
+              <div className='flex items-center gap-2'>
+                <Info className={message.includes('esperar') || message.includes('solicitud') ? 'text-yellow-400' : 'text-blue-400'} />
                 {message}
               </div>
             </div>
           )}
 
-          <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+          <p className='text-sm text-gray-400 mb-4 leading-relaxed'>
             {stateEmail
               ? 'Revisa tu bandeja de entrada y carpeta de spam. Ingresa el código de 6 dígitos que enviamos a tu correo electrónico.'
               : 'Ingresa tu email y el código de verificación que recibiste.'}
@@ -278,17 +282,17 @@ const VerifyEmail = () => {
 
           {!stateEmail && (
             <Controller
-              name="email"
+              name='email'
               control={control}
               render={({ field }) => (
                 <Input
                   {...field}
-                  variant="underlined"
+                  variant='underlined'
                   isRequired
-                  label="Correo electrónico"
-                  placeholder="usuario@correo.com"
-                  type="email"
-                  autoComplete="email"
+                  label='Correo electrónico'
+                  placeholder='usuario@correo.com'
+                  type='email'
+                  autoComplete='email'
                   isInvalid={!!errors.email}
                   errorMessage={errors.email?.message}
                   isDisabled={loading}
@@ -298,34 +302,34 @@ const VerifyEmail = () => {
           )}
 
           {stateEmail && (
-            <div className="mb-4 p-4 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 w-full">
-              <div className="flex items-center gap-3">
-                <Mail className="text-primary-400" />
+            <div className='mb-4 p-4 bg-gray-800/50 backdrop-blur-sm rounded-lg border border-gray-700/50 w-full'>
+              <div className='flex items-center gap-3'>
+                <Mail className='text-primary-400' />
                 <div>
-                  <p className="text-xs text-gray-400">Código enviado a:</p>
-                  <p className="text-white font-medium">{stateEmail}</p>
+                  <p className='text-xs text-gray-400'>Código enviado a:</p>
+                  <p className='text-white font-medium'>{stateEmail}</p>
                 </div>
               </div>
             </div>
           )}
 
           <Controller
-            name="code"
+            name='code'
             control={control}
             render={({ field }) => (
               <Input
                 {...field}
-                variant="underlined"
+                variant='underlined'
                 isRequired
-                label="Código de verificación"
-                placeholder="123456"
-                type="text"
+                label='Código de verificación'
+                placeholder='123456'
+                type='text'
                 maxLength={6}
                 isInvalid={!!errors.code}
                 errorMessage={errors.code?.message}
                 isDisabled={loading}
-                description="Código de 6 dígitos numéricos"
-                startContent={<ShieldCheck className="text-gray-400 text-sm" />}
+                description='Código de 6 dígitos numéricos'
+                startContent={<ShieldCheck className='text-gray-400 text-sm' />}
                 onChange={e => {
                   const value = e.target.value.replace(/\D/g, '')
                   field.onChange(value)
@@ -335,29 +339,29 @@ const VerifyEmail = () => {
           />
 
           <Button
-            type="submit"
-            radius="full"
-            color="default"
-            className="w-full py-3 mt-4 font-semibold shadow-md transition-all hover:shadow-lg"
+            type='submit'
+            radius='full'
+            color='default'
+            className='w-full py-3 mt-4 font-semibold shadow-md transition-all hover:shadow-lg'
             isLoading={loading}
             isDisabled={loading || !isValid}>
             {loading ? 'Verificando...' : 'Verificar Código'}
           </Button>
 
-          <div className="space-y-4 w-full">
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-gray-700"></div>
-              <span className="flex-shrink mx-4 text-xs text-gray-500">¿No recibiste el código?</span>
-              <div className="flex-grow border-t border-gray-700"></div>
+          <div className='space-y-4 w-full'>
+            <div className='relative flex items-center py-2'>
+              <div className='flex-grow border-t border-gray-700'></div>
+              <span className='flex-shrink mx-4 text-xs text-gray-500'>¿No recibiste el código?</span>
+              <div className='flex-grow border-t border-gray-700'></div>
             </div>
 
-            <div className="text-center">
+            <div className='text-center'>
               {canResend ? (
                 <Button
-                  variant="flat"
-                  color="primary"
-                  radius="full"
-                  className="transition-all duration-300 hover:scale-105"
+                  variant='flat'
+                  color='primary'
+                  radius='full'
+                  className='transition-all duration-300 hover:scale-105'
                   onPress={handleResendCode}
                   isLoading={resendLoading}
                   isDisabled={resendLoading}
@@ -365,37 +369,37 @@ const VerifyEmail = () => {
                   {resendLoading ? 'Enviando...' : 'Reenviar código'}
                 </Button>
               ) : (
-                <div className="bg-gray-800/30 backdrop-blur-sm p-4 rounded-lg border border-gray-700/50">
-                  <p className="text-sm text-gray-400 mb-2">Podrás solicitar un nuevo código en:</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <Clock className="text-primary-400" />
-                    <span className="font-mono text-lg text-primary-400 font-semibold">{formatCountdown(resendCountdown)}</span>
+                <div className='bg-gray-800/30 backdrop-blur-sm p-4 rounded-lg border border-gray-700/50'>
+                  <p className='text-sm text-gray-400 mb-2'>Podrás solicitar un nuevo código en:</p>
+                  <div className='flex items-center justify-center gap-2'>
+                    <Clock className='text-primary-400' />
+                    <span className='font-mono text-lg text-primary-400 font-semibold'>{formatCountdown(resendCountdown)}</span>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-700 space-y-4 w-full">
-            <div className="text-center text-xs text-gray-500">
-              <p className="mb-3">¿Problemas con la verificación?</p>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Link href={APP_PATHS.AUTH.LOGIN} className="text-gray-400 hover:text-gray-300 underline transition-colors">
+          <div className='pt-6 border-t border-gray-700 space-y-4 w-full'>
+            <div className='text-center text-xs text-gray-500'>
+              <p className='mb-3'>¿Problemas con la verificación?</p>
+              <div className='flex flex-col sm:flex-row gap-2 justify-center'>
+                <Link href={APP_PATHS.AUTH.LOGIN} className='text-gray-400 hover:text-gray-300 underline transition-colors'>
                   Volver al inicio de sesión
                 </Link>
-                <span className="hidden sm:inline text-gray-600">•</span>
-                <Link href={APP_PATHS.AUTH.REGISTER} className="text-gray-400 hover:text-gray-300 underline transition-colors">
+                <span className='hidden sm:inline text-gray-600'>•</span>
+                <Link href={APP_PATHS.AUTH.REGISTER} className='text-gray-400 hover:text-gray-300 underline transition-colors'>
                   Crear nueva cuenta
                 </Link>
               </div>
             </div>
 
-            <div className="bg-gray-800/20 backdrop-blur-sm p-4 rounded-lg border border-gray-700/30">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="text-yellow-400 text-sm mt-0.5" />
-                <div className="text-xs text-gray-400 leading-relaxed">
-                  <p className="font-medium text-gray-300 mb-1">Consejos para la verificación:</p>
-                  <ul className="space-y-1 text-gray-400">
+            <div className='bg-gray-800/20 backdrop-blur-sm p-4 rounded-lg border border-gray-700/30'>
+              <div className='flex items-start gap-3'>
+                <Lightbulb className='text-yellow-400 text-sm mt-0.5' />
+                <div className='text-xs text-gray-400 leading-relaxed'>
+                  <p className='font-medium text-gray-300 mb-1'>Consejos para la verificación:</p>
+                  <ul className='space-y-1 text-gray-400'>
                     <li>• Revisa tu carpeta de spam o correo no deseado</li>
                     <li>• El código expira en 30 minutos</li>
                     <li>• Asegúrate de tener conexión a internet estable</li>

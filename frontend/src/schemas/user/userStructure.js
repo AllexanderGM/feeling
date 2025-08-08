@@ -359,17 +359,44 @@ export const formatFormDataToApi = (formData, section = 'profile') => {
 /**
  * Formatear datos para completar perfil - solo campos que espera UserProfileRequestDTO
  */
-export const formatProfileCompletionData = (formData) => {
+export const formatProfileCompletionData = formData => {
   if (!formData) return {}
 
   // Campos que espera el UserProfileRequestDTO del backend
   const expectedFields = [
-    'name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'description',
-    'country', 'city', 'department', 'locality', 'categoryInterest',
-    'genderId', 'maritalStatusId', 'height', 'eyeColorId', 'hairColorId', 'bodyTypeId',
-    'educationId', 'profession', 'tags', 'religionId', 'spiritualMoments', 'spiritualPractices',
-    'sexualRoleId', 'relationshipId', 'agePreferenceMin', 'agePreferenceMax',
-    'locationPreferenceRadius', 'allowNotifications', 'showAge', 'showLocation', 'showMeInSearch'
+    'name',
+    'lastName',
+    'document',
+    'phone',
+    'phoneCode',
+    'dateOfBirth',
+    'description',
+    'country',
+    'city',
+    'department',
+    'locality',
+    'categoryInterest',
+    'genderId',
+    'maritalStatusId',
+    'height',
+    'eyeColorId',
+    'hairColorId',
+    'bodyTypeId',
+    'educationId',
+    'profession',
+    'tags',
+    'religionId',
+    'spiritualMoments',
+    'spiritualPractices',
+    'sexualRoleId',
+    'relationshipId',
+    'agePreferenceMin',
+    'agePreferenceMax',
+    'locationPreferenceRadius',
+    'allowNotifications',
+    'showAge',
+    'showLocation',
+    'showMeInSearch'
   ]
 
   const profileData = {}
@@ -381,13 +408,13 @@ export const formatProfileCompletionData = (formData) => {
       ...formData.privacy,
       ...formData.notifications
     }
-    
+
     expectedFields.forEach(field => {
       if (allData[field] !== undefined) {
         profileData[field] = allData[field]
       }
     })
-    
+
     // Mapear birthDate a dateOfBirth si existe
     if (allData.birthDate !== undefined) {
       profileData.dateOfBirth = allData.birthDate
@@ -399,7 +426,7 @@ export const formatProfileCompletionData = (formData) => {
         profileData[field] = formData[field]
       }
     })
-    
+
     // Mapear birthDate a dateOfBirth si existe
     if (formData.birthDate !== undefined) {
       profileData.dateOfBirth = formData.birthDate

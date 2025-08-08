@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import PropTypes from 'prop-types'
 // NOTA: Temporalmente usando getAllTours en lugar de toursAllRandom para evitar límite de 10 items
-import { getAllTours, toursAllRandom } from '@services/tourService.js'
+import { getAllTours, toursAllRandom } from '@services'
+import { Logger } from '@utils/logger.js'
 
 const SearchContext = createContext()
 
@@ -28,14 +29,14 @@ export const SearchProvider = ({ children }) => {
   const loadAllTours = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('Loading all tours data...')
+      Logger.debug(Logger.CATEGORIES.USER, 'carga tours', { type: 'all' })
       const response = await getAllTours()
-      console.log('All tours response:', response)
+      Logger.debug(Logger.CATEGORIES.USER, 'respuesta carga tours', { type: 'all', count: response?.data?.length || 0 })
 
       setAllTours(response)
       setSearchResults(response)
     } catch (error) {
-      console.error('Error loading tours:', error)
+      Logger.error(Logger.CATEGORIES.USER, 'error carga tours', error)
       setSearchResults({ success: false, error: error.message })
     } finally {
       setLoading(false)
@@ -46,14 +47,14 @@ export const SearchProvider = ({ children }) => {
   const loadAllRandomTours = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('Loading random tours data...')
+      Logger.debug(Logger.CATEGORIES.USER, 'carga tours', { type: 'random' })
       const response = await toursAllRandom()
-      console.log('Random tours response:', response)
+      Logger.debug(Logger.CATEGORIES.USER, 'respuesta carga tours', { type: 'random', count: response?.data?.length || 0 })
 
       setAllTours(response)
       setSearchResults(response)
     } catch (error) {
-      console.error('Error loading random tours:', error)
+      Logger.error(Logger.CATEGORIES.USER, 'error carga tours random', error)
       setSearchResults({ success: false, error: error.message })
     } finally {
       setLoading(false)
@@ -78,21 +79,20 @@ export const SearchProvider = ({ children }) => {
 
   // Función para actualizar los parámetros de búsqueda avanzada
   const updateAdvancedSearchParams = useCallback(params => {
-    console.log('SearchContext - Actualizando parámetros avanzados:', params)
+    Logger.debug(Logger.CATEGORIES.USER, 'actualización parámetros búsqueda', { params })
     setAdvancedSearchParams(prev => {
       const newParams = {
         ...prev,
         ...params
       }
-      console.log('SearchContext - Nuevos parámetros:', newParams)
+      Logger.debug(Logger.CATEGORIES.USER, 'nuevos parámetros búsqueda', { newParams })
       return newParams
     })
   }, [])
 
   const searchTours = useCallback(async () => {
     setLoading(true)
-    console.log('Searching tours with term:', searchTerm)
-    console.log('Advanced search params:', advancedSearchParams)
+    Logger.debug(Logger.CATEGORIES.USER, 'búsqueda tours', { searchTerm, advancedSearchParams })
 
     try {
       if (!allTours) {
@@ -107,7 +107,7 @@ export const SearchProvider = ({ children }) => {
       }
 
       if (!allTours.data || !Array.isArray(allTours.data)) {
-        console.error('Unexpected data structure:', allTours)
+        Logger.error(Logger.CATEGORIES.USER, 'estructura datos inesperada', { allTours })
         setSearchResults({ success: false, error: 'Formato de datos inesperado' })
         setLoading(false)
         return
@@ -132,7 +132,7 @@ export const SearchProvider = ({ children }) => {
 
       // Filtrar por rango de fechas
       if (advancedSearchParams.dateRange?.startDate || advancedSearchParams.dateRange?.start) {
-        console.log('Filtering by date range:', advancedSearchParams.dateRange)
+        Logger.debug(Logger.CATEGORIES.USER, 'filtrado por fechas', { dateRange: advancedSearchParams.dateRange })
 
         let startDate = null
         let endDate = null
@@ -160,7 +160,10 @@ export const SearchProvider = ({ children }) => {
             endDate.setHours(23, 59, 59, 999)
           }
 
-          console.log('Fechas para filtrado - Inicio:', startDate.toISOString(), 'Fin:', endDate.toISOString())
+          Logger.debug(Logger.CATEGORIES.USER, 'fechas filtrado configuradas', {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+          })
 
           // Filtrar los resultados basados en la disponibilidad de los tours
           filteredResults = filteredResults.filter(tour => {
@@ -185,27 +188,25 @@ export const SearchProvider = ({ children }) => {
                 const endDateNormalized = new Date(endDate)
                 endDateNormalized.setHours(23, 59, 59, 999)
 
-                console.log(
-                  `Tour ${tour.name} - fecha salida:`,
-                  departureDate.toISOString(),
-                  'Normalizada:',
-                  departureDateNormalized.toISOString(),
-                  'Dentro del rango:',
-                  departureDateNormalized >= startDateNormalized && departureDateNormalized <= endDateNormalized
-                )
+                Logger.debug(Logger.CATEGORIES.USER, 'evaluación fecha tour', {
+                  tourName: tour.name,
+                  departureDate: departureDate.toISOString(),
+                  departureDateNormalized: departureDateNormalized.toISOString(),
+                  withinRange: departureDateNormalized >= startDateNormalized && departureDateNormalized <= endDateNormalized
+                })
 
                 // Una fecha está en el rango si: departureDate >= startDate Y departureDate <= endDate
                 return departureDateNormalized >= startDateNormalized && departureDateNormalized <= endDateNormalized
               } catch (e) {
-                console.error('Error procesando fecha del tour:', e, avail)
+                Logger.error(Logger.CATEGORIES.USER, 'error procesando fecha tour', { error: e, availability: avail })
                 return false
               }
             })
           })
 
-          console.log('Resultados después de filtrar por fechas:', filteredResults.length)
+          Logger.debug(Logger.CATEGORIES.USER, 'resultados filtrado fechas', { count: filteredResults.length })
         } catch (error) {
-          console.error('Error en el filtrado por fechas:', error)
+          Logger.error(Logger.CATEGORIES.USER, 'error filtrado fechas', error)
         }
       }
 
@@ -214,7 +215,7 @@ export const SearchProvider = ({ children }) => {
         data: filteredResults
       })
     } catch (error) {
-      console.error('Error searching tours:', error)
+      Logger.error(Logger.CATEGORIES.USER, 'error búsqueda tours', error)
       setSearchResults({ success: false, error: error.message })
     } finally {
       setLoading(false)
@@ -225,8 +226,7 @@ export const SearchProvider = ({ children }) => {
   useEffect(() => {
     // Ejecutar búsqueda siempre que cambie el término o los parámetros avanzados
     const delay = setTimeout(() => {
-      console.log('Iniciando búsqueda con término:', searchTerm)
-      console.log('Parámetros avanzados:', advancedSearchParams)
+      Logger.debug(Logger.CATEGORIES.USER, 'iniciando búsqueda', { searchTerm, advancedSearchParams })
       searchTours()
     }, 300) // Debounce search por 300ms
 
@@ -333,7 +333,7 @@ export const SearchProvider = ({ children }) => {
   // Función para escuchar el evento de creación de tour y añadirlo a los resultados actuales
   useEffect(() => {
     const handleTourCreated = event => {
-      console.log('SearchContext: Tour creado evento recibido:', event.detail)
+      Logger.debug(Logger.CATEGORIES.USER, 'evento tour creado recibido', { tourData: event.detail })
 
       // Si tenemos los resultados actuales
       if (allTours && allTours.data && Array.isArray(allTours.data)) {
@@ -351,7 +351,7 @@ export const SearchProvider = ({ children }) => {
               data: [newTour, ...allTours.data]
             }
 
-            console.log('SearchContext: Añadiendo tour a la lista localmente.')
+            Logger.debug(Logger.CATEGORIES.USER, 'añadiendo tour localmente', { tourId: newTour.id })
 
             // Actualizar el estado de tours y resultados de búsqueda localmente
             setAllTours(updatedTours)
