@@ -44,7 +44,7 @@ public class AuthService {
 
     private final IUserTokenRepository tokenRepository;
     private final JwtService jwtService;
-    private final IUserRoleRepository roleUserRepository;
+    private final IUserRoleRepository userRoleRepository;
     private final AuthenticationManager authenticationManager;
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -93,10 +93,10 @@ public class AuthService {
 
             validateMinimumRegistrationData(newUser);
 
-            UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
+            UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
                     .orElseGet(() -> {
                         UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                        return roleUserRepository.save(newRole);
+                        return userRoleRepository.save(newRole);
                     });
 
             User userEntity = User.builder()
@@ -181,8 +181,8 @@ public class AuthService {
             // 3. Crear nuevo usuario desde Google
             logger.logAuth("google_register", googleUser.email(), "creating new user");
 
-            UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
-                    .orElseGet(() -> roleUserRepository.save(new UserRole(UserRoleList.CLIENT)));
+            UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
+                    .orElseGet(() -> userRoleRepository.save(new UserRole(UserRoleList.CLIENT)));
 
             User newUser = User.builder()
                     .name(googleUser.getFirstName())
@@ -314,10 +314,10 @@ public class AuthService {
                 logger.logAuth("google_login", googleUser.email(), "creating new user");
 
                 // Obtener rol de cliente - usar transacción separada para evitar conflictos
-                UserRole clientRole = roleUserRepository.findByUserRoleList(UserRoleList.CLIENT)
+                UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
                         .orElseGet(() -> {
                             UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                            return roleUserRepository.save(newRole);
+                            return userRoleRepository.save(newRole);
                         });
 
                 // Crear usuario
@@ -901,17 +901,25 @@ public class AuthService {
             throw new BadRequestException("Refresh token inválido");
         }
 
-        // Generar nuevo ACCESS token (mantener el refresh token)
+        // Generar NUEVOS tokens (rotación de refresh token)
         final String newAccessToken = jwtService.generateToken(user);
+        final String newRefreshToken = jwtService.generateRefreshToken(user);
 
-        // Revocar todos los access tokens anteriores (pero mantener refresh tokens)
+        // Revocar el refresh token usado (previene reutilización)
+        UserToken usedToken = storedToken.get();
+        usedToken.setRevoked(true);
+        usedToken.setExpired(true);
+        tokenRepository.save(usedToken);
+
+        // Revocar todos los access tokens anteriores
         revokeAllAccessTokens(user);
 
-        // Guardar el nuevo access token
+        // Guardar los nuevos tokens
         saveUserToken(user, newAccessToken, UserToken.TokenType.ACCESS);
+        saveUserToken(user, newRefreshToken, UserToken.TokenType.REFRESH);
 
-        logger.logAuth("refresh_token", userEmail, "success");
-        return new RefreshTokenResponseDTO(newAccessToken, "Token refrescado exitosamente");
+        logger.logAuth("refresh_token", userEmail, "success - tokens rotated");
+        return new RefreshTokenResponseDTO(newAccessToken, newRefreshToken, "Tokens refrescados exitosamente");
     }
 
     /**
@@ -945,10 +953,11 @@ public class AuthService {
             String accessToken = jwtService.generateToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            logger.logUserOperation("token_revocation", user.getEmail(), Map.of("action", "revoking_previous_tokens"));
+            logger.logUserOperation("token_revocation", user.getEmail(), Map.of("action", "revoking_previous_access_tokens"));
 
-            // Revocar todos los tokens anteriores y guardar los nuevos
-            revokeAllUserTokens(user);
+            // Para login: solo revocar access tokens, permitir múltiples refresh tokens activos
+            // Esto permite sesiones simultáneas en múltiples dispositivos
+            revokeAllAccessTokens(user);
 
             logger.logUserOperation("token_save", user.getEmail(), null);
             saveUserToken(user, accessToken, UserToken.TokenType.ACCESS);
@@ -986,7 +995,8 @@ public class AuthService {
                     user.getProfileViews(),
                     user.getLikesReceived(),
                     user.getMatchesCount(),
-                    user.getPopularityScore()
+                    user.getPopularityScore(),
+                    user.getProfileCompletenessPercentage()
             );
             
             UserAuthDTO auth = new UserAuthDTO(

@@ -114,6 +114,7 @@ public record UserModifyDTO(
         String role,
         
         Boolean approved,
+        String approvalStatus,
 
         // ========================================
         // CONFIGURACIÓN DE PRIVACIDAD EXTENDIDA

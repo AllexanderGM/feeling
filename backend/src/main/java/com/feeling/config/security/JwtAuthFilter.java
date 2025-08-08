@@ -132,7 +132,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             // OPTIMIZACIÓN: Verificar que el usuario existe y está habilitado usando cache
             // Para rutas de completar perfil, permitir usuarios verificados pero no aprobados
-            boolean isProfileCompletionRoute = requestPath.equals("/users/complete-profile");
+            boolean isProfileCompletionRoute = requestPath.equals("/user/complete-profile");
             Boolean isUserValid = isProfileCompletionRoute ? 
                 cachedUserService.isUserValidForProfileCompletion(userEmail) : 
                 cachedUserService.isUserValidForAuth(userEmail);

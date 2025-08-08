@@ -13,7 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -99,6 +102,74 @@ public class MatchPlanService {
                 user.getId(), activeUserMatchPlan.getRemainingAttempts());
     }
 
+    public List<MatchPlanResponseDTO> getAllPlansForAdmin() {
+        log.debug("Getting all match plans for admin");
+        return matchPlanRepository.findAll()
+                .stream()
+                .map(this::convertToResponseDTOWithStats)
+                .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getMatchPlanStatistics() {
+        log.debug("Calculating match plan statistics");
+        
+        // Obtener todos los planes
+        List<MatchPlan> allPlans = matchPlanRepository.findAll();
+        List<MatchPlan> activePlans = matchPlanRepository.findAllActiveOrderBySortOrderAndPrice();
+        
+        // Obtener todas las compras
+        List<UserMatchPlan> allPurchases = userMatchPlanRepository.findAll();
+        
+        // Calcular estadísticas básicas
+        int totalPlans = allPlans.size();
+        int activePlansCount = activePlans.size();
+        int totalPurchases = allPurchases.size();
+        
+        // Calcular ingresos totales
+        BigDecimal totalRevenue = allPurchases.stream()
+                .map(purchase -> purchase.getMatchPlan().getPrice())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        // Encontrar el plan más popular
+        Map<String, Long> planPopularity = allPurchases.stream()
+                .collect(Collectors.groupingBy(
+                        purchase -> purchase.getMatchPlan().getName(),
+                        Collectors.counting()
+                ));
+        
+        String mostPopularPlan = planPopularity.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("N/A");
+        
+        Long mostPopularPlanSales = planPopularity.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getValue)
+                .orElse(0L);
+        
+        // Calcular promedio de intentos restantes
+        Double averageRemainingAttempts = allPurchases.stream()
+                .filter(UserMatchPlan::getIsActive)
+                .mapToInt(UserMatchPlan::getRemainingAttempts)
+                .average()
+                .orElse(0.0);
+        
+        // Construir respuesta
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalPlans", totalPlans);
+        stats.put("activePlans", activePlansCount);
+        stats.put("totalPurchases", totalPurchases);
+        stats.put("totalRevenue", totalRevenue);
+        stats.put("mostPopularPlan", mostPopularPlan);
+        stats.put("mostPopularPlanSales", mostPopularPlanSales);
+        stats.put("averageRemainingAttempts", averageRemainingAttempts.intValue());
+        
+        log.info("Match plan statistics calculated: {} total plans, {} purchases, revenue: {}", 
+                totalPlans, totalPurchases, totalRevenue);
+        
+        return stats;
+    }
+
     private MatchPlanResponseDTO convertToResponseDTO(MatchPlan matchPlan) {
         return new MatchPlanResponseDTO(
                 matchPlan.getId(),
@@ -109,6 +180,22 @@ public class MatchPlanService {
                 matchPlan.getIsActive(),
                 matchPlan.getSortOrder()
         );
+    }
+
+    private MatchPlanResponseDTO convertToResponseDTOWithStats(MatchPlan matchPlan) {
+        // Calcular estadísticas específicas del plan
+        List<UserMatchPlan> planPurchases = userMatchPlanRepository.findByMatchPlan(matchPlan);
+        
+        int totalPurchases = planPurchases.size();
+        BigDecimal totalRevenue = matchPlan.getPrice().multiply(BigDecimal.valueOf(totalPurchases));
+        
+        // Crear DTO básico
+        MatchPlanResponseDTO dto = convertToResponseDTO(matchPlan);
+        
+        // Agregar estadísticas (se pueden agregar a través de un Map adicional si el DTO no las soporta)
+        // Por ahora retornamos el DTO básico, pero podríamos extender el DTO para incluir estas estadísticas
+        
+        return dto;
     }
 
     private UserMatchPlanResponseDTO convertToUserMatchPlanResponseDTO(UserMatchPlan userMatchPlan) {

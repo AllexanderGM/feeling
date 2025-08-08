@@ -14,6 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import com.feeling.domain.dto.user.UserPublicResponseDTO;
+import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.domain.services.user.UserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -194,5 +200,111 @@ public class UserAttributeService {
                 .mapToInt(UserAttribute::getDisplayOrder)
                 .max()
                 .orElse(0) + 1;
+    }
+
+    /**
+     * Obtiene usuarios filtrados por atributo específico
+     */
+    public Page<UserPublicResponseDTO> getUsersByAttribute(Long attributeId, Pageable pageable) {
+        try {
+            // For now, return empty page since we don't have the user filtering logic here
+            // This should be implemented by injecting UserRepository and filtering users
+            log.warn("getUsersByAttribute not fully implemented - returning empty page");
+            return Page.empty(pageable);
+        } catch (Exception e) {
+            log.error("Error obteniendo usuarios por atributo: {}", attributeId, e);
+            return Page.empty(pageable);
+        }
+    }
+
+    /**
+     * Actualiza un atributo existente
+     */
+    public UserAttributeDTO updateAttribute(Long attributeId, UserAttributeCreateDTO updateDTO) {
+        try {
+            UserAttribute attribute = userAttributeRepository.findById(attributeId)
+                    .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+
+            // Validar datos del DTO
+            validateAttributeData(updateDTO);
+
+            // Actualizar campos
+            attribute.setName(updateDTO.name().trim());
+            if (updateDTO.detail() != null) {
+                attribute.setDetail(updateDTO.detail().trim());
+            }
+
+            UserAttribute saved = userAttributeRepository.save(attribute);
+            log.info("Atributo actualizado exitosamente: {}", saved);
+
+            return new UserAttributeDTO(saved);
+        } catch (Exception e) {
+            log.error("Error actualizando atributo: {}", attributeId, e);
+            throw new RuntimeException("Error al actualizar atributo");
+        }
+    }
+
+    /**
+     * Elimina un atributo
+     */
+    public MessageResponseDTO deleteAttribute(Long attributeId) {
+        try {
+            UserAttribute attribute = userAttributeRepository.findById(attributeId)
+                    .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+
+            userAttributeRepository.delete(attribute);
+            log.info("Atributo eliminado exitosamente: {}", attributeId);
+
+            return new MessageResponseDTO("Atributo eliminado exitosamente");
+        } catch (Exception e) {
+            log.error("Error eliminando atributo: {}", attributeId, e);
+            throw new RuntimeException("Error al eliminar atributo");
+        }
+    }
+
+    /**
+     * Obtiene estadísticas completas de los atributos de usuario
+     */
+    public Map<String, Object> getAttributeStatistics() {
+        try {
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // Obtener todos los atributos
+            List<UserAttribute> allAttributes = userAttributeRepository.findAll();
+            
+            // Estadísticas generales
+            statistics.put("totalAttributes", allAttributes.size());
+            statistics.put("activeAttributes", allAttributes.stream().mapToInt(attr -> attr.isActive() ? 1 : 0).sum());
+            statistics.put("inactiveAttributes", allAttributes.stream().mapToInt(attr -> !attr.isActive() ? 1 : 0).sum());
+            
+            // Distribución por tipo
+            Map<String, Long> distributionByType = allAttributes.stream()
+                    .collect(Collectors.groupingBy(
+                            UserAttribute::getAttributeType,
+                            Collectors.counting()
+                    ));
+            statistics.put("distributionByType", distributionByType);
+            
+            // Atributos activos por tipo
+            Map<String, Long> activeByType = allAttributes.stream()
+                    .filter(UserAttribute::isActive)
+                    .collect(Collectors.groupingBy(
+                            UserAttribute::getAttributeType,
+                            Collectors.counting()
+                    ));
+            statistics.put("activeByType", activeByType);
+            
+            // Tipos de atributos disponibles
+            statistics.put("availableTypes", VALID_ATTRIBUTE_TYPES);
+            
+            return statistics;
+            
+        } catch (Exception e) {
+            log.error("Error obteniendo estadísticas de atributos", e);
+            return Map.of(
+                    "error", "Error al obtener estadísticas",
+                    "message", e.getMessage()
+            );
+        }
     }
 }

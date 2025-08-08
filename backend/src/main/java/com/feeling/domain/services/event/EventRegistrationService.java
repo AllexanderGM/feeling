@@ -281,12 +281,17 @@ public class EventRegistrationService {
             event.getAvailableSpots(),
             event.getCategory(),
             event.getCategory().getDisplayName(),
+            event.getStatus(),
+            event.getStatus().getDisplayName(),
             event.getMainImage(),
+            event.getImages(),
             event.getCreatedAt(),
             event.getUpdatedAt(),
             event.getIsActive(),
             event.isFull(),
             event.hasAvailableSpots(),
+            event.isPublished(),
+            event.canAcceptRegistrations(),
             event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
             event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
         );

@@ -98,7 +98,7 @@ public class SecurityConfiguration {
                         auth.requestMatchers(route).permitAll());
                     
                     // Eventos públicos (solo lectura)
-                    auth.requestMatchers(HttpMethod.GET, "/api/events/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/events/**").permitAll();
 
                     // ========================================
                     // 🔒 RUTAS AUTENTICADAS (USUARIOS)
@@ -109,37 +109,36 @@ public class SecurityConfiguration {
                     auth.requestMatchers(HttpMethod.GET, "/auth/session-info").authenticated();
 
                     // Perfil propio (self-modification controlado por filtro)
-                    auth.requestMatchers(HttpMethod.GET, "/users/profile").authenticated();
-                    auth.requestMatchers(HttpMethod.PUT, "/users/profile").authenticated();
-                    auth.requestMatchers(HttpMethod.POST, "/users/complete-profile").authenticated();
-                    auth.requestMatchers(HttpMethod.PUT, "/users/deactivate-account").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/user/").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/user/").authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/user/complete-profile").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/user/deactivate").authenticated();
 
                     // Gestión de usuarios (lectura pública para matching, modificación restringida)
-                    auth.requestMatchers(HttpMethod.GET, "/users/**").authenticated();
-                    auth.requestMatchers(HttpMethod.PUT, "/users/**").authenticated(); // Controlado por SelfModificationFilter
-                    auth.requestMatchers(HttpMethod.PATCH, "/users/**").authenticated(); // Controlado por SelfModificationFilter
+                    auth.requestMatchers(HttpMethod.GET, "/user/**").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/user/**").authenticated(); // Controlado por SelfModificationFilter
+                    auth.requestMatchers(HttpMethod.PATCH, "/user/**").authenticated(); // Controlado por SelfModificationFilter
 
                     // Tags de usuario
-                    auth.requestMatchers("/users/tags/**").authenticated();
+                    auth.requestMatchers("/user-tags/**").authenticated();
 
                     // Matching y búsquedas
                     auth.requestMatchers("/matches/**").authenticated();
-                    auth.requestMatchers("/users/search").authenticated();
-                    auth.requestMatchers("/users/suggestions").authenticated();
+                    auth.requestMatchers("/user/suggestions").authenticated();
 
                     // Eventos (lectura pública, creación/modificación autenticada)
-                    auth.requestMatchers(HttpMethod.GET, "/api/events/**").permitAll(); // Eventos públicos
-                    auth.requestMatchers(HttpMethod.POST, "/api/events/**").authenticated();
-                    auth.requestMatchers(HttpMethod.PUT, "/api/events/**").authenticated();
-                    auth.requestMatchers(HttpMethod.DELETE, "/api/events/**").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/events/**").permitAll(); // Eventos públicos
+                    auth.requestMatchers(HttpMethod.POST, "/events/**").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/events/**").authenticated();
+                    auth.requestMatchers(HttpMethod.DELETE, "/events/**").authenticated();
 
                     // Reservas
-                    auth.requestMatchers("/api/bookings/**").authenticated();
+                    auth.requestMatchers("/bookings/**").authenticated();
 
                     // Sistema de soporte y quejas
-                    auth.requestMatchers(HttpMethod.POST, "/api/support/complaints").authenticated();
-                    auth.requestMatchers(HttpMethod.GET, "/api/support/my-complaints").authenticated();
-                    auth.requestMatchers(HttpMethod.GET, "/api/support/my-complaints/**").authenticated(); // SelfModificationFilter aplica
+                    auth.requestMatchers(HttpMethod.POST, "/support/complaints").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/support/my-complaints").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/support/my-complaints/**").authenticated(); // SelfModificationFilter aplica
 
                     // ========================================
                     // 👑 RUTAS ADMINISTRATIVAS (desde RouteSecurityConfig)
@@ -147,7 +146,7 @@ public class SecurityConfiguration {
                     
                     // Configurar todas las rutas administrativas desde el sistema centralizado
                     routeSecurityConfig.getAllAdminRoutes().forEach(route -> 
-                        auth.requestMatchers(route).hasRole("ADMIN"));
+                        auth.requestMatchers(route).hasAuthority("ADMIN"));
 
                     // ========================================
                     // 🔒 CUALQUIER OTRA RUTA REQUIERE AUTENTICACIÓN

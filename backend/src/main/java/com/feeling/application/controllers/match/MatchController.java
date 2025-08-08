@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/matches")
+@RequestMapping("/matches")
 @RequiredArgsConstructor
 @Slf4j
 public class MatchController {
@@ -42,10 +42,10 @@ public class MatchController {
     public ResponseEntity<UserMatchPlanResponseDTO> purchaseMatchPlan(
             @Valid @RequestBody PurchaseMatchPlanRequestDTO request,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} purchasing match plan", user.getId());
-        
+
         UserMatchPlanResponseDTO result = matchPlanService.purchaseMatchPlan(user, request);
         return ResponseEntity.ok(result);
     }
@@ -54,7 +54,7 @@ public class MatchController {
     public ResponseEntity<List<UserMatchPlanResponseDTO>> getMyMatchPlans(Authentication authentication) {
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.debug("Getting match plans for user {}", user.getId());
-        
+
         List<UserMatchPlanResponseDTO> plans = matchPlanService.getUserMatchPlans(user);
         return ResponseEntity.ok(plans);
     }
@@ -63,7 +63,7 @@ public class MatchController {
     public ResponseEntity<List<UserMatchPlanResponseDTO>> getMyActiveMatchPlans(Authentication authentication) {
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.debug("Getting active match plans for user {}", user.getId());
-        
+
         List<UserMatchPlanResponseDTO> plans = matchPlanService.getActiveUserMatchPlans(user);
         return ResponseEntity.ok(plans);
     }
@@ -71,14 +71,14 @@ public class MatchController {
     @GetMapping("/attempts")
     public ResponseEntity<Map<String, Object>> getRemainingAttempts(Authentication authentication) {
         User user = userAuthorizationService.getCurrentUser(authentication);
-        
+
         Integer remainingAttempts = matchPlanService.getTotalRemainingAttempts(user);
         boolean hasAttempts = matchPlanService.hasAvailableAttempts(user);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("remainingAttempts", remainingAttempts);
         response.put("hasAttempts", hasAttempts);
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -86,10 +86,10 @@ public class MatchController {
     public ResponseEntity<MatchResponseDTO> sendMatch(
             @Valid @RequestBody MatchRequestDTO request,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} sending match", user.getId());
-        
+
         MatchResponseDTO result = matchService.sendMatch(user, request);
         return ResponseEntity.ok(result);
     }
@@ -98,10 +98,10 @@ public class MatchController {
     public ResponseEntity<MatchResponseDTO> acceptMatch(
             @PathVariable Long matchId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} accepting match {}", user.getId(), matchId);
-        
+
         MatchResponseDTO result = matchService.acceptMatch(user, matchId);
         return ResponseEntity.ok(result);
     }
@@ -110,10 +110,10 @@ public class MatchController {
     public ResponseEntity<MatchResponseDTO> rejectMatch(
             @PathVariable Long matchId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} rejecting match {}", user.getId(), matchId);
-        
+
         MatchResponseDTO result = matchService.rejectMatch(user, matchId);
         return ResponseEntity.ok(result);
     }
@@ -122,7 +122,7 @@ public class MatchController {
     public ResponseEntity<MatchResponseDTO> viewMatch(
             @PathVariable Long matchId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         MatchResponseDTO result = matchService.viewMatch(user, matchId);
         return ResponseEntity.ok(result);
@@ -132,10 +132,10 @@ public class MatchController {
     public ResponseEntity<MatchContactDTO> getMatchContact(
             @PathVariable Long matchId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.debug("User {} getting contact for match {}", user.getId(), matchId);
-        
+
         MatchContactDTO contact = matchService.getMatchContact(user, matchId);
         return ResponseEntity.ok(contact);
     }
@@ -145,10 +145,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<MatchResponseDTO> matches = matchService.getSentMatches(user, pageable);
         return ResponseEntity.ok(matches);
     }
@@ -158,10 +158,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<MatchResponseDTO> matches = matchService.getReceivedMatches(user, pageable);
         return ResponseEntity.ok(matches);
     }
@@ -171,10 +171,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<MatchResponseDTO> matches = matchService.getPendingReceivedMatches(user, pageable);
         return ResponseEntity.ok(matches);
     }
@@ -184,10 +184,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<MatchResponseDTO> matches = matchService.getAcceptedMatches(user, pageable);
         return ResponseEntity.ok(matches);
     }
@@ -195,14 +195,14 @@ public class MatchController {
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getMatchStats(Authentication authentication) {
         User user = userAuthorizationService.getCurrentUser(authentication);
-        
+
         Map<String, Object> stats = new HashMap<>();
         stats.put("pendingSent", matchService.countPendingSentMatches(user));
         stats.put("pendingReceived", matchService.countPendingReceivedMatches(user));
         stats.put("accepted", matchService.countAcceptedMatches(user));
         stats.put("favorites", favoriteService.countUserFavorites(user));
         stats.put("remainingAttempts", matchPlanService.getTotalRemainingAttempts(user));
-        
+
         return ResponseEntity.ok(stats);
     }
 
@@ -210,10 +210,10 @@ public class MatchController {
     public ResponseEntity<FavoriteResponseDTO> addFavorite(
             @Valid @RequestBody FavoriteRequestDTO request,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} adding favorite", user.getId());
-        
+
         FavoriteResponseDTO result = favoriteService.addFavorite(user, request);
         return ResponseEntity.ok(result);
     }
@@ -222,10 +222,10 @@ public class MatchController {
     public ResponseEntity<Void> removeFavorite(
             @PathVariable Long favoriteUserId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         log.info("User {} removing favorite {}", user.getId(), favoriteUserId);
-        
+
         favoriteService.removeFavorite(user, favoriteUserId);
         return ResponseEntity.ok().build();
     }
@@ -235,10 +235,10 @@ public class MatchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
-        
+
         Page<FavoriteResponseDTO> favorites = favoriteService.getUserFavorites(user, pageable);
         return ResponseEntity.ok(favorites);
     }
@@ -247,28 +247,46 @@ public class MatchController {
     public ResponseEntity<Map<String, Boolean>> checkIfFavorite(
             @PathVariable Long userId,
             Authentication authentication) {
-        
+
         User user = userAuthorizationService.getCurrentUser(authentication);
         boolean isFavorite = favoriteService.isFavorite(user, userId);
-        
+
         Map<String, Boolean> response = new HashMap<>();
         response.put("isFavorite", isFavorite);
-        
+
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/notifications")
     public ResponseEntity<Map<String, Object>> getMatchNotifications(Authentication authentication) {
         User user = userAuthorizationService.getCurrentUser(authentication);
-        
+
         Long pendingMatches = matchService.countPendingReceivedMatches(user);
         Long acceptedMatches = matchService.countAcceptedMatches(user);
-        
+
         Map<String, Object> notifications = new HashMap<>();
         notifications.put("pendingMatches", pendingMatches);
         notifications.put("acceptedMatches", acceptedMatches);
         notifications.put("hasNotifications", pendingMatches > 0);
-        
+
         return ResponseEntity.ok(notifications);
+    }
+
+    @GetMapping("/plans/admin/stats")
+    public ResponseEntity<Map<String, Object>> getMatchPlanStats(Authentication authentication) {
+        User user = userAuthorizationService.getCurrentUser(authentication);
+        log.debug("Getting match plan statistics for admin user {}", user.getId());
+
+        Map<String, Object> stats = matchPlanService.getMatchPlanStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/plans/admin/all")
+    public ResponseEntity<List<MatchPlanResponseDTO>> getAllMatchPlansForAdmin(Authentication authentication) {
+        User user = userAuthorizationService.getCurrentUser(authentication);
+        log.debug("Getting all match plans for admin user {}", user.getId());
+
+        List<MatchPlanResponseDTO> plans = matchPlanService.getAllPlansForAdmin();
+        return ResponseEntity.ok(plans);
     }
 }

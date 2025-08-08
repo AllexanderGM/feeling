@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -213,30 +214,108 @@ public class UserComplaintService {
      */
     public Map<String, Object> getComplaintStats() {
         long totalComplaints = complaintRepository.count();
-        long pendingComplaints = complaintRepository.countByStatus(UserComplaint.Status.OPEN) +
-                                complaintRepository.countByStatus(UserComplaint.Status.IN_PROGRESS) +
-                                complaintRepository.countByStatus(UserComplaint.Status.WAITING_USER);
+        long openComplaints = complaintRepository.countByStatus(UserComplaint.Status.OPEN);
+        long inProgressComplaints = complaintRepository.countByStatus(UserComplaint.Status.IN_PROGRESS);
+        long waitingUserComplaints = complaintRepository.countByStatus(UserComplaint.Status.WAITING_USER);
+        long pendingComplaints = openComplaints + inProgressComplaints + waitingUserComplaints;
         long resolvedComplaints = complaintRepository.countByStatus(UserComplaint.Status.RESOLVED);
+        long closedComplaints = complaintRepository.countByStatus(UserComplaint.Status.CLOSED);
+        long escalatedComplaints = complaintRepository.countByStatus(UserComplaint.Status.ESCALATED);
+        
+        // Métricas por prioridad
+        long lowPriorityComplaints = complaintRepository.countByPriority(UserComplaint.Priority.LOW);
+        long mediumPriorityComplaints = complaintRepository.countByPriority(UserComplaint.Priority.MEDIUM);
+        long highPriorityComplaints = complaintRepository.countByPriority(UserComplaint.Priority.HIGH);
         long urgentComplaints = complaintRepository.countByPriority(UserComplaint.Priority.URGENT);
+        
+        // Métricas por tipo de queja
+        long generalComplaints = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.GENERAL);
+        long technicalIssues = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.TECHNICAL_ISSUE);
+        long accountIssues = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.ACCOUNT_ISSUE);
+        long paymentIssues = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.PAYMENT_ISSUE);
+        long userReports = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.USER_REPORT);
+        long eventIssues = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.EVENT_ISSUE);
+        long bookingIssues = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.BOOKING_ISSUE);
+        long privacyConcerns = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.PRIVACY_CONCERN);
+        long featureRequests = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.FEATURE_REQUEST);
+        long bugReports = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.BUG_REPORT);
+        long abuseReports = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.ABUSE_REPORT);
+        long refundRequests = complaintRepository.countByComplaintType(UserComplaint.ComplaintType.REFUND_REQUEST);
+        
+        // Métricas de contexto (quejas que referencian otros elementos)
+        long complaintsWithUserReference = complaintRepository.countComplaintsWithUserReference();
+        long complaintsWithEventReference = complaintRepository.countComplaintsWithEventReference();
+        long complaintsWithBookingReference = complaintRepository.countComplaintsWithBookingReference();
         
         // Quejas de las últimas 24 horas
         LocalDateTime last24Hours = LocalDateTime.now().minusHours(24);
         long complaintsLast24h = complaintRepository.countComplaintsSince(last24Hours);
         
+        // Quejas vencidas (más de 24 horas pendientes)
+        LocalDateTime overdueThreshold = LocalDateTime.now().minusHours(24);
+        long overdueComplaints = complaintRepository.countOverdueComplaints(overdueThreshold);
+        
         // Tiempo promedio de resolución
         Double avgResolutionHours = complaintRepository.getAverageResolutionTimeInHours();
         
-        Map<String, Object> stats = Map.of(
+        // Crear mapa de estadísticas expandido
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Estadísticas básicas
+        stats.put("totalComplaints", totalComplaints);
+        stats.put("openComplaints", openComplaints);
+        stats.put("inProgressComplaints", inProgressComplaints);
+        stats.put("waitingUserComplaints", waitingUserComplaints);
+        stats.put("pendingComplaints", pendingComplaints);
+        stats.put("resolvedComplaints", resolvedComplaints);
+        stats.put("closedComplaints", closedComplaints);
+        stats.put("escalatedComplaints", escalatedComplaints);
+        stats.put("overdueComplaints", overdueComplaints);
+        stats.put("urgentComplaints", urgentComplaints);
+        stats.put("complaintsLast24h", complaintsLast24h);
+        stats.put("averageResolutionHours", avgResolutionHours != null ? avgResolutionHours : 0.0);
+        stats.put("resolutionRate", totalComplaints > 0 ? (double) resolvedComplaints / totalComplaints * 100 : 0.0);
+        
+        // Distribución por prioridad
+        Map<String, Long> priorityDistribution = Map.of(
+                "low", lowPriorityComplaints,
+                "medium", mediumPriorityComplaints,
+                "high", highPriorityComplaints,
+                "urgent", urgentComplaints
+        );
+        stats.put("priorityDistribution", priorityDistribution);
+        
+        // Distribución por tipo de queja
+        Map<String, Long> typeDistribution = new HashMap<>();
+        typeDistribution.put("general", generalComplaints);
+        typeDistribution.put("technicalIssue", technicalIssues);
+        typeDistribution.put("accountIssue", accountIssues);
+        typeDistribution.put("paymentIssue", paymentIssues);
+        typeDistribution.put("userReport", userReports);
+        typeDistribution.put("eventIssue", eventIssues);
+        typeDistribution.put("bookingIssue", bookingIssues);
+        typeDistribution.put("privacyConcern", privacyConcerns);
+        typeDistribution.put("featureRequest", featureRequests);
+        typeDistribution.put("bugReport", bugReports);
+        typeDistribution.put("abuseReport", abuseReports);
+        typeDistribution.put("refundRequest", refundRequests);
+        stats.put("typeDistribution", typeDistribution);
+        
+        // Métricas de contexto
+        Map<String, Long> contextMetrics = Map.of(
+                "complaintsWithUserReference", complaintsWithUserReference,
+                "complaintsWithEventReference", complaintsWithEventReference,
+                "complaintsWithBookingReference", complaintsWithBookingReference,
+                "totalContextualComplaints", complaintsWithUserReference + complaintsWithEventReference + complaintsWithBookingReference
+        );
+        stats.put("contextMetrics", contextMetrics);
+        
+        logger.info("Estadísticas expandidas de quejas generadas", Map.of(
                 "totalComplaints", totalComplaints,
                 "pendingComplaints", pendingComplaints,
                 "resolvedComplaints", resolvedComplaints,
-                "urgentComplaints", urgentComplaints,
-                "complaintsLast24h", complaintsLast24h,
-                "averageResolutionHours", avgResolutionHours != null ? avgResolutionHours : 0.0,
-                "resolutionRate", totalComplaints > 0 ? (double) resolvedComplaints / totalComplaints * 100 : 0.0
-        );
-        
-        logger.info("Estadísticas de quejas generadas", stats);
+                "typesWithComplaints", stats.toString()
+        ));
         
         return stats;
     }
@@ -253,6 +332,21 @@ public class UserComplaintService {
         return complaints.stream()
                 .map(UserComplaintResponseDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene quejas resueltas
+     */
+    public Page<UserComplaintResponseDTO> getResolvedComplaints(Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findByStatus(
+                UserComplaint.Status.RESOLVED, pageable);
+        
+        logger.info("Quejas resueltas obtenidas", Map.of(
+                "total", complaints.getTotalElements(),
+                "page", pageable.getPageNumber()
+        ));
+        
+        return complaints.map(UserComplaintResponseDTO::new);
     }
 
     /**

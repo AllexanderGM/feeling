@@ -84,6 +84,28 @@ public class StorageService {
         imageUrls.forEach(this::deleteImage);
     }
 
+    public List<String> listImages(String folder) {
+        try {
+            return switch (storageType.toLowerCase()) {
+                case "s3" -> {
+                    if (s3StorageService == null) {
+                        yield List.of();
+                    }
+                    yield s3StorageService.listFiles(folder);
+                }
+                case "minio" -> {
+                    if (minioStorageService == null) {
+                        yield List.of();
+                    }
+                    yield minioStorageService.listFiles(folder);
+                }
+                default -> List.of();
+            };
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     private String generateUniqueFileName(String originalFilename) {
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {

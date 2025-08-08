@@ -42,10 +42,16 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     // ========================================
     // BÚSQUEDAS POR APROBACIÓN
     // ========================================
-    Page<User> findByProfileCompleteAndApproved(boolean profileComplete, boolean approved, Pageable pageable);
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false")
+    Page<User> findPendingApprovalUsers(Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false")
+    Page<User> findIncompleteProfileUsers(Pageable pageable);
 
+    @Query("SELECT u FROM User u WHERE u.approvalStatus = 'APPROVED'")
     List<User> findByApprovedTrue();
 
+    @Query("SELECT u FROM User u WHERE u.approvalStatus != 'APPROVED'")
     List<User> findByApprovedFalse();
 
     // ========================================
@@ -53,18 +59,18 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     // ========================================
     List<User> findByCategoryInterest(UserCategoryInterest categoryInterest);
 
-    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
+    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCategory(@Param("categoryInterest") UserCategoryInterestList categoryInterest);
 
     // Si tienes consultas que usen String en lugar del enum:
-    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
+    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCategoryString(@Param("categoryInterest") String categoryInterest);
 
     // ========================================
     // BÚSQUEDAS PARA MATCHING
     // ========================================
     @Query("SELECT u FROM User u WHERE " +
-            "u.verified = true AND u.approved = true AND u.showMeInSearch = true AND " +
+            "u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND " +
             "u.categoryInterest = :categoryInterest AND " +
             "u.id != :excludeUserId AND " +
             "(:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) AND " +
@@ -82,7 +88,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     @Query("SELECT DISTINCT u FROM User u " +
             "LEFT JOIN FETCH u.categoryInterest uci " +
             "LEFT JOIN FETCH u.userRole ur " +
-            "WHERE u.verified = true AND u.approved = true AND u.showMeInSearch = true " +
+            "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true " +
             "AND u.profileComplete = true AND u.publicAccount = true AND u.searchVisibility = true " +
             "AND u.accountDeactivated = false " +
             "AND u.id != :excludeUserId " +
@@ -108,7 +114,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     // Versión aleatoria para variedad (usar alternativamente)
     @Query(value = "SELECT u.* FROM users u " +
             "LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id " +
-            "WHERE u.verified = true AND u.approved = true AND u.show_me_in_search = true " +
+            "WHERE u.verified = true AND u.approval_status = 'APPROVED' AND u.show_me_in_search = true " +
             "AND u.profile_complete = true AND u.public_account = true AND u.search_visibility = true " +
             "AND u.account_deactivated = false " +
             "AND u.id != :excludeUserId " +
@@ -163,7 +169,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     List<User> findByCountry(String country);
 
-    @Query("SELECT u FROM User u WHERE u.city = :city AND u.verified = true AND u.approved = true AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
+    @Query("SELECT u FROM User u WHERE u.city = :city AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
     List<User> findVerifiedUsersByCity(@Param("city") String city);
 
     // ========================================
@@ -178,18 +184,10 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     // ========================================
     // BÚSQUEDAS POR POPULARIDAD
     // ========================================
-    @Query("SELECT u FROM User u WHERE u.verified = true ORDER BY u.popularityScore DESC")
-    Page<User> findMostPopularUsers(Pageable pageable);
-
-    @Query("SELECT u FROM User u WHERE u.verified = true ORDER BY u.profileViews DESC")
-    Page<User> findMostViewedUsers(Pageable pageable);
 
     // ========================================
     // ESTADÍSTICAS
     // ========================================
-    long countByVerifiedTrue();
-
-    long countByProfileCompleteTrue();
 
     /**
      * Cuenta usuarios por categoría de interés
@@ -202,9 +200,6 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
     long countNewUsersSince(@Param("since") LocalDateTime since);
-
-    @Query("SELECT COUNT(u) FROM User u WHERE u.lastActive >= :since")
-    long countActiveUsersSince(@Param("since") LocalDateTime since);
 
     // ========================================
     // BÚSQUEDAS ADMINISTRATIVAS
@@ -230,9 +225,124 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     Page<User> findBySearchTerm(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     // ========================================
+    // MÉTODOS PARA ANALYTICS BÁSICOS
+    // ========================================
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true")
+    long countByVerifiedTrue();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = false")
+    long countByVerifiedFalse();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus = 'APPROVED'")
+    long countByApprovedTrue();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus != 'APPROVED'")
+    long countByApprovedFalse();
+    
+    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus = 'PENDING'")
+    long countByPendingApproval();
+    
+    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus = 'REJECTED'")
+    long countByRejected();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.profileComplete = true")
+    long countByProfileCompleteTrue();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.profileComplete = false")
+    long countByProfileCompleteFalse();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.lastActive >= :since")
+    long countActiveUsersSince(@Param("since") LocalDateTime since);
+
+    @Query("SELECT u.country, COUNT(u) FROM User u WHERE u.country IS NOT NULL GROUP BY u.country ORDER BY COUNT(u) DESC")
+    List<Object[]> getUserCountByCountry();
+
+    @Query("SELECT u.city, COUNT(u) FROM User u WHERE u.city IS NOT NULL GROUP BY u.city ORDER BY COUNT(u) DESC")
+    List<Object[]> getUserCountByCity();
+
+    // ========================================
+    // CONSULTAS PARA ADMINISTRACIÓN DE USUARIOS
+    // ========================================
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false")
+    Page<User> findActiveUsers(Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = false AND u.accountDeactivated = false")
+    Page<User> findUnverifiedUsers(Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false")
+    Page<User> findNonApprovedUsers(Pageable pageable);
+    
+    
+    @Query("SELECT u FROM User u WHERE u.accountDeactivated = true")
+    Page<User> findDeactivatedUsers(Pageable pageable);
+
+    // ========================================
+    // CONSULTAS PARA ADMINISTRACIÓN DE USUARIOS CON BÚSQUEDA
+    // ========================================
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findActiveUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findPendingApprovalUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = false AND u.accountDeactivated = false AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findUnverifiedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findNonApprovedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    @Query("SELECT u FROM User u WHERE u.accountDeactivated = true AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findDeactivatedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false AND " +
+           "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<User> findIncompleteProfileUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    // ========================================
     // ACTUALIZACIONES ESPECÍFICAS
     // ========================================
     @Modifying
     @Query("UPDATE User u SET u.lastActive = :lastActive, u.updatedAt = :updatedAt WHERE u.id = :userId")
     int updateLastActive(@Param("userId") Long userId, @Param("lastActive") LocalDateTime lastActive, @Param("updatedAt") LocalDateTime updatedAt);
+
+    // ========================================
+    // MÉTODOS PARA USUARIOS DE PRUEBA
+    // ========================================
+    
+    /**
+     * Cuenta usuarios que contienen el dominio especificado en su email
+     * Útil para contar usuarios de prueba con @test-feeling.com
+     */
+    long countByEmailContaining(String emailDomain);
 }

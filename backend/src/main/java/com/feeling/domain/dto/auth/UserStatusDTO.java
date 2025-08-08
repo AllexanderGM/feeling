@@ -6,6 +6,7 @@ public record UserStatusDTO(
         Boolean verified,
         Boolean profileComplete,
         Boolean approved,
+        String approvalStatus,
         String role,
         Integer availableAttempts,
         LocalDateTime createdAt,

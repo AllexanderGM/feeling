@@ -44,7 +44,8 @@ public record UserResponseDTO(
                         user.getProfileViews(),
                         user.getLikesReceived(),
                         user.getMatchesCount(),
-                        user.getPopularityScore()
+                        user.getPopularityScore(),
+                        user.getProfileCompletenessPercentage()
                 ),
                 new UserAuthDTO(
                         user.getUserAuthProvider(),

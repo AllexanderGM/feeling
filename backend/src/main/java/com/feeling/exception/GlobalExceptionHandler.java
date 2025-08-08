@@ -13,6 +13,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.naming.AuthenticationNotSupportedException;
 import java.util.HashMap;
@@ -136,6 +138,26 @@ public class GlobalExceptionHandler {
     }
 
     // ========================================
+    // EXCEPCIONES DE ARCHIVOS
+    // ========================================
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        logger.warn("Archivo demasiado grande: {}", ex.getMessage());
+        
+        String message = "El archivo es demasiado grande. El tamaño máximo permitido es de 15MB por archivo.";
+        
+        // Extraer información específica del error si está disponible
+        if (ex.getMaxUploadSize() > 0) {
+            long maxSizeMB = ex.getMaxUploadSize() / (1024 * 1024);
+            message = String.format("El archivo excede el tamaño máximo permitido de %dMB.", maxSizeMB);
+        }
+        
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ErrorResponseDTO("FILE_TOO_LARGE", message, "413"));
+    }
+
+    // ========================================
     // EXCEPCIONES DE BASE DE DATOS
     // ========================================
 
@@ -157,6 +179,13 @@ public class GlobalExceptionHandler {
     // ========================================
     // EXCEPCIONES GENERALES
     // ========================================
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNoHandlerFoundException(NoHandlerFoundException ex) {
+        logger.warn("Endpoint no encontrado: {} {}", ex.getHttpMethod(), ex.getRequestURL());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponseDTO.notFound("Endpoint no encontrado: " + ex.getRequestURL()));
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponseDTO> handleRuntimeException(RuntimeException ex) {

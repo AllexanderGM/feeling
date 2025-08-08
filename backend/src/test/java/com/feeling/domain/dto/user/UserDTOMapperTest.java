@@ -5,6 +5,7 @@ import com.feeling.domain.dto.auth.UserStatusDTO;
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserRole;
 import com.feeling.infrastructure.entities.user.UserRoleList;
+import com.feeling.infrastructure.entities.user.UserApprovalStatusList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -28,7 +29,7 @@ public class UserDTOMapperTest {
                 .email("test@example.com")
                 .verified(true)
                 .profileComplete(false)
-                .approved(false)
+                .approvalStatus(UserApprovalStatusList.PENDING)
                 .userRole(userRole)
                 .availableAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -44,6 +45,7 @@ public class UserDTOMapperTest {
         assertEquals(testUser.isVerified(), statusDTO.verified());
         assertEquals(testUser.getProfileComplete(), statusDTO.profileComplete());
         assertEquals(testUser.isApproved(), statusDTO.approved());
+        assertEquals(testUser.getApprovalStatus().name(), statusDTO.approvalStatus());
         assertEquals("CLIENT", statusDTO.role());
         assertEquals(testUser.getAvailableAttempts(), statusDTO.availableAttempts());
         assertEquals(testUser.getCreatedAt(), statusDTO.createdAt());
@@ -98,6 +100,7 @@ public class UserDTOMapperTest {
         assertEquals(testUser.isVerified(), publicDTO.status().verified());
         assertEquals(testUser.getProfileComplete(), publicDTO.status().profileComplete());
         assertEquals(testUser.isApproved(), publicDTO.status().approved());
+        assertEquals(testUser.getApprovalStatus().name(), publicDTO.status().approvalStatus());
 
         // Verificar perfil completo
         assertEquals(testUser.getName(), publicDTO.profile().name());

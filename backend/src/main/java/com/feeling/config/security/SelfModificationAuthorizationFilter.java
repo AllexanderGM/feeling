@@ -124,7 +124,7 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
     private boolean hasAdminRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> 
-                    grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+                    grantedAuthority.getAuthority().equals("ADMIN"));
     }
 
     /**

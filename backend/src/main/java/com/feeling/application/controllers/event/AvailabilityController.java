@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/availabilities")
+@RequestMapping("/availabilities")
 @RequiredArgsConstructor
 public class AvailabilityController {
 

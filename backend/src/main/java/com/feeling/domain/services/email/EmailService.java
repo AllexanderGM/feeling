@@ -3,10 +3,12 @@ package com.feeling.domain.services.email;
 import com.feeling.domain.dto.booking.BookingResponseDTO;
 import com.feeling.domain.dto.event.EventRegistrationResponseDTO;
 import com.feeling.domain.dto.event.EventResponseDTO;
+import com.feeling.infrastructure.entities.user.User;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -22,6 +24,15 @@ public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+
+    @Value("${cors.allowed.origins}")
+    private String frontendUrl;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
+
+    @Value("${support.email:soporte@feeling.com}")
+    private String supportEmail;
 
     public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
         this.mailSender = mailSender;
@@ -336,5 +347,38 @@ public class EmailService {
         // This is a placeholder - you might want to include user email in the registration DTO
         // or fetch it from the user service
         return "user@example.com"; // Replace with actual logic
+    }
+
+    /**
+     * Envía correo recordatorio para completar el perfil
+     */
+    @Async
+    public void sendProfileCompletionReminder(User user) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", user.getName());
+            context.setVariable("lastName", user.getLastName());
+            context.setVariable("email", user.getEmail());
+            context.setVariable("profileUrl", frontendUrl + "/complete-profile");
+            context.setVariable("supportEmail", supportEmail);
+
+            String htmlContent = templateEngine.process("email-profile-completion-reminder", context);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(user.getEmail());
+            helper.setSubject("Completa tu perfil en Feeling - ¡Te estamos esperando!");
+            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail, "Feeling Team");
+
+            mailSender.send(message);
+
+            logger.info("Correo recordatorio enviado exitosamente a: {}", user.getEmail());
+
+        } catch (Exception e) {
+            logger.error("Error al enviar correo recordatorio a: " + user.getEmail(), e);
+            throw new RuntimeException("Error al enviar correo recordatorio", e);
+        }
     }
 }

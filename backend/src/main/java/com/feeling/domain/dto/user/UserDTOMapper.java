@@ -17,6 +17,7 @@ public class UserDTOMapper {
                 user.isVerified(),
                 user.getProfileComplete(),
                 user.isApproved(),
+                user.getApprovalStatus().name(),
                 user.getUserRole().getUserRoleList().name(),
                 user.getAvailableAttempts(),
                 user.getCreatedAt(),
@@ -93,7 +94,8 @@ public class UserDTOMapper {
                         user.getProfileViews(),
                         user.getLikesReceived(),
                         user.getMatchesCount(),
-                        user.getPopularityScore()
+                        user.getPopularityScore(),
+                        user.getProfileCompletenessPercentage()
                 ),
                 new UserAuthDTO(
                         user.getUserAuthProvider(),
@@ -118,6 +120,7 @@ public class UserDTOMapper {
                         user.isVerified(),
                         user.getProfileComplete(),
                         user.isApproved(),
+                        user.getApprovalStatus().name(),
                         user.getCategoryInterest() != null ?
                                 user.getCategoryInterest().getCategoryInterestEnum().name() : null
                 ),

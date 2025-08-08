@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recordatorio del Evento</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .email-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #FF6B6B;
+            margin-bottom: 30px;
+        }
+        .event-card {
+            background-color: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+        .event-title {
+            color: #FF6B6B;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .event-details {
+            margin: 10px 0;
+        }
+        .event-details strong {
+            color: #333;
+        }
+        .reminder-message {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #FF6B6B;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FF6B6B;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>⏰ ¡Tu evento es mañana!</h1>
+        </div>
+
+        <div class="reminder-message">
+            <strong>Recordatorio:</strong> Tu evento registrado es en menos de 24 horas.
+        </div>
+
+        <p>Hola <strong th:text="${userName}">Usuario</strong>,</p>
+
+        <p>Te recordamos que tienes un evento confirmado para mañana. ¡No te lo pierdas!</p>
+
+        <div class="event-card">
+            <div class="event-title" th:text="${eventTitle}">Nombre del Evento</div>
+            
+            <div class="countdown">
+                🕐 ¡Es mañana!
+            </div>
+            
+            <div class="event-details">
+                <strong>📅 Fecha y hora:</strong> <span th:text="${#temporals.format(eventDate, 'dd/MM/yyyy HH:mm')}">Fecha del evento</span>
+            </div>
+            
+            <div class="event-details">
+                <strong>📍 Categoría:</strong> <span th:text="${eventCategory}">Categoría</span>
+            </div>
+            
+            <div class="event-details">
+                <strong>🎫 Tu registro:</strong> #<span th:text="${registrationId}">000</span>
+            </div>
+        </div>
+
+        <p><strong>Qué hacer ahora:</strong></p>
+        <ul>
+            <li>✅ Confirma la fecha y hora en tu calendario</li>
+            <li>📱 Ten este correo a mano como comprobante</li>
+            <li>🚗 Planifica tu llegada con tiempo</li>
+            <li>📞 Si tienes dudas, contacta al organizador</li>
+        </ul>
+
+        <div style="text-align: center;">
+            <a href="#" class="button">Ver detalles del evento</a>
+        </div>
+
+        <p>¡Nos vemos pronto en el evento!</p>
+
+        <div class="footer">
+            <p>Saludos,<br>El equipo de Feeling</p>
+            <p><small>Este es un correo automático, por favor no respondas a este mensaje.</small></p>
+        </div>
+    </div>
+</body>
+</html>

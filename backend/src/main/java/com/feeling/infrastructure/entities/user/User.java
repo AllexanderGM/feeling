@@ -55,9 +55,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean profileComplete = false;
 
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false)
     @Builder.Default
-    private boolean approved = false;
+    private UserApprovalStatusList approvalStatus = UserApprovalStatusList.PENDING;
 
     @Column(name = "created_at")
     @Builder.Default
@@ -85,7 +86,7 @@ public class User implements UserDetails {
     // ========================================
     // DATOS PERSONALES BÁSICOS
     // ========================================
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_images", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "image_url")
     @Builder.Default
@@ -120,7 +121,7 @@ public class User implements UserDetails {
     @JoinColumn(name = "category_interest_id")
     private UserCategoryInterest categoryInterest;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "gender_id")
     private UserAttribute gender;
 
@@ -150,7 +151,7 @@ public class User implements UserDetails {
     private String profession;
 
     // SISTEMA DE TAGS DINÁMICO
-    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "user_tag_relations",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -431,7 +432,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.name + " " + this.lastName;
+        return this.email;
     }
 
     @Override
@@ -521,6 +522,65 @@ public class User implements UserDetails {
         }
 
         return step1Complete && step2Complete && step3Complete && conditionalFieldsComplete;
+    }
+
+    /**
+     * Calcula el porcentaje de completitud del perfil (0.0 - 100.0)
+     */
+    public Double getProfileCompletenessPercentage() {
+        int totalSteps = 0;
+        int completedSteps = 0;
+
+        // STEP 1: Información básica - stepBasicInfoSchema
+        totalSteps++;
+        boolean step1Complete = name != null && !name.trim().isEmpty() &&
+                lastName != null && !lastName.trim().isEmpty() &&
+                document != null && !document.trim().isEmpty() &&
+                phone != null && !phone.trim().isEmpty() &&
+                dateOfBirth != null &&
+                country != null && !country.trim().isEmpty() &&
+                city != null && !city.trim().isEmpty() &&
+                images != null && !images.isEmpty();
+        
+        if (step1Complete) completedSteps++;
+
+        // STEP 2: Características - step2Schema  
+        totalSteps++;
+        boolean step2Complete = description != null && !description.trim().isEmpty() &&
+                tags != null && !tags.isEmpty();
+        
+        if (step2Complete) completedSteps++;
+
+        // STEP 3: Preferencias - step3Schema
+        totalSteps++;
+        boolean step3Complete = categoryInterest != null;
+        
+        if (step3Complete) completedSteps++;
+
+        // STEP 4: Validaciones condicionales según categoría
+        totalSteps++;
+        boolean conditionalFieldsComplete = true;
+        if (categoryInterest != null) {
+            switch (categoryInterest.getCategoryInterestEnum()) {
+                case SPIRIT:
+                    // Para SPIRIT: religión es obligatoria (temporalmente permisivo)
+                    conditionalFieldsComplete = true; // religion != null;
+                    break;
+                case ROUSE:
+                    // Para ROUSE: rol sexual y tipo de relación son obligatorios (temporalmente permisivo)
+                    conditionalFieldsComplete = true; // sexualRole != null && relationshipType != null;
+                    break;
+                case ESSENCE:
+                    // Para ESSENCE: no hay campos adicionales obligatorios
+                    break;
+            }
+        }
+        
+        if (conditionalFieldsComplete) completedSteps++;
+
+        // Calcular porcentaje
+        if (totalSteps == 0) return 0.0;
+        return (double) completedSteps / totalSteps * 100.0;
     }
 
     /**
@@ -628,6 +688,55 @@ public class User implements UserDetails {
     }
 
     // ========================================
+    // MÉTODOS DE CONVENIENCIA PARA APPROVAL STATUS
+    // ========================================
+    
+    /**
+     * Verifica si el usuario está aprobado
+     */
+    public boolean isApproved() {
+        return approvalStatus != null && approvalStatus.isApproved();
+    }
+    
+    /**
+     * Verifica si el usuario está pendiente de aprobación
+     */
+    public boolean isPendingApproval() {
+        return approvalStatus != null && approvalStatus.isPending();
+    }
+    
+    /**
+     * Verifica si el usuario está rechazado
+     */
+    public boolean isRejected() {
+        return approvalStatus != null && approvalStatus.isRejected();
+    }
+    
+    /**
+     * Aprueba al usuario
+     */
+    public void approve() {
+        this.approvalStatus = UserApprovalStatusList.APPROVED;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * Rechaza al usuario
+     */
+    public void reject() {
+        this.approvalStatus = UserApprovalStatusList.REJECTED;
+        this.updatedAt = LocalDateTime.now();
+    }
+    
+    /**
+     * Pone al usuario en estado pendiente
+     */
+    public void setPending() {
+        this.approvalStatus = UserApprovalStatusList.PENDING;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ========================================
     // GESTIÓN DE CUENTA
     // ========================================
 
@@ -717,7 +826,7 @@ public class User implements UserDetails {
     public boolean isCompatibleWith(User otherUser) {
         // Lógica básica de compatibilidad
         if (otherUser == null || !otherUser.isEnabled() || !otherUser.showMeInSearch ||
-                !otherUser.approved || !otherUser.searchVisibility || !otherUser.publicAccount) {
+                !otherUser.isApproved() || !otherUser.searchVisibility || !otherUser.publicAccount) {
             return false;
         }
 

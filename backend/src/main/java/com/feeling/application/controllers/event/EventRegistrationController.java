@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/event-registrations")
+@RequestMapping("/event-registrations")
 @RequiredArgsConstructor
 @Tag(name = "Event Registrations", description = "Event registration management endpoints")
 public class EventRegistrationController {

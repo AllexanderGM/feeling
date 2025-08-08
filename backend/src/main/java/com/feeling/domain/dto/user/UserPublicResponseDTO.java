@@ -18,6 +18,7 @@ public record UserPublicResponseDTO(
             Boolean verified,
             Boolean profileComplete,
             Boolean approved,
+            String approvalStatus,
             String categoryInterest
     ) {
     }

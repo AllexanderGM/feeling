@@ -12,9 +12,23 @@ fi
 if [[ "$1" == "all" ]]; then
     echo "🧹🧼 Deteniendo y eliminando contenedores, imágenes, redes Y VOLÚMENES..."
     
-    docker-compose down --rmi all --remove-orphans --volumes || true
-    docker ps -aq | xargs docker rm -f || true
-    docker images -q | xargs docker rmi -f || true
+    # Detener todos los contenedores primero
+    docker-compose down --remove-orphans || true
+    
+    # Forzar eliminación de contenedores restantes
+    if [ "$(docker ps -aq)" ]; then
+        docker ps -aq | xargs docker rm -f || true
+    fi
+    
+    # Eliminar volúmenes específicos del proyecto
+    docker volume rm feeling_mysql_data feeling_minio_data 2>/dev/null || true
+    
+    # Eliminar imágenes
+    if [ "$(docker images -q)" ]; then
+        docker images -q | xargs docker rmi -f || true
+    fi
+    
+    # Limpiar redes y volúmenes huérfanos
     docker network prune -f || true
     docker volume prune -f || true
     

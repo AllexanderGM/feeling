@@ -4,6 +4,8 @@ import com.feeling.infrastructure.entities.user.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -54,8 +56,20 @@ public class Event {
     @Column(nullable = false)
     private EventCategory category;
 
+    @NotNull(message = "El estado del evento es obligatorio")
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private EventStatus status = EventStatus.EN_EDICION;
+
+
     @Column(name = "main_image")
     private String mainImage;
+
+    @Column(name = "images")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Builder.Default
+    private List<String> images = new ArrayList<>();
 
     @Column(name = "created_at")
     @Builder.Default
@@ -78,26 +92,75 @@ public class Event {
     private List<EventRegistration> registrations = new ArrayList<>();
 
     public boolean isFull() {
-        return currentAttendees >= maxCapacity;
+        return currentAttendees != null && maxCapacity != null && currentAttendees >= maxCapacity;
     }
 
     public boolean hasAvailableSpots() {
-        return currentAttendees < maxCapacity;
+        return currentAttendees != null && maxCapacity != null && currentAttendees < maxCapacity;
     }
 
     public Integer getAvailableSpots() {
+        if (maxCapacity == null || currentAttendees == null) {
+            return 0;
+        }
         return maxCapacity - currentAttendees;
     }
 
     public void incrementAttendees() {
-        if (hasAvailableSpots()) {
+        if (hasAvailableSpots() && currentAttendees != null) {
             this.currentAttendees++;
         }
     }
 
     public void decrementAttendees() {
-        if (currentAttendees > 0) {
+        if (currentAttendees != null && currentAttendees > 0) {
             this.currentAttendees--;
+        }
+    }
+
+    public boolean isPublished() {
+        return status != null && status == EventStatus.PUBLICADO;
+    }
+
+    public boolean canAcceptRegistrations() {
+        return status != null && status.canReceiveRegistrations() && hasAvailableSpots();
+    }
+
+    public boolean isEditable() {
+        return status != null && status.isEditable();
+    }
+
+    public boolean isFinalStatus() {
+        return status != null && status.isFinal();
+    }
+
+    public void publish() {
+        if (status == EventStatus.EN_EDICION || status == EventStatus.PAUSADO) {
+            this.status = EventStatus.PUBLICADO;
+            this.isActive = true;
+        }
+    }
+
+    public void pause() {
+        if (status == EventStatus.PUBLICADO) {
+            this.status = EventStatus.PAUSADO;
+        }
+    }
+
+    public void cancel() {
+        this.status = EventStatus.CANCELADO;
+        this.isActive = false;
+    }
+
+    public void finish() {
+        this.status = EventStatus.TERMINADO;
+        this.isActive = false;
+    }
+
+    public void backToEdition() {
+        if (status == EventStatus.PAUSADO) {
+            this.status = EventStatus.EN_EDICION;
+            this.isActive = false;
         }
     }
 

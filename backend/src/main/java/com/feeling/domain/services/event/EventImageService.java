@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -99,6 +99,61 @@ public class EventImageService {
                 .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
         
         return event.getMainImage();
+    }
+
+    public List<Map<String, String>> browseAvailableImages() {
+        try {
+            // Get list of available images from the events/imagenes folder
+            List<String> imageUrls = storageService.listImages(EVENTS_FOLDER + "/imagenes");
+            
+            return imageUrls.stream()
+                    .map(url -> {
+                        Map<String, String> imageInfo = new HashMap<>();
+                        imageInfo.put("url", url);
+                        imageInfo.put("name", extractImageName(url));
+                        imageInfo.put("thumbnail", url); // For now, use the same URL
+                        return imageInfo;
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            // Return empty list if folder doesn't exist or error occurs
+            return createDefaultEventImages();
+        }
+    }
+
+    private List<Map<String, String>> createDefaultEventImages() {
+        // Return some default placeholder images for events
+        List<String> defaultImages = Arrays.asList(
+                "https://picsum.photos/600/400?random=5001",
+                "https://picsum.photos/600/400?random=5002", 
+                "https://picsum.photos/600/400?random=5003",
+                "https://picsum.photos/600/400?random=5004",
+                "https://picsum.photos/600/400?random=5005",
+                "https://picsum.photos/600/400?random=5006",
+                "https://picsum.photos/600/400?random=5007",
+                "https://picsum.photos/600/400?random=5008"
+        );
+
+        return defaultImages.stream()
+                .map(url -> {
+                    Map<String, String> imageInfo = new HashMap<>();
+                    imageInfo.put("url", url);
+                    imageInfo.put("name", "Imagen " + url.substring(url.lastIndexOf("=") + 1));
+                    imageInfo.put("thumbnail", url);
+                    return imageInfo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String extractImageName(String url) {
+        try {
+            String filename = url.substring(url.lastIndexOf("/") + 1);
+            // Remove file extension for display
+            int dotIndex = filename.lastIndexOf(".");
+            return dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
+        } catch (Exception e) {
+            return "Imagen";
+        }
     }
 
     private Event validateEventAndPermissions(Long eventId, String userEmail) {

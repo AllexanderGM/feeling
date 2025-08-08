@@ -7,6 +7,7 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserCategoryInterestList;
+import com.feeling.infrastructure.entities.user.UserRoleList;
 import com.feeling.infrastructure.entities.user.UserTag;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
 import com.feeling.infrastructure.repositories.user.IUserTagRepository;
@@ -18,9 +19,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import com.feeling.domain.dto.user.UserPublicResponseDTO;
 
 @Service
 @RequiredArgsConstructor
@@ -510,18 +517,323 @@ public class UserTagService {
         }
     }
 
-    public UserTag findOrCreateTag(String lowerCase) {
+    public UserTag findOrCreateTag(String tagName) {
         // Busca un tag por nombre, ignorando mayúsculas y minúsculas
-        return userTagRepository.findByNameIgnoreCase(lowerCase)
+        return userTagRepository.findByNameIgnoreCase(tagName)
                 .orElseGet(() -> {
                     UserTag newTag = UserTag.builder()
-                            .name(lowerCase)
+                            .name(tagName.toLowerCase().trim())
                             .createdBy("system") // Asignar un creador por defecto
                             .createdAt(LocalDateTime.now())
                             .usageCount(0L)
                             .lastUsed(LocalDateTime.now())
+                            .approved(false) // Los tags nuevos requieren aprobación (sistema general)
                             .build();
+                    logger.info("Nuevo tag creado pendiente de aprobación: '{}'", tagName);
                     return userTagRepository.save(newTag);
                 });
+    }
+
+    /**
+     * Método específico para complete-profile que crea tags pendientes de aprobación
+     */
+    public UserTag findOrCreateTagForProfile(String tagName, String userEmail) {
+        return userTagRepository.findByNameIgnoreCase(tagName)
+                .orElseGet(() -> {
+                    // Verificar si el usuario es admin para auto-aprobar sus tags
+                    boolean isAdmin = isUserAdmin(userEmail);
+                    
+                    UserTag newTag = UserTag.builder()
+                            .name(tagName.toLowerCase().trim())
+                            .createdBy(userEmail) // Usuario que creó el tag
+                            .createdAt(LocalDateTime.now())
+                            .usageCount(1L) // Empieza con 1 porque el usuario lo está usando
+                            .lastUsed(LocalDateTime.now())
+                            .approved(isAdmin) // Los admins auto-aprueban, otros necesitan aprobación
+                            .build();
+                    
+                    // Si es admin, agregar información de aprobación
+                    if (isAdmin) {
+                        newTag.setApprovedBy(userEmail);
+                        newTag.setApprovedAt(LocalDateTime.now());
+                        logger.info("Tag creado y auto-aprobado por administrador '{}': '{}'", userEmail, tagName);
+                    } else {
+                        logger.info("Tag creado por usuario '{}' pendiente de aprobación: '{}'", userEmail, tagName);
+                    }
+                    
+                    return userTagRepository.save(newTag);
+                });
+    }
+
+    // ========================================
+    // ADMINISTRACIÓN DE TAGS
+    // ========================================
+
+    /**
+     * Obtiene tags pendientes de aprobación para administradores
+     */
+    public List<UserTagDTO> getPendingApprovalTags() {
+        return userTagRepository.findByApprovedFalseOrApprovedIsNull()
+                .stream()
+                .map(UserTagDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Aprueba un tag específico
+     */
+    @Transactional
+    public MessageResponseDTO approveTag(Long tagId, String adminEmail) {
+        User admin = findUserByEmail(adminEmail);
+        if (!isAdmin(admin)) {
+            throw new UnauthorizedException("Solo los administradores pueden aprobar tags");
+        }
+
+        UserTag tag = userTagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+
+        tag.approve(adminEmail);
+        userTagRepository.save(tag);
+
+        logger.info("Tag '{}' aprobado por administrador {}", tag.getName(), adminEmail);
+        return new MessageResponseDTO("Tag aprobado correctamente");
+    }
+
+    /**
+     * Rechaza un tag con razón
+     */
+    @Transactional
+    public MessageResponseDTO rejectTag(Long tagId, String rejectionReason, String adminEmail) {
+        User admin = findUserByEmail(adminEmail);
+        if (!isAdmin(admin)) {
+            throw new UnauthorizedException("Solo los administradores pueden rechazar tags");
+        }
+
+        UserTag tag = userTagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+
+        tag.reject(rejectionReason);
+        userTagRepository.save(tag);
+
+        logger.info("Tag '{}' rechazado por administrador {}: {}", tag.getName(), adminEmail, rejectionReason);
+        return new MessageResponseDTO("Tag rechazado correctamente");
+    }
+
+    /**
+     * Aprueba múltiples tags en lote
+     */
+    @Transactional
+    public MessageResponseDTO approveBatchTags(List<Long> tagIds, String adminEmail) {
+        User admin = findUserByEmail(adminEmail);
+        if (!isAdmin(admin)) {
+            throw new UnauthorizedException("Solo los administradores pueden aprobar tags");
+        }
+
+        int approvedCount = 0;
+        for (Long tagId : tagIds) {
+            try {
+                UserTag tag = userTagRepository.findById(tagId).orElse(null);
+                if (tag != null && !tag.isApproved()) {
+                    tag.approve(adminEmail);
+                    userTagRepository.save(tag);
+                    approvedCount++;
+                }
+            } catch (Exception e) {
+                logger.warn("Error aprobando tag con ID {}: {}", tagId, e.getMessage());
+            }
+        }
+
+        logger.info("{} tags aprobados en lote por administrador {}", approvedCount, adminEmail);
+        return new MessageResponseDTO(String.format("%d tags aprobados correctamente", approvedCount));
+    }
+
+    /**
+     * Obtiene estadísticas de aprobación de tags
+     */
+    public Map<String, Object> getTagApprovalStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        long totalTags = userTagRepository.count();
+        long pendingTags = userTagRepository.countPendingApprovalTags();
+        long approvedTags = totalTags - pendingTags;
+        
+        stats.put("totalTags", totalTags);
+        stats.put("approvedTags", approvedTags);
+        stats.put("pendingTags", pendingTags);
+        stats.put("approvalRate", totalTags > 0 ? Math.round((double) approvedTags / totalTags * 100) : 0);
+        
+        return stats;
+    }
+
+    /**
+     * Búsqueda de tags aprobados solamente
+     */
+    public List<UserTagDTO> searchApprovedTags(String searchTerm, int limit) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return userTagRepository.findTopApprovedPopularTags(limit)
+                    .stream()
+                    .map(UserTagDTO::new)
+                    .collect(Collectors.toList());
+        }
+
+        return userTagRepository.searchApprovedTagsByName(searchTerm.trim())
+                .stream()
+                .limit(limit)
+                .map(UserTagDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Tags populares aprobados solamente
+     */
+    public List<UserTagDTO> getPopularApprovedTags(int limit) {
+        return userTagRepository.findTopApprovedPopularTags(limit)
+                .stream()
+                .map(UserTagDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Verifica si un usuario es administrador por su email
+     */
+    private boolean isUserAdmin(String userEmail) {
+        try {
+            return userRepository.findByEmail(userEmail)
+                    .map(user -> user.getUserRole().getUserRoleList() == UserRoleList.ADMIN)
+                    .orElse(false);
+        } catch (Exception e) {
+            logger.warn("Error al verificar rol de administrador para {}: {}", userEmail, e.getMessage());
+            return false;
+        }
+    }
+
+    // ========================================
+    // MISSING PAGINATED METHODS FOR CONTROLLER
+    // ========================================
+
+    /**
+     * Agregar múltiples tags a un usuario
+     */
+    @Transactional
+    public List<UserTagDTO> addTagsToUser(String userEmail, List<String> tagNames) {
+        User user = findUserByEmail(userEmail);
+        
+        for (String tagName : tagNames) {
+            if (user.getTags().size() >= MAX_TAGS_PER_USER) {
+                break; // No agregar más si ya alcanzó el límite
+            }
+            addTagToUser(userEmail, tagName);
+        }
+        
+        return getUserTags(userEmail);
+    }
+
+    /**
+     * Remover tag de usuario por ID
+     */
+    @Transactional
+    public MessageResponseDTO removeTagFromUser(String userEmail, Long tagId) {
+        User user = findUserByEmail(userEmail);
+        
+        UserTag tagToRemove = user.getTags().stream()
+                .filter(tag -> tag.getId().equals(tagId))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado en el perfil del usuario"));
+                
+        user.getTags().remove(tagToRemove);
+        userRepository.save(user);
+        
+        return new MessageResponseDTO("Tag removido exitosamente");
+    }
+
+    /**
+     * Buscar tags con paginación
+     */
+    public Page<UserTagDTO> searchTagsPaginated(String query, Pageable pageable) {
+        List<UserTagDTO> allTags = searchTags(query, 1000); // Get a large number
+        return createPageFromList(allTags, pageable);
+    }
+
+    /**
+     * Obtener tags populares con paginación
+     */
+    public Page<UserTagDTO> getPopularTagsPaginated(Pageable pageable) {
+        List<UserTagDTO> allTags = getPopularTags(1000);
+        return createPageFromList(allTags, pageable);
+    }
+
+    /**
+     * Obtener tags en tendencia con paginación
+     */
+    public Page<UserTagDTO> getTrendingTagsPaginated(Pageable pageable) {
+        List<UserTagDTO> allTags = getTrendingTags(1000);
+        return createPageFromList(allTags, pageable);
+    }
+
+    /**
+     * Obtener sugerencias de tags para usuario con paginación
+     */
+    public Page<UserTagDTO> getSuggestedTagsForUserPaginated(String userEmail, Pageable pageable) {
+        List<UserTagDTO> allTags = getSuggestedTagsForUser(userEmail, 1000);
+        return createPageFromList(allTags, pageable);
+    }
+
+    /**
+     * Obtener usuarios por tags con paginación
+     */
+    public Page<UserPublicResponseDTO> getUsersByTags(List<String> tags, Pageable pageable) {
+        // For now, return empty page since we need UserService integration
+        logger.warn("getUsersByTags not fully implemented - returning empty page");
+        return Page.empty(pageable);
+    }
+
+    /**
+     * Obtener tags pendientes de aprobación con paginación
+     */
+    public Page<UserTagDTO> getPendingApprovalTagsPaginated(Pageable pageable) {
+        List<UserTagDTO> allTags = getPendingApprovalTags();
+        return createPageFromList(allTags, pageable);
+    }
+
+    /**
+     * Crear un nuevo tag (para admin)
+     */
+    @Transactional
+    public UserTag createTag(String tagName, String adminEmail) {
+        if (!isUserAdmin(adminEmail)) {
+            throw new UnauthorizedException("Solo los administradores pueden crear tags");
+        }
+        
+        return findOrCreateTag(tagName);
+    }
+
+    /**
+     * Actualizar un tag existente
+     */
+    @Transactional
+    public UserTagDTO updateTag(Long tagId, String newName) {
+        UserTag tag = userTagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+                
+        tag.setName(newName.trim().toLowerCase());
+        // Note: UserTag entity doesn't have updatedAt field
+        
+        UserTag saved = userTagRepository.save(tag);
+        return new UserTagDTO(saved);
+    }
+
+    /**
+     * Crear página a partir de lista
+     */
+    private Page<UserTagDTO> createPageFromList(List<UserTagDTO> list, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), list.size());
+        
+        if (start > list.size()) {
+            return new PageImpl<>(List.of(), pageable, list.size());
+        }
+        
+        List<UserTagDTO> subList = list.subList(start, end);
+        return new PageImpl<>(subList, pageable, list.size());
     }
 }

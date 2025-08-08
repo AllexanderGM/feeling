@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/events/{eventId}/images")
+@RequestMapping("/events/{eventId}/images")
 @RequiredArgsConstructor
 @Tag(name = "Event Images", description = "Event image management endpoints")
 public class EventImageController {

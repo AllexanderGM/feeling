@@ -6,6 +6,8 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.event.Event;
 import com.feeling.infrastructure.entities.event.EventCategory;
+import com.feeling.infrastructure.entities.event.EventRegistration;
+import com.feeling.infrastructure.entities.event.EventStatus;
 import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.repositories.event.IEventRepository;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
@@ -19,7 +21,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -91,7 +96,7 @@ public class EventService {
     }
 
     public EventResponseDTO getEventById(Long id) {
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdWithCreatedBy(id)
                 .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
         
         if (!event.getIsActive()) {
@@ -151,7 +156,7 @@ public class EventService {
     @Transactional
     @CacheEvict(value = "events", allEntries = true)
     public EventResponseDTO updateEvent(Long eventId, EventUpdateRequestDTO request, String userEmail) {
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
                 .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
@@ -202,7 +207,7 @@ public class EventService {
     @Transactional
     @CacheEvict(value = "events", allEntries = true)
     public void deleteEvent(Long eventId, String userEmail) {
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
                 .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
@@ -235,7 +240,7 @@ public class EventService {
     @Transactional
     @CacheEvict(value = "events", allEntries = true)
     public EventResponseDTO toggleEventStatus(Long eventId, String userEmail) {
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
                 .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
@@ -260,6 +265,174 @@ public class EventService {
         return eventRepository.countActiveEventsByCategory(category);
     }
 
+    // ==============================
+    // EVENT STATUS MANAGEMENT
+    // ==============================
+
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO publishEvent(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+        
+        if (!event.isEditable()) {
+            throw new BadRequestException("El evento no puede ser publicado desde su estado actual");
+        }
+        
+        event.publish();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO pauseEvent(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+        
+        if (event.getStatus() != EventStatus.PUBLICADO) {
+            throw new BadRequestException("Solo se pueden pausar eventos publicados");
+        }
+        
+        event.pause();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO cancelEvent(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+        
+        if (event.isFinalStatus()) {
+            throw new BadRequestException("El evento ya está en un estado final");
+        }
+        
+        event.cancel();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO finishEvent(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+        
+        if (event.getStatus() != EventStatus.PUBLICADO) {
+            throw new BadRequestException("Solo se pueden finalizar eventos publicados");
+        }
+        
+        event.finish();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO backToEdition(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+        
+        if (event.getStatus() != EventStatus.PAUSADO) {
+            throw new BadRequestException("Solo se pueden devolver a edición eventos pausados");
+        }
+        
+        event.backToEdition();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
+
+    // ==============================
+    // EVENT REGISTRATIONS MANAGEMENT
+    // ==============================
+
+    public List<Map<String, Object>> getEventRegistrations(Long eventId) {
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
+                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+
+        return event.getRegistrations().stream()
+                .map(registration -> {
+                    Map<String, Object> regInfo = new HashMap<>();
+                    User user = registration.getUser();
+                    regInfo.put("id", registration.getId());
+                    regInfo.put("userId", user.getId());
+                    regInfo.put("userName", user.getName() + " " + user.getLastName());
+                    regInfo.put("userEmail", user.getEmail());
+                    regInfo.put("registrationDate", registration.getRegistrationDate());
+                    regInfo.put("paymentStatus", registration.getPaymentStatus());
+                    regInfo.put("amountPaid", registration.getAmountPaid());
+                    return regInfo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<EventResponseDTO> getUserRegisteredEvents(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        // Find all events where the user has registrations
+        List<Event> events = eventRepository.findEventsByUserRegistrations(user.getId());
+        return events.stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    public boolean isEventCreator(Long eventId, String userEmail) {
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
+                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+        
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+
+        return event.getCreatedBy().getId().equals(user.getId());
+    }
+
+    // ==============================
+    // EVENTOS POR ESTADO
+    // ==============================
+
+    public List<EventResponseDTO> getEventsByStatus(EventStatus status) {
+        List<Event> events = eventRepository.findByStatus(status);
+        return events.stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    public Page<EventResponseDTO> getEventsByStatus(EventStatus status, Pageable pageable) {
+        Page<Event> events = eventRepository.findByStatus(status, pageable);
+        return events.map(this::convertToResponseDTO);
+    }
+
+    public List<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm) {
+        List<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm);
+        return events.stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    public Page<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm, Pageable pageable) {
+        Page<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm, pageable);
+        return events.map(this::convertToResponseDTO);
+    }
+
+    // ==============================
+    // HELPER METHODS
+    // ==============================
+
+    private Event validateEventAndPermissions(Long eventId, String userEmail) {
+        Event event = eventRepository.findByIdWithCreatedBy(eventId)
+                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+
+        // Only the creator or admin can manage the event
+        if (!event.getCreatedBy().getId().equals(user.getId()) && 
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
+            throw new UnauthorizedException("No tienes permisos para gestionar este evento");
+        }
+
+        return event;
+    }
+
     private EventResponseDTO convertToResponseDTO(Event event) {
         return new EventResponseDTO(
             event.getId(),
@@ -271,13 +444,18 @@ public class EventService {
             event.getCurrentAttendees(),
             event.getAvailableSpots(),
             event.getCategory(),
-            event.getCategory().getDisplayName(),
+            event.getCategory() != null ? event.getCategory().getDisplayName() : null,
+            event.getStatus(),
+            event.getStatus() != null ? event.getStatus().getDisplayName() : null,
             event.getMainImage(),
+            event.getImages(),
             event.getCreatedAt(),
             event.getUpdatedAt(),
             event.getIsActive(),
             event.isFull(),
             event.hasAvailableSpots(),
+            event.isPublished(),
+            event.canAcceptRegistrations(),
             event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
             event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
         );

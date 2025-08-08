@@ -3,6 +3,8 @@ package com.feeling.config.security;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,16 +40,16 @@ public class RouteSecurityConfig {
             "/geographic/**",
             "/user-attributes",
             "/user-attributes/**", 
-            "/category-interests",
-            "/category-interests/**",
-            "/tags/popular",
-            "/tags/popular/**",
-            "/tags/search",
-            "/tags/search/**", 
-            "/tags/trending",
-            "/tags/trending/**",
+            "/user-interests",
+            "/user-interests/**",
+            "/user-tags/popular",
+            "/user-tags/popular/**",
+            "/user-tags/search",
+            "/user-tags/search/**", 
+            "/user-tags/trending",
+            "/user-tags/trending/**",
             // Eventos públicos
-            "/api/events/**"
+            "/events/**"
         ),
         
         HttpMethod.POST, Set.of(
@@ -87,12 +89,12 @@ public class RouteSecurityConfig {
     // ========================================
     
     private static final List<Pattern> SELF_MODIFICATION_PATTERNS = List.of(
-        Pattern.compile("^/users/([^/]+)/?$"), // PUT /users/{email}
-        Pattern.compile("^/users/([^/]+)/.*$"), // PUT /users/{email}/anything
-        Pattern.compile("^/api/support/my-complaints/([^/]+)/?$"), // Quejas específicas
-        Pattern.compile("^/api/matches/favorites/([^/]+)/?$"), // Match favorites
+        Pattern.compile("^/user/([^/]+)/?$"), // PUT /user/{email}
+        Pattern.compile("^/user/([^/]+)/.*$"), // PUT /user/{email}/anything
+        Pattern.compile("^/support/my-complaints/([^/]+)/?$"), // Quejas específicas
+        Pattern.compile("^/matches/favorites/([^/]+)/?$"), // Match favorites
         Pattern.compile("^/bookings/([^/]+)/?$"), // Booking cancellation
-        Pattern.compile("^/api/event-registrations/([^/]+)/cancel/?$") // Event registration cancellation
+        Pattern.compile("^/event-registrations/([^/]+)/cancel/?$") // Event registration cancellation
     );
 
     private static final Set<HttpMethod> SELF_MODIFICATION_METHODS = Set.of(
@@ -106,21 +108,40 @@ public class RouteSecurityConfig {
     // ========================================
     
     private static final Set<String> ADMIN_ROUTES = Set.of(
-        "/api/admin/**"
+        // User admin endpoints
+        "/user/pending-approval",
+        "/user/all",
+        "/user/incomplete-profiles",
+        "/user-analytics/**",
+        "/user-tags/cleanup",
+        "/user-tags/update-metrics",
+        // Event admin endpoints  
+        "/events/dashboard/stats",
+        "/events/all-admin",
+        "/events/user/**",
+        "/events/stats/revenue",
+        "/events/stats/category",
+        // Match admin endpoints
+        "/matches/plans/admin/**",
+        // Support admin routes
+        "/support/admin/**"
     );
 
-    private static final Map<String, Set<HttpMethod>> ADMIN_SPECIFIC_ROUTES = Map.of(
-        "/api/admin/users/**", Set.of(HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE),
-        "/api/admin/users/*/approve", Set.of(HttpMethod.PUT),
-        "/api/admin/users/*/revoke-approval", Set.of(HttpMethod.PUT),
-        "/api/admin/users/*/reactivate", Set.of(HttpMethod.PUT),
-        "/api/admin/users/*/grant-admin", Set.of(HttpMethod.PUT),
-        "/api/admin/users/*/revoke-admin", Set.of(HttpMethod.PUT),
-        "/api/support/admin/**", Set.of(HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE),
-        "/api/admin/events/**", Set.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE),
-        "/users/{id}/admin", Set.of(HttpMethod.POST, HttpMethod.PUT),
-        "/users/{id}", Set.of(HttpMethod.DELETE)
-    );
+    private static final Map<String, Set<HttpMethod>> ADMIN_SPECIFIC_ROUTES = new HashMap<>() {{
+        put("/user/*/approve", Set.of(HttpMethod.PUT));
+        put("/user/*/reject", Set.of(HttpMethod.PUT));
+        put("/user/*/pending", Set.of(HttpMethod.PUT));
+        put("/user/*/assign-admin", Set.of(HttpMethod.PUT));
+        put("/user/*/revoke-admin", Set.of(HttpMethod.PUT));
+        put("/user/*/deactivate", Set.of(HttpMethod.PUT));
+        put("/user/*/reactivate", Set.of(HttpMethod.PUT));
+        put("/user/*/send-email", Set.of(HttpMethod.POST));
+        put("/events/*/admin-toggle-status", Set.of(HttpMethod.PATCH));
+        put("/events/*/force-delete", Set.of(HttpMethod.DELETE));
+        put("/user/*-batch", Set.of(HttpMethod.POST));
+        put("/user/*/delete-batch", Set.of(HttpMethod.DELETE));
+        put("/user/*", Set.of(HttpMethod.DELETE));
+    }};
 
     // ========================================
     // MÉTODOS PÚBLICOS DE VERIFICACIÓN
@@ -276,8 +297,8 @@ public class RouteSecurityConfig {
             "/auth/check-email/**", "/auth/check-method/**", "/auth/status/**",
             
             // Datos públicos
-            "/geographic/**", "/user-attributes/**", "/category-interests/**",
-            "/tags/popular/**", "/tags/search/**", "/tags/trending/**"
+            "/geographic/**", "/user-attributes/**", "/user-interests/**",
+            "/user-tags/popular/**", "/user-tags/search/**", "/user-tags/trending/**"
         );
     }
 
@@ -285,10 +306,9 @@ public class RouteSecurityConfig {
      * Obtiene todas las rutas administrativas para configurar en Spring Security
      */
     public List<String> getAllAdminRoutes() {
-        return List.of(
-            "/api/admin/**",
-            "/users/*/admin", 
-            "/users/{id}"
-        );
+        List<String> adminRoutes = new ArrayList<>();
+        adminRoutes.addAll(ADMIN_ROUTES);
+        adminRoutes.addAll(ADMIN_SPECIFIC_ROUTES.keySet());
+        return adminRoutes;
     }
 }

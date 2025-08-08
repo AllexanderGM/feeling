@@ -315,4 +315,43 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
             """, nativeQuery = true)
     List<UserTag> findMissingPopularTagsForUser(@Param("userEmail") String userEmail, @Param("limit") int limit);
 
+    // ========================================
+    // ADMINISTRACIÓN Y APROBACIÓN DE TAGS
+    // ========================================
+
+    /**
+     * Encuentra tags pendientes de aprobación
+     */
+    @Query("SELECT t FROM UserTag t WHERE t.approved = false OR t.approved IS NULL ORDER BY t.createdAt DESC")
+    List<UserTag> findByApprovedFalseOrApprovedIsNull();
+
+    /**
+     * Encuentra tags aprobados
+     */
+    List<UserTag> findByApprovedTrue();
+
+    /**
+     * Cuenta tags pendientes de aprobación
+     */
+    @Query("SELECT COUNT(t) FROM UserTag t WHERE t.approved = false OR t.approved IS NULL")
+    long countPendingApprovalTags();
+
+    /**
+     * Busca tags pendientes de aprobación creados por un usuario específico
+     */
+    @Query("SELECT t FROM UserTag t WHERE t.createdBy = :userEmail AND (t.approved = false OR t.approved IS NULL) ORDER BY t.createdAt DESC")
+    List<UserTag> findPendingTagsByUser(@Param("userEmail") String userEmail);
+
+    /**
+     * Actualiza búsquedas para mostrar solo tags aprobados por defecto
+     */
+    @Query("SELECT t FROM UserTag t WHERE (t.approved = true) AND LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ORDER BY t.usageCount DESC")
+    List<UserTag> searchApprovedTagsByName(@Param("searchTerm") String searchTerm);
+
+    /**
+     * Tags populares solo aprobados
+     */
+    @Query(value = "SELECT * FROM user_tags t WHERE t.approved = true ORDER BY t.usage_count DESC LIMIT ?1", nativeQuery = true)
+    List<UserTag> findTopApprovedPopularTags(int limit);
+
 }

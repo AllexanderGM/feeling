@@ -130,4 +130,24 @@ public interface IUserComplaintRepository extends JpaRepository<UserComplaint, L
            "GROUP BY c.resolvedBy " +
            "ORDER BY COUNT(c) DESC")
     List<Object[]> getComplaintsResolvedByAdmin();
+
+    // ========================================
+    // MÉTRICAS DE CONTEXTO
+    // ========================================
+    @Query("SELECT COUNT(c) FROM UserComplaint c WHERE c.referencedUserId IS NOT NULL")
+    long countComplaintsWithUserReference();
+    
+    @Query("SELECT COUNT(c) FROM UserComplaint c WHERE c.referencedEventId IS NOT NULL")
+    long countComplaintsWithEventReference();
+    
+    @Query("SELECT COUNT(c) FROM UserComplaint c WHERE c.referencedBookingId IS NOT NULL")
+    long countComplaintsWithBookingReference();
+
+    // ========================================
+    // MÉTRICAS ADICIONALES
+    // ========================================
+    @Query("SELECT COUNT(c) FROM UserComplaint c WHERE " +
+           "c.status IN ('OPEN', 'IN_PROGRESS') AND " +
+           "c.createdAt < :overdueThreshold")
+    long countOverdueComplaints(@Param("overdueThreshold") LocalDateTime overdueThreshold);
 }

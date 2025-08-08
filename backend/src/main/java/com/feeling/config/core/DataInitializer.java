@@ -1,7 +1,11 @@
 package com.feeling.config.core;
 
+import com.feeling.infrastructure.entities.event.Event;
+import com.feeling.infrastructure.entities.event.EventCategory;
+import com.feeling.infrastructure.entities.event.EventStatus;
 import com.feeling.infrastructure.entities.match.MatchPlan;
 import com.feeling.infrastructure.entities.user.*;
+import com.feeling.infrastructure.repositories.event.IEventRepository;
 import com.feeling.infrastructure.repositories.match.IMatchPlanRepository;
 import com.feeling.infrastructure.repositories.user.*;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,7 @@ public class DataInitializer implements CommandLineRunner {
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final IUserTagRepository userTagRepository;
     private final IMatchPlanRepository matchPlanRepository;
+    private final IEventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
     private final IUserCategoryInterestRepository categoryInterestRepository;
 
@@ -50,6 +55,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeMatchPlans();
         createAdminUser();
         createTestUsers();
+        initializeTestEvents();
 
         logger.info("Inicialización de datos completada exitosamente");
     }
@@ -318,7 +324,6 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        String systemEmail = "system@feeling.com";
         List<String> commonTags = Arrays.asList(
                 // Intereses generales
                 "música", "deportes", "viajes", "cocina", "lectura", "cine", "arte", "fotografía",
@@ -354,10 +359,13 @@ public class DataInitializer implements CommandLineRunner {
                 if (userTagRepository.findByNameIgnoreCase(tagName).isEmpty()) {
                     UserTag tag = UserTag.builder()
                             .name(tagName.toLowerCase())
-                            .createdBy(systemEmail)
+                            .createdBy(adminEmail)
                             .createdAt(LocalDateTime.now())
                             .usageCount(0L)
                             .lastUsed(LocalDateTime.now())
+                            .approved(true) // Tags comunes del sistema pre-aprobados
+                            .approvedBy(adminEmail)
+                            .approvedAt(LocalDateTime.now())
                             .build();
 
                     userTagRepository.save(tag);
@@ -424,14 +432,14 @@ public class DataInitializer implements CommandLineRunner {
         logger.info("Verificando usuario administrador...");
 
         String normalizedAdminEmail = this.adminEmail.toLowerCase().trim();
-        
+
         // Verificar si existe usuario con email sin normalizar y eliminarlo
         Optional<User> oldUser = userRepository.findByEmail(this.adminEmail);
         if (oldUser.isPresent() && !this.adminEmail.equals(normalizedAdminEmail)) {
             logger.info("Eliminando usuario admin con email no normalizado: {}", this.adminEmail);
             userRepository.delete(oldUser.get());
         }
-        
+
         if (userRepository.findByEmail(normalizedAdminEmail).isEmpty()) {
             UserRole adminRole = userRoleRepository.findByUserRoleList(UserRoleList.ADMIN)
                     .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
@@ -452,7 +460,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(this.adminPassword))
                     .userRole(adminRole)
                     .verified(true)
-                    .approved(true)
+                    .approvalStatus(UserApprovalStatusList.APPROVED)
                     .dateOfBirth(LocalDate.of(1990, 1, 1))
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -498,7 +506,7 @@ public class DataInitializer implements CommandLineRunner {
                     // Usuario protegido contra eliminación
                     .protectedUser(true)
                     // Imágenes de perfil para completitud
-                    .images(List.of("https://via.placeholder.com/400x400/6366F1/FFFFFF?text=Admin"))
+                    .images(List.of("/profile.png"))
                     .build();
 
             User savedAdmin = userRepository.save(admin);
@@ -589,7 +597,7 @@ public class DataInitializer implements CommandLineRunner {
             }
             // Ensure admin is always approved
             if (!existingAdmin.isApproved()) {
-                existingAdmin.setApproved(true);
+                existingAdmin.approve();
                 needsUpdate = true;
             }
             // Ensure admin is always protected
@@ -597,7 +605,7 @@ public class DataInitializer implements CommandLineRunner {
                 existingAdmin.setProtectedUser(true);
                 needsUpdate = true;
             }
-            
+
             // Verificar y asignar tags si no los tiene (safe lazy loading check)
             try {
                 if (existingAdmin.getTags() == null || existingAdmin.getTags().isEmpty()) {
@@ -620,29 +628,46 @@ public class DataInitializer implements CommandLineRunner {
     // ==============================
     // MÉTODOS AUXILIARES
     // ==============================
-    
+
     /**
      * Crea y asigna tags de administrador al usuario
      */
     private void createAndAssignAdminTags(User admin, String normalizedAdminEmail) {
         try {
+            // Crear o obtener el tag "administrador"
             UserTag adminTag = userTagRepository.findByNameIgnoreCase("administrador")
-                    .orElseGet(() -> userTagRepository.save(UserTag.builder()
-                            .name("administrador")
-                            .createdBy(normalizedAdminEmail)
-                            .createdAt(LocalDateTime.now())
-                            .usageCount(1L)
-                            .lastUsed(LocalDateTime.now())
-                            .build()));
+                    .orElse(null);
+            if (adminTag == null) {
+                adminTag = UserTag.builder()
+                        .name("administrador")
+                        .createdBy(normalizedAdminEmail)
+                        .createdAt(LocalDateTime.now())
+                        .usageCount(1L)
+                        .lastUsed(LocalDateTime.now())
+                        .approved(true) // Tags del sistema pre-aprobados
+                        .approvedBy(normalizedAdminEmail)
+                        .approvedAt(LocalDateTime.now())
+                        .build();
+                adminTag = userTagRepository.save(adminTag);
+            }
+
+            // Crear o obtener el tag "sistema"
             UserTag systemTag = userTagRepository.findByNameIgnoreCase("sistema")
-                    .orElseGet(() -> userTagRepository.save(UserTag.builder()
-                            .name("sistema")
-                            .createdBy(normalizedAdminEmail)
-                            .createdAt(LocalDateTime.now())
-                            .usageCount(1L)
-                            .lastUsed(LocalDateTime.now())
-                            .build()));
-            
+                    .orElse(null);
+            if (systemTag == null) {
+                systemTag = UserTag.builder()
+                        .name("sistema")
+                        .createdBy(normalizedAdminEmail)
+                        .createdAt(LocalDateTime.now())
+                        .usageCount(1L)
+                        .lastUsed(LocalDateTime.now())
+                        .approved(true) // Tags del sistema pre-aprobados
+                        .approvedBy(normalizedAdminEmail)
+                        .approvedAt(LocalDateTime.now())
+                        .build();
+                systemTag = userTagRepository.save(systemTag);
+            }
+
             admin.setTags(List.of(adminTag, systemTag));
             logger.info("Tags básicos del administrador creados/verificados y asignados");
         } catch (Exception e) {
@@ -683,12 +708,12 @@ public class DataInitializer implements CommandLineRunner {
     // USUARIOS DE PRUEBA
     // ==============================
     private void createTestUsers() {
-        logger.info("Creando usuarios de prueba...");
+        logger.info("Creando usuarios de prueba para todas las categorías...");
 
-        // Solo crear en desarrollo y si no existen muchos usuarios ya
-        long userCount = userRepository.count();
-        if (userCount > 5) {
-            logger.info("Ya existen {} usuarios, saltando creación de usuarios de prueba", userCount);
+        // Verificar si ya existen usuarios de prueba específicos para evitar duplicados
+        long testUsersCount = userRepository.countByEmailContaining("@test-feeling.com");
+        if (testUsersCount > 0) {
+            logger.info("Ya existen {} usuarios de prueba, saltando creación", testUsersCount);
             return;
         }
 
@@ -702,43 +727,93 @@ public class DataInitializer implements CommandLineRunner {
             List<UserAttribute> eyeColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("EYE_COLOR");
             List<UserAttribute> hairColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("HAIR_COLOR");
             List<UserAttribute> bodyTypes = userAttributeRepository.findByAttributeTypeAndActiveTrue("BODY_TYPE");
-            List<UserTag> availableTags = userTagRepository.findAll();
 
-            int usuariosCreados = 0;
             Random random = new Random();
+            int usuariosCreados = 0;
 
-            // Crear 30 usuarios
-            for (int i = 0; i < 30; i++) {
-                try {
-                    User user = crearUsuarioAleatorio(random, clientRole, categories, genders,
-                            eyeColors, hairColors, bodyTypes, availableTags);
-
-                    // Verificar que el email no exista
-                    if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
-                        userRepository.save(user);
-                        usuariosCreados++;
-                        logger.debug("Usuario de prueba creado: {} {}", user.getName(), user.getLastName());
-                    }
-
-                } catch (Exception e) {
-                    logger.error("Error creando usuario de prueba {}: {}", i, e.getMessage());
+            // 1. USUARIOS ACTIVOS (15 usuarios): verified=true, approvalStatus=APPROVED, profileComplete=true, accountDeactivated=false
+            logger.info("Creando usuarios activos...");
+            for (int i = 0; i < 15; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "ACTIVE", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario ACTIVO creado: {}", user.getEmail());
                 }
             }
 
-            logger.info("Se crearon {} usuarios de prueba", usuariosCreados);
+            // 2. USUARIOS PENDIENTES DE APROBACIÓN (8 usuarios): verified=true, profileComplete=true, approvalStatus=PENDING, accountDeactivated=false
+            logger.info("Creando usuarios pendientes de aprobación...");
+            for (int i = 0; i < 8; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "PENDING_APPROVAL", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario PENDIENTE DE APROBACIÓN creado: {}", user.getEmail());
+                }
+            }
+
+            // 3. USUARIOS CON PERFILES INCOMPLETOS (4 usuarios): verified=true, profileComplete=false, approvalStatus=PENDING, accountDeactivated=false
+            logger.info("Creando usuarios con perfiles incompletos...");
+            for (int i = 0; i < 4; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "INCOMPLETE_PROFILE", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario PERFIL INCOMPLETO creado: {}", user.getEmail());
+                }
+            }
+
+            // 4. USUARIOS CON EMAIL NO VERIFICADO (3 usuarios): verified=false, accountDeactivated=false
+            logger.info("Creando usuarios con email no verificado...");
+            for (int i = 0; i < 3; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "UNVERIFIED", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario EMAIL NO VERIFICADO creado: {}", user.getEmail());
+                }
+            }
+
+            // 5. USUARIOS RECHAZADOS (5 usuarios): verified=true, approvalStatus=REJECTED, accountDeactivated=false, perfil completo
+            logger.info("Creando usuarios rechazados...");
+            for (int i = 0; i < 5; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "REJECTED", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario RECHAZADO creado: {}", user.getEmail());
+                }
+            }
+
+            // 6. USUARIOS DESACTIVADOS (5 usuarios): accountDeactivated=true, perfil completo
+            logger.info("Creando usuarios desactivados...");
+            for (int i = 0; i < 5; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "DEACTIVATED", i);
+                if (userRepository.findByEmail(user.getEmail()).isEmpty()) {
+                    userRepository.save(user);
+                    usuariosCreados++;
+                    logger.debug("Usuario DESACTIVADO creado: {}", user.getEmail());
+                }
+            }
+
+            logger.info("Se crearon {} usuarios de prueba distribuidos en las 6 categorías", usuariosCreados);
+            logger.info("RESUMEN: {} activos, {} pendientes, {} incompletos, {} no verificados, {} rechazados, {} desactivados",
+                    15, 8, 4, 3, 5, 5);
+            logger.info("NOTA: La mayoría de usuarios tienen perfiles COMPLETOS para facilitar las pruebas");
 
         } catch (Exception e) {
             logger.error("Error en creación de usuarios de prueba: {}", e.getMessage());
         }
     }
 
-    private User crearUsuarioAleatorio(Random random, UserRole clientRole,
-                                       List<UserCategoryInterest> categories,
-                                       List<UserAttribute> genders,
-                                       List<UserAttribute> eyeColors,
-                                       List<UserAttribute> hairColors,
-                                       List<UserAttribute> bodyTypes,
-                                       List<UserTag> availableTags) {
+    private User createSpecificUser(Random random, UserRole clientRole,
+                                    List<UserCategoryInterest> categories,
+                                    List<UserAttribute> genders,
+                                    List<UserAttribute> eyeColors,
+                                    List<UserAttribute> hairColors,
+                                    List<UserAttribute> bodyTypes,
+                                    String categoria, int indice) {
 
         // Datos para generar usuarios falsos
         String[] nombresMasculinos = {
@@ -796,7 +871,7 @@ public class DataInitializer implements CommandLineRunner {
                 nombresFemeninos[random.nextInt(nombresFemeninos.length)];
 
         String apellido = apellidos[random.nextInt(apellidos.length)];
-        String email = generarEmail(nombre, apellido, random);
+        String email = generateEmail(nombre, apellido, random);
 
         // Ubicación aleatoria
         String[] ubicacion = ciudadesCol[random.nextInt(ciudadesCol.length)];
@@ -806,12 +881,33 @@ public class DataInitializer implements CommandLineRunner {
         LocalDate fechaNacimiento = LocalDate.now().minusYears(edad)
                 .minusDays(random.nextInt(365));
 
-        User user = User.builder()
+        // Generar email único basado en categoría e índice
+        String emailPrefijo = generateEmail(nombre, apellido, random).split("@")[0];
+        String emailFinal = emailPrefijo + "." + categoria.toLowerCase() + indice + "@test-feeling.com";
+
+        // Configurar estados según la categoría
+        boolean verified = !categoria.equals("UNVERIFIED");
+        UserApprovalStatusList approvalStatus;
+        if (categoria.equals("ACTIVE")) {
+            approvalStatus = UserApprovalStatusList.APPROVED;
+        } else if (categoria.equals("REJECTED")) {
+            approvalStatus = UserApprovalStatusList.REJECTED;
+        } else {
+            approvalStatus = UserApprovalStatusList.PENDING;
+        }
+        boolean accountDeactivated = categoria.equals("DEACTIVATED");
+
+        // Nota: profileComplete se calculará automáticamente por la entidad User
+        // basándose en si los campos requeridos están presentes
+
+        User.UserBuilder userBuilder = User.builder()
                 .name(nombre)
                 .lastName(apellido)
-                .email(email)
+                .email(emailFinal)
                 .password(passwordEncoder.encode("123456")) // Contraseña fija para testing
-                .verified(true) // Todos verificados para testing
+                .verified(verified)
+                .approvalStatus(approvalStatus)
+                .accountDeactivated(accountDeactivated)
                 .userRole(clientRole)
                 .userAuthProvider(UserAuthProvider.LOCAL)
                 .createdAt(LocalDateTime.now().minusDays(random.nextInt(365)))
@@ -820,102 +916,324 @@ public class DataInitializer implements CommandLineRunner {
                 .country(ubicacion[0])
                 .city(ubicacion[1])
                 .department(ubicacion[2])
-                .phone(generarTelefono(random))
-                .phoneCode("+57")
-                .document(generarDocumento(random))
-                .description(descripciones[random.nextInt(descripciones.length)])
-                .profession(profesiones[random.nextInt(profesiones.length)])
-                .height(150 + random.nextInt(50)) // 150-200 cm
-                .profileViews(random.nextLong(1000))
-                .likesReceived(random.nextLong(100))
-                .matchesCount(random.nextLong(50))
-                .popularityScore(random.nextDouble() * 100)
                 .showMeInSearch(random.nextDouble() < 0.9) // 90% visible
                 .allowNotifications(random.nextDouble() < 0.8) // 80% notificaciones
                 .showAge(random.nextDouble() < 0.85)
                 .showLocation(random.nextDouble() < 0.9)
                 .showPhone(random.nextDouble() < 0.3)
-                .agePreferenceMin(Math.max(18, edad - 10))
-                .agePreferenceMax(Math.min(65, edad + 15))
-                .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25) // 25km o 50km
-                .build();
+                .profileViews(random.nextLong(1000))
+                .likesReceived(random.nextLong(100))
+                .matchesCount(random.nextLong(50))
+                .popularityScore(random.nextDouble() * 100);
 
-        // Asignar categoría de interés
+        // Configurar campos según la categoría para lograr el estado deseado
+        if (categoria.equals("ACTIVE") || categoria.equals("PENDING_APPROVAL") ||
+                categoria.equals("REJECTED") || categoria.equals("DEACTIVATED")) {
+            // USUARIOS CON PERFIL COMPLETO: activos, pendientes, rechazados y desactivados
+            userBuilder
+                    .phone(generatePhone(random))
+                    .phoneCode("+57")
+                    .document(generateDocument(random))
+                    .description(descripciones[random.nextInt(descripciones.length)])
+                    .profession(profesiones[random.nextInt(profesiones.length)])
+                    .height(150 + random.nextInt(50)) // 150-200 cm
+                    .agePreferenceMin(Math.max(18, edad - 10))
+                    .agePreferenceMax(Math.min(65, edad + 15))
+                    .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25); // 25km o 50km
+        } else if (categoria.equals("INCOMPLETE_PROFILE")) {
+            // PERFILES INCOMPLETOS: solo algunos campos básicos
+            userBuilder
+                    .phone(generatePhone(random))
+                    .phoneCode("+57");
+            // Faltan: document, description, profession, height, preferences -> perfil incompleto
+        } else if (categoria.equals("UNVERIFIED")) {
+            // NO VERIFICADOS: perfil mínimo pero completo para testing 
+            userBuilder
+                    .phone(generatePhone(random))
+                    .phoneCode("+57")
+                    .document(generateDocument(random))
+                    .description(descripciones[random.nextInt(descripciones.length)])
+                    .profession(profesiones[random.nextInt(profesiones.length)])
+                    .height(150 + random.nextInt(50))
+                    .agePreferenceMin(Math.max(18, edad - 10))
+                    .agePreferenceMax(Math.min(65, edad + 15))
+                    .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25);
+        }
+
+        User user = userBuilder.build();
+
+        // Para usuarios desactivados, usar el método específico después de crear el usuario
+        if (accountDeactivated) {
+            user.deactivateAccount("Cuenta desactivada para testing");
+            // Simular que fue desactivada hace algunos días (modificar directamente el campo)
+            LocalDateTime fechaDesactivacion = LocalDateTime.now().minusDays(random.nextInt(30));
+            user.setDeactivationDate(fechaDesactivacion);
+            user.setUpdatedAt(fechaDesactivacion);
+        }
+
+        // Asignar atributos según la categoría
+        // Asignar categoría de interés para TODOS los usuarios (necesario para perfil completo)
         if (!categories.isEmpty()) {
             user.setCategoryInterest(categories.get(random.nextInt(categories.size())));
         }
 
-        // Asignar atributos físicos
+        // Asignar atributos físicos básicos para TODOS los usuarios
         if (!genders.isEmpty()) {
             user.setGender(genders.get(random.nextInt(genders.size())));
         }
-        if (!eyeColors.isEmpty()) {
-            user.setEyeColor(eyeColors.get(random.nextInt(eyeColors.size())));
-        }
-        if (!hairColors.isEmpty()) {
-            user.setHairColor(hairColors.get(random.nextInt(hairColors.size())));
-        }
-        if (!bodyTypes.isEmpty()) {
-            user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
+
+        // Para usuarios con perfil más completo, agregar más atributos
+        if (!categoria.equals("INCOMPLETE_PROFILE")) {
+            if (!eyeColors.isEmpty()) {
+                user.setEyeColor(eyeColors.get(random.nextInt(eyeColors.size())));
+            }
+            if (!hairColors.isEmpty()) {
+                user.setHairColor(hairColors.get(random.nextInt(hairColors.size())));
+            }
+            if (!bodyTypes.isEmpty()) {
+                user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
+            }
         }
 
-        // NO asignar tags aquí para evitar errores de detached entities
-        // Los tags se asignarán después de guardar el usuario
+        // Asignar tags para TODOS los usuarios (necesario para perfil completo)
+        assignRandomTags(user, random);
 
-        // Imágenes de perfil (simuladas)
+        // Imágenes de perfil - TODOS los usuarios necesitan al menos una imagen
         List<String> imagenes = new ArrayList<>();
-        int numImagenes = 1 + random.nextInt(4); // 1-4 imágenes
-        for (int i = 0; i < numImagenes; i++) {
-            imagenes.add("https://picsum.photos/400/600?random=" + (random.nextInt(10000) + i));
+        if (categoria.equals("INCOMPLETE_PROFILE")) {
+            // Solo una imagen básica para perfiles incompletos
+            imagenes.add("https://via.placeholder.com/400x400/CCCCCC/FFFFFF?text=INCOMPLETE");
+        } else if (categoria.equals("UNVERIFIED")) {
+            // Imagen por defecto para no verificados
+            imagenes.add("https://via.placeholder.com/400x400/FFCCCC/FFFFFF?text=UNVERIFIED");
+        } else {
+            // Múltiples imágenes para otros usuarios
+            int numImagenes = 1 + random.nextInt(3); // 1-3 imágenes
+            for (int i = 0; i < numImagenes; i++) {
+                imagenes.add("https://picsum.photos/400/600?random=" + (random.nextInt(10000) + i));
+            }
         }
         user.setImages(imagenes);
 
         return user;
     }
 
-    private String generarEmail(String nombre, String apellido, Random random) {
-        String nombreLimpio = nombre.toLowerCase()
+    private String generateEmail(String nombre, String apellido, Random random) {
+        String cleanName = nombre.toLowerCase()
                 .replace("á", "a").replace("é", "e").replace("í", "i")
                 .replace("ó", "o").replace("ú", "u");
-        String apellidoLimpio = apellido.toLowerCase()
+        String cleanLastName = apellido.toLowerCase()
                 .replace("á", "a").replace("é", "e").replace("í", "i")
                 .replace("ó", "o").replace("ú", "u");
 
-        String[] dominios = {"gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "test.com"};
-        String dominio = dominios[random.nextInt(dominios.length)];
+        String[] domains = {"gmail.com", "hotmail.com", "yahoo.com", "outlook.com", "test.com"};
+        String domain = domains[random.nextInt(domains.length)];
 
-        String[] patrones = {
-                nombreLimpio + "." + apellidoLimpio,
-                nombreLimpio + apellidoLimpio,
-                nombreLimpio.charAt(0) + apellidoLimpio,
-                nombreLimpio + "." + apellidoLimpio + (random.nextInt(99) + 1),
-                nombreLimpio + (random.nextInt(999) + 10)
+        String[] patterns = {
+                cleanName + "." + cleanLastName,
+                cleanName + cleanLastName,
+                cleanName.charAt(0) + cleanLastName,
+                cleanName + "." + cleanLastName + (random.nextInt(99) + 1),
+                cleanName + (random.nextInt(999) + 10)
         };
 
-        String patron = patrones[random.nextInt(patrones.length)];
-        return patron + "@" + dominio;
+        String pattern = patterns[random.nextInt(patterns.length)];
+        return pattern + "@" + domain;
     }
 
-    private String generarTelefono(Random random) {
-        String[] prefijos = {"301", "302", "310", "311", "312", "313", "314", "315", "316", "317", "318", "319", "320", "321", "322", "323"};
-        String prefijo = prefijos[random.nextInt(prefijos.length)];
-        StringBuilder numero = new StringBuilder(prefijo);
+    private String generatePhone(Random random) {
+        String[] prefixes = {"301", "302", "310", "311", "312", "313", "314", "315", "316", "317", "318", "319", "320", "321", "322", "323"};
+        String prefix = prefixes[random.nextInt(prefixes.length)];
+        StringBuilder number = new StringBuilder(prefix);
 
         for (int i = 0; i < 7; i++) {
-            numero.append(random.nextInt(10));
+            number.append(random.nextInt(10));
         }
 
-        return numero.toString();
+        return number.toString();
     }
 
-    private String generarDocumento(Random random) {
-        StringBuilder documento = new StringBuilder();
-        int longitud = 8 + random.nextInt(3); // 8-10 dígitos
+    private String generateDocument(Random random) {
+        StringBuilder document = new StringBuilder();
+        int length = 8 + random.nextInt(3); // 8-10 digits
 
-        for (int i = 0; i < longitud; i++) {
-            documento.append(random.nextInt(10));
+        for (int i = 0; i < length; i++) {
+            document.append(random.nextInt(10));
         }
 
-        return documento.toString();
+        return document.toString();
+    }
+
+    /**
+     * Asigna tags aleatorios a un usuario para completar su perfil
+     */
+    private void assignRandomTags(User user, Random random) {
+        try {
+            // Obtener algunos tags existentes aleatoriamente
+            List<UserTag> availableTags = userTagRepository.findAll();
+            if (!availableTags.isEmpty()) {
+                List<UserTag> userTags = new ArrayList<>();
+                int numTags = 2 + random.nextInt(4); // 2-5 tags por usuario
+
+                // Seleccionar tags aleatorios sin repetir
+                Set<Integer> selectedIndexes = new HashSet<>();
+                while (selectedIndexes.size() < Math.min(numTags, availableTags.size())) {
+                    selectedIndexes.add(random.nextInt(availableTags.size()));
+                }
+
+                for (Integer index : selectedIndexes) {
+                    UserTag tag = availableTags.get(index);
+                    userTags.add(tag);
+                }
+
+                user.setTags(userTags);
+            } else {
+                // Si no hay tags disponibles, crear algunos básicos para este usuario
+                String userEmail = user.getEmail();
+                List<UserTag> basicTags = new ArrayList<>();
+
+                String[] basicTagNames = {"música", "deportes", "viajes", "cocina", "lectura"};
+                for (int i = 0; i < 3; i++) { // 3 tags básicos
+                    String tagName = basicTagNames[random.nextInt(basicTagNames.length)];
+
+                    UserTag tag = userTagRepository.findByNameIgnoreCase(tagName)
+                            .orElseGet(() -> userTagRepository.save(UserTag.builder()
+                                    .name(tagName.toLowerCase())
+                                    .createdBy(userEmail)
+                                    .createdAt(LocalDateTime.now())
+                                    .usageCount(1L)
+                                    .lastUsed(LocalDateTime.now())
+                                    .build()));
+
+                    if (!basicTags.contains(tag)) {
+                        basicTags.add(tag);
+                    }
+                }
+
+                user.setTags(basicTags);
+            }
+        } catch (Exception e) {
+            logger.warn("No se pudieron asignar tags al usuario {}: {}", user.getEmail(), e.getMessage());
+            // En caso de error, asignar lista vacía para evitar fallos
+            user.setTags(new ArrayList<>());
+        }
+    }
+
+    // ==============================
+    // EVENTOS DE PRUEBA
+    // ==============================
+    private void initializeTestEvents() {
+        logger.info("Inicializando eventos de prueba...");
+
+        // Solo crear eventos si no existen muchos
+        long eventCount = eventRepository.count();
+        if (eventCount > 10) {
+            logger.info("Ya existen {} eventos, saltando creación de eventos de prueba", eventCount);
+            return;
+        }
+
+        try {
+            // Obtener el usuario administrador para asignar como creador
+            User adminUser = userRepository.findByEmail(this.adminEmail.toLowerCase().trim())
+                    .orElse(null);
+
+            if (adminUser == null) {
+                logger.warn("Usuario administrador no encontrado, no se pueden crear eventos de prueba");
+                return;
+            }
+
+            // Crear eventos de prueba para cada categoría
+            createTestEventsForCategory(EventCategory.CULTURAL, adminUser);
+            createTestEventsForCategory(EventCategory.DEPORTIVO, adminUser);
+            createTestEventsForCategory(EventCategory.MUSICAL, adminUser);
+            createTestEventsForCategory(EventCategory.SOCIAL, adminUser);
+
+            logger.info("Eventos de prueba creados exitosamente");
+
+        } catch (Exception e) {
+            logger.error("Error al crear eventos de prueba: {}", e.getMessage());
+        }
+    }
+
+    private void createTestEventsForCategory(EventCategory category, User creator) {
+        String categoryName = category.getDisplayName().toLowerCase();
+
+        // Datos específicos para cada categoría
+        String[][] eventsData = getEventsDataForCategory(category);
+        
+        // Estados para distribuir los eventos y hacer pruebas
+        EventStatus[] statuses = {
+            EventStatus.PUBLICADO,   // Primer evento activo
+            EventStatus.EN_EDICION,  // Segundo evento en edición
+            EventStatus.PAUSADO,     // Tercer evento pausado
+            EventStatus.PUBLICADO,   // Cuarto evento activo
+            EventStatus.CANCELADO    // Quinto evento cancelado
+        };
+
+        for (int i = 0; i < eventsData.length; i++) {
+            String[] eventData = eventsData[i];
+            try {
+                // Verificar si el evento ya existe por título
+                if (eventRepository.searchEvents(eventData[0]).isEmpty()) {
+                    // Seleccionar estado según el índice
+                    EventStatus status = statuses[i % statuses.length];
+                    boolean isActive = status == EventStatus.PUBLICADO;
+                    
+                    Event event = Event.builder()
+                            .title(eventData[0])
+                            .description(eventData[1])
+                            .eventDate(LocalDateTime.now().plusDays(Integer.parseInt(eventData[2])))
+                            .price(new BigDecimal(eventData[3]))
+                            .maxCapacity(Integer.parseInt(eventData[4]))
+                            .currentAttendees(Integer.parseInt(eventData[5]))
+                            .category(category)
+                            .status(status)
+                            .mainImage(eventData[6])
+                            .createdBy(creator)
+                            .isActive(isActive)
+                            .createdAt(LocalDateTime.now())
+                            .updatedAt(LocalDateTime.now())
+                            .build();
+
+                    eventRepository.save(event);
+                    logger.debug("Evento {} creado: {} [Estado: {}]", categoryName, eventData[0], status);
+                } else {
+                    logger.debug("Evento {} ya existe: {}", categoryName, eventData[0]);
+                }
+            } catch (Exception e) {
+                logger.error("Error al crear evento '{}': {}", eventData[0], e.getMessage());
+            }
+        }
+    }
+
+    private String[][] getEventsDataForCategory(EventCategory category) {
+        switch (category) {
+            case CULTURAL:
+                return new String[][]{
+                        {"Exposición de Arte Contemporáneo", "Descubre las últimas tendencias del arte contemporáneo en esta increíble exposición. Artistas locales e internacionales muestran sus obras más innovadoras.", "15", "25000", "50", "12", "https://picsum.photos/600/400?random=1001"},
+                        {"Teatro: Romeo y Julieta", "La clásica obra de Shakespeare interpretada por la compañía nacional de teatro. Una experiencia única e inolvidable.", "22", "45000", "200", "85", "https://picsum.photos/600/400?random=1002"},
+                        {"Festival de Cine Independiente", "Tres días de proyecciones de películas independientes de todo el mundo. Incluye charlas con directores y actores.", "30", "35000", "150", "67", "https://picsum.photos/600/400?random=1003"}
+                };
+            case DEPORTIVO:
+                return new String[][]{
+                        {"Torneo de Fútbol Amateur", "Participa en nuestro torneo de fútbol amateur. Equipos de toda la ciudad compiten por el primer lugar.", "18", "20000", "80", "24", "https://picsum.photos/600/400?random=2001"},
+                        {"Maratón Ciudad 10K", "Únete a nuestra carrera de 10 kilómetros por los lugares más emblemáticos de la ciudad. Para todos los niveles.", "25", "15000", "300", "156", "https://picsum.photos/600/400?random=2002"},
+                        {"Clase de Yoga al Aire Libre", "Sesión de yoga en el parque principal de la ciudad. Perfecto para relajarse y conectar con la naturaleza.", "12", "12000", "30", "18", "https://picsum.photos/600/400?random=2003"}
+                };
+            case MUSICAL:
+                return new String[][]{
+                        {"Concierto de Rock Nacional", "Los mejores exponentes del rock nacional se presentan en un solo escenario. Una noche épica de música.", "20", "55000", "500", "245", "https://picsum.photos/600/400?random=3001"},
+                        {"Festival de Jazz", "Dos días de jazz con artistas nacionales e internacionales. Una experiencia única para los amantes de este género.", "35", "65000", "300", "134", "https://picsum.photos/600/400?random=3002"},
+                        {"Concierto Sinfónico", "La orquesta sinfónica de la ciudad interpreta las mejores piezas clásicas. Una noche de elegancia y cultura.", "28", "40000", "250", "98", "https://picsum.photos/600/400?random=3003"}
+                };
+            case SOCIAL:
+                return new String[][]{
+                        {"Networking para Emprendedores", "Conecta con otros emprendedores y expande tu red de contactos. Incluye conferencias magistrales y espacios de networking.", "14", "30000", "100", "45", "https://picsum.photos/600/400?random=4001"},
+                        {"Cena de Gala Benéfica", "Elegante cena a beneficio de organizaciones locales. Una noche de buena comida y mejores causas.", "40", "120000", "150", "67", "https://picsum.photos/600/400?random=4002"},
+                        {"Speed Dating Profesional", "Conoce personas afines en un ambiente profesional y relajado. Para profesionales de 25 a 45 años.", "17", "25000", "40", "23", "https://picsum.photos/600/400?random=4003"}
+                };
+            default:
+                return new String[0][0];
+        }
     }
 }

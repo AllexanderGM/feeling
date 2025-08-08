@@ -42,6 +42,19 @@ public class UserTag {
     @Builder.Default
     private Boolean trending = false; // Si el tag está en tendencia
 
+    // SISTEMA DE APROBACIÓN DE TAGS
+    @Builder.Default
+    private Boolean approved = false; // Si el tag está aprobado por administrador
+    
+    @Column(name = "approved_by")
+    private String approvedBy; // Email del admin que aprobó el tag
+    
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt; // Fecha de aprobación
+    
+    @Column(name = "rejection_reason")
+    private String rejectionReason; // Razón de rechazo si aplica
+
     // ========================================
     // RELACIONES
     // ========================================
@@ -116,6 +129,29 @@ public class UserTag {
 
     public void unmarkAsTrending() {
         this.trending = false;
+    }
+
+    // MÉTODOS PARA APROBACIÓN
+    public void approve(String approvedByEmail) {
+        this.approved = true;
+        this.approvedBy = approvedByEmail;
+        this.approvedAt = LocalDateTime.now();
+        this.rejectionReason = null; // Limpiar razón de rechazo si existía
+    }
+
+    public void reject(String rejectionReason) {
+        this.approved = false;
+        this.rejectionReason = rejectionReason;
+        this.approvedBy = null;
+        this.approvedAt = null;
+    }
+
+    public boolean isApproved() {
+        return this.approved != null && this.approved;
+    }
+
+    public boolean isPendingApproval() {
+        return this.approved == null || !this.approved;
     }
 
     @Override
