@@ -1,31 +1,20 @@
-import { useCallback, useState } from 'react'
-import { userService } from '@services'
-import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField, formatProfileCompletionData } from '@schemas'
+import { useCallback, useState, useContext } from 'react'
+import { userService, matchService } from '@services'
+import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField } from '@schemas'
 
-import { useAuth } from '@hooks/auth/useAuth.js'
+import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
-import { mapBackendUserToFrontend, mapBackendUsersToFrontend, mapBackendUsersPaginatedResponse } from '@utils/userMapper.js'
+import { mapBackendUserToFrontend, mapBackendUsersPaginatedResponse } from '@utils/userMapper.js'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
 const useUser = () => {
-  const {
-    user,
-    updateUser: updateAuthUser,
-    updateUserStatus,
-    updateUserProfile: updateAuthUserProfile,
-    updateUserMetrics,
-    updateUserPrivacy,
-    updateUserNotifications,
-    updateUserAuth,
-    updateUserAccount
-  } = useAuth()
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
+
+  const { user, updateUser } = context
   const { handleApiResponse } = useError()
-
-  // Hook centralizado para operaciones asíncronas
   const { loading, submitting, withLoading, withSubmitting } = useAsyncOperation()
-
-  const profile = user
 
   // Estados para gestión paginada de usuarios (por estatus)
   const [usersByStatus, setUsersByStatus] = useState({})
@@ -51,15 +40,11 @@ const useUser = () => {
    */
   const getCurrentUser = useCallback(
     async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        const userData = await userService.getCurrentUser()
-        updateAuthUser(userData)
-        return userData
-      }, 'obtener usuario actual')
-
+      const result = await withLoading(async () => await userService.getCurrentUser(), 'obtener usuario actual')
+      updateUser(result.data)
       return handleApiResponse(result, 'Usuario obtenido correctamente.', { showNotifications })
     },
-    [withLoading, updateAuthUser, handleApiResponse]
+    [withLoading, updateUser, handleApiResponse]
   )
 
   /**
@@ -116,7 +101,9 @@ const useUser = () => {
 
         // Manejar respuesta paginada
         if (response.content && Array.isArray(response.content)) {
-          setSuggestions(response.content)
+          // Mapear cada usuario de la respuesta para compatibilidad con UserCard
+          const mappedSuggestions = response.content.map(user => mapBackendUserToFrontend(user))
+          setSuggestions(mappedSuggestions)
           setSuggestionsPagination({
             page: response.number || page,
             size: response.size || size,
@@ -125,20 +112,21 @@ const useUser = () => {
             hasNext: !response.last,
             hasPrevious: !response.first
           })
-          return response.content
+          return mappedSuggestions
         } else {
           // Fallback para respuesta no paginada
-          const suggestions = Array.isArray(response) ? response : [response].filter(Boolean)
-          setSuggestions(suggestions)
+          const rawSuggestions = Array.isArray(response) ? response : [response].filter(Boolean)
+          const mappedSuggestions = rawSuggestions.map(user => mapBackendUserToFrontend(user))
+          setSuggestions(mappedSuggestions)
           setSuggestionsPagination({
             page: 0,
-            size: suggestions.length,
+            size: mappedSuggestions.length,
             totalPages: 1,
-            totalElements: suggestions.length,
+            totalElements: mappedSuggestions.length,
             hasNext: false,
             hasPrevious: false
           })
-          return suggestions
+          return mappedSuggestions
         }
       }, 'obtener sugerencias')
 
@@ -154,13 +142,13 @@ const useUser = () => {
     async (profileData, profileImages = null, showNotifications = true) => {
       const result = await withSubmitting(async () => {
         const updatedProfile = await userService.updateCurrentProfile(profileData, profileImages)
-        updateAuthUser(updatedProfile)
+        updateUser(updatedProfile)
         return updatedProfile
       }, 'actualizar perfil')
 
       return handleApiResponse(result, 'Perfil actualizado exitosamente.', { showNotifications })
     },
-    [withSubmitting, updateAuthUser, handleApiResponse]
+    [withSubmitting, updateUser, handleApiResponse]
   )
 
   /**
@@ -182,29 +170,29 @@ const useUser = () => {
   // ========================================
 
   /**
-   * Obtener todos los usuarios (pageable)
+   * Obtener todos los usuarios (pageable) - SIN MAPPING
    */
   const getAllUsers = useCallback(
     async (page = 0, size = DEFAULT_ROWS_PER_PAGE, search = '', showNotifications = false) => {
       const result = await withLoading(async () => {
         const response = await userService.getAllUsers(page, size, search)
-        const mappedResponse = mapBackendUsersPaginatedResponse(response)
+        const directResponse = response
 
         // Actualizar estado
-        setUsersByStatus(prev => ({ ...prev, all: mappedResponse.content || [] }))
+        setUsersByStatus(prev => ({ ...prev, all: directResponse.content || [] }))
         setUsersPagination(prev => ({
           ...prev,
           all: {
-            page: mappedResponse.number || page,
-            size: mappedResponse.size || size,
-            totalPages: mappedResponse.totalPages || 0,
-            totalElements: mappedResponse.totalElements || 0,
-            hasNext: !mappedResponse.last,
-            hasPrevious: !mappedResponse.first
+            page: directResponse.number || page,
+            size: directResponse.size || size,
+            totalPages: directResponse.totalPages || 0,
+            totalElements: directResponse.totalElements || 0,
+            hasNext: !directResponse.last,
+            hasPrevious: !directResponse.first
           }
         }))
 
-        return mappedResponse.content || []
+        return directResponse.content || []
       }, 'obtener todos los usuarios')
 
       return handleApiResponse(result, 'Usuarios cargados.', { showNotifications })
@@ -213,13 +201,13 @@ const useUser = () => {
   )
 
   /**
-   * Obtener usuario completo por email (admin)
+   * Obtener usuario completo por email (admin) - SIN MAPPING
    */
   const getUserByEmail = useCallback(
     async (email, showNotifications = true) => {
       const result = await withLoading(async () => {
         const userData = await userService.getUserByEmail(email)
-        return mapBackendUserToFrontend(userData)
+        return userData
       }, 'obtener usuario por email')
 
       return handleApiResponse(result, 'Usuario obtenido.', { showNotifications })
@@ -228,33 +216,34 @@ const useUser = () => {
   )
 
   /**
-   * Obtener usuarios por estatus (pageable)
+   * Obtener usuarios por estatus (pageable) - SIN MAPPING
    */
   const getUsersByStatus = useCallback(
     async (backendStatus, frontendStatus, page = 0, size = DEFAULT_ROWS_PER_PAGE, search = '', showNotifications = false) => {
       const result = await withLoading(async () => {
         const response = await userService.getUsersByStatus(backendStatus, page, size, search)
-        const mappedResponse = mapBackendUsersPaginatedResponse(response)
+
+        // Usar respuesta directa sin mapping
+        const directResponse = response
 
         // Actualizar estado usando el nombre del frontend para consistencia
         const statusKey = frontendStatus || backendStatus
 
-        // Storing user data by status
-
-        setUsersByStatus(prev => ({ ...prev, [statusKey]: mappedResponse.content || [] }))
+        // Storing user data by status - usando estructura original del backend
+        setUsersByStatus(prev => ({ ...prev, [statusKey]: directResponse.content || [] }))
         setUsersPagination(prev => ({
           ...prev,
           [statusKey]: {
-            page: mappedResponse.number || page,
-            size: mappedResponse.size || size,
-            totalPages: mappedResponse.totalPages || 0,
-            totalElements: mappedResponse.totalElements || 0,
-            hasNext: !mappedResponse.last,
-            hasPrevious: !mappedResponse.first
+            page: directResponse.number || page,
+            size: directResponse.size || size,
+            totalPages: directResponse.totalPages || 0,
+            totalElements: directResponse.totalElements || 0,
+            hasNext: !directResponse.last,
+            hasPrevious: !directResponse.first
           }
         }))
 
-        return mappedResponse.content || []
+        return directResponse.content || []
       }, `obtener usuarios ${backendStatus}`)
 
       return handleApiResponse(result, `Usuarios ${backendStatus} cargados.`, { showNotifications })
@@ -421,44 +410,31 @@ const useUser = () => {
   // ========================================
 
   /**
-   * Actualizar perfil (método de compatibilidad)
-   */
-  const updateUser = useCallback(
-    async (formData, showNotifications = true) => {
-      return await updateCurrentProfile(formData, formData.images, showNotifications)
-    },
-    [updateCurrentProfile]
-  )
-
-  /**
    * Obtener perfil (método de compatibilidad)
    */
   const fetchProfile = useCallback(
     async (forceRefresh = false, showNotifications = false) => {
-      if (profile && !forceRefresh) {
-        return { success: true, data: profile, fromCache: true }
-      }
-      return await getCurrentUser(showNotifications)
+      return user && !forceRefresh ? { success: true, data: user, fromCache: true } : await getCurrentUser(showNotifications)
     },
-    [profile, getCurrentUser]
+    [user, getCurrentUser]
   )
 
   /**
    * Obtener estadísticas del perfil
    */
   const getProfileStats = useCallback(() => {
-    if (!profile) return null
+    if (!user) return null
 
     const requiredFields = USER_PROFILE_REQUIRED_FIELDS
     const optionalFields = USER_PROFILE_OPTIONAL_FIELDS
 
     const requiredComplete = requiredFields.filter(field => {
-      const value = profile[field]
+      const value = user[field]
       return isSpecialField(field, value)
     }).length
 
     const optionalComplete = optionalFields.filter(field => {
-      const value = profile[field]
+      const value = user[field]
       return isSpecialField(field, value)
     }).length
 
@@ -475,12 +451,58 @@ const useUser = () => {
       requiredCompleted: requiredComplete,
       optionalCompleted: optionalComplete,
       missingFieldsCount: totalFields - completedFields,
-      hasImages: profile.images?.length > 0,
-      imageCount: profile.images?.length || 0,
-      isVerified: profile.verified || false,
-      hasProfileComplete: profile.profileComplete || false
+      hasImages: user.images?.length > 0,
+      imageCount: user.images?.length || 0,
+      isVerified: user.verified || false,
+      hasProfileComplete: user.profileComplete || false
     }
-  }, [profile])
+  }, [user])
+
+  // ========================================
+  // MÉTODOS DE MATCH
+  // ========================================
+
+  /**
+   * Obtener estadísticas de matches del usuario actual
+   */
+  const getMatchStats = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => {
+        return await matchService.getMatchStats()
+      }, 'obtener estadísticas de match')
+
+      return handleApiResponse(result, 'Estadísticas de match obtenidas.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  /**
+   * Obtener intentos de match restantes
+   */
+  const getRemainingAttempts = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => {
+        return await matchService.getRemainingAttempts()
+      }, 'obtener intentos restantes')
+
+      return handleApiResponse(result, 'Intentos restantes obtenidos.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  /**
+   * Obtener notificaciones de matches
+   */
+  const getMatchNotifications = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => {
+        return await matchService.getMatchNotifications()
+      }, 'obtener notificaciones de match')
+
+      return handleApiResponse(result, 'Notificaciones de match obtenidas.', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
 
   // ========================================
   // API PÚBLICA DEL HOOK
@@ -491,7 +513,6 @@ const useUser = () => {
     loading,
     submitting,
     user,
-    profile,
 
     // Cliente endpoints
     getCurrentUser,
@@ -530,6 +551,11 @@ const useUser = () => {
     updateUser,
     fetchProfile,
     getProfileStats,
+
+    // Métodos de match
+    getMatchStats,
+    getRemainingAttempts,
+    getMatchNotifications,
 
     // Otros métodos que pueden existir en el contexto
     ...user // Spread del user para mantener compatibilidad

@@ -150,8 +150,10 @@ public class User implements UserDetails {
 
     private String profession;
 
+    // ========================================
     // SISTEMA DE TAGS DINÁMICO
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE})
+    // ========================================
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "user_tag_relations",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -163,7 +165,11 @@ public class User implements UserDetails {
     // ========================================
     // DATOS PARA SPIRIT
     // ========================================
-    private String church;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "church_id")
+    private UserAttribute church;
+    
+    private String customChurch;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "religion_id")
@@ -491,29 +497,35 @@ public class User implements UserDetails {
                 lastName != null && !lastName.trim().isEmpty() &&
                 document != null && !document.trim().isEmpty() &&
                 phone != null && !phone.trim().isEmpty() &&
+                phoneCode != null && !phoneCode.trim().isEmpty() &&
                 dateOfBirth != null &&
                 country != null && !country.trim().isEmpty() &&
                 city != null && !city.trim().isEmpty() &&
                 images != null && !images.isEmpty();
 
-        // STEP 2: Características - step2Schema  
+        // STEP 2: Características - stepCharacteristicsSchema  
         boolean step2Complete = description != null && !description.trim().isEmpty() &&
-                tags != null && !tags.isEmpty();
+                gender != null &&
+                height != null && height > 0 &&
+                getApprovedTags() != null && !getApprovedTags().isEmpty();
 
-        // STEP 3: Preferencias - step3Schema (validación más permisiva temporalmente)
-        boolean step3Complete = categoryInterest != null;
+        // STEP 3: Preferencias - stepPreferencesSchema
+        boolean step3Complete = categoryInterest != null &&
+                agePreferenceMin != null && agePreferenceMin >= 18 &&
+                agePreferenceMax != null && agePreferenceMax <= 80 &&
+                locationPreferenceRadius != null && locationPreferenceRadius >= 5;
 
-        // STEP 3: Validaciones condicionales según categoría (TEMPORALMENTE PERMISIVAS)
+        // STEP 3: Validaciones condicionales según categoría
         boolean conditionalFieldsComplete = true;
         if (categoryInterest != null) {
             switch (categoryInterest.getCategoryInterestEnum()) {
                 case SPIRIT:
-                    // Para SPIRIT: religión es obligatoria (temporalmente permisivo)
-                    conditionalFieldsComplete = true; // religion != null;
+                    // Para SPIRIT: religión es obligatoria
+                    conditionalFieldsComplete = religion != null;
                     break;
                 case ROUSE:
-                    // Para ROUSE: rol sexual y tipo de relación son obligatorios (temporalmente permisivo)
-                    conditionalFieldsComplete = true; // sexualRole != null && relationshipType != null;
+                    // Para ROUSE: rol sexual y tipo de relación son obligatorios
+                    conditionalFieldsComplete = sexualRole != null && relationshipType != null;
                     break;
                 case ESSENCE:
                     // Para ESSENCE: no hay campos adicionales obligatorios
@@ -528,59 +540,79 @@ public class User implements UserDetails {
      * Calcula el porcentaje de completitud del perfil (0.0 - 100.0)
      */
     public Double getProfileCompletenessPercentage() {
-        int totalSteps = 0;
-        int completedSteps = 0;
+        int totalFields = 0;
+        int completedFields = 0;
 
-        // STEP 1: Información básica - stepBasicInfoSchema
-        totalSteps++;
-        boolean step1Complete = name != null && !name.trim().isEmpty() &&
-                lastName != null && !lastName.trim().isEmpty() &&
-                document != null && !document.trim().isEmpty() &&
-                phone != null && !phone.trim().isEmpty() &&
-                dateOfBirth != null &&
-                country != null && !country.trim().isEmpty() &&
-                city != null && !city.trim().isEmpty() &&
-                images != null && !images.isEmpty();
+        // ========================================
+        // CAMPOS OBLIGATORIOS (STEP 1: Información básica)
+        // ========================================
+        totalFields += 9; // name, lastName, document, phone, phoneCode, dateOfBirth, country, city, images
         
-        if (step1Complete) completedSteps++;
+        if (name != null && !name.trim().isEmpty()) completedFields++;
+        if (lastName != null && !lastName.trim().isEmpty()) completedFields++;
+        if (document != null && !document.trim().isEmpty()) completedFields++;
+        if (phone != null && !phone.trim().isEmpty()) completedFields++;
+        if (phoneCode != null && !phoneCode.trim().isEmpty()) completedFields++;
+        if (dateOfBirth != null) completedFields++;
+        if (country != null && !country.trim().isEmpty()) completedFields++;
+        if (city != null && !city.trim().isEmpty()) completedFields++;
+        if (images != null && !images.isEmpty()) completedFields++;
 
-        // STEP 2: Características - step2Schema  
-        totalSteps++;
-        boolean step2Complete = description != null && !description.trim().isEmpty() &&
-                tags != null && !tags.isEmpty();
+        // ========================================
+        // CAMPOS OBLIGATORIOS (STEP 2: Características)
+        // ========================================
+        totalFields += 4; // description, gender, height, tags
         
-        if (step2Complete) completedSteps++;
+        if (description != null && !description.trim().isEmpty()) completedFields++;
+        if (gender != null) completedFields++;
+        if (height != null && height > 0) completedFields++;
+        if (getApprovedTags() != null && !getApprovedTags().isEmpty()) completedFields++;
 
-        // STEP 3: Preferencias - step3Schema
-        totalSteps++;
-        boolean step3Complete = categoryInterest != null;
+        // ========================================
+        // CAMPOS OBLIGATORIOS (STEP 3: Preferencias)
+        // ========================================
+        totalFields += 4; // categoryInterest, agePreferenceMin, agePreferenceMax, locationPreferenceRadius
         
-        if (step3Complete) completedSteps++;
+        if (categoryInterest != null) completedFields++;
+        if (agePreferenceMin != null && agePreferenceMin >= 18) completedFields++;
+        if (agePreferenceMax != null && agePreferenceMax <= 80) completedFields++;
+        if (locationPreferenceRadius != null && locationPreferenceRadius >= 5) completedFields++;
 
-        // STEP 4: Validaciones condicionales según categoría
-        totalSteps++;
-        boolean conditionalFieldsComplete = true;
+        // ========================================
+        // CAMPOS CONDICIONALES SEGÚN CATEGORÍA
+        // ========================================
         if (categoryInterest != null) {
             switch (categoryInterest.getCategoryInterestEnum()) {
                 case SPIRIT:
-                    // Para SPIRIT: religión es obligatoria (temporalmente permisivo)
-                    conditionalFieldsComplete = true; // religion != null;
+                    totalFields += 1; // religión
+                    if (religion != null) completedFields++;
                     break;
                 case ROUSE:
-                    // Para ROUSE: rol sexual y tipo de relación son obligatorios (temporalmente permisivo)
-                    conditionalFieldsComplete = true; // sexualRole != null && relationshipType != null;
+                    totalFields += 2; // sexualRole, relationshipType
+                    if (sexualRole != null) completedFields++;
+                    if (relationshipType != null) completedFields++;
                     break;
                 case ESSENCE:
-                    // Para ESSENCE: no hay campos adicionales obligatorios
+                    // No hay campos adicionales obligatorios
                     break;
             }
         }
+
+        // ========================================
+        // CAMPOS OPCIONALES (contribuyen al porcentaje pero no son obligatorios)
+        // ========================================
+        totalFields += 6; // profession, eyeColor, hairColor, bodyType, maritalStatus, education
         
-        if (conditionalFieldsComplete) completedSteps++;
+        if (profession != null && !profession.trim().isEmpty()) completedFields++;
+        if (eyeColor != null) completedFields++;
+        if (hairColor != null) completedFields++;
+        if (bodyType != null) completedFields++;
+        if (maritalStatus != null) completedFields++;
+        if (education != null) completedFields++;
 
         // Calcular porcentaje
-        if (totalSteps == 0) return 0.0;
-        return (double) completedSteps / totalSteps * 100.0;
+        if (totalFields == 0) return 0.0;
+        return Math.round((double) completedFields / totalFields * 100.0 * 100.0) / 100.0; // Redondear a 2 decimales
     }
 
     /**
@@ -628,7 +660,22 @@ public class User implements UserDetails {
     }
 
     public List<String> getTagNames() {
-        return tags != null ? tags.stream().map(UserTag::getName).toList() : new ArrayList<>();
+        return tags != null ? 
+            tags.stream()
+                .filter(UserTag::isApproved)
+                .map(UserTag::getName)
+                .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+    }
+
+    public List<UserTag> getApprovedTags() {
+        return tags != null ? 
+            tags.stream()
+                .filter(UserTag::isApproved)
+                .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+    }
+
+    public List<UserTag> getAllTags() {
+        return tags != null ? new ArrayList<>(tags) : new ArrayList<>();
     }
 
     // ========================================
@@ -856,12 +903,14 @@ public class User implements UserDetails {
         double score = 0.0;
         int factors = 0;
 
-        // Coincidencia en tags (peso: 40%)
-        if (this.tags != null && otherUser.tags != null && !this.tags.isEmpty() && !otherUser.tags.isEmpty()) {
-            long commonTags = this.tags.stream()
-                    .filter(tag -> otherUser.tags.contains(tag))
+        // Coincidencia en tags (peso: 40%) - solo tags aprobados
+        List<UserTag> myApprovedTags = this.getApprovedTags();
+        List<UserTag> otherApprovedTags = otherUser.getApprovedTags();
+        if (!myApprovedTags.isEmpty() && !otherApprovedTags.isEmpty()) {
+            long commonTags = myApprovedTags.stream()
+                    .filter(tag -> otherApprovedTags.contains(tag))
                     .count();
-            double tagScore = (double) commonTags / Math.max(this.tags.size(), otherUser.tags.size());
+            double tagScore = (double) commonTags / Math.max(myApprovedTags.size(), otherApprovedTags.size());
             score += tagScore * 0.4;
             factors++;
         }

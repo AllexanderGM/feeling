@@ -3,7 +3,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
-import { useUser, useAuth, useError, useLocation, useUserAttributes, useUserTags, useUserInterests } from '@hooks'
+import { useUser, useError, useLocation, useUserAttributes, useUserTags, useUserInterests } from '@hooks'
 import { completeProfileSchema, getFieldsForStep, getDefaultValuesForStep } from '@schemas'
 
 import StepBasicEdit from './StepBasicEdit.jsx'
@@ -15,7 +15,6 @@ import StepConfiguration from '../../complete/components/StepConfiguration.jsx'
 const TOTAL_STEPS = 5
 
 const EditUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
-  const { user: currentUser } = useAuth()
   const { updateUserAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
   const { handleError, handleSuccess } = useError()
   const [currentStep, setCurrentStep] = useState(0)

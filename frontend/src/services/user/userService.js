@@ -103,9 +103,7 @@ class UserService extends ServiceREST {
         })
       }
 
-      const result = await ServiceREST.put(API_ENDPOINTS.USER.UPDATE_PROFILE, formData, {
-        'Content-Type': 'multipart/form-data'
-      })
+      const result = await ServiceREST.put(API_ENDPOINTS.USER.UPDATE_PROFILE, formData)
       return ServiceREST.handleServiceResponse(result, 'actualizar perfil')
     } catch (error) {
       this.logError('actualizar perfil', error)

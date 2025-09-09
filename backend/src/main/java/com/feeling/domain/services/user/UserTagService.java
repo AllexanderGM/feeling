@@ -9,6 +9,7 @@ import com.feeling.infrastructure.entities.user.User;
 import com.feeling.infrastructure.entities.user.UserCategoryInterestList;
 import com.feeling.infrastructure.entities.user.UserRoleList;
 import com.feeling.infrastructure.entities.user.UserTag;
+import com.feeling.infrastructure.entities.user.UserTagApprovalStatus;
 import com.feeling.infrastructure.repositories.user.IUserRepository;
 import com.feeling.infrastructure.repositories.user.IUserTagRepository;
 import lombok.RequiredArgsConstructor;
@@ -527,7 +528,7 @@ public class UserTagService {
                             .createdAt(LocalDateTime.now())
                             .usageCount(0L)
                             .lastUsed(LocalDateTime.now())
-                            .approved(false) // Los tags nuevos requieren aprobación (sistema general)
+                            .approvalStatus(UserTagApprovalStatus.PENDING) // Los tags nuevos requieren aprobación (sistema general)
                             .build();
                     logger.info("Nuevo tag creado pendiente de aprobación: '{}'", tagName);
                     return userTagRepository.save(newTag);
@@ -549,7 +550,7 @@ public class UserTagService {
                             .createdAt(LocalDateTime.now())
                             .usageCount(1L) // Empieza con 1 porque el usuario lo está usando
                             .lastUsed(LocalDateTime.now())
-                            .approved(isAdmin) // Los admins auto-aprueban, otros necesitan aprobación
+                            .approvalStatus(isAdmin ? UserTagApprovalStatus.APPROVED : UserTagApprovalStatus.PENDING) // Los admins auto-aprueban, otros necesitan aprobación
                             .build();
                     
                     // Si es admin, agregar información de aprobación
@@ -654,7 +655,7 @@ public class UserTagService {
         Map<String, Object> stats = new HashMap<>();
         
         long totalTags = userTagRepository.count();
-        long pendingTags = userTagRepository.countPendingApprovalTags();
+        long pendingTags = userTagRepository.countByApprovalStatus(UserTagApprovalStatus.PENDING);
         long approvedTags = totalTags - pendingTags;
         
         stats.put("totalTags", totalTags);
@@ -670,7 +671,9 @@ public class UserTagService {
      */
     public List<UserTagDTO> searchApprovedTags(String searchTerm, int limit) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            return userTagRepository.findTopApprovedPopularTags(limit)
+            return userTagRepository.findTopApprovedPopularTags(
+                    org.springframework.data.domain.PageRequest.of(0, limit)
+            )
                     .stream()
                     .map(UserTagDTO::new)
                     .collect(Collectors.toList());
@@ -687,7 +690,9 @@ public class UserTagService {
      * Tags populares aprobados solamente
      */
     public List<UserTagDTO> getPopularApprovedTags(int limit) {
-        return userTagRepository.findTopApprovedPopularTags(limit)
+        return userTagRepository.findTopApprovedPopularTags(
+                org.springframework.data.domain.PageRequest.of(0, limit)
+        )
                 .stream()
                 .map(UserTagDTO::new)
                 .collect(Collectors.toList());

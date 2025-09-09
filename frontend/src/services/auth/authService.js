@@ -1,6 +1,7 @@
 import { ServiceREST } from '@services/utils/serviceREST.js'
-import { ErrorManager } from '@utils/errorManager.js'
+import { Logger } from '@utils/logger.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes'
+import { HTTP_STATUS } from '@schemas'
 
 /**
  * Servicio de autenticación simplificado - Solo comunicación con API
@@ -182,8 +183,11 @@ class AuthService extends ServiceREST {
   // ========================================
 
   logError(operation, error) {
-    error.operation = operation
-    this.Logger.authError(operation, error, 'authService')
+    // Solo loguear errores de autenticación específicos, otros ya se manejan en ServiceREST
+    if (error?.response?.status === HTTP_STATUS.UNAUTHORIZED || error?.response?.status === HTTP_STATUS.FORBIDDEN) {
+      error.operation = operation
+      Logger.authError(operation, error, 'authService')
+    }
   }
 }
 

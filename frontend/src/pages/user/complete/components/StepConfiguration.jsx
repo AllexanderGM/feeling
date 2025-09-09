@@ -30,6 +30,7 @@ import {
   GraduationCap,
   UserCheck,
   Palette,
+  Church,
   CreditCard as IdCard
 } from 'lucide-react'
 
@@ -73,12 +74,11 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     agePreferenceMin,
     agePreferenceMax,
     locationPreferenceRadius,
-    church,
     spiritualMoments,
     spiritualPractices,
     images,
     selectedProfileImageIndex,
-    birthDate,
+    dateOfBirth,
     name,
     lastName,
     city,
@@ -100,7 +100,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     // Campos específicos por categoría
     religionId,
     sexualRoleId,
-    relationshipTypeId
+    relationshipId
   } = formValues
 
   // ========================================
@@ -320,7 +320,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
   // ========================================
   // Datos computados memoizados
   // ========================================
-  const userAge = useMemo(() => calculateAge(birthDate), [calculateAge, birthDate])
+  const userAge = useMemo(() => calculateAge(dateOfBirth), [calculateAge, dateOfBirth])
   const allImages = useMemo(() => getAllImages(), [getAllImages])
   const selectedCategory = useMemo(() => getSelectedCategory(), [getSelectedCategory])
   const profileImageUrl = useMemo(() => getCurrentProfileImageUrl(), [getCurrentProfileImageUrl])
@@ -836,12 +836,6 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
                     </span>
                   </div>
 
-                  <div className='flex items-center gap-2'>
-                    <Building className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400 text-xs'>Iglesia:</span>
-                    <span className={`text-sm ${church ? 'text-gray-300' : 'text-orange-400 italic'}`}>{church || 'Por completar'}</span>
-                  </div>
-
                   {spiritualMoments && (
                     <div>
                       <span className='text-xs font-medium text-gray-300'>Momentos espirituales:</span>
@@ -872,21 +866,21 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
                   <div className='flex items-center gap-2'>
                     <Users className='w-3 h-3 text-gray-400' />
                     <span className='text-gray-400 text-xs'>Tipo de relación:</span>
-                    <span className={`text-sm ${relationshipTypeId ? 'text-gray-300' : 'text-orange-400 italic'}`}>
-                      {getAttributeLabel('relationshipType', relationshipTypeId)}
+                    <span className={`text-sm ${relationshipId ? 'text-gray-300' : 'text-orange-400 italic'}`}>
+                      {getAttributeLabel('relationshipType', relationshipId)}
                     </span>
                   </div>
                 </div>
               )}
 
               {/* Mensaje por defecto si no hay información específica */}
-              {categoryInterest === 'SPIRIT' && !church && !religionId && !spiritualMoments && !spiritualPractices && (
+              {categoryInterest === 'SPIRIT' && !religionId && !spiritualMoments && !spiritualPractices && (
                 <div className='text-center py-2'>
                   <span className='text-sm text-orange-400 italic'>Por completar información espiritual</span>
                 </div>
               )}
 
-              {categoryInterest === 'ROUSE' && !sexualRoleId && !relationshipTypeId && (
+              {categoryInterest === 'ROUSE' && !sexualRoleId && !relationshipId && (
                 <div className='text-center py-2'>
                   <span className='text-sm text-orange-400 italic'>Por completar preferencias personales</span>
                 </div>

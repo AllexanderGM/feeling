@@ -116,7 +116,14 @@ export const useError = (authContext = null) => {
         }
       }
 
-      Logger.error(Logger.CATEGORIES.SYSTEM, `Handled error [${errorType}]`, { errorType, error })
+      const backendMessage = ErrorManager.extractBackendMessage(error)
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'error manejado', backendMessage || `Error tipo: ${errorType}`, {
+        context: {
+          type: errorType,
+          endpoint: error?.config?.url,
+          operation: error?.operation || 'desconocida'
+        }
+      })
       return formattedError
     },
     [errorContext, handleAuthError, showError]

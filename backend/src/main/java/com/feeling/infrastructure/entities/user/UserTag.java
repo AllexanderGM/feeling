@@ -43,8 +43,10 @@ public class UserTag {
     private Boolean trending = false; // Si el tag está en tendencia
 
     // SISTEMA DE APROBACIÓN DE TAGS
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false)
     @Builder.Default
-    private Boolean approved = false; // Si el tag está aprobado por administrador
+    private UserTagApprovalStatus approvalStatus = UserTagApprovalStatus.PENDING;
     
     @Column(name = "approved_by")
     private String approvedBy; // Email del admin que aprobó el tag
@@ -54,6 +56,83 @@ public class UserTag {
     
     @Column(name = "rejection_reason")
     private String rejectionReason; // Razón de rechazo si aplica
+
+    // ========================================
+    // CAMPO DE COMPATIBILIDAD (TEMPORAL PARA MIGRACIÓN DE BASE DE DATOS)
+    // ========================================
+    
+    /**
+     * Campo temporal de compatibilidad con la base de datos existente
+     * Se mantiene hasta que se ejecute la migración de la base de datos
+     * @deprecated Se eliminará después de la migración a approval_status
+     */
+    @Deprecated
+    @Column(name = "approved")
+    private Boolean approved;
+
+    /**
+     * Método de compatibilidad - usa approvalStatus internamente
+     * @deprecated Usar approvalStatus en su lugar
+     */
+    @Deprecated
+    public boolean isApproved() {
+        return this.approvalStatus == UserTagApprovalStatus.APPROVED;
+    }
+    
+    /**
+     * Setter de compatibilidad para migraciones
+     * @deprecated Usar approvalStatus en su lugar
+     */
+    @Deprecated
+    public void setApproved(boolean approved) {
+        this.approved = approved;
+        if (approved) {
+            this.approvalStatus = UserTagApprovalStatus.APPROVED;
+        } else {
+            this.approvalStatus = UserTagApprovalStatus.PENDING;
+        }
+    }
+
+    /**
+     * Getter de compatibilidad para JPA
+     * @deprecated Se eliminará después de la migración
+     */
+    @Deprecated
+    public Boolean getApproved() {
+        return this.approvalStatus == UserTagApprovalStatus.APPROVED;
+    }
+
+    /**
+     * Sincroniza los campos después de cargar desde la base de datos
+     */
+    @PostLoad
+    private void syncFieldsAfterLoad() {
+        // Si se carga desde la DB con el campo 'approved' pero no approval_status
+        if (this.approved != null && this.approvalStatus == null) {
+            this.approvalStatus = this.approved ? 
+                UserTagApprovalStatus.APPROVED : 
+                UserTagApprovalStatus.PENDING;
+        }
+        // Si se carga approval_status, sincronizar approved
+        if (this.approvalStatus != null) {
+            this.approved = (this.approvalStatus == UserTagApprovalStatus.APPROVED);
+        }
+    }
+
+    /**
+     * Sincroniza los campos antes de persistir en la base de datos
+     */
+    @PrePersist
+    @PreUpdate
+    private void syncFieldsBeforePersist() {
+        // Siempre sincronizar approved con approval_status
+        if (this.approvalStatus != null) {
+            this.approved = (this.approvalStatus == UserTagApprovalStatus.APPROVED);
+        } else {
+            this.approvalStatus = UserTagApprovalStatus.PENDING;
+            this.approved = false;
+        }
+    }
 
     // ========================================
     // RELACIONES
@@ -133,25 +212,25 @@ public class UserTag {
 
     // MÉTODOS PARA APROBACIÓN
     public void approve(String approvedByEmail) {
-        this.approved = true;
+        this.approvalStatus = UserTagApprovalStatus.APPROVED;
         this.approvedBy = approvedByEmail;
         this.approvedAt = LocalDateTime.now();
         this.rejectionReason = null; // Limpiar razón de rechazo si existía
     }
 
     public void reject(String rejectionReason) {
-        this.approved = false;
+        this.approvalStatus = UserTagApprovalStatus.REJECTED;
         this.rejectionReason = rejectionReason;
         this.approvedBy = null;
         this.approvedAt = null;
     }
 
-    public boolean isApproved() {
-        return this.approved != null && this.approved;
+    public boolean isPendingApproval() {
+        return this.approvalStatus == UserTagApprovalStatus.PENDING;
     }
 
-    public boolean isPendingApproval() {
-        return this.approved == null || !this.approved;
+    public boolean isRejected() {
+        return this.approvalStatus == UserTagApprovalStatus.REJECTED;
     }
 
     @Override

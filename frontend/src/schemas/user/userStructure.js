@@ -65,7 +65,7 @@ export const USER_METRICS_FIELDS = {
  */
 export const USER_CATEGORY_REQUIRED_FIELDS = {
   SPIRIT: ['religionId'], // Para SPIRIT: religión es obligatoria
-  ROUSE: ['sexualRoleId', 'relationshipTypeId'], // Para ROUSE: rol sexual y tipo de relación son obligatorios
+  ROUSE: ['sexualRoleId', 'relationshipId'], // Para ROUSE: rol sexual y tipo de relación son obligatorios
   ESSENCE: [] // Para ESSENCE: no hay campos adicionales obligatorios
 }
 
@@ -176,7 +176,6 @@ export const USER_DEFAULT_VALUES = {
     tags: [],
 
     // Campos específicos para SPIRIT
-    church: '',
     religion: null,
     religionId: null,
     spiritualMoments: '',
@@ -186,7 +185,7 @@ export const USER_DEFAULT_VALUES = {
     sexualRole: null,
     sexualRoleId: null,
     relationshipType: null,
-    relationshipTypeId: null,
+    relationshipId: null,
 
     // Preferencias de matching
     agePreferenceMin: 18,
@@ -414,11 +413,6 @@ export const formatProfileCompletionData = formData => {
         profileData[field] = allData[field]
       }
     })
-
-    // Mapear birthDate a dateOfBirth si existe
-    if (allData.birthDate !== undefined) {
-      profileData.dateOfBirth = allData.birthDate
-    }
   } else {
     // Si los datos vienen planos, extraer directamente
     expectedFields.forEach(field => {
@@ -426,11 +420,6 @@ export const formatProfileCompletionData = formData => {
         profileData[field] = formData[field]
       }
     })
-
-    // Mapear birthDate a dateOfBirth si existe
-    if (formData.birthDate !== undefined) {
-      profileData.dateOfBirth = formData.birthDate
-    }
   }
 
   return profileData

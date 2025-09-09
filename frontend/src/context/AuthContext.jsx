@@ -4,6 +4,7 @@ import { registerAuthCallbacks } from '@services'
 import { getDefaultValuesForUser } from '@schemas'
 import { COOKIE_KEYS } from '@constants/cookieKeys'
 import { Logger } from '@utils/logger.js'
+import { useRateLimitInterceptor } from '../hooks/utils/useRateLimitInterceptor'
 
 /**
  * Crear estructura de usuario usando los esquemas
@@ -32,6 +33,9 @@ const AuthContext = createContext(null)
 export const AuthProvider = ({ children }) => {
   // Usar el hook de cookies
   const cookieHandler = useCookies()
+
+  // Inicializar interceptor de rate limiting
+  useRateLimitInterceptor()
 
   // Estados del usuario obtenido de cookies al inicializar
   const [user, setUser] = useState(() => {

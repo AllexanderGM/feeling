@@ -109,8 +109,8 @@ public class SecurityConfiguration {
                     auth.requestMatchers(HttpMethod.GET, "/auth/session-info").authenticated();
 
                     // Perfil propio (self-modification controlado por filtro)
-                    auth.requestMatchers(HttpMethod.GET, "/user/").authenticated();
-                    auth.requestMatchers(HttpMethod.PUT, "/user/").authenticated();
+                    auth.requestMatchers(HttpMethod.GET, "/user").authenticated();
+                    auth.requestMatchers(HttpMethod.PUT, "/user").authenticated();
                     auth.requestMatchers(HttpMethod.POST, "/user/complete-profile").authenticated();
                     auth.requestMatchers(HttpMethod.PUT, "/user/deactivate").authenticated();
 

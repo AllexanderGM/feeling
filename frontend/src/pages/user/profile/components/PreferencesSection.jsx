@@ -110,8 +110,6 @@ const PreferencesSection = ({ user }) => {
     return (
       user?.profile?.religionId ||
       user?.religionId ||
-      user?.profile?.church ||
-      user?.church ||
       user?.profile?.spiritualMoments ||
       user?.spiritualMoments ||
       user?.profile?.spiritualPractices ||
@@ -121,7 +119,7 @@ const PreferencesSection = ({ user }) => {
 
   // Función para verificar si el usuario tiene campos específicos de ROUSE
   const hasRoueFields = () => {
-    return user?.profile?.sexualRoleId || user?.sexualRoleId || user?.profile?.relationshipTypeId || user?.relationshipTypeId
+    return user?.profile?.sexualRoleId || user?.sexualRoleId || user?.profile?.relationshipId || user?.relationshipId
   }
 
   // Props para StepPreferences
@@ -192,16 +190,6 @@ const PreferencesSection = ({ user }) => {
                   </span>
                 </div>
               )}
-
-              {/* Iglesia */}
-              {(user?.profile?.church || user?.church) && (
-                <div className='flex items-center gap-2'>
-                  <Building className='w-3 h-3' />
-                  <span>
-                    Iglesia: <span className='text-gray-300'>{user?.profile?.church || user?.church}</span>
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Momentos espirituales */}
@@ -258,13 +246,13 @@ const PreferencesSection = ({ user }) => {
               )}
 
               {/* Tipo de relación */}
-              {(user?.profile?.relationshipTypeId || user?.relationshipTypeId) && (
+              {(user?.profile?.relationshipId || user?.relationshipId) && (
                 <div className='flex items-center gap-2'>
                   <Users className='w-3 h-3' />
                   <span>
                     Tipo de relación:{' '}
                     <span className='text-gray-300'>
-                      {getAttributeName('relationshipTypeOptions', user?.profile?.relationshipTypeId || user?.relationshipTypeId)}
+                      {getAttributeName('relationshipTypeOptions', user?.profile?.relationshipId || user?.relationshipId)}
                     </span>
                   </span>
                 </div>

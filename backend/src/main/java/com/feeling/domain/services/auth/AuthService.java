@@ -968,60 +968,20 @@ public class AuthService {
 
             logger.logUserOperation("tokens_saved_complete", user.getEmail(), null);
 
-            // Crear y retornar respuesta usando el mapper con estructura completa
-            UserStatusDTO status = UserDTOMapper.toUserStatusDTO(user);
-            UserProfileDataDTO profile = UserDTOMapper.toUserProfileDataDTO(user);
-            
-            UserPrivacyDTO privacy = new UserPrivacyDTO(
-                    user.isPublicAccount(),
-                    user.isSearchVisibility(),
-                    user.isLocationPublic(),
-                    user.isShowAge(),
-                    user.isShowLocation(),
-                    user.isShowPhone(),
-                    user.isShowMeInSearch()
-            );
-            
-            UserNotificationDTO notifications = new UserNotificationDTO(
-                    user.isNotificationsEmailEnabled(),
-                    user.isNotificationsPhoneEnabled(),
-                    user.isNotificationsMatchesEnabled(),
-                    user.isNotificationsEventsEnabled(),
-                    user.isNotificationsLoginEnabled(),
-                    user.isNotificationsPaymentsEnabled()
-            );
-            
-            UserMetricsDTO metrics = new UserMetricsDTO(
-                    user.getProfileViews(),
-                    user.getLikesReceived(),
-                    user.getMatchesCount(),
-                    user.getPopularityScore(),
-                    user.getProfileCompletenessPercentage()
-            );
-            
-            UserAuthDTO auth = new UserAuthDTO(
-                    user.getUserAuthProvider(),
-                    user.getExternalId(),
-                    user.getExternalAvatarUrl(),
-                    user.getLastExternalSync()
-            );
-            
-            UserAccountStatusDTO account = new UserAccountStatusDTO(
-                    user.isAccountDeactivated(),
-                    user.getDeactivationDate(),
-                    user.getDeactivationReason()
-            );
+            // Usar el mapper básico para crear la respuesta (sin métricas de matches para evitar dependencia circular)
+            var userExtended = UserDTOMapper.toUserExtendedResponseDTO(user);
 
             return new AuthLoginResponseDTO(
                     accessToken,
                     refreshToken,
-                    status,
-                    profile,
-                    privacy,
-                    notifications,
-                    metrics,
-                    auth,
-                    account
+                    userExtended.status(),
+                    userExtended.profile(),
+                    userExtended.privacy(),
+                    userExtended.notifications(),
+                    userExtended.metrics(),
+                    userExtended.matches(),
+                    userExtended.auth(),
+                    userExtended.account()
             );
         } catch (Exception e) {
             logger.error("Error al generar tokens", Map.of("userEmail", user.getEmail()), e);

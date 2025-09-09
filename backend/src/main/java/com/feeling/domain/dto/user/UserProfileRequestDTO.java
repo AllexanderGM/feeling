@@ -65,7 +65,7 @@ public record UserProfileRequestDTO(
         Long eyeColorId,
         Long hairColorId,
         Long bodyTypeId,
-        Long educationId,
+        Long educationLevelId,
         @Size(max = 100, message = "La profesión no puede superar los 100 caracteres")
         String profession,
         // Para tags de intereses
@@ -75,6 +75,8 @@ public record UserProfileRequestDTO(
         // DATOS PARA SPIRIT
         // ========================================
         Long religionId,
+        Long churchId,
+        String customChurch,
         String spiritualMoments,
         String spiritualPractices,
 

@@ -15,11 +15,9 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-  Chip,
-  Spinner,
-  useDisclosure
+  Spinner
 } from '@heroui/react'
-import { Search, Filter, Plus, MoreVertical, RefreshCw, Download, ChevronDown, Trash2, Edit3 } from 'lucide-react'
+import { Search, Plus, RefreshCw, Download, ChevronDown, Trash2, Edit3 } from 'lucide-react'
 import TablePagination from '@components/ui/TablePagination.jsx'
 import { Logger } from '@utils/logger.js'
 
@@ -42,8 +40,6 @@ const AdminDataTable = ({
 
   // Callbacks
   onRefresh,
-  onSearch,
-  onSort,
   onPageChange,
   onPageSizeChange,
   onCreate,
@@ -97,11 +93,6 @@ const AdminDataTable = ({
 
       switch (columnKey) {
         case 'actions':
-          Logger.debug(Logger.CATEGORIES.UI, 'admin_data_table', 'Actions case called for user', {
-            userId: item?.id,
-            userEmail: item?.email,
-            hasRenderActions: !!renderActions
-          })
           return (
             <div className='flex items-center justify-center gap-2'>
               {renderActions ? (
@@ -185,7 +176,7 @@ const AdminDataTable = ({
 
         {/* Search and Filters */}
         <div className='flex flex-col sm:flex-row gap-4'>
-          {enableSearch && onSearch && (
+          {enableSearch && onSearchChange && (
             <div className='flex-1'>
               <Input
                 placeholder={searchPlaceholder}

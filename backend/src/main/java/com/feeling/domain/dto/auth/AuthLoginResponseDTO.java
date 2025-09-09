@@ -10,6 +10,7 @@ public record AuthLoginResponseDTO(
         UserPrivacyDTO privacy,
         UserNotificationDTO notifications,
         UserMetricsDTO metrics,
+        UserMatchesDTO matches,
         UserAuthDTO auth,
         UserAccountStatusDTO account
 ) {

@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
-  Card,
-  CardBody,
   Chip,
   Button,
   useDisclosure,
@@ -12,13 +10,14 @@ import {
   ModalFooter,
   Input,
   Textarea,
-  Switch,
-  Image
+  Switch
 } from '@heroui/react'
-import { Heart, Plus, Edit3, Trash2, Eye } from 'lucide-react'
+import { Heart, Edit3, Trash2, Eye } from 'lucide-react'
 import { userInterestsService, userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
-import AdminDataTable from './AdminDataTable.jsx'
+import GenericDataTable from '@components/common/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import useTableActions from '@hooks/table/useTableActions.js'
 
 /**
  * Sección de gestión de categorías de interés
@@ -28,14 +27,16 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [interests, setInterests] = useState([])
   const [pagination, setPagination] = useState({
-    page: 0,
-    size: 20,
+    page: 1,
     totalPages: 0,
     totalElements: 0
   })
   const [searchValue, setSearchValue] = useState('')
   const [selectedInterest, setSelectedInterest] = useState(null)
   const [interestStats, setInterestStats] = useState({})
+
+  // Obtener acciones predefinidas del hook
+  const { viewAction, editAction, deleteAction } = useTableActions()
 
   // Estados para modales
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure()
@@ -74,33 +75,19 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   useEffect(() => {
     loadInterests()
     loadInterestStats()
-  }, [pagination.page, pagination.size])
+  }, [])
 
   // Cargar categorías de interés
   const loadInterests = useCallback(async () => {
     setLoading(true)
     try {
       const response = await userInterestsService.getAllInterests()
+      const filteredInterests = Array.isArray(response) ? response : []
 
-      // Filtrar por búsqueda si hay término
-      let filteredInterests = Array.isArray(response) ? response : []
-      if (searchValue) {
-        filteredInterests = filteredInterests.filter(
-          interest =>
-            interest.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-            interest.description?.toLowerCase().includes(searchValue.toLowerCase())
-        )
-      }
-
-      // Simular paginación para mantener consistencia
-      const startIndex = pagination.page * pagination.size
-      const endIndex = startIndex + pagination.size
-      const paginatedData = filteredInterests.slice(startIndex, endIndex)
-
-      setInterests(paginatedData)
+      setInterests(filteredInterests)
       setPagination(prev => ({
         ...prev,
-        totalPages: Math.ceil(filteredInterests.length / pagination.size),
+        totalPages: Math.ceil(filteredInterests.length / 10),
         totalElements: filteredInterests.length
       }))
     } catch (error) {
@@ -109,7 +96,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.size, searchValue, onError])
+  }, [onError])
 
   // Cargar estadísticas
   const loadInterestStats = useCallback(async () => {
@@ -122,59 +109,68 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   }, [])
 
   // Renderizar celda
-  const renderCell = useCallback((interest, columnKey) => {
-    switch (columnKey) {
-      case 'category':
-        return (
-          <div className='flex items-center gap-3'>
-            <div className='flex items-center justify-center w-10 h-10 rounded-lg bg-default-100'>
-              {interest.icon ? <span className='text-lg'>{interest.icon}</span> : <Heart className='w-5 h-5 text-default-500' />}
+  const renderCell = useCallback(
+    (interest, columnKey) => {
+      switch (columnKey) {
+        case 'category':
+          return (
+            <div className='flex items-center gap-3'>
+              <div className='flex items-center justify-center w-10 h-10 rounded-lg bg-default-100'>
+                {interest.icon ? <span className='text-lg'>{interest.icon}</span> : <Heart className='w-5 h-5 text-default-500' />}
+              </div>
+              <div className='flex flex-col'>
+                <span className='text-sm font-medium'>{interest.name}</span>
+                <span className='text-xs text-default-500 line-clamp-1'>{interest.description}</span>
+              </div>
             </div>
-            <div className='flex flex-col'>
-              <span className='text-sm font-medium'>{interest.name}</span>
-              <span className='text-xs text-default-500 line-clamp-1'>{interest.description}</span>
-            </div>
-          </div>
-        )
+          )
 
-      case 'isActive':
-        return (
-          <Chip size='sm' color={interest.isActive ? 'success' : 'default'} variant='flat'>
-            {interest.isActive ? 'Activa' : 'Inactiva'}
-          </Chip>
-        )
+        case 'isActive':
+          return (
+            <Chip size='sm' color={interest.isActive ? 'success' : 'default'} variant='flat'>
+              {interest.isActive ? 'Activa' : 'Inactiva'}
+            </Chip>
+          )
 
-      case 'displayOrder':
-        return <span className='text-sm'>{interest.displayOrder || 0}</span>
+        case 'displayOrder':
+          return <span className='text-sm'>{interest.displayOrder || 0}</span>
 
-      case 'userCount':
-        return <span className='text-sm'>{interest.userCount || 0}</span>
+        case 'userCount':
+          return <span className='text-sm'>{interest.userCount || 0}</span>
 
-      case 'popularity':
-        const popularity = Math.min(((interest.userCount || 0) / 100) * 100, 100)
-        return <span className='text-sm'>{popularity.toFixed(1)}%</span>
+        case 'popularity':
+          const popularity = Math.min(((interest.userCount || 0) / 100) * 100, 100)
+          return <span className='text-sm'>{popularity.toFixed(1)}%</span>
 
-      default:
-        return interest[columnKey]?.toString() || '-'
-    }
-  }, [])
+        case 'actions':
+          return (
+            <GenericTableActions
+              actions={[
+                viewAction({
+                  tooltip: 'Ver detalles',
+                  onClick: item => handleViewInterest(item)
+                }),
+                editAction({
+                  tooltip: 'Editar categoría',
+                  onClick: item => handleEditInterest(item)
+                }),
+                deleteAction({
+                  tooltip: 'Eliminar categoría',
+                  onClick: item => handleDeleteInterest(item)
+                })
+              ]}
+              item={interest}
+              loading={loading}
+              size='sm'
+              tableId={`interests-table`}
+            />
+          )
 
-  // Renderizar acciones
-  const renderActions = useCallback(
-    interest => (
-      <div className='flex items-center gap-2'>
-        <Button isIconOnly size='sm' variant='light' onPress={() => handleViewInterest(interest)}>
-          <Eye className='h-4 w-4' />
-        </Button>
-        <Button isIconOnly size='sm' variant='light' onPress={() => handleEditInterest(interest)}>
-          <Edit3 className='h-4 w-4' />
-        </Button>
-        <Button isIconOnly size='sm' variant='light' color='danger' onPress={() => handleDeleteInterest(interest)}>
-          <Trash2 className='h-4 w-4' />
-        </Button>
-      </div>
-    ),
-    []
+        default:
+          return interest[columnKey]?.toString() || '-'
+      }
+    },
+    [viewAction, editAction, deleteAction, loading]
   )
 
   // Handlers para acciones
@@ -302,27 +298,64 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
     }
   }, [selectedInterest, onSuccess, onError, onDeleteClose, loadInterests, loadInterestStats])
 
+  // Función de búsqueda
+  const handleSearch = useCallback(
+    searchQuery => {
+      setSearchValue(searchQuery)
+      const filteredInterests = interests.filter(
+        interest =>
+          interest.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          interest.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      setInterests(filteredInterests)
+    },
+    [interests]
+  )
+
+  // Función de refresh
+  const handleRefresh = useCallback(() => {
+    loadInterests()
+    loadInterestStats()
+  }, [loadInterests, loadInterestStats])
+
+  // Función de cambio de página
+  const handlePageChange = useCallback(page => {
+    setPagination(prev => ({ ...prev, page }))
+  }, [])
+
+  // Función de cambio de filas por página
+  const handleRowsPerPageChange = useCallback(size => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
+
   return (
     <div className='flex flex-col gap-6'>
       {/* Main Table */}
-      <AdminDataTable
-        title='Gestión de Categorías de Interés'
-        description='Administra las categorías de interés disponibles para los usuarios'
+      <GenericDataTable
         data={interests}
         columns={columns}
-        loading={loading}
         pagination={pagination}
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onRefresh={loadInterests}
-        onCreate={handleCreateInterest}
-        onPageChange={page => setPagination(prev => ({ ...prev, page }))}
-        onPageSizeChange={size => setPagination(prev => ({ ...prev, size, page: 0 }))}
-        renderCell={renderCell}
-        renderActions={renderActions}
-        enableSearch={true}
-        searchPlaceholder='Buscar categorías...'
+        loading={loading}
+        loadingMessage='Cargando categorías...'
         emptyMessage='No se encontraron categorías de interés'
+        renderCell={renderCell}
+        onSearch={handleSearch}
+        onRefresh={handleRefresh}
+        onCreate={handleCreateInterest}
+        createButtonLabel='Crear Categoría'
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        searchPlaceholder='Buscar categorías por nombre o descripción...'
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        showColumnSelector={true}
+        showRowsPerPage={true}
+        showCreateButton={true}
+        showRefreshButton={true}
+        showSearch={true}
+        showPagination={true}
+        enableSelection={false}
+        getItemKey={item => `interest-${item.id}`}
+        tableId={`interests-table`}
       />
 
       {/* View Interest Modal */}

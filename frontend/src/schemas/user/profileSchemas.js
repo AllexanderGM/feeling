@@ -21,7 +21,7 @@ export const stepBasicInfoSchema = yup.object().shape({
   document: baseValidations.document,
   phone: baseValidations.phone,
   phoneCode: yup.string().required('Selecciona el código de país'),
-  birthDate: baseValidations.birthDate,
+  dateOfBirth: baseValidations.dateOfBirth,
   country: baseValidations.country,
   city: baseValidations.city,
   images: yup
@@ -50,7 +50,7 @@ export const stepPreferencesSchema = yup.object().shape({
   // Validaciones condicionales
   religionId: conditionalValidations.religionId,
   sexualRoleId: conditionalValidations.sexualRoleId,
-  relationshipTypeId: conditionalValidations.relationshipTypeId
+  relationshipId: conditionalValidations.relationshipId
 })
 
 export const stepConfigurationSchema = yup.object().shape({
@@ -122,7 +122,7 @@ export const preferencesEditSchema = yup.object().shape({
   // Validaciones condicionales para edición
   religionId: conditionalValidations.religionId,
   sexualRoleId: conditionalValidations.sexualRoleId,
-  relationshipTypeId: conditionalValidations.relationshipTypeId
+  relationshipId: conditionalValidations.relationshipId
 })
 
 // ========================================
@@ -134,7 +134,7 @@ export const preferencesEditSchema = yup.object().shape({
  */
 export const getFieldsForStep = step => {
   const stepFields = {
-    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'birthDate', 'country', 'city', 'images'],
+    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'country', 'city', 'images'],
     2: ['description', 'genderId', 'height', 'tags'],
     3: [
       'categoryInterest',
@@ -143,7 +143,7 @@ export const getFieldsForStep = step => {
       'locationPreferenceRadius',
       'religionId',
       'sexualRoleId',
-      'relationshipTypeId'
+      'relationshipId'
     ],
     4: [] // No hay validaciones obligatorias en el paso 4
   }
@@ -169,7 +169,7 @@ export const getSchemaForStep = step => {
 export const validateCategoryRequiredFields = (categoryInterest, userData) => {
   const requiredFields = {
     SPIRIT: ['religionId'],
-    ROUSE: ['sexualRoleId', 'relationshipTypeId'],
+    ROUSE: ['sexualRoleId', 'relationshipId'],
     ESSENCE: []
   }
 
@@ -197,7 +197,7 @@ export const createCategorySpecificSchema = categoryInterest => {
 
   if (categoryInterest !== 'ROUSE') {
     delete relevantFields.sexualRoleId
-    delete relevantFields.relationshipTypeId
+    delete relevantFields.relationshipId
   }
 
   return yup.object().shape(relevantFields)

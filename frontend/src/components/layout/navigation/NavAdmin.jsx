@@ -4,6 +4,7 @@ import { User, Users, FileText, MessageSquare, Settings, BarChart3, Package } fr
 import { Button, Badge } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
 import UserProfileMenu from './UserProfileMenu.jsx'
+import { isProfileActive, isActive, getNavigationStyles } from './navigationUtils.js'
 
 const NavAdmin = ({ user }) => {
   const navigate = useNavigate()
@@ -66,22 +67,7 @@ const NavAdmin = ({ user }) => {
     }
   ]
 
-  // ========================================
-  // HANDLERS
-  // ========================================
-
-  const isActive = path => {
-    if (path === APP_PATHS.ADMIN.ROOT) {
-      return location.pathname === APP_PATHS.ADMIN.ROOT
-    }
-    return location.pathname.startsWith(path)
-  }
-
-  // Verificar si alguna ruta relacionada con el perfil/usuario está activa
-  const isProfileActive = () => {
-    const userRelatedPaths = [APP_PATHS.ADMIN.PROFILE, APP_PATHS.ADMIN.SETTINGS, APP_PATHS.GENERAL.HELP]
-    return userRelatedPaths.some(path => location.pathname === path || location.pathname.startsWith(path))
-  }
+  const styles = getNavigationStyles()
 
   // ========================================
   // RENDERIZADO DE ELEMENTOS
@@ -90,7 +76,7 @@ const NavAdmin = ({ user }) => {
   const renderNavigationItem = item => {
     const IconComponent = item.icon
     const isProfileButton = item.id === 'profile'
-    const active = isProfileButton ? isProfileActive() : isActive(item.path)
+    const active = isProfileButton ? isProfileActive(location, true, APP_PATHS) : isActive(location, item.path, APP_PATHS)
 
     return (
       <Badge
@@ -100,9 +86,7 @@ const NavAdmin = ({ user }) => {
         placement='top-right'
         shape='circle'
         isInvisible={!active}
-        classNames={{
-          badge: 'animate-pulse'
-        }}>
+        classNames={{ badge: styles.badge }}>
         {isProfileButton ? (
           <UserProfileMenu user={user} isAdmin={true} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' />
         ) : (
@@ -112,10 +96,7 @@ const NavAdmin = ({ user }) => {
             color={active ? 'primary' : 'default'}
             radius='lg'
             size='md'
-            className={`
-              transition-all duration-300 ease-in-out
-              ${active ? 'transform scale-105' : 'hover:scale-102'}
-            `}
+            className={`${styles.button} ${active ? styles.activeButton : styles.inactiveButton}`}
             onPress={() => navigate(item.path)}
             aria-label={item.description}>
             <IconComponent size={20} />
@@ -131,7 +112,7 @@ const NavAdmin = ({ user }) => {
 
   return (
     <div className='fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-4'>
-      <div className='bg-background/75 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl px-4 py-3 ring-1 ring-primary-500/10'>
+      <div className={styles.container}>
         <div className='flex items-center space-x-2'>{adminNavigationItems.map(item => renderNavigationItem(item))}</div>
       </div>
     </div>

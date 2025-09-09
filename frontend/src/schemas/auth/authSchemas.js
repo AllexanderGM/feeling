@@ -61,7 +61,7 @@ export const fullRegistrationSchema = yup.object().shape({
   ...registerSchema.fields,
   // Campos adicionales que podrían requerirse en el registro completo
   phone: baseValidations.phone,
-  birthDate: baseValidations.birthDate
+  dateOfBirth: baseValidations.dateOfBirth
 })
 
 // ========================================

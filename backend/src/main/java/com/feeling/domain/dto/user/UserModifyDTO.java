@@ -52,9 +52,6 @@ public record UserModifyDTO(
         @Size(max = 50, message = "La localidad no puede superar los 50 caracteres")
         String locality,
 
-        @Size(max = 100, message = "La dirección no puede superar los 100 caracteres")
-        String address,
-
         // ========================================
         // CARACTERÍSTICAS Y ATRIBUTOS
         // ========================================
@@ -74,11 +71,12 @@ public record UserModifyDTO(
         // DATOS COMPLEMENTARIOS
         // ========================================
         String profession,
-        String education,
+        Long educationLevelId,
         Integer height, // Altura en centímetros
 
         // Información religiosa específica (Para SPIRIT)
-        String church,
+        Long churchId,
+        String customChurch,
         String spiritualMoments,
         String spiritualPractices,
 
@@ -182,7 +180,8 @@ public record UserModifyDTO(
 
     // Método para verificar si hay datos específicos de SPIRIT
     public boolean hasSpiritualData() {
-        return church != null ||
+        return churchId != null ||
+                customChurch != null ||
                 spiritualMoments != null ||
                 spiritualPractices != null ||
                 religionId != null;

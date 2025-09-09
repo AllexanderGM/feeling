@@ -28,6 +28,7 @@ const StepPreferences = ({
   categoriesLoading,
   categoriesError,
   religionOptions,
+  churchOptions,
   sexualRoleOptions,
   relationshipTypeOptions,
   attributesLoading
@@ -70,14 +71,13 @@ const StepPreferences = ({
       // Limpiar campos específicos cuando cambia la categoría
       if (categoryKey !== 'SPIRIT') {
         formHandlers.handleInputChange('religionId', '')
-        formHandlers.handleInputChange('church', '')
         formHandlers.handleInputChange('spiritualMoments', '')
         formHandlers.handleInputChange('spiritualPractices', '')
       }
 
       if (categoryKey !== 'ROUSE') {
         formHandlers.handleInputChange('sexualRoleId', '')
-        formHandlers.handleInputChange('relationshipTypeId', '')
+        formHandlers.handleInputChange('relationshipId', '')
       }
     },
     [formHandlers]
@@ -339,14 +339,13 @@ const StepPreferences = ({
             label: 'Religión',
             placeholder: 'Selecciona tu religión',
             isRequired: true,
-            startContent: <Church />,
             ariaLabel: 'Religión'
           })}
 
           {/* Iglesia */}
-          {renderInput('church', {
-            placeholder: 'Nombre de tu iglesia o congregación (opcional)',
-            startContent: <Building />,
+          {renderSelect('churchId', churchOptions, {
+            label: 'Iglesia',
+            placeholder: 'Selecciona tu iglesia',
             ariaLabel: 'Iglesia'
           })}
 
@@ -382,7 +381,7 @@ const StepPreferences = ({
             })}
 
             {/* Tipo de relación */}
-            {renderSelect('relationshipTypeId', relationshipTypeOptions, {
+            {renderSelect('relationshipId', relationshipTypeOptions, {
               label: 'Tipo de relación',
               placeholder: 'Tipo de relación que buscas',
               isRequired: true,

@@ -26,7 +26,12 @@ export const useNotification = () => {
   )
 
   const showError = useCallback(
-    (message, title = 'Error', duration = 3000) => {
+    (message, title = 'Error', duration = 3000, options = {}) => {
+      // No mostrar toast para errores de rate limiting si se está mostrando modal
+      if (options._showModal || options.type === 'RATE_LIMIT_EXCEEDED') {
+        return null
+      }
+
       return createToast({
         title,
         description: message,

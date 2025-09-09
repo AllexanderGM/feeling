@@ -1,6 +1,9 @@
 package com.feeling.infrastructure.repositories.user;
 
 import com.feeling.infrastructure.entities.user.UserTag;
+import com.feeling.infrastructure.entities.user.UserTagApprovalStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -316,42 +319,88 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
     List<UserTag> findMissingPopularTagsForUser(@Param("userEmail") String userEmail, @Param("limit") int limit);
 
     // ========================================
-    // ADMINISTRACIÓN Y APROBACIÓN DE TAGS
+    // ADMINISTRACIÓN Y APROBACIÓN DE TAGS (NUEVO SISTEMA)
     // ========================================
 
     /**
+     * Busca tags por estado de aprobación
+     */
+    List<UserTag> findByApprovalStatus(UserTagApprovalStatus approvalStatus);
+    Page<UserTag> findByApprovalStatus(UserTagApprovalStatus approvalStatus, Pageable pageable);
+    
+    /**
      * Encuentra tags pendientes de aprobación
      */
-    @Query("SELECT t FROM UserTag t WHERE t.approved = false OR t.approved IS NULL ORDER BY t.createdAt DESC")
-    List<UserTag> findByApprovedFalseOrApprovedIsNull();
+    @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'PENDING' ORDER BY t.createdAt ASC")
+    List<UserTag> findPendingApprovalTags();
+    
+    default Page<UserTag> findPendingApprovalTagsPageable(Pageable pageable) {
+        return findByApprovalStatus(UserTagApprovalStatus.PENDING, pageable);
+    }
 
     /**
      * Encuentra tags aprobados
      */
-    List<UserTag> findByApprovedTrue();
+    @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'APPROVED' ORDER BY t.usageCount DESC")
+    List<UserTag> findApprovedTags();
 
     /**
-     * Cuenta tags pendientes de aprobación
+     * Cuenta tags por estado
      */
-    @Query("SELECT COUNT(t) FROM UserTag t WHERE t.approved = false OR t.approved IS NULL")
-    long countPendingApprovalTags();
+    long countByApprovalStatus(UserTagApprovalStatus approvalStatus);
 
     /**
      * Busca tags pendientes de aprobación creados por un usuario específico
      */
-    @Query("SELECT t FROM UserTag t WHERE t.createdBy = :userEmail AND (t.approved = false OR t.approved IS NULL) ORDER BY t.createdAt DESC")
+    @Query("SELECT t FROM UserTag t WHERE t.createdBy = :userEmail AND t.approvalStatus = 'PENDING' ORDER BY t.createdAt DESC")
     List<UserTag> findPendingTagsByUser(@Param("userEmail") String userEmail);
 
     /**
      * Actualiza búsquedas para mostrar solo tags aprobados por defecto
      */
-    @Query("SELECT t FROM UserTag t WHERE (t.approved = true) AND LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ORDER BY t.usageCount DESC")
+    @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'APPROVED' AND LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ORDER BY t.usageCount DESC")
     List<UserTag> searchApprovedTagsByName(@Param("searchTerm") String searchTerm);
 
     /**
      * Tags populares solo aprobados
      */
+    @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'APPROVED' ORDER BY t.usageCount DESC")
+    List<UserTag> findTopApprovedPopularTags(Pageable pageable);
+
+    // ========================================
+    // ADMINISTRACIÓN Y APROBACIÓN DE TAGS (SISTEMA ANTERIOR - MANTENER COMPATIBILIDAD)
+    // ========================================
+
+    /**
+     * Encuentra tags pendientes de aprobación (sistema anterior)
+     * @deprecated Usar findPendingApprovalTags() que usa el nuevo sistema de enums
+     */
+    @Deprecated
+    @Query("SELECT t FROM UserTag t WHERE (t.approved = false OR t.approved IS NULL) ORDER BY t.createdAt DESC")
+    List<UserTag> findByApprovedFalseOrApprovedIsNull();
+
+    /**
+     * Encuentra tags aprobados (sistema anterior)
+     * @deprecated Usar findApprovedTags() que usa el nuevo sistema de enums
+     */
+    @Deprecated
+    @Query("SELECT t FROM UserTag t WHERE t.approved = true ORDER BY t.usageCount DESC")
+    List<UserTag> findByApprovedTrue();
+
+    /**
+     * Cuenta tags pendientes de aprobación (sistema anterior)
+     * @deprecated Usar countByApprovalStatus(UserTagApprovalStatus.PENDING)
+     */
+    @Deprecated
+    @Query("SELECT COUNT(t) FROM UserTag t WHERE (t.approved = false OR t.approved IS NULL)")
+    long countPendingApprovalTagsOld();
+
+    /**
+     * Tags populares solo aprobados (sistema anterior)
+     * @deprecated Usar findTopApprovedPopularTags(Pageable)
+     */
+    @Deprecated
     @Query(value = "SELECT * FROM user_tags t WHERE t.approved = true ORDER BY t.usage_count DESC LIMIT ?1", nativeQuery = true)
-    List<UserTag> findTopApprovedPopularTags(int limit);
+    List<UserTag> findTopApprovedPopularTagsOld(int limit);
 
 }

@@ -28,8 +28,7 @@ export const mapBackendUserToFrontend = backendUser => {
     document: profile?.document,
 
     // Fechas
-    dateOfBirth: profile?.birthDate || profile?.dateOfBirth,
-    birthDate: profile?.birthDate || profile?.dateOfBirth,
+    dateOfBirth: profile?.dateOfBirth || profile?.birthDate,
     createdAt: status?.registrationDate || status?.createdAt,
     registeredAt: status?.registrationDate || status?.createdAt,
 

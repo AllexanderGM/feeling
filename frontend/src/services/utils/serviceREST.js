@@ -10,8 +10,143 @@ import api from './api.js'
  * - Formato consistente de respuestas
  * - Eventos de autenticación
  * - Soporte para FormData
+ * - Deduplicación automática de peticiones
  */
 export class ServiceREST {
+  // Caché de peticiones pendientes para evitar duplicados
+  static pendingRequests = new Map()
+
+  // Tiempo de expiración del caché (30 segundos)
+  static CACHE_EXPIRY = 30000
+
+  // Flag para habilitar/deshabilitar deduplicación
+  static deduplicationEnabled = true
+  // ========================================
+  // MÉTODOS DE DEDUPLICACIÓN
+  // ========================================
+
+  /**
+   * Genera una clave única para la petición basada en método, URL y datos
+   * @private
+   * @param {Object} config - Configuración de la petición
+   * @returns {string} Clave única de la petición
+   */
+  static generateRequestKey(config) {
+    const { method = 'GET', url, data, params } = config
+    const key = JSON.stringify({
+      method: method.toUpperCase(),
+      url,
+      data: data || null,
+      params: params || null
+    })
+    return btoa(key) // Encode en base64 para hacer la clave más compacta
+  }
+
+  /**
+   * Verifica si una petición está pendiente y la retorna, o crea una nueva
+   * @private
+   * @param {Object} config - Configuración de la petición
+   * @returns {Promise|null} Promise pendiente o null si no existe
+   */
+  static checkPendingRequest(config) {
+    // Verificar si la deduplicación está habilitada
+    if (!this.deduplicationEnabled) {
+      return null
+    }
+
+    // Solo deduplicar peticiones GET para ser conservadores
+    if (config.method && config.method.toUpperCase() !== 'GET') {
+      return null
+    }
+
+    const key = this.generateRequestKey(config)
+    const now = Date.now()
+
+    // Limpiar peticiones expiradas
+    for (const [k, entry] of this.pendingRequests.entries()) {
+      if (now - entry.timestamp > this.CACHE_EXPIRY) {
+        this.pendingRequests.delete(k)
+      }
+    }
+
+    // Verificar si la petición ya está pendiente
+    if (this.pendingRequests.has(key)) {
+      const entry = this.pendingRequests.get(key)
+      return entry.promise
+    }
+
+    return null
+  }
+
+  /**
+   * Registra una petición como pendiente
+   * @private
+   * @param {Object} config - Configuración de la petición
+   * @param {Promise} promise - Promise de la petición
+   */
+  static registerPendingRequest(config, promise) {
+    if (config.method && config.method.toUpperCase() !== 'GET') {
+      return // Solo registrar GETs
+    }
+
+    const key = this.generateRequestKey(config)
+    this.pendingRequests.set(key, {
+      promise,
+      timestamp: Date.now()
+    })
+
+    // Limpiar del caché cuando la petición termine (exitosa o con error)
+    promise.finally(() => {
+      this.pendingRequests.delete(key)
+    })
+  }
+
+  /**
+   * Limpia el caché de peticiones pendientes
+   * @public
+   */
+  static clearPendingRequests() {
+    Logger.log('DEDUPLICATION', 'cache_clear', 'Limpiando caché de peticiones pendientes')
+    this.pendingRequests.clear()
+  }
+
+  /**
+   * Configura la deduplicación de peticiones
+   * @public
+   * @param {boolean} enabled - Habilitar o deshabilitar deduplicación
+   */
+  static setDeduplicationEnabled(enabled) {
+    this.deduplicationEnabled = enabled
+    Logger.log('DEDUPLICATION', 'config_change', `Deduplicación ${enabled ? 'habilitada' : 'deshabilitada'}`)
+    if (!enabled) {
+      this.clearPendingRequests()
+    }
+  }
+
+  /**
+   * Obtiene estadísticas del caché de peticiones pendientes
+   * @public
+   * @returns {Object} Estadísticas del caché
+   */
+  static getCacheStats() {
+    const now = Date.now()
+    const stats = {
+      totalPending: this.pendingRequests.size,
+      expired: 0,
+      valid: 0
+    }
+
+    for (const [, entry] of this.pendingRequests.entries()) {
+      if (now - entry.timestamp > this.CACHE_EXPIRY) {
+        stats.expired++
+      } else {
+        stats.valid++
+      }
+    }
+
+    return stats
+  }
+
   // ========================================
   // MÉTODOS HTTP PRINCIPALES
   // ========================================
@@ -69,12 +204,34 @@ export class ServiceREST {
   // ========================================
 
   /**
-   * Ejecuta petición HTTP con manejo de errores
+   * Ejecuta petición HTTP con manejo de errores y deduplicación automática
    * @private
    * @param {Object} config - Configuración de axios
    * @returns {Promise<Object>} Respuesta con formato: { success, data, status, error? }
    */
   static async request(config) {
+    // Verificar si hay una petición pendiente idéntica
+    const pendingRequest = this.checkPendingRequest(config)
+    if (pendingRequest) {
+      return pendingRequest
+    }
+
+    // Crear la nueva petición
+    const requestPromise = this.executeRequest(config)
+
+    // Registrar la petición como pendiente
+    this.registerPendingRequest(config, requestPromise)
+
+    return requestPromise
+  }
+
+  /**
+   * Ejecuta la petición HTTP real
+   * @private
+   * @param {Object} config - Configuración de axios
+   * @returns {Promise<Object>} Respuesta con formato: { success, data, status, error? }
+   */
+  static async executeRequest(config) {
     try {
       const response = await api(config)
       return {
@@ -132,6 +289,15 @@ export class ServiceREST {
       Logger.networkError('petición HTTP', error, error.config?.url)
     } else if (errorType === ErrorManager.ERROR_TYPES.VALIDATION) {
       Logger.validationError('petición HTTP', error, ErrorManager.getFieldErrors(error))
+    } else if (errorType === ErrorManager.ERROR_TYPES.CONFLICT) {
+      const backendMessage = ErrorManager.extractBackendMessage(error)
+      Logger.warn(Logger.CATEGORIES.SERVICE, 'conflicto de recurso', backendMessage || 'El recurso ya existe', {
+        context: {
+          endpoint: error.config?.url,
+          method: error.config?.method?.toUpperCase(),
+          statusCode: error.response?.status
+        }
+      })
     } else {
       Logger.serviceError('petición HTTP', error, 'ServiceREST')
     }

@@ -366,7 +366,7 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
         />
 
         <Controller
-          name='birthDate'
+          name='dateOfBirth'
           control={control}
           render={({ field }) => (
             <DatePicker
@@ -375,8 +375,8 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                 const formattedDate = date ? `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}` : ''
                 field.onChange(formattedDate)
               }}
-              isInvalid={!!errors.birthDate}
-              errorMessage={errors.birthDate?.message}
+              isInvalid={!!errors.dateOfBirth}
+              errorMessage={errors.dateOfBirth?.message}
               maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
               showMonthAndYearPickers
               granularity='day'

@@ -100,6 +100,52 @@ public class UserAttributeController {
         }
     }
 
+    @PostMapping("/church")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Create new church", 
+               description = "Add a new church for authenticated users")
+    public ResponseEntity<?> createChurch(@Valid @RequestBody UserAttributeCreateDTO createDTO,
+                                         BindingResult bindingResult) {
+        
+        log.info("Usuario creando nueva iglesia: {}", createDTO);
+
+        if (bindingResult.hasErrors()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "VALIDATION_ERROR");
+            errorResponse.put("message", "Error de validación en los datos de la iglesia");
+            errorResponse.put("details", bindingResult.getFieldErrors().stream()
+                    .collect(Collectors.toMap(
+                            error -> error.getField(),
+                            error -> error.getDefaultMessage()
+                    )));
+
+            log.warn("Error de validación creando iglesia: {}", errorResponse);
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        try {
+            UserAttributeDTO createdChurch = userAttributeService.createAttribute("CHURCH", createDTO);
+            log.info("Iglesia creada exitosamente: {}", createdChurch);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdChurch);
+
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "INVALID_CHURCH_DATA");
+            errorResponse.put("message", e.getMessage());
+            
+            log.error("Error creando iglesia: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "INTERNAL_SERVER_ERROR");
+            errorResponse.put("message", "Error interno creando la iglesia");
+            
+            log.error("Error interno creando iglesia", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
     // ========================================
     // ADMIN ENDPOINTS
     // ========================================

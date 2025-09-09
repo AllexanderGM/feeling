@@ -46,6 +46,34 @@ const UserCard = ({
 
   Logger.debug('Usuario cargado en UserCard', Logger.CATEGORIES.UI, { userId: user?.id, userName: user?.name })
 
+  // Función auxiliar para obtener datos del usuario independientemente de la estructura
+  const getUserData = () => {
+    // Si el usuario tiene estructura mapeada (datos en root)
+    if (user?.name && !user?.profile?.name) {
+      return {
+        name: user.name,
+        age: user.age,
+        city: user.city,
+        description: user.description,
+        categoryInterest: user.categoryInterest,
+        mainImage: user.mainImage || user.image,
+        images: user.images || [user.mainImage || user.image].filter(Boolean)
+      }
+    }
+    // Si el usuario tiene estructura anidada (profile)
+    return {
+      name: user.profile?.name,
+      age: user.profile?.age,
+      city: user.profile?.city,
+      description: user.profile?.description,
+      categoryInterest: user.profile?.categoryInterest,
+      mainImage: user.profile?.mainImage || user.profile?.image,
+      images: user.profile?.images || [user.profile?.mainImage || user.profile?.image].filter(Boolean)
+    }
+  }
+
+  const userData = getUserData()
+
   // Obtener icono de categoría
   const getCategoryIcon = categoryKey => {
     switch (categoryKey?.toUpperCase()) {
@@ -72,14 +100,14 @@ const UserCard = ({
   }
 
   const nextPhoto = () => {
-    if (user.profile?.images && user.profile.images.length > 1) {
-      setCurrentPhotoIndex(prev => (prev + 1) % user.profile.images.length)
+    if (userData.images && userData.images.length > 1) {
+      setCurrentPhotoIndex(prev => (prev + 1) % userData.images.length)
     }
   }
 
   const prevPhoto = () => {
-    if (user.profile?.images && user.profile.images.length > 1) {
-      setCurrentPhotoIndex(prev => (prev - 1 + user.profile.images.length) % user.profile.images.length)
+    if (userData.images && userData.images.length > 1) {
+      setCurrentPhotoIndex(prev => (prev - 1 + userData.images.length) % userData.images.length)
     }
   }
 
@@ -91,7 +119,7 @@ const UserCard = ({
     }
   }
 
-  const images = user.profile?.images || [user.profile?.mainImage]
+  const images = userData.images || [userData.mainImage].filter(Boolean)
   const hasMultipleimages = images.length > 1
 
   // Variante Discovery (estilo Tinder)
@@ -104,7 +132,7 @@ const UserCard = ({
             <div className='relative aspect-[3/4] group'>
               <img
                 src={images[currentPhotoIndex]}
-                alt={`${user.profile?.name} - Foto ${currentPhotoIndex + 1}`}
+                alt={`${userData.name} - Foto ${currentPhotoIndex + 1}`}
                 className='w-full h-full object-cover'
               />
 
@@ -168,15 +196,15 @@ const UserCard = ({
                 <div className='flex items-end justify-between'>
                   <div>
                     <div className='flex items-center gap-2 mb-1'>
-                      <h3 className='text-xl font-bold text-white'>{user.profile?.name}</h3>
-                      {getCategoryIcon(user.profile?.categoryInterest)}
+                      <h3 className='text-xl font-bold text-white'>{userData.name}</h3>
+                      {getCategoryIcon(userData.categoryInterest)}
                     </div>
-                    <p className='text-white/80 text-sm'>{user.profile?.age} años</p>
+                    <p className='text-white/80 text-sm'>{userData.age} años</p>
                     {showDistance && (
                       <div className='flex items-center gap-1 text-white/60 text-xs'>
                         <MapPin className='w-3 h-3' />
                         <span>
-                          {user.profile?.city} • {user.distance} km
+                          {userData.city} • {user.distance} km
                         </span>
                       </div>
                     )}
@@ -203,7 +231,7 @@ const UserCard = ({
                 </div>
               )}
 
-              {user.profile?.description && <p className='text-sm text-gray-300 line-clamp-2'>{user.profile?.description}</p>}
+              {userData.description && <p className='text-sm text-gray-300 line-clamp-2'>{userData.description}</p>}
 
               {user.interests && user.interests.length > 0 && (
                 <div>
@@ -250,21 +278,21 @@ const UserCard = ({
                 <>
                   <ModalHeader>
                     <div className='flex items-center gap-3'>
-                      <Avatar src={user.profile?.mainImage} alt={user.profile?.name} className='w-12 h-12' />
+                      <Avatar src={userData.mainImage} alt={userData.name} className='w-12 h-12' />
                       <div>
-                        <h3 className='text-lg font-bold text-gray-200'>{user.profile?.name}</h3>
+                        <h3 className='text-lg font-bold text-gray-200'>{userData.name}</h3>
                         <p className='text-gray-400'>
-                          {user.profile?.age} años • {user.profile?.city}
+                          {userData.age} años • {userData.city}
                         </p>
                       </div>
                     </div>
                   </ModalHeader>
                   <ModalBody>
                     <div className='space-y-4'>
-                      {user.profile?.description && (
+                      {userData.description && (
                         <div>
-                          <h4 className='font-semibold text-gray-200 mb-2'>Acerca de {user.profile?.name}</h4>
-                          <p className='text-gray-300 text-sm'>{user.profile?.description}</p>
+                          <h4 className='font-semibold text-gray-200 mb-2'>Acerca de {userData.name}</h4>
+                          <p className='text-gray-300 text-sm'>{userData.description}</p>
                         </div>
                       )}
 
@@ -315,7 +343,7 @@ const UserCard = ({
             {/* Galería compacta */}
             <div className='relative shrink-0'>
               <div className='relative w-16 h-16 rounded-lg overflow-hidden group'>
-                <img src={images[currentPhotoIndex]} alt={user.profile?.name} className='w-full h-full object-cover' />
+                <img src={images[currentPhotoIndex]} alt={userData.name} className='w-full h-full object-cover' />
                 {hasMultipleimages && (
                   <div className='absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-1'>
                     <button onClick={prevPhoto} className='text-white'>
@@ -334,9 +362,9 @@ const UserCard = ({
             <div className='flex-1 min-w-0'>
               <div className='flex items-center justify-between mb-1'>
                 <div className='flex items-center gap-2'>
-                  <h3 className='font-semibold text-gray-200'>{user.profile?.name}</h3>
-                  {getCategoryIcon(user.profile?.categoryInterest)}
-                  <span className='text-sm text-gray-400'>{user.profile?.age} años</span>
+                  <h3 className='font-semibold text-gray-200'>{userData.name}</h3>
+                  {getCategoryIcon(userData.categoryInterest)}
+                  <span className='text-sm text-gray-400'>{userData.age} años</span>
                 </div>
                 {showCompatibility && user.compatibility && (
                   <Chip size='sm' color='danger' variant='flat'>
@@ -351,7 +379,7 @@ const UserCard = ({
                     <div className='flex items-center gap-2 text-sm text-gray-400'>
                       <MapPin className='w-3 h-3' />
                       <span>
-                        {user.profile?.city} • {user.distance} km
+                        {userData.city} • {user.distance} km
                       </span>
                     </div>
                   )}
@@ -405,7 +433,7 @@ const UserCard = ({
           <div className='flex items-center gap-3'>
             <div className='relative group'>
               <div className='relative w-12 h-12 rounded-full overflow-hidden'>
-                <img src={images[currentPhotoIndex]} alt={user.profile?.name} className='w-full h-full object-cover' />
+                <img src={images[currentPhotoIndex]} alt={userData.name} className='w-full h-full object-cover' />
                 {hasMultipleimages && (
                   <div className='absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-1'>
                     <button onClick={prevPhoto} className='text-white'>
@@ -420,12 +448,12 @@ const UserCard = ({
               {user.isOnline && <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full' />}
             </div>
             <div>
-              <h3 className='font-semibold text-gray-200'>{user.profile?.name}</h3>
-              <p className='text-sm text-gray-400'>{user.profile?.age} años</p>
+              <h3 className='font-semibold text-gray-200'>{userData.name}</h3>
+              <p className='text-sm text-gray-400'>{userData.age} años</p>
             </div>
           </div>
           <div className='flex items-center gap-1'>
-            {getCategoryIcon(user.profile?.categoryInterest)}
+            {getCategoryIcon(userData.categoryInterest)}
             {showCompatibility && user.compatibility && (
               <Chip size='sm' color='danger' variant='flat' className='text-xs'>
                 {user.compatibility}%
@@ -440,7 +468,7 @@ const UserCard = ({
             <div className='flex items-center gap-2 text-sm text-gray-400'>
               <MapPin className='w-3 h-3' />
               <span>
-                {user.profile?.city} • {user.distance} km
+                {userData.city} • {user.distance} km
               </span>
             </div>
           )}
@@ -454,7 +482,7 @@ const UserCard = ({
         </div>
 
         {/* Descripción */}
-        {user.profile?.description && <p className='text-sm text-gray-300 mb-3 line-clamp-2'>{user.profile?.description}</p>}
+        {userData.description && <p className='text-sm text-gray-300 mb-3 line-clamp-2'>{userData.description}</p>}
 
         {/* Intereses */}
         {user.interests && user.interests.length > 0 && (

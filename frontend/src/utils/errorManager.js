@@ -1,11 +1,15 @@
+import { HTTP_STATUS } from '@schemas'
+
 export class ErrorManager {
   static ERROR_TYPES = {
     NETWORK: 'NETWORK_ERROR',
     AUTH: 'AUTHENTICATION_ERROR',
     VALIDATION: 'VALIDATION_ERROR',
+    CONFLICT: 'CONFLICT_ERROR',
     SERVER: 'SERVER_ERROR',
     NOT_FOUND: 'NOT_FOUND_ERROR',
     PERMISSION: 'PERMISSION_ERROR',
+    RATE_LIMIT: 'RATE_LIMIT_EXCEEDED',
     UNKNOWN: 'UNKNOWN_ERROR'
   }
 
@@ -14,9 +18,11 @@ export class ErrorManager {
     NETWORK_ERROR: 'Problema de conexión con el servidor',
     AUTHENTICATION_ERROR: 'Error de autenticación',
     VALIDATION_ERROR: 'Datos inválidos',
+    CONFLICT_ERROR: 'El recurso ya existe o hay un conflicto',
     SERVER_ERROR: 'Error interno del servidor',
     NOT_FOUND_ERROR: 'No encontrado',
     PERMISSION_ERROR: 'Sin permisos',
+    RATE_LIMIT_EXCEEDED: 'Límite de peticiones excedido',
     UNKNOWN_ERROR: 'Error desconocido'
   }
 
@@ -29,11 +35,13 @@ export class ErrorManager {
     if (!error.response) return this.ERROR_TYPES.NETWORK
 
     const status = error.response.status
-    if (status === 401) return this.ERROR_TYPES.AUTH
-    if (status === 403) return this.ERROR_TYPES.PERMISSION
-    if (status === 404) return this.ERROR_TYPES.NOT_FOUND
-    if (status >= 400 && status < 500) return this.ERROR_TYPES.VALIDATION
-    if (status >= 500) return this.ERROR_TYPES.SERVER
+    if (status === HTTP_STATUS.UNAUTHORIZED) return this.ERROR_TYPES.AUTH
+    if (status === HTTP_STATUS.FORBIDDEN) return this.ERROR_TYPES.PERMISSION
+    if (status === HTTP_STATUS.NOT_FOUND) return this.ERROR_TYPES.NOT_FOUND
+    if (status === HTTP_STATUS.CONFLICT) return this.ERROR_TYPES.CONFLICT
+    if (status === 429) return this.ERROR_TYPES.RATE_LIMIT
+    if (status >= HTTP_STATUS.BAD_REQUEST && status < HTTP_STATUS.INTERNAL_SERVER_ERROR) return this.ERROR_TYPES.VALIDATION
+    if (status >= HTTP_STATUS.INTERNAL_SERVER_ERROR) return this.ERROR_TYPES.SERVER
 
     return this.ERROR_TYPES.UNKNOWN
   }
@@ -78,7 +86,7 @@ export class ErrorManager {
         400: 'Solicitud inválida. Verifica los datos enviados.',
         401: 'No estás autorizado. Inicia sesión nuevamente.',
         403: 'No tienes permisos para esta acción.',
-        404: 'Recurso no encontrado.',
+        404: 'El servicio no está disponible o la ruta no existe. Verifica que el backend esté ejecutándose correctamente.',
         409: 'El recurso ya existe o hay un conflicto.',
         422: 'Datos no válidos.',
         429: 'Demasiadas solicitudes. Inténtalo más tarde.',
@@ -160,5 +168,72 @@ export class ErrorManager {
    */
   static getFriendlyMessage(errorType) {
     return this.ERROR_TYPE_MESSAGES[errorType] || this.ERROR_TYPE_MESSAGES.UNKNOWN_ERROR
+  }
+
+  /**
+   * Verifica si el error es de rate limiting (429)
+   * @param {Error} error - Error original
+   * @returns {boolean} Verdadero si es un error de rate limiting
+   */
+  static isRateLimitError(error) {
+    return error.response?.status === 429 || error.code === '429' || error.response?.data?.error === 'RATE_LIMIT_EXCEEDED'
+  }
+
+  /**
+   * Formatea error específicamente para rate limiting
+   * @param {Error} error - Error original
+   * @returns {Object} Error formateado para rate limiting
+   */
+  static formatRateLimitError(error) {
+    const baseError = this.formatError(error)
+    const data = error.response?.data || {}
+
+    return {
+      ...baseError,
+      error: data.error || 'RATE_LIMIT_EXCEEDED',
+      code: data.code || '429',
+      message: data.message || 'Demasiadas peticiones. Intenta de nuevo en unos momentos.',
+      timestamp: data.timestamp || new Date().toISOString(),
+      retryAfter: this.extractRetryAfter(error),
+      showModal: true, // Flag para mostrar el modal específico
+      type: this.ERROR_TYPES.RATE_LIMIT
+    }
+  }
+
+  /**
+   * Extrae el tiempo de espera del header Retry-After o del mensaje
+   * @param {Error} error - Error original
+   * @returns {number} Segundos a esperar
+   */
+  static extractRetryAfter(error) {
+    // Intentar obtener del header Retry-After
+    const retryAfter = error.response?.headers?.['retry-after']
+    if (retryAfter) {
+      return parseInt(retryAfter, 10)
+    }
+
+    // Intentar extraer del mensaje
+    const message = error.response?.data?.message || ''
+    const minuteMatch = message.match(/(\d+)\s*minuto/i)
+    if (minuteMatch) {
+      return parseInt(minuteMatch[1]) * 60
+    }
+
+    const secondMatch = message.match(/(\d+)\s*segundo/i)
+    if (secondMatch) {
+      return parseInt(secondMatch[1])
+    }
+
+    // Default: 60 segundos
+    return 60
+  }
+
+  /**
+   * Verifica si debe mostrar el modal de rate limiting
+   * @param {Error} error - Error original
+   * @returns {boolean} Verdadero si debe mostrar el modal
+   */
+  static shouldShowRateLimitModal(error) {
+    return this.isRateLimitError(error)
   }
 }

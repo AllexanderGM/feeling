@@ -5,7 +5,7 @@ import com.feeling.domain.dto.auth.UserProfileDataDTO;
 
 /**
  * DTO extendido para respuestas que incluyen datos completos del usuario
- * con información adicional de privacidad, notificaciones, métricas, auth y estado de cuenta
+ * con información adicional de privacidad, notificaciones, métricas, auth, estado de cuenta y matches
  */
 public record UserExtendedResponseDTO(
         UserStatusDTO status,
@@ -13,6 +13,7 @@ public record UserExtendedResponseDTO(
         UserPrivacyDTO privacy,
         UserNotificationDTO notifications,
         UserMetricsDTO metrics,
+        UserMatchesDTO matches,
         UserAuthDTO auth,
         UserAccountStatusDTO account
 ) {

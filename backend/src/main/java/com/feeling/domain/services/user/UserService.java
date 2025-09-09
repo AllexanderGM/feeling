@@ -9,12 +9,15 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.infrastructure.entities.user.*;
 import com.feeling.infrastructure.repositories.user.*;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import com.feeling.infrastructure.logging.StructuredLoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,10 +41,12 @@ public class UserService {
     private final IUserTokenRepository tokenRepository;
     private final StorageService storageService;
     private final UserTagService userTagService;
+    private final IUserTagRepository userTagRepository;
     private final IUserAttributeRepository userAttributeRepository;
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final CachedUserService cachedUserService;
     private final EmailService emailService;
+    private final UserMatchStatsService userMatchStatsService;
     // private final UserAnalyticsService userAnalyticsService;
     
     @Value("${admin.username}")
@@ -71,7 +76,11 @@ public class UserService {
     }
 
     public Page<UserResponseDTO> getListPaginated(Pageable pageable) {
-        Page<User> users = userRepository.findAll(pageable);
+        Page<User> users = userRepository.findAll(PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        ));
         logger.info("Usuarios paginados encontrados correctamente", Map.of(
                 "page", pageable.getPageNumber(), 
                 "size", pageable.getPageSize(), 
@@ -220,8 +229,8 @@ public class UserService {
             user.setBodyType(bodyType);
         }
 
-        if (profileData.educationId() != null) {
-            UserAttribute educationLevel = userAttributeRepository.findById(profileData.educationId())
+        if (profileData.educationLevelId() != null) {
+            UserAttribute educationLevel = userAttributeRepository.findById(profileData.educationLevelId())
                     .orElseThrow(() -> new NotFoundException("Nivel educativo no encontrado"));
             user.setEducation(educationLevel);
         }
@@ -339,6 +348,122 @@ public class UserService {
             if (userRequestDTO.dateOfBirth() != null) user.setDateOfBirth(userRequestDTO.dateOfBirth());
             if (userRequestDTO.password() != null) user.setPassword(bCryptPasswordEncoder.encode(userRequestDTO.password()));
             if (userRequestDTO.city() != null) user.setCity(userRequestDTO.city());
+            if (userRequestDTO.country() != null) user.setCountry(userRequestDTO.country());
+            if (userRequestDTO.department() != null) user.setDepartment(userRequestDTO.department());
+            if (userRequestDTO.locality() != null) user.setLocality(userRequestDTO.locality());
+            if (userRequestDTO.description() != null) user.setDescription(userRequestDTO.description());
+            if (userRequestDTO.profession() != null) user.setProfession(userRequestDTO.profession());
+            if (userRequestDTO.height() != null) user.setHeight(userRequestDTO.height());
+            
+            if (userRequestDTO.educationLevelId() != null) {
+                UserAttribute education = userAttributeRepository.findById(userRequestDTO.educationLevelId())
+                        .orElseThrow(() -> new NotFoundException("Nivel educativo no encontrado"));
+                user.setEducation(education);
+            }
+
+            // Procesar URLs de imágenes si se proporcionan
+            if (userRequestDTO.imageUrls() != null && !userRequestDTO.imageUrls().isEmpty()) {
+                user.setImages(userRequestDTO.imageUrls());
+            }
+
+            // Actualizar categoría de interés
+            if (userRequestDTO.categoryInterest() != null) {
+                UserCategoryInterestList categoryEnum;
+                try {
+                    categoryEnum = UserCategoryInterestList.valueOf(userRequestDTO.categoryInterest().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalArgumentException("Categoría de interés no válida: " + userRequestDTO.categoryInterest());
+                }
+
+                UserCategoryInterest categoryInterest = userCategoryInterestRepository
+                        .findByCategoryInterestEnum(categoryEnum)
+                        .orElseThrow(() -> new NotFoundException("Categoría de interés no encontrada: " + categoryEnum));
+                user.setCategoryInterest(categoryInterest);
+            }
+
+            // Actualizar atributos de usuario
+            if (userRequestDTO.genderId() != null) {
+                UserAttribute gender = userAttributeRepository.findById(userRequestDTO.genderId())
+                        .orElseThrow(() -> new NotFoundException("Género no encontrado"));
+                user.setGender(gender);
+            }
+
+            if (userRequestDTO.maritalStatusId() != null) {
+                UserAttribute maritalStatus = userAttributeRepository.findById(userRequestDTO.maritalStatusId())
+                        .orElseThrow(() -> new NotFoundException("Estado civil no encontrado"));
+                user.setMaritalStatus(maritalStatus);
+            }
+
+            if (userRequestDTO.eyeColorId() != null) {
+                UserAttribute eyeColor = userAttributeRepository.findById(userRequestDTO.eyeColorId())
+                        .orElseThrow(() -> new NotFoundException("Color de ojos no encontrado"));
+                user.setEyeColor(eyeColor);
+            }
+
+            if (userRequestDTO.hairColorId() != null) {
+                UserAttribute hairColor = userAttributeRepository.findById(userRequestDTO.hairColorId())
+                        .orElseThrow(() -> new NotFoundException("Color de cabello no encontrado"));
+                user.setHairColor(hairColor);
+            }
+
+            if (userRequestDTO.bodyTypeId() != null) {
+                UserAttribute bodyType = userAttributeRepository.findById(userRequestDTO.bodyTypeId())
+                        .orElseThrow(() -> new NotFoundException("Tipo de cuerpo no encontrado"));
+                user.setBodyType(bodyType);
+            }
+
+            // Campos específicos para SPIRIT
+            if (userRequestDTO.religionId() != null) {
+                UserAttribute religion = userAttributeRepository.findById(userRequestDTO.religionId())
+                        .orElseThrow(() -> new NotFoundException("Religión no encontrada"));
+                user.setReligion(religion);
+            }
+
+            if (userRequestDTO.churchId() != null) {
+                UserAttribute church = userAttributeRepository.findById(userRequestDTO.churchId())
+                        .orElseThrow(() -> new NotFoundException("Iglesia no encontrada"));
+                user.setChurch(church);
+            }
+            if (userRequestDTO.customChurch() != null) {
+                user.setCustomChurch(userRequestDTO.customChurch().trim());
+            }
+
+            if (userRequestDTO.spiritualMoments() != null) {
+                user.setSpiritualMoments(userRequestDTO.spiritualMoments().trim());
+            }
+
+            if (userRequestDTO.spiritualPractices() != null) {
+                user.setSpiritualPractices(userRequestDTO.spiritualPractices().trim());
+            }
+
+            // Campos específicos para ROUSE
+            if (userRequestDTO.sexualRoleId() != null) {
+                UserAttribute sexualRole = userAttributeRepository.findById(userRequestDTO.sexualRoleId())
+                        .orElseThrow(() -> new NotFoundException("Rol sexual no encontrado"));
+                user.setSexualRole(sexualRole);
+            }
+
+            if (userRequestDTO.relationshipTypeId() != null) {
+                UserAttribute relationshipType = userAttributeRepository.findById(userRequestDTO.relationshipTypeId())
+                        .orElseThrow(() -> new NotFoundException("Tipo de relación no encontrado"));
+                user.setRelationshipType(relationshipType);
+            }
+
+            // Actualizar preferencias de matching
+            if (userRequestDTO.agePreferenceMin() != null) {
+                user.setAgePreferenceMin(userRequestDTO.agePreferenceMin());
+            }
+            if (userRequestDTO.agePreferenceMax() != null) {
+                user.setAgePreferenceMax(userRequestDTO.agePreferenceMax());
+            }
+            if (userRequestDTO.locationPreferenceRadius() != null) {
+                user.setLocationPreferenceRadius(userRequestDTO.locationPreferenceRadius());
+            }
+
+            // Procesar tags si se proporcionan
+            if (userRequestDTO.tags() != null && !userRequestDTO.tags().isEmpty()) {
+                handleUserTags(user, userRequestDTO.tags());
+            }
 
             // Actualizar configuración de privacidad extendida
             if (userRequestDTO.hasExtendedPrivacyChanges()) {
@@ -369,6 +494,9 @@ public class UserService {
                 }
             }
 
+            // Forzar actualización del timestamp para recalcular profileComplete
+            user.setUpdatedAt(LocalDateTime.now());
+            
             User userEdit = userRepository.save(user);
             logger.logUserOperation("user_updated", user.getEmail(), null);
             return new UserResponseDTO(userEdit);
@@ -413,7 +541,7 @@ public class UserService {
      * Aprueba un usuario para que pueda usar la plataforma
      */
     public MessageResponseDTO approveUser(String userId) {
-        User user = userRepository.findById(Long.valueOf(userId))
+        User user = userRepository.findByIdWithTags(Long.valueOf(userId))
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         if (!user.isProfileComplete()) {
@@ -774,40 +902,14 @@ public class UserService {
     public Map<String, Object> getAnalyticsOverview() {
         Map<String, Object> result = new HashMap<>();
         
-        // Contadores básicos del sistema
-        Map<String, Object> systemCounts = new HashMap<>();
-        systemCounts.put("totalUsers", userRepository.count());
-        systemCounts.put("verifiedUsers", userRepository.countByVerifiedTrue());
-        systemCounts.put("unverifiedUsers", userRepository.countByVerifiedFalse());
-        systemCounts.put("approvedUsers", userRepository.countByApprovedTrue());
-        systemCounts.put("pendingUsers", userRepository.countByApprovedFalse());
-        systemCounts.put("completeProfiles", userRepository.countByProfileCompleteTrue());
-        systemCounts.put("incompleteProfiles", userRepository.countByProfileCompleteFalse());
-        
-        // Usuarios activos en diferentes períodos
-        LocalDateTime now = LocalDateTime.now();
-        systemCounts.put("activeUsersLast7Days", userRepository.countActiveUsersSince(now.minusDays(7)));
-        systemCounts.put("activeUsersLast30Days", userRepository.countActiveUsersSince(now.minusDays(30)));
-        
-        result.put("systemCounts", systemCounts);
-        
-        // Métricas de calidad básicas
-        Map<String, Object> qualityMetrics = new HashMap<>();
-        long totalUsers = userRepository.count();
-        if (totalUsers > 0) {
-            long verified = userRepository.countByVerifiedTrue();
-            long approved = userRepository.countByApprovedTrue();
-            long complete = userRepository.countByProfileCompleteTrue();
-            
-            qualityMetrics.put("verificationRate", Math.round((double) verified / totalUsers * 100));
-            qualityMetrics.put("approvalRate", Math.round((double) approved / totalUsers * 100));
-            qualityMetrics.put("completionRate", Math.round((double) complete / totalUsers * 100));
-        } else {
-            qualityMetrics.put("verificationRate", 0);
-            qualityMetrics.put("approvalRate", 0);
-            qualityMetrics.put("completionRate", 0);
-        }
-        result.put("qualityMetrics", qualityMetrics);
+        // Contadores simplificados de usuarios por estado
+        result.put("total", userRepository.count());
+        result.put("active", userRepository.countActiveUsers());
+        result.put("pending", userRepository.countByPendingApproval());
+        result.put("incomplete", userRepository.countByProfileCompleteFalse());
+        result.put("unverified", userRepository.countByVerifiedFalse());
+        result.put("rejected", userRepository.countByRejected());
+        result.put("deactivated", userRepository.countDeactivatedUsers());
         
         return result;
     }
@@ -1005,10 +1107,13 @@ public class UserService {
     /**
      * Obtiene el perfil completo del usuario actual
      */
+    @Transactional(readOnly = true)
     public UserExtendedResponseDTO getCurrentUserComplete(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
-        return UserDTOMapper.toUserExtendedResponseDTO(user);
+        // Calcular métricas de matches en tiempo real
+        var matchStats = userMatchStatsService.calculateMatchStats(user);
+        return UserDTOMapper.toUserExtendedResponseDTO(user, matchStats);
     }
 
     /**
@@ -1100,6 +1205,7 @@ public class UserService {
         user.setLastName(profileRequest.lastName());
         user.setDocument(profileRequest.document());
         user.setPhone(profileRequest.phone());
+        user.setPhoneCode(profileRequest.phoneCode());
         user.setDateOfBirth(profileRequest.dateOfBirth());
         // Set gender attribute if provided
         if (profileRequest.genderId() != null) {
@@ -1119,6 +1225,18 @@ public class UserService {
         }
         user.setProfession(profileRequest.profession());
         user.setHeight(profileRequest.height());
+        
+        // Actualizar preferencias de matching
+        if (profileRequest.agePreferenceMin() != null) {
+            user.setAgePreferenceMin(profileRequest.agePreferenceMin());
+        }
+        if (profileRequest.agePreferenceMax() != null) {
+            user.setAgePreferenceMax(profileRequest.agePreferenceMax());
+        }
+        if (profileRequest.locationPreferenceRadius() != null) {
+            user.setLocationPreferenceRadius(profileRequest.locationPreferenceRadius());
+        }
+        
         // Set eye color attribute if provided
         if (profileRequest.eyeColorId() != null) {
             UserAttribute eyeColor = userAttributeRepository.findById(profileRequest.eyeColorId()).orElse(null);
@@ -1128,6 +1246,84 @@ public class UserService {
         if (profileRequest.hairColorId() != null) {
             UserAttribute hairColor = userAttributeRepository.findById(profileRequest.hairColorId()).orElse(null);
             user.setHairColor(hairColor);
+        }
+        
+        // Set marital status attribute if provided
+        if (profileRequest.maritalStatusId() != null) {
+            UserAttribute maritalStatus = userAttributeRepository.findById(profileRequest.maritalStatusId()).orElse(null);
+            user.setMaritalStatus(maritalStatus);
+        }
+        
+        // Set body type attribute if provided
+        if (profileRequest.bodyTypeId() != null) {
+            UserAttribute bodyType = userAttributeRepository.findById(profileRequest.bodyTypeId()).orElse(null);
+            user.setBodyType(bodyType);
+        }
+        
+        // Set education attribute if provided
+        if (profileRequest.educationLevelId() != null) {
+            UserAttribute education = userAttributeRepository.findById(profileRequest.educationLevelId()).orElse(null);
+            user.setEducation(education);
+        }
+
+        // Actualizar ubicación adicional
+        if (profileRequest.department() != null) {
+            user.setDepartment(profileRequest.department());
+        }
+        if (profileRequest.locality() != null) {
+            user.setLocality(profileRequest.locality());
+        }
+
+        // Campos específicos para SPIRIT
+        if (profileRequest.religionId() != null) {
+            UserAttribute religion = userAttributeRepository.findById(profileRequest.religionId())
+                    .orElseThrow(() -> new NotFoundException("Religión no encontrada"));
+            user.setReligion(religion);
+        }
+        if (profileRequest.churchId() != null) {
+            UserAttribute church = userAttributeRepository.findById(profileRequest.churchId())
+                    .orElseThrow(() -> new NotFoundException("Iglesia no encontrada"));
+            user.setChurch(church);
+        }
+        if (profileRequest.customChurch() != null) {
+            user.setCustomChurch(profileRequest.customChurch().trim());
+        }
+        if (profileRequest.spiritualMoments() != null) {
+            user.setSpiritualMoments(profileRequest.spiritualMoments().trim());
+        }
+        if (profileRequest.spiritualPractices() != null) {
+            user.setSpiritualPractices(profileRequest.spiritualPractices().trim());
+        }
+
+        // Campos específicos para ROUSE
+        if (profileRequest.sexualRoleId() != null) {
+            UserAttribute sexualRole = userAttributeRepository.findById(profileRequest.sexualRoleId())
+                    .orElseThrow(() -> new NotFoundException("Rol sexual no encontrado"));
+            user.setSexualRole(sexualRole);
+        }
+        if (profileRequest.relationshipId() != null) {
+            UserAttribute relationshipType = userAttributeRepository.findById(profileRequest.relationshipId())
+                    .orElseThrow(() -> new NotFoundException("Tipo de relación no encontrado"));
+            user.setRelationshipType(relationshipType);
+        }
+
+        // Procesar tags si se proporcionan
+        if (profileRequest.tags() != null && !profileRequest.tags().isEmpty()) {
+            handleUserTags(user, profileRequest.tags());
+        }
+
+        // Actualizar configuración de privacidad
+        if (profileRequest.allowNotifications() != null) {
+            user.setAllowNotifications(profileRequest.allowNotifications());
+        }
+        if (profileRequest.showAge() != null) {
+            user.setShowAge(profileRequest.showAge());
+        }
+        if (profileRequest.showLocation() != null) {
+            user.setShowLocation(profileRequest.showLocation());
+        }
+        if (profileRequest.showMeInSearch() != null) {
+            user.setShowMeInSearch(profileRequest.showMeInSearch());
         }
 
         // Procesar imágenes si se proporcionan
@@ -1143,9 +1339,8 @@ public class UserService {
             }
         }
 
-        // Actualizar porcentaje de completitud
-        // Note: profileCompletenessPercentage not found in User entity, calculating internally
-        user.setProfileComplete(user.getProfileCompletenessPercentage() >= 80);
+        // Actualizar estado de completitud basado en los campos obligatorios del frontend
+        user.setProfileComplete(user.isProfileComplete());
 
         User savedUser = userRepository.save(user);
         logger.logUserOperation("profile_updated", userEmail, null);
@@ -1238,6 +1433,7 @@ public class UserService {
         user.setLastName(profileRequest.lastName());
         user.setDocument(profileRequest.document());
         user.setPhone(profileRequest.phone());
+        user.setPhoneCode(profileRequest.phoneCode());
         user.setDateOfBirth(profileRequest.dateOfBirth());
         // Set gender attribute if provided
         if (profileRequest.genderId() != null) {
@@ -1257,6 +1453,18 @@ public class UserService {
         }
         user.setProfession(profileRequest.profession());
         user.setHeight(profileRequest.height());
+        
+        // Actualizar preferencias de matching
+        if (profileRequest.agePreferenceMin() != null) {
+            user.setAgePreferenceMin(profileRequest.agePreferenceMin());
+        }
+        if (profileRequest.agePreferenceMax() != null) {
+            user.setAgePreferenceMax(profileRequest.agePreferenceMax());
+        }
+        if (profileRequest.locationPreferenceRadius() != null) {
+            user.setLocationPreferenceRadius(profileRequest.locationPreferenceRadius());
+        }
+        
         // Set eye color attribute if provided
         if (profileRequest.eyeColorId() != null) {
             UserAttribute eyeColor = userAttributeRepository.findById(profileRequest.eyeColorId()).orElse(null);
@@ -1266,6 +1474,11 @@ public class UserService {
         if (profileRequest.hairColorId() != null) {
             UserAttribute hairColor = userAttributeRepository.findById(profileRequest.hairColorId()).orElse(null);
             user.setHairColor(hairColor);
+        }
+
+        // Procesar tags si se proporcionan
+        if (profileRequest.tags() != null && !profileRequest.tags().isEmpty()) {
+            handleUserTags(user, profileRequest.tags());
         }
 
         // Procesar imágenes
@@ -1280,8 +1493,8 @@ public class UserService {
             }
         }
 
-        // Note: profileCompletenessPercentage not found in User entity, calculating internally
-        user.setProfileComplete(user.getProfileCompletenessPercentage() >= 80);
+        // Actualizar estado de completitud basado en los campos obligatorios del frontend
+        user.setProfileComplete(user.isProfileComplete());
 
         User savedUser = userRepository.save(user);
         logger.logUserOperation("profile_updated_by_admin", user.getEmail(), Map.of("adminAction", true));
@@ -1622,9 +1835,19 @@ public class UserService {
      * Elimina usuario permanentemente
      */
     @Transactional
-    public MessageResponseDTO deleteUser(String userId) {
-        User user = userRepository.findById(Long.valueOf(userId))
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+    public MessageResponseDTO deleteUser(String userIdentifier) {
+        User user;
+        
+        // Intentar parsear como ID numérico primero
+        try {
+            Long userId = Long.valueOf(userIdentifier);
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        } catch (NumberFormatException e) {
+            // Si no es un número, buscar por email
+            user = userRepository.findByEmail(userIdentifier)
+                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        }
 
         // Prevenir eliminación del admin principal
         if (user.getEmail().equals(this.adminEmail)) {
@@ -1632,9 +1855,10 @@ public class UserService {
         }
 
         String userEmail = user.getEmail();
+        Long userIdForLog = user.getId();
         userRepository.delete(user);
 
-        logger.logUserOperation("user_deleted", userEmail, Map.of("userId", userId));
+        logger.logUserOperation("user_deleted", userEmail, Map.of("userId", userIdForLog.toString()));
         return new MessageResponseDTO("Usuario eliminado correctamente");
     }
 
@@ -1662,5 +1886,149 @@ public class UserService {
 
         String message = String.format("Operación completada: %d usuarios eliminados, %d fallos", deleted, failed);
         return new MessageResponseDTO(message);
+    }
+
+    // ========================================
+    // MÉTODOS PARA GESTIÓN DE TAGS
+    // ========================================
+
+    /**
+     * Maneja los tags del usuario: encuentra existentes, crea nuevos (pendientes de aprobación)
+     */
+    @Transactional
+    private void handleUserTags(User user, List<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return;
+        }
+
+        List<UserTag> userTags = new ArrayList<>();
+
+        for (String tagName : tagNames) {
+            if (tagName != null && !tagName.trim().isEmpty()) {
+                String normalizedName = tagName.toLowerCase().trim();
+                
+                // Buscar si el tag ya existe
+                Optional<UserTag> existingTag = userTagRepository.findByNameIgnoreCase(normalizedName);
+                
+                if (existingTag.isPresent()) {
+                    userTags.add(existingTag.get());
+                } else {
+                    // Crear nuevo tag pendiente de aprobación
+                    UserTag newTag = UserTag.builder()
+                            .name(normalizedName)
+                            .createdBy(user.getEmail())
+                            .createdAt(LocalDateTime.now())
+                            .usageCount(0L)
+                            .approvalStatus(com.feeling.infrastructure.entities.user.UserTagApprovalStatus.PENDING)
+                            .build();
+                    
+                    userTagRepository.save(newTag);
+                    userTags.add(newTag);
+                    
+                    logger.info("Nuevo tag creado pendiente de aprobación", Map.of(
+                            "tagName", normalizedName,
+                            "createdBy", user.getEmail()
+                    ));
+                }
+            }
+        }
+
+        // Limpiar tags actuales y establecer los nuevos
+        user.getTags().clear();
+        for (UserTag tag : userTags) {
+            user.addTag(tag);
+        }
+    }
+
+    /**
+     * Aprueba un tag específico (solo para administradores)
+     */
+    @Transactional
+    public MessageResponseDTO approveTag(Long tagId, String adminEmail) {
+        UserTag tag = userTagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+
+        if (tag.isApproved()) {
+            throw new BadRequestException("El tag ya está aprobado");
+        }
+
+        tag.approve(adminEmail);
+        userTagRepository.save(tag);
+
+        logger.logUserOperation("tag_approved", adminEmail, Map.of(
+                "tagId", tagId,
+                "tagName", tag.getName()
+        ));
+
+        return new MessageResponseDTO("Tag aprobado correctamente");
+    }
+
+    /**
+     * Rechaza un tag específico (solo para administradores)
+     */
+    @Transactional
+    public MessageResponseDTO rejectTag(Long tagId, String adminEmail, String reason) {
+        UserTag tag = userTagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+
+        if (tag.isRejected()) {
+            throw new BadRequestException("El tag ya está rechazado");
+        }
+
+        tag.reject(reason);
+        userTagRepository.save(tag);
+
+        logger.logUserOperation("tag_rejected", adminEmail, Map.of(
+                "tagId", tagId,
+                "tagName", tag.getName(),
+                "reason", reason
+        ));
+
+        return new MessageResponseDTO("Tag rechazado correctamente");
+    }
+
+    /**
+     * Obtiene tags pendientes de aprobación
+     */
+    public Page<UserTag> getPendingTags(Pageable pageable) {
+        return userTagRepository.findByApprovalStatus(
+                com.feeling.infrastructure.entities.user.UserTagApprovalStatus.PENDING, 
+                pageable
+        );
+    }
+
+    /**
+     * Obtiene tags aprobados para autocompletado
+     */
+    public List<UserTag> getApprovedTagsForSearch(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return userTagRepository.findTopApprovedPopularTags(
+                    org.springframework.data.domain.PageRequest.of(0, 20)
+            );
+        }
+        return userTagRepository.searchApprovedTagsByName(searchTerm.trim());
+    }
+
+    /**
+     * Obtiene estadísticas de tags
+     */
+    public Map<String, Object> getTagStatistics() {
+        long totalTags = userTagRepository.count();
+        long pendingTags = userTagRepository.countByApprovalStatus(
+                com.feeling.infrastructure.entities.user.UserTagApprovalStatus.PENDING
+        );
+        long approvedTags = userTagRepository.countByApprovalStatus(
+                com.feeling.infrastructure.entities.user.UserTagApprovalStatus.APPROVED
+        );
+        long rejectedTags = userTagRepository.countByApprovalStatus(
+                com.feeling.infrastructure.entities.user.UserTagApprovalStatus.REJECTED
+        );
+
+        return Map.of(
+                "totalTags", totalTags,
+                "pendingTags", pendingTags,
+                "approvedTags", approvedTags,
+                "rejectedTags", rejectedTags
+        );
     }
 }

@@ -49,7 +49,7 @@ public class UserController {
     // CLIENT ENDPOINTS (AUTHENTICATED)
     // ========================================
 
-    @GetMapping("/")
+    @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get current user profile", 
                description = "Get the current authenticated user's complete profile")
@@ -130,7 +130,7 @@ public class UserController {
         }
     }
 
-    @PutMapping("/")
+    @PutMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Update current user profile", 
                description = "Update current user profile with images")
@@ -525,7 +525,7 @@ public class UserController {
     @Operation(summary = "Delete user", 
                description = "Permanently delete a user account")
     public ResponseEntity<MessageResponseDTO> deleteUser(
-            @Parameter(description = "User ID") @PathVariable String userId) {
+            @Parameter(description = "User ID or email") @PathVariable String userId) {
         try {
             MessageResponseDTO response = userService.deleteUser(userId);
             return ResponseEntity.ok(response);

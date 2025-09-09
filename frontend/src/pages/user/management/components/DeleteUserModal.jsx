@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Avatar, Chip } from '@heroui/react'
+import { Trash2, AlertTriangle, User, Shield, UserIcon } from 'lucide-react'
 import { useError, useAuth, useUser } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -14,7 +15,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
   const deletionValidation = useMemo(() => {
     // Do not allow deletion if:
     // 1. It's the same user trying to delete themselves
-    if (currentUser?.email === userData?.email) {
+    if (currentUser?.email === userData?.profile?.email) {
       return {
         canDelete: false,
         errorMessage: 'No puedes eliminarte a ti mismo'
@@ -22,7 +23,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     }
 
     // 2. An admin trying to delete another admin
-    if (userData?.role === 'ADMIN' && !currentUser?.isSuperAdmin) {
+    if (userData?.status?.role === 'ADMIN' && !currentUser?.isSuperAdmin) {
       return {
         canDelete: false,
         errorMessage: 'No tienes permisos para eliminar a otros administradores'
@@ -33,10 +34,10 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
       canDelete: true,
       errorMessage: null
     }
-  }, [currentUser?.email, currentUser?.isSuperAdmin, userData?.email, userData?.role])
+  }, [currentUser?.email, currentUser?.isSuperAdmin, userData?.profile?.email, userData?.status?.role])
 
   const handleDelete = async () => {
-    if (!userData?.email || !deletionValidation.canDelete) {
+    if (!userData?.profile?.email || !deletionValidation.canDelete) {
       if (deletionValidation.errorMessage) {
         setError(deletionValidation.errorMessage)
       }
@@ -46,7 +47,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     try {
       setError(null)
 
-      const result = await deleteUser(userData.email)
+      const result = await deleteUser(userData.profile.email)
       if (result.success) {
         handleSuccess('Usuario eliminado exitosamente')
         onSuccess?.()
@@ -59,7 +60,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'delete_user', 'Error al eliminar usuario', {
         error,
-        userEmail: userData?.email,
+        userEmail: userData?.profile?.email,
         currentUserEmail: currentUser?.email
       })
       const errorMsg = error.message || 'Error al eliminar el usuario'
@@ -72,32 +73,119 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size='sm'
+      size='lg'
       classNames={{
-        backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
-        base: 'border-[#292f46] bg-white dark:bg-gray-800'
+        backdrop: 'bg-gray-900/50 backdrop-blur-sm',
+        base: 'bg-gray-900 border border-gray-700',
+        header: 'border-b border-gray-700',
+        body: 'py-6',
+        footer: 'border-t border-gray-700'
       }}>
       <ModalContent>
-        <ModalHeader className='flex flex-col gap-1'>Eliminar Usuario</ModalHeader>
-        <ModalBody>
-          <p>
-            ¿Estás seguro que deseas eliminar al usuario{' '}
-            <span className='font-semibold'>
-              {userData?.name} {userData?.lastName}
-            </span>
-            ?
-          </p>
-          <p className='text-sm text-gray-500 mt-2'>Esta acción no se puede deshacer.</p>
-          {(error || deletionValidation.errorMessage) && (
-            <p className='text-danger text-sm mt-2'>{error || deletionValidation.errorMessage}</p>
+        <ModalHeader className='flex flex-col gap-1'>
+          <div className='flex items-center gap-3'>
+            <div className='w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center'>
+              <Trash2 className='w-4 h-4 text-red-400' />
+            </div>
+            <div>
+              <h3 className='text-xl font-semibold text-gray-200'>Eliminar Usuario</h3>
+              <p className='text-sm text-gray-400'>
+                {userData?.profile?.name} {userData?.profile?.lastName}
+              </p>
+            </div>
+          </div>
+        </ModalHeader>
+        <ModalBody className='space-y-4'>
+          {/* Advertencia de acción irreversible */}
+          <div className='bg-red-500/20 border border-red-500/40 rounded-lg p-4'>
+            <div className='flex items-center gap-2 mb-2'>
+              <AlertTriangle className='w-4 h-4 text-red-400' />
+              <span className='text-sm font-medium text-red-300'>Acción Irreversible</span>
+            </div>
+            <p className='text-xs text-red-200'>
+              Esta acción eliminará permanentemente al usuario y todos sus datos. Esta acción NO se puede deshacer.
+            </p>
+          </div>
+
+          {/* Información del usuario */}
+          <div className='bg-gray-800 border border-gray-700 rounded-lg p-4'>
+            <div className='flex items-center gap-2 mb-3'>
+              <User className='w-4 h-4 text-red-400' />
+              <span className='text-sm font-medium text-gray-200'>Usuario a Eliminar</span>
+            </div>
+            <div className='flex items-center gap-3'>
+              <Avatar
+                src={userData?.profile?.mainImage || userData?.profile?.image}
+                className='w-12 h-12'
+                icon={<UserIcon className='w-6 h-6 text-default-500' />}
+              />
+              <div className='flex-1'>
+                <p className='text-sm font-semibold text-gray-200'>
+                  {userData?.profile?.name} {userData?.profile?.lastName}
+                </p>
+                <p className='text-xs text-gray-400'>{userData?.profile?.email}</p>
+                <div className='flex items-center gap-2 mt-1'>
+                  {userData?.status?.role && (
+                    <Chip size='sm' color={userData.status.role === 'ADMIN' ? 'warning' : 'default'} variant='flat'>
+                      {userData.status.role}
+                    </Chip>
+                  )}
+                  {userData?.status?.active !== undefined && (
+                    <Chip size='sm' color={userData.status.active ? 'success' : 'danger'} variant='dot'>
+                      {userData.status.active ? 'Activo' : 'Inactivo'}
+                    </Chip>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Validaciones y errores */}
+          {!deletionValidation.canDelete && (
+            <div className='bg-orange-500/20 border border-orange-500/40 rounded-lg p-4'>
+              <div className='flex items-center gap-2 mb-2'>
+                <Shield className='w-4 h-4 text-orange-400' />
+                <span className='text-sm font-medium text-orange-300'>Restricción de Eliminación</span>
+              </div>
+              <p className='text-xs text-orange-200'>{deletionValidation.errorMessage}</p>
+            </div>
+          )}
+
+          {error && (
+            <div className='bg-red-500/20 border border-red-500/40 rounded-lg p-4'>
+              <div className='flex items-center gap-2 mb-2'>
+                <AlertTriangle className='w-4 h-4 text-red-400' />
+                <span className='text-sm font-medium text-red-300'>Error</span>
+              </div>
+              <p className='text-xs text-red-200'>{error}</p>
+            </div>
+          )}
+
+          {/* Confirmación */}
+          {deletionValidation.canDelete && (
+            <div className='bg-gray-800 border border-gray-600 rounded-lg p-4'>
+              <div className='flex items-center gap-2 mb-2'>
+                <Trash2 className='w-4 h-4 text-gray-400' />
+                <span className='text-sm font-medium text-gray-300'>Confirmación de Eliminación</span>
+              </div>
+              <p className='text-xs text-gray-300'>
+                ¿Confirmas que deseas eliminar permanentemente este usuario? Todos sus datos, matches y conversaciones serán eliminados
+                definitivamente.
+              </p>
+            </div>
           )}
         </ModalBody>
         <ModalFooter>
-          <Button color='default' variant='light' onPress={onClose} disabled={submitting}>
+          <Button color='default' variant='light' onPress={onClose} isDisabled={submitting}>
             Cancelar
           </Button>
-          <Button color='danger' onPress={handleDelete} disabled={submitting || !deletionValidation.canDelete} isLoading={submitting}>
-            Eliminar
+          <Button
+            color='danger'
+            onPress={handleDelete}
+            isDisabled={submitting || !deletionValidation.canDelete}
+            isLoading={submitting}
+            startContent={<Trash2 className='w-4 h-4' />}>
+            Eliminar Usuario
           </Button>
         </ModalFooter>
       </ModalContent>

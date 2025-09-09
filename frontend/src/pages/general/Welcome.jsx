@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@heroui/react'
+import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 
 const Welcome = () => {
@@ -21,7 +22,7 @@ const Welcome = () => {
   }
 
   return (
-    <>
+    <LiteContainer>
       {/* Contenido principal con animación */}
       <div
         className={`flex flex-col items-center text-center px-6 py-8 mx-auto max-w-lg transition-all duration-700 ease-out transform ${animateIn ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
@@ -79,7 +80,7 @@ const Welcome = () => {
           </div>
         </div>
       </div>
-    </>
+    </LiteContainer>
   )
 }
 

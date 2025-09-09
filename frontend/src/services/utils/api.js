@@ -25,6 +25,9 @@ function getCookieValue(name) {
 // Variable para callbacks del AuthContext
 let authCallbacks = null
 
+// Variable para callback del RateLimitContext
+let rateLimitCallback = null
+
 // Variable para controlar el estado de renovación
 let isRefreshing = false
 let failedQueue = []
@@ -44,6 +47,11 @@ const processQueue = (error, token = null) => {
 // Función para registrar callbacks del AuthContext
 export const registerAuthCallbacks = callbacks => {
   authCallbacks = callbacks
+}
+
+// Función para registrar callback del RateLimitContext
+export const registerRateLimitCallback = callback => {
+  rateLimitCallback = callback
 }
 
 // Función para emitir eventos de actualización de token
@@ -186,17 +194,27 @@ api.interceptors.response.use(
       }
     }
 
-    // Manejo de rate limiting (429)
+    // Manejo mejorado de rate limiting (429)
     if (error.response?.status === 429) {
-      Logger.warn('Rate limit alcanzado. Reintentando en 2 segundos')
+      Logger.warn('Rate limit alcanzado - mostrando modal informativo', {
+        error: error.response?.data,
+        url: originalRequest.url
+      })
 
-      // Esperar 2 segundos antes de rechazar
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Formatear error específicamente para rate limiting
+      const rateLimitError = ErrorManager.formatRateLimitError(error)
 
+      // Mostrar modal de rate limiting si hay callback registrado
+      if (rateLimitCallback) {
+        rateLimitCallback(rateLimitError)
+      }
+
+      // Marcar como manejado y rechazar
       error.errorType = 'RATE_LIMIT_ERROR'
-      error.message = 'Demasiadas peticiones. Intenta de nuevo en 1 minuto.'
       error._handledByInterceptor = true
-      return Promise.reject(error)
+      error._showModal = true // Flag para evitar mostrar toast adicional
+
+      return Promise.reject(rateLimitError)
     }
 
     // Para otros errores 401, también notificar

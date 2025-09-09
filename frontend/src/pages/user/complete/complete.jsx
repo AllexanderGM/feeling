@@ -25,7 +25,7 @@ const ProfileComplete = () => {
 
   // Hooks básicos
   const { user, loading: authLoading } = useAuth()
-  const { submitting, completeUser } = useUser()
+  const { submitting, updateCurrentProfile } = useUser()
 
   // Estado para el paso actual
   const [currentStep, setCurrentStep] = useState(1)
@@ -138,11 +138,25 @@ const ProfileComplete = () => {
       },
 
       onSubmit: async data => {
-        const result = await completeUser(data)
-        if (result.success) navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
+        try {
+          // Extraer images del data y pasarlo como parámetro separado
+          const { images, ...profileData } = data
+
+          const result = await updateCurrentProfile(profileData, images)
+          if (result.success) {
+            navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
+          } else {
+            // Manejar errores específicos
+            if (result.status === 404) {
+              console.error('Error 404: El endpoint PUT /user no está disponible. Verifica que el backend esté ejecutándose correctamente.')
+            }
+          }
+        } catch (error) {
+          console.error('Error completando perfil:', error)
+        }
       }
     }),
-    [currentStep, formMethods, completeUser, navigate]
+    [currentStep, formMethods, updateCurrentProfile, navigate]
   )
 
   // Renderizado del contenido del paso con props unificados
@@ -166,6 +180,7 @@ const ProfileComplete = () => {
             categoriesLoading={hookData.userInterests.loading}
             categoriesError={hookData.userInterests.error}
             religionOptions={hookData.userAttributes.religionOptions}
+            churchOptions={hookData.userAttributes.churchOptions}
             sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
             relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
             attributesLoading={hookData.userAttributes.loading}

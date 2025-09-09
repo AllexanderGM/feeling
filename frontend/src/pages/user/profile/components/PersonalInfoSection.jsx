@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react'
 import { Button, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
-import { MapPin, Calendar, Phone, Mail, Edit2, Check, X, IdCard, Camera, User, Briefcase, Eye, ZoomIn, Settings } from 'lucide-react'
+import { MapPin, Calendar, Phone, Check, X, IdCard, Camera, User, Briefcase, Eye, ZoomIn, Settings } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { useUser, useLocation } from '@hooks/useUser.js'
+import { useUser, useLocation } from '@hooks'
 import { stepBasicInfoSchema, getDefaultValuesForStep } from '@schemas'
 import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
 import { Logger } from '@utils/logger.js'
@@ -92,7 +92,7 @@ const PersonalInfoSection = ({ user }) => {
     return user.images[selectedIndex] || user.images[0]
   }
 
-  const age = calculateAge(user?.birthDate)
+  const age = calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth)
   const mainImage = getMainImage()
 
   // Hook para obtener datos geográficos y banderas (ya inicializado arriba como 'location')
@@ -203,11 +203,11 @@ const PersonalInfoSection = ({ user }) => {
             <span>
               Nacimiento:{' '}
               <span className='text-gray-300'>
-                {user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth ? (
+                {user?.profile?.dateOfBirth || user?.dateOfBirth ? (
                   <>
-                    {new Date(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth).toLocaleDateString('es-ES')}
-                    {calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth) &&
-                      ` (${calculateAge(user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth)} años)`}
+                    {new Date(user?.profile?.dateOfBirth || user?.dateOfBirth).toLocaleDateString('es-ES')}
+                    {calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth) &&
+                      ` (${calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth)} años)`}
                   </>
                 ) : (
                   'No especificado'

@@ -72,10 +72,8 @@ export const useAuth = () => {
     async (userData, showNotifications = true) => {
       const result = await withLoading(() => authService.register(userData), 'Registro')
 
-      Logger.debug(Logger.CATEGORIES.AUTH, 'registro', result)
-
-      // Para EMAIL_NOT_VERIFIED (422), no mostrar notificación automática para que el componente maneje la redirección
       if (result?.status === 422) return result
+      if (result?.status === 409) return result
 
       return handleApiResponse(result, '¡Registro exitoso! Revisa tu email para verificar tu cuenta.', { showNotifications })
     },
@@ -102,6 +100,10 @@ export const useAuth = () => {
         updateTokens(data.accessToken, data.refreshToken)
         updateUser(data)
       }, 'Registro con Google')
+
+      if (result?.status === 409) return result
+      if (result?.status === 422) return result
+
       return handleApiResponse(result, '¡Registro exitoso con Google! Ya puedes usar todas las funcionalidades.', { showNotifications })
     },
     [withLoading, handleApiResponse, updateTokens, updateUser]

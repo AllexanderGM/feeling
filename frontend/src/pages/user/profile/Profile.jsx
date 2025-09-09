@@ -1,7 +1,5 @@
-import { useMemo, Suspense, lazy } from 'react'
+import { useMemo, Suspense, lazy, useEffect, useState } from 'react'
 import { Card, CardBody, Button, Chip } from '@heroui/react'
-
-// Icons for remaining sections
 import {
   User,
   Bug,
@@ -21,27 +19,25 @@ import {
   Users,
   Eye
 } from 'lucide-react'
-
-// Hooks
 import { useAuth, useLocation, useUser, useUserInterests, useProfileData } from '@hooks'
 
-// Components
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import ProfileHeader from './components/ProfileHeader.jsx'
 import MatchSection from './components/MatchSection.jsx'
 
-// Lazy-loaded components for better performance
 const PersonalInfoSection = lazy(() => import('./components/PersonalInfoSection.jsx'))
 const CharacteristicsSection = lazy(() => import('./components/CharacteristicsSection.jsx'))
 const PreferencesSection = lazy(() => import('./components/PreferencesSection.jsx'))
 
 const Profile = () => {
-  // Hooks principales
-  const { user, loading: authLoading } = useAuth()
-  const { getProfileStats } = useUser()
+  const { user, loading: authLoading, updateUser } = useAuth()
+  const { getProfileStats, getCurrentUser } = useUser()
   const { getInterestByEnum, loading: interestLoading, error: interestError } = useUserInterests()
+
+  const [hasLoadedUser, setHasLoadedUser] = useState(false)
+  const [isLoadingUser, setIsLoadingUser] = useState(false)
 
   // Custom hook for user data helpers
   const {
@@ -61,6 +57,11 @@ const Profile = () => {
     getTodayMatches,
     getTotalMatches,
     getMaxDailyAttempts,
+    getPendingSentMatches,
+    getPendingReceivedMatches,
+    getAcceptedMatches,
+    getFavoritesCount,
+    getRemainingAttempts,
     getProfilePrivacy,
     isSearchable,
     isLocationShared,
@@ -68,12 +69,27 @@ const Profile = () => {
     getAccountType,
     getRegion,
     isAccountActive,
-    profileData
+    profileData,
+    // Nuevas funciones disponibles
+    getUserGender,
+    getUserTags,
+    getUserAgePreferenceMin,
+    getUserAgePreferenceMax,
+    getUserPhone,
+    getUserPhoneCode,
+    getUserDescription,
+    getUserDocument,
+    getProfileViews,
+    getLikesReceived,
+    getPopularityScore,
+    getProfileCompletenessPercentage,
+    getAuthProvider,
+    getExternalAvatarUrl,
+    isEmailNotificationsEnabled,
+    isMatchNotificationsEnabled,
+    showAge,
+    showPhone
   } = useProfileData(user)
-
-  // Verificación de carga
-  if (authLoading) return <LoadData />
-  if (!user) return <LoadDataError message='No se pudo cargar la información del usuario' />
 
   // Hook para obtener datos geográficos y banderas
   const locationConfig = useMemo(
@@ -107,8 +123,42 @@ const Profile = () => {
     return formattedCountries.find(c => c.name === country)
   }, [getUserCountry(), formattedCountries])
 
+  // Cargar datos del usuario actual del backend una sola vez
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      if (hasLoadedUser || isLoadingUser) return
+      setIsLoadingUser(true)
+
+      try {
+        console.log('🔄 [Profile] Cargando usuario completo...')
+
+        // Cargar usuario completo (ya incluye métricas de matches desde el backend)
+        const userData = await getCurrentUser()
+
+        if (userData?.success) {
+          updateUser(userData.data)
+          console.log('✅ [Profile] Usuario cargado con métricas de matches:', userData.data.matches)
+        }
+
+        setHasLoadedUser(true)
+      } catch (error) {
+        console.error('❌ [Profile] Error cargando datos:', error)
+      } finally {
+        setIsLoadingUser(false)
+      }
+    }
+
+    if (user && !hasLoadedUser && !isLoadingUser) {
+      loadCurrentUser()
+    }
+  }, [user, hasLoadedUser, isLoadingUser, getCurrentUser, updateUser])
+
+  // Verificación de carga
+  if (authLoading || isLoadingUser) return <LoadData />
+  if (!user) return <LoadDataError message='No se pudo cargar la información del usuario' />
+
   // Estados de carga y error
-  const isLoading = authLoading || interestLoading
+  const isLoading = authLoading || isLoadingUser || interestLoading
 
   if (isLoading) return <LoadData>Cargando perfil...</LoadData>
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
@@ -146,7 +196,125 @@ const Profile = () => {
         getTodayMatches={getTodayMatches}
         getTotalMatches={getTotalMatches}
         getMaxDailyAttempts={getMaxDailyAttempts}
+        getPendingSentMatches={getPendingSentMatches}
+        getPendingReceivedMatches={getPendingReceivedMatches}
+        getAcceptedMatches={getAcceptedMatches}
+        getFavoritesCount={getFavoritesCount}
+        getRemainingAttempts={getRemainingAttempts}
       />
+
+      {/* Profile Metrics Section */}
+      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+        <CardBody className='p-4 sm:p-6'>
+          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
+            <div className='w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center'>
+              <Star className='w-5 h-5 text-purple-400' />
+            </div>
+            <div className='text-center sm:text-left'>
+              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Métricas del Perfil</h3>
+              <p className='text-sm text-gray-400'>Tu rendimiento y popularidad en la plataforma</p>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+            {/* Profile Views */}
+            <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 text-center'>
+              <div className='w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
+                <Eye className='w-4 h-4 text-blue-400' />
+              </div>
+              <div className='text-lg font-bold text-blue-300'>{getProfileViews()}</div>
+              <div className='text-xs text-gray-400'>Visualizaciones</div>
+            </div>
+
+            {/* Likes Received */}
+            <div className='bg-pink-500/10 border border-pink-500/20 rounded-lg p-4 text-center'>
+              <div className='w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
+                <Star className='w-4 h-4 text-pink-400' />
+              </div>
+              <div className='text-lg font-bold text-pink-300'>{getLikesReceived()}</div>
+              <div className='text-xs text-gray-400'>Likes recibidos</div>
+            </div>
+
+            {/* Popularity Score */}
+            <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center'>
+              <div className='w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
+                <Users className='w-4 h-4 text-yellow-400' />
+              </div>
+              <div className='text-lg font-bold text-yellow-300'>{getPopularityScore()}</div>
+              <div className='text-xs text-gray-400'>Puntuación</div>
+            </div>
+
+            {/* Profile Completeness */}
+            <div className='bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center'>
+              <div className='w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
+                <CheckCircle className='w-4 h-4 text-green-400' />
+              </div>
+              <div className='text-lg font-bold text-green-300'>{getProfileCompletenessPercentage()}%</div>
+              <div className='text-xs text-gray-400'>Completitud</div>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* User Preferences Section */}
+      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+        <CardBody className='p-4 sm:p-6'>
+          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
+            <div className='w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center'>
+              <Search className='w-5 h-5 text-indigo-400' />
+            </div>
+            <div className='text-center sm:text-left'>
+              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Preferencias de Búsqueda</h3>
+              <p className='text-sm text-gray-400'>Tus criterios para encontrar matches</p>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
+            {/* Age Preferences */}
+            <div className='space-y-3'>
+              <h4 className='text-sm font-medium text-gray-300 flex items-center gap-2'>
+                <User className='w-4 h-4 text-gray-400' />
+                Rango de Edad
+              </h4>
+              <div className='bg-gray-800/50 rounded-lg p-3'>
+                <div className='flex items-center justify-between text-sm'>
+                  <span className='text-gray-400'>Mínima:</span>
+                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMin()} años</span>
+                </div>
+                <div className='flex items-center justify-between text-sm mt-2'>
+                  <span className='text-gray-400'>Máxima:</span>
+                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMax()} años</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Gender */}
+            <div className='space-y-3'>
+              <h4 className='text-sm font-medium text-gray-300 flex items-center gap-2'>
+                <Users className='w-4 h-4 text-gray-400' />
+                Género
+              </h4>
+              <div className='bg-gray-800/50 rounded-lg p-3'>
+                <span className='text-gray-200 font-medium'>{getUserGender() || 'No especificado'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          {getUserTags().length > 0 && (
+            <div className='mt-6 space-y-3'>
+              <h4 className='text-sm font-medium text-gray-300'>Intereses</h4>
+              <div className='flex flex-wrap gap-2'>
+                {getUserTags().map((tag, index) => (
+                  <Chip key={index} size='sm' variant='flat' className='bg-purple-500/20 text-purple-300 border border-purple-500/30'>
+                    {tag}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       {/* Información y Edición del Perfil */}
       <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
@@ -416,6 +584,36 @@ const Profile = () => {
                     </Chip>
                     {!isUserApproved() && showInSearch() && <span className='text-orange-300 text-xs'>*</span>}
                   </div>
+                </div>
+
+                {/* Mostrar edad */}
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <User className='w-3 h-3 text-gray-400' />
+                    <span className='text-gray-400'>Mostrar edad:</span>
+                  </div>
+                  <Chip
+                    size='sm'
+                    color={showAge() ? 'success' : 'default'}
+                    variant='flat'
+                    className={showAge() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                    {showAge() ? 'Sí' : 'No'}
+                  </Chip>
+                </div>
+
+                {/* Mostrar teléfono */}
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <MessageCircle className='w-3 h-3 text-gray-400' />
+                    <span className='text-gray-400'>Mostrar teléfono:</span>
+                  </div>
+                  <Chip
+                    size='sm'
+                    color={showPhone() ? 'success' : 'default'}
+                    variant='flat'
+                    className={showPhone() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                    {showPhone() ? 'Sí' : 'No'}
+                  </Chip>
                 </div>
               </div>
 

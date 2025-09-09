@@ -1,5 +1,5 @@
 import { ServiceREST } from '@services/utils/serviceREST.js'
-import { ErrorManager } from '@utils/errorManager.js'
+import { Logger } from '@utils/logger.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
 
 /**
@@ -263,7 +263,7 @@ class ConfigurationService extends ServiceREST {
    */
   logError(operation, error) {
     error.operation = operation
-    this.Logger.serviceError(operation, error, 'configurationService')
+    Logger.serviceError(operation, error, 'configurationService')
   }
 }
 

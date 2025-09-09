@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
-  Card,
-  CardBody,
   Chip,
   Button,
   useDisclosure,
@@ -15,10 +13,12 @@ import {
   Select,
   SelectItem
 } from '@heroui/react'
-import { Tag as TagIcon, Plus, Edit3, Trash2, CheckCircle, XCircle, Zap, TrendingUp } from 'lucide-react'
-import { userTagsService, tagService, userAnalyticsService } from '@services'
+import { Edit3, Trash2, CheckCircle, XCircle, Zap, TrendingUp } from 'lucide-react'
+import { userTagsService, userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
-import AdminDataTable from './AdminDataTable.jsx'
+import GenericDataTable from '@components/common/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import useTableActions from '@hooks/table/useTableActions.js'
 
 /**
  * Sección de gestión de tags de usuario con aprobaciones
@@ -27,8 +27,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [tags, setTags] = useState([])
   const [pagination, setPagination] = useState({
-    page: 0,
-    size: 20,
+    page: 1,
     totalPages: 0,
     totalElements: 0
   })
@@ -36,6 +35,9 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedTag, setSelectedTag] = useState(null)
   const [tagStats, setTagStats] = useState({})
+
+  // Obtener acciones predefinidas del hook
+  const { editAction, deleteAction, approveAction, rejectAction } = useTableActions()
 
   // Estados para modales
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure()
@@ -100,7 +102,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   useEffect(() => {
     loadTags()
     loadTagStats()
-  }, [pagination.page, pagination.size, statusFilter])
+  }, [statusFilter])
 
   // Cargar tags
   const loadTags = useCallback(async () => {
@@ -110,20 +112,20 @@ const UserTagsSection = ({ onError, onSuccess }) => {
 
       switch (statusFilter) {
         case 'pending':
-          response = await userTagsService.getPendingApprovalTags(pagination.page, pagination.size)
+          response = await userTagsService.getPendingApprovalTags(0, 10)
           setTags(response.content || [])
           break
         case 'trending':
-          response = await userTagsService.getTrendingTags(pagination.page, pagination.size)
+          response = await userTagsService.getTrendingTags(0, 10)
           setTags(response.content || [])
           break
         case 'popular':
-          response = await userTagsService.getPopularTags(pagination.page, pagination.size)
+          response = await userTagsService.getPopularTags(0, 10)
           setTags(response.content || [])
           break
         default:
           // Para 'all' y otros filtros, usar searchTags con paginación
-          response = await userTagsService.searchTags(searchValue || '', pagination.page, pagination.size)
+          response = await userTagsService.searchTags(searchValue || '', 0, 10)
           setTags(response.content || [])
       }
 
@@ -140,7 +142,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.size, statusFilter, searchValue, onError])
+  }, [statusFilter, searchValue, onError])
 
   // Cargar estadísticas
   const loadTagStats = useCallback(async () => {
@@ -207,36 +209,42 @@ const UserTagsSection = ({ onError, onSuccess }) => {
         case 'createdBy':
           return <span className='text-sm text-default-600'>{tag.createdBy || 'Sistema'}</span>
 
+        case 'actions':
+          const actions = []
+
+          // Acciones de aprobación para tags pendientes
+          if ((tag.approved === undefined || tag.approved === null) && !tag.rejectionReason) {
+            actions.push(
+              approveAction({
+                tooltip: 'Aprobar tag',
+                onClick: item => handleApproveTag(item)
+              }),
+              rejectAction({
+                tooltip: 'Rechazar tag',
+                onClick: item => handleRejectTag(item)
+              })
+            )
+          }
+
+          // Acciones comunes
+          actions.push(
+            editAction({
+              tooltip: 'Editar tag',
+              onClick: item => handleEditTag(item)
+            }),
+            deleteAction({
+              tooltip: 'Eliminar tag',
+              onClick: item => handleDeleteTag(item)
+            })
+          )
+
+          return <GenericTableActions actions={actions} item={tag} loading={loading} size='sm' tableId={`tags-table`} />
+
         default:
           return tag[columnKey]?.toString() || '-'
       }
     },
-    [tagCategories]
-  )
-
-  // Renderizar acciones
-  const renderActions = useCallback(
-    tag => (
-      <div className='flex items-center gap-2'>
-        {(tag.approved === undefined || tag.approved === null) && !tag.rejectionReason && (
-          <>
-            <Button isIconOnly size='sm' variant='light' color='success' onPress={() => handleApproveTag(tag)}>
-              <CheckCircle className='h-4 w-4' />
-            </Button>
-            <Button isIconOnly size='sm' variant='light' color='danger' onPress={() => handleRejectTag(tag)}>
-              <XCircle className='h-4 w-4' />
-            </Button>
-          </>
-        )}
-        <Button isIconOnly size='sm' variant='light' onPress={() => handleEditTag(tag)}>
-          <Edit3 className='h-4 w-4' />
-        </Button>
-        <Button isIconOnly size='sm' variant='light' color='danger' onPress={() => handleDeleteTag(tag)}>
-          <Trash2 className='h-4 w-4' />
-        </Button>
-      </div>
-    ),
-    []
+    [tagCategories, approveAction, rejectAction, editAction, deleteAction, loading]
   )
 
   // Handlers para acciones
@@ -387,49 +395,83 @@ const UserTagsSection = ({ onError, onSuccess }) => {
     }
   }, [onSuccess, onError, loadTags, loadTagStats])
 
-  // Filtros
-  const filters = useMemo(
-    () => [
-      {
-        label: statusOptions.find(opt => opt.key === statusFilter)?.label || 'Estado',
-        options: statusOptions,
-        onAction: key => setStatusFilter(key)
-      }
-    ],
-    [statusFilter, statusOptions]
+  // Función de búsqueda
+  const handleSearch = useCallback(
+    searchQuery => {
+      setSearchValue(searchQuery)
+      const filteredTags = tags.filter(
+        tag =>
+          (tag.name || tag.tagName)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          tag.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      setTags(filteredTags)
+    },
+    [tags]
   )
+
+  // Función de refresh
+  const handleRefresh = useCallback(() => {
+    loadTags()
+    loadTagStats()
+  }, [loadTags, loadTagStats])
+
+  // Función de cambio de página
+  const handlePageChange = useCallback(page => {
+    setPagination(prev => ({ ...prev, page }))
+  }, [])
+
+  // Función de cambio de filas por página
+  const handleRowsPerPageChange = useCallback(size => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
 
   return (
     <div className='flex flex-col gap-6'>
       {/* Action Buttons */}
-      <div className='flex justify-end gap-2'>
+      <div className='flex justify-between items-center'>
+        <div className='flex items-center gap-4'>
+          <Select
+            label='Estado del Tag'
+            placeholder='Filtrar por estado'
+            selectedKeys={statusFilter ? [statusFilter] : []}
+            onSelectionChange={keys => setStatusFilter(Array.from(keys)[0] || 'all')}
+            className='w-48'>
+            {statusOptions.map(option => (
+              <SelectItem key={option.key}>{option.label}</SelectItem>
+            ))}
+          </Select>
+        </div>
         <Button variant='flat' color='secondary' startContent={<Zap className='h-4 w-4' />} onPress={handleCleanupTags}>
           Limpiar tags sin uso
         </Button>
       </div>
 
       {/* Main Table */}
-      <AdminDataTable
-        title='Gestión de Tags'
-        description='Administra las etiquetas del sistema con aprobaciones y moderación'
+      <GenericDataTable
         data={tags}
         columns={columns}
-        loading={loading}
         pagination={pagination}
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onRefresh={loadTags}
-        onCreate={handleCreateTag}
-        onPageChange={page => setPagination(prev => ({ ...prev, page }))}
-        onPageSizeChange={size => setPagination(prev => ({ ...prev, size, page: 0 }))}
-        renderCell={renderCell}
-        renderActions={renderActions}
-        enableSelection={true}
-        enableSearch={true}
-        enableFilters={true}
-        filters={filters}
-        searchPlaceholder='Buscar tags...'
+        loading={loading}
+        loadingMessage='Cargando tags...'
         emptyMessage='No se encontraron tags'
+        renderCell={renderCell}
+        onSearch={handleSearch}
+        onRefresh={handleRefresh}
+        onCreate={handleCreateTag}
+        createButtonLabel='Crear Tag'
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        searchPlaceholder='Buscar tags por nombre o descripción...'
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        showColumnSelector={true}
+        showRowsPerPage={true}
+        showCreateButton={true}
+        showRefreshButton={true}
+        showSearch={true}
+        showPagination={true}
+        enableSelection={false}
+        getItemKey={item => `tag-${item.id}`}
+        tableId={`tags-table`}
       />
 
       {/* Create Tag Modal */}

@@ -269,6 +269,57 @@ public class DataInitializer implements CommandLineRunner {
                 new AttributeData("PREFER_NOT_TO_SAY", "Prefiero no decir", "Prefiere no especificar", "visibility_off", 15)
         ));
 
+        // Iglesias de Bogotá (específico para SPIRIT)
+        createAttributesIfNotExists("CHURCH", Arrays.asList(
+                // Iglesias Católicas Principales de Bogotá
+                new AttributeData("CATEDRAL_PRIMADA", "Catedral Primada de Bogotá", "Catedral Primada - Centro de Bogotá", "church", 1),
+                new AttributeData("BASILICA_GUADALUPE", "Basílica de Nuestra Señora de Guadalupe", "Basílica en el Cerro de Guadalupe", "church", 2),
+                new AttributeData("IGLESIA_SAN_FRANCISCO", "Iglesia de San Francisco", "Iglesia colonial en La Candelaria", "church", 3),
+                new AttributeData("IGLESIA_VERACRUZ", "Iglesia de la Veracruz", "Iglesia histórica del centro", "church", 4),
+                new AttributeData("IGLESIA_SAGRADO_CORAZON", "Iglesia del Sagrado Corazón", "Iglesia del Sagrado Corazón - Chapinero", "church", 5),
+                new AttributeData("PARROQUIA_SAN_PATRICIO", "Parroquia San Patricio", "Zona Rosa - Chapinero", "church", 6),
+                new AttributeData("IGLESIA_LOURDES", "Iglesia de Lourdes", "Chapinero Alto", "church", 7),
+                
+                // Iglesias Evangélicas Reconocidas
+                new AttributeData("CASA_SOBRE_LA_ROCA", "Casa Sobre la Roca", "Iglesia Casa Sobre la Roca", "home", 8),
+                new AttributeData("CENTRO_MUNDIAL_AVIVAMIENTO", "Centro Mundial de Avivamiento", "CMA - Bogotá", "public", 9),
+                new AttributeData("MISION_CARISMATICA", "Misión Carismática Internacional", "MCI - Bogotá", "rocket_launch", 10),
+                new AttributeData("IGLESIA_MANANTIAL", "Iglesia Manantial", "Iglesia Manantial Bogotá", "water_drop", 11),
+                new AttributeData("CENTRO_CRISTIANO_CASA_DE_DIOS", "Centro Cristiano Casa de Dios", "Casa de Dios Bogotá", "home_work", 12),
+                new AttributeData("IGLESIA_VISION_DE_FUTURO", "Iglesia Visión de Futuro", "Visión de Futuro Bogotá", "visibility", 13),
+                new AttributeData("COMUNIDAD_VIDA_NUEVA", "Comunidad Vida Nueva", "Iglesia Vida Nueva", "refresh", 14),
+                
+                // Iglesias Pentecostales
+                new AttributeData("IGLESIA_PENTECOSTAL_UNIDA", "Iglesia Pentecostal Unida", "IPU Bogotá", "whatshot", 15),
+                new AttributeData("ASAMBLEAS_DE_DIOS", "Asambleas de Dios", "Asambleas de Dios Bogotá", "groups", 16),
+                new AttributeData("IGLESIA_CUADRANGULAR", "Iglesia del Evangelio Cuadrangular", "IEC Bogotá", "crop_square", 17),
+                
+                // Iglesias Presbiterianas y Reformadas
+                new AttributeData("IGLESIA_PRESBITERIANA_BOGOTA", "Iglesia Presbiteriana de Bogotá", "Iglesia Presbiteriana", "gavel", 18),
+                new AttributeData("IGLESIA_REFORMADA", "Iglesia Reformada", "Tradición Reformada Bogotá", "menu_book", 19),
+                
+                // Iglesias Bautistas
+                new AttributeData("IGLESIA_BAUTISTA_CENTRAL", "Iglesia Bautista Central", "Iglesia Bautista del Centro", "waves", 20),
+                new AttributeData("CONVENCION_BAUTISTA", "Convención Bautista", "Iglesias Bautistas de Colombia", "waves", 21),
+                
+                // Iglesias Adventistas
+                new AttributeData("IGLESIA_ADVENTISTA_CENTRAL", "Iglesia Adventista Central", "Adventista del Séptimo Día - Central", "schedule", 22),
+                new AttributeData("IGLESIA_ADVENTISTA_NORTE", "Iglesia Adventista Norte", "Adventista zona norte de Bogotá", "schedule", 23),
+                
+                // Iglesias Metodistas y Episcopales
+                new AttributeData("IGLESIA_METODISTA_BOGOTA", "Iglesia Metodista de Bogotá", "Iglesia Metodista", "favorite", 24),
+                new AttributeData("IGLESIA_EPISCOPAL", "Iglesia Episcopal", "Iglesia Episcopal Anglicana", "account_balance", 25),
+                
+                // Otras Denominaciones
+                new AttributeData("TESTIGOS_JEHOVA", "Testigos de Jehová", "Salón del Reino - Bogotá", "book", 26),
+                new AttributeData("IGLESIA_SUD", "Iglesia de Jesucristo SUD", "Santos de los Últimos Días", "temple_hindu", 27),
+                new AttributeData("IGLESIA_CRISTIANA_INTEGRAL", "Iglesia Cristiana Integral", "ICI Bogotá", "integration_instructions", 28),
+                
+                // Opciones adicionales
+                new AttributeData("OTRA_IGLESIA_BOGOTA", "Otra Iglesia de Bogotá", "Iglesia no listada específica de Bogotá", "church", 29),
+                new AttributeData("AGREGAR_NUEVA", "Agregar Nueva Iglesia", "Permite agregar una nueva iglesia", "add_circle", 30)
+        ));
+
         // Roles sexuales (específico para ROUSE)
         createAttributesIfNotExists("SEXUAL_ROLE", Arrays.asList(
                 new AttributeData("TOP", "Activo", "Rol sexual activo", "keyboard_arrow_up", 1),
@@ -363,7 +414,7 @@ public class DataInitializer implements CommandLineRunner {
                             .createdAt(LocalDateTime.now())
                             .usageCount(0L)
                             .lastUsed(LocalDateTime.now())
-                            .approved(true) // Tags comunes del sistema pre-aprobados
+                            .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags comunes del sistema pre-aprobados
                             .approvedBy(adminEmail)
                             .approvedAt(LocalDateTime.now())
                             .build();
@@ -644,7 +695,7 @@ public class DataInitializer implements CommandLineRunner {
                         .createdAt(LocalDateTime.now())
                         .usageCount(1L)
                         .lastUsed(LocalDateTime.now())
-                        .approved(true) // Tags del sistema pre-aprobados
+                        .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                         .approvedBy(normalizedAdminEmail)
                         .approvedAt(LocalDateTime.now())
                         .build();
@@ -661,7 +712,7 @@ public class DataInitializer implements CommandLineRunner {
                         .createdAt(LocalDateTime.now())
                         .usageCount(1L)
                         .lastUsed(LocalDateTime.now())
-                        .approved(true) // Tags del sistema pre-aprobados
+                        .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                         .approvedBy(normalizedAdminEmail)
                         .approvedAt(LocalDateTime.now())
                         .build();

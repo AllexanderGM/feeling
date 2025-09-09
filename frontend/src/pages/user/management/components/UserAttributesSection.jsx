@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
-  Card,
-  CardBody,
   Chip,
   Button,
   useDisclosure,
@@ -16,10 +14,12 @@ import {
   Textarea,
   Switch
 } from '@heroui/react'
-import { Settings2, Plus, Edit3, Trash2 } from 'lucide-react'
+import { Edit3, Trash2 } from 'lucide-react'
 import { userAttributesService, userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
-import AdminDataTable from './AdminDataTable.jsx'
+import GenericDataTable from '@components/common/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import useTableActions from '@hooks/table/useTableActions.js'
 
 /**
  * Sección de gestión de atributos de usuario
@@ -28,8 +28,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [attributes, setAttributes] = useState([])
   const [pagination, setPagination] = useState({
-    page: 0,
-    size: 20,
+    page: 1,
     totalPages: 0,
     totalElements: 0
   })
@@ -37,6 +36,9 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   const [typeFilter, setTypeFilter] = useState('all')
   const [selectedAttribute, setSelectedAttribute] = useState(null)
   const [attributeStats, setAttributeStats] = useState({})
+
+  // Obtener acciones predefinidas del hook
+  const { editAction, deleteAction } = useTableActions()
 
   // Estados para modales
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure()
@@ -85,14 +87,38 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
     []
   )
 
-  // Cargar datos iniciales
+  // Estados para prevenir llamadas concurrentes
+  const [loadingStates, setLoadingStates] = useState({
+    attributes: false,
+    stats: false
+  })
+
+  // Cache de datos para evitar recargas innecesarias
+  const [dataCache, setDataCache] = useState({
+    statsLoaded: false,
+    lastLoadTime: null
+  })
+
+  // Cargar datos iniciales (optimizado)
   useEffect(() => {
     loadAttributes()
-    loadAttributeStats()
-  }, [pagination.page, pagination.size, typeFilter])
+  }, [typeFilter])
+
+  // Cargar stats solo una vez al montar
+  useEffect(() => {
+    if (!dataCache.statsLoaded && !loadingStates.stats) {
+      loadAttributeStats()
+    }
+  }, [])
 
   // Cargar atributos
   const loadAttributes = useCallback(async () => {
+    if (loadingStates.attributes) {
+      Logger.info('loadAttributes already in progress, skipping', { category: Logger.CATEGORIES.USER })
+      return
+    }
+
+    setLoadingStates(prev => ({ ...prev, attributes: true }))
     setLoading(true)
     try {
       let response
@@ -105,26 +131,11 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
         response = await userAttributesService.getAttributesByType(typeFilter)
       }
 
-      // Filtrar por búsqueda si hay término
-      let filteredAttributes = Array.isArray(response) ? response : []
-      if (searchValue) {
-        filteredAttributes = filteredAttributes.filter(
-          attr =>
-            attr.name?.toLowerCase().includes(searchValue.toLowerCase()) ||
-            attr.displayName?.toLowerCase().includes(searchValue.toLowerCase()) ||
-            attr.description?.toLowerCase().includes(searchValue.toLowerCase())
-        )
-      }
-
-      // Simular paginación para mantener consistencia
-      const startIndex = pagination.page * pagination.size
-      const endIndex = startIndex + pagination.size
-      const paginatedData = filteredAttributes.slice(startIndex, endIndex)
-
-      setAttributes(paginatedData)
+      const filteredAttributes = Array.isArray(response) ? response : []
+      setAttributes(filteredAttributes)
       setPagination(prev => ({
         ...prev,
-        totalPages: Math.ceil(filteredAttributes.length / pagination.size),
+        totalPages: Math.ceil(filteredAttributes.length / 10),
         totalElements: filteredAttributes.length
       }))
     } catch (error) {
@@ -132,18 +143,41 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       onError?.('Error al cargar atributos')
     } finally {
       setLoading(false)
+      setLoadingStates(prev => ({ ...prev, attributes: false }))
     }
-  }, [pagination.page, pagination.size, typeFilter, searchValue, onError])
+  }, [typeFilter, onError, loadingStates.attributes])
 
   // Cargar estadísticas
-  const loadAttributeStats = useCallback(async () => {
-    try {
-      const stats = await userAnalyticsService.getAttributeStatistics()
-      setAttributeStats(stats)
-    } catch (error) {
-      Logger.error('Error loading attribute stats:', error, { category: Logger.CATEGORIES.USER })
-    }
-  }, [])
+  const loadAttributeStats = useCallback(
+    async (forceRefresh = false) => {
+      // Verificar cache y prevenir llamadas innecesarias
+      if (!forceRefresh && dataCache.statsLoaded) {
+        Logger.info('AttributeStats already loaded from cache, skipping', { category: Logger.CATEGORIES.USER })
+        return
+      }
+
+      if (loadingStates.stats) {
+        Logger.info('loadAttributeStats already in progress, skipping', { category: Logger.CATEGORIES.USER })
+        return
+      }
+
+      setLoadingStates(prev => ({ ...prev, stats: true }))
+      try {
+        const stats = await userAnalyticsService.getAttributeStatistics()
+        setAttributeStats(stats)
+        setDataCache(prev => ({
+          ...prev,
+          statsLoaded: true,
+          lastLoadTime: Date.now()
+        }))
+      } catch (error) {
+        Logger.error('Error loading attribute stats:', error, { category: Logger.CATEGORIES.USER })
+      } finally {
+        setLoadingStates(prev => ({ ...prev, stats: false }))
+      }
+    },
+    [loadingStates.stats, dataCache.statsLoaded]
+  )
 
   // Renderizar celda
   const renderCell = useCallback(
@@ -185,26 +219,31 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
         case 'usageCount':
           return <span className='text-sm'>{attribute.usageCount || 0}</span>
 
+        case 'actions':
+          return (
+            <GenericTableActions
+              actions={[
+                editAction({
+                  tooltip: 'Editar atributo',
+                  onClick: item => handleEditAttribute(item)
+                }),
+                deleteAction({
+                  tooltip: 'Eliminar atributo',
+                  onClick: item => handleDeleteAttribute(item)
+                })
+              ]}
+              item={attribute}
+              loading={loading}
+              size='sm'
+              tableId={`attributes-table`}
+            />
+          )
+
         default:
           return attribute[columnKey]?.toString() || '-'
       }
     },
-    [attributeTypes]
-  )
-
-  // Renderizar acciones
-  const renderActions = useCallback(
-    attribute => (
-      <div className='flex items-center gap-2'>
-        <Button isIconOnly size='sm' variant='light' onPress={() => handleEditAttribute(attribute)}>
-          <Edit3 className='h-4 w-4' />
-        </Button>
-        <Button isIconOnly size='sm' variant='light' color='danger' onPress={() => handleDeleteAttribute(attribute)}>
-          <Trash2 className='h-4 w-4' />
-        </Button>
-      </div>
-    ),
-    []
+    [attributeTypes, editAction, deleteAction, loading]
   )
 
   // Handlers para acciones
@@ -271,7 +310,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       onSuccess?.('Atributo creado exitosamente')
       onCreateClose()
       loadAttributes()
-      loadAttributeStats()
+      loadAttributeStats(true)
     } catch (error) {
       Logger.error('Error creating attribute:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al crear atributo')
@@ -296,7 +335,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       onSuccess?.('Atributo actualizado exitosamente')
       onEditClose()
       loadAttributes()
-      loadAttributeStats()
+      loadAttributeStats(true)
     } catch (error) {
       Logger.error('Error updating attribute:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al actualizar atributo')
@@ -311,48 +350,86 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       onSuccess?.('Atributo eliminado exitosamente')
       onDeleteClose()
       loadAttributes()
-      loadAttributeStats()
+      loadAttributeStats(true)
     } catch (error) {
       Logger.error('Error deleting attribute:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al eliminar atributo')
     }
   }, [selectedAttribute, onSuccess, onError, onDeleteClose, loadAttributes, loadAttributeStats])
 
-  // Filtros
-  const filters = useMemo(
-    () => [
-      {
-        label: attributeTypes.find(type => type.key === typeFilter)?.label || 'Tipo',
-        options: [{ key: 'all', label: 'Todos' }, ...attributeTypes],
-        onAction: key => setTypeFilter(key)
-      }
-    ],
-    [typeFilter, attributeTypes]
+  // Función de búsqueda
+  const handleSearch = useCallback(
+    searchQuery => {
+      setSearchValue(searchQuery)
+      const filteredAttributes = attributes.filter(
+        attr =>
+          attr.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          attr.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          attr.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      setAttributes(filteredAttributes)
+    },
+    [attributes]
   )
+
+  // Función de refresh
+  const handleRefresh = useCallback(() => {
+    loadAttributes()
+  }, [loadAttributes])
+
+  // Función de cambio de página
+  const handlePageChange = useCallback(page => {
+    setPagination(prev => ({ ...prev, page }))
+  }, [])
+
+  // Función de cambio de filas por página
+  const handleRowsPerPageChange = useCallback(size => {
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
 
   return (
     <div className='flex flex-col gap-6'>
+      {/* Filtro de tipo */}
+      <div className='flex items-center gap-4'>
+        <Select
+          label='Tipo de Atributo'
+          placeholder='Filtrar por tipo'
+          selectedKeys={typeFilter ? [typeFilter] : []}
+          onSelectionChange={keys => setTypeFilter(Array.from(keys)[0] || 'all')}
+          className='w-48'>
+          <SelectItem key='all'>Todos</SelectItem>
+          {attributeTypes.map(type => (
+            <SelectItem key={type.key}>{type.label}</SelectItem>
+          ))}
+        </Select>
+      </div>
+
       {/* Main Table */}
-      <AdminDataTable
-        title='Gestión de Atributos'
-        description='Administra los atributos de perfil disponibles para los usuarios'
+      <GenericDataTable
         data={attributes}
         columns={columns}
-        loading={loading}
         pagination={pagination}
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onRefresh={loadAttributes}
-        onCreate={handleCreateAttribute}
-        onPageChange={page => setPagination(prev => ({ ...prev, page }))}
-        onPageSizeChange={size => setPagination(prev => ({ ...prev, size, page: 0 }))}
-        renderCell={renderCell}
-        renderActions={renderActions}
-        enableSearch={true}
-        enableFilters={true}
-        filters={filters}
-        searchPlaceholder='Buscar atributos...'
+        loading={loading}
+        loadingMessage='Cargando atributos...'
         emptyMessage='No se encontraron atributos'
+        renderCell={renderCell}
+        onSearch={handleSearch}
+        onRefresh={handleRefresh}
+        onCreate={handleCreateAttribute}
+        createButtonLabel='Crear Atributo'
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        searchPlaceholder='Buscar atributos por nombre, tipo o descripción...'
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        showColumnSelector={true}
+        showRowsPerPage={true}
+        showCreateButton={true}
+        showRefreshButton={true}
+        showSearch={true}
+        showPagination={true}
+        enableSelection={false}
+        getItemKey={item => `attribute-${item.id}`}
+        tableId={`attributes-table`}
       />
 
       {/* Create Attribute Modal */}

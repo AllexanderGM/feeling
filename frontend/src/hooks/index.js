@@ -23,6 +23,9 @@ export { default as useComplaints } from './support/useComplaints.js'
 export { default as useConfiguration } from './system/useConfiguration.js'
 export { default as useApiStatus } from './system/useApiStatus.js'
 
+// Table Hooks
+export { default as useTableActions } from './table/useTableActions.js'
+
 // User Hooks
 export { default as useUser } from './user/useUser.js'
 export { default as useUserAnalytics } from './user/useUserAnalytics.js'
@@ -68,6 +71,9 @@ export * as SupportHooks from './support/useComplaints.js'
 // System
 export * as SystemHooks from './system/useConfiguration.js'
 export * as ApiStatusHooks from './system/useApiStatus.js'
+
+// Table
+export * as TableHooks from './table/useTableActions.js'
 
 // User Management
 export * as UserHooks from './user/useUser.js'

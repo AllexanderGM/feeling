@@ -25,6 +25,9 @@ public record UserProfileDataDTO(
         // Campos de preferencias que el frontend espera
         Integer agePreferenceMin,
         Integer agePreferenceMax,
-        Integer locationPreferenceRadius
+        Integer locationPreferenceRadius,
+        // Campos específicos para SPIRIT
+        String church,
+        String customChurch
 ) {
 }

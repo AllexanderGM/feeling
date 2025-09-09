@@ -63,7 +63,7 @@ const Settings = () => {
 
     return {
       mainImage: getMainImage(),
-      age: calculateAge(user.birthDate)
+      age: calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth)
     }
   }, [user])
 

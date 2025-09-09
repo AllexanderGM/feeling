@@ -27,12 +27,15 @@ import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 // Páginas de administración
 import AdminDashboard from '@pages/admin/AdminDashboard.jsx'
-import AdminUsersManagement from '@pages/admin/users/AdminUsersManagement.jsx'
+import UsersManagement from '@pages/user/management/Management.jsx'
 import PlansManagement from '@pages/matches/plansManagement/PlansManagement.jsx'
 import ComplaintManagement from '@pages/support/ComplaintManagement.jsx'
 import UserComplaints from '@pages/support/UserComplaints.jsx'
 import EventManagement from '@pages/admin/events/EventManagement.jsx'
 import ConfigurationManagement from '@pages/admin/configuration/ConfigurationManagement.jsx'
+// Páginas de ejemplos
+import GenericTableExample from '@pages/examples/GenericTableExample.jsx'
+import UserTableTest from '@pages/examples/UserTableTest.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -155,14 +158,6 @@ const router = createBrowserRouter([
               </RequireCompleteProfile>
             )
           },
-          {
-            path: APP_PATHS.USER.WELCOME_ONBOARDING.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <WelcomeOnboarding />
-              </RequireCompleteProfile>
-            )
-          },
 
           // ========================================
           // RUTAS ADMINISTRATIVAS
@@ -179,7 +174,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.USERS.slice(1),
             element: (
               <RequireAdmin>
-                <AdminUsersManagement />
+                <UsersManagement />
               </RequireAdmin>
             )
           },
@@ -238,6 +233,18 @@ const router = createBrowserRouter([
                 <Settings />
               </RequireAdmin>
             )
+          },
+
+          // ========================================
+          // RUTAS DE EJEMPLOS Y DESARROLLO
+          // ========================================
+          {
+            path: 'examples/generic-table',
+            element: <GenericTableExample />
+          },
+          {
+            path: 'examples/user-table-test',
+            element: <UserTableTest />
           },
 
           // ========================================
@@ -366,6 +373,17 @@ const router = createBrowserRouter([
             element: <NotFound />
           }
         ]
+      },
+      // ========================================
+      // RUTAS SIN LAYOUT (SIN NAVBAR)
+      // ========================================
+      {
+        path: APP_PATHS.USER.WELCOME_ONBOARDING.slice(1),
+        element: (
+          <RequireCompleteProfile>
+            <WelcomeOnboarding />
+          </RequireCompleteProfile>
+        )
       }
     ]
   }

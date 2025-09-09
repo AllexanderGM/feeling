@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardBody, CardHeader, Divider, Button, Chip, Progress, Spinner } from '@heroui/react'
+import { Card, CardBody, Divider, Button, Chip, Progress, Spinner } from '@heroui/react'
 import {
   BarChart3,
   Users,
@@ -14,8 +14,7 @@ import {
   Globe,
   UserCheck,
   Star,
-  Clock,
-  Zap
+  Clock
 } from 'lucide-react'
 import { userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
@@ -26,6 +25,7 @@ import { Logger } from '@utils/logger.js'
 const UserAnalyticsSection = ({ onError, onSuccess }) => {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false) // Flag para evitar cargas múltiples
   const [analytics, setAnalytics] = useState({
     overview: {},
     userMetrics: {},
@@ -36,24 +36,34 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
   })
 
   // Cargar todas las analíticas completas
-  const loadAnalytics = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await userAnalyticsService.getCompleteAnalytics()
-      setAnalytics(data)
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.SERVICE, 'load_user_analytics', 'Error loading analytics admin', { error })
-      onError?.('Error al cargar analíticas')
-    } finally {
-      setLoading(false)
-    }
-  }, [onError])
+  const loadAnalytics = useCallback(
+    async (forceRefresh = false) => {
+      // Si ya se cargó y no es un refresh forzado, no volver a cargar
+      if (hasLoaded && !forceRefresh) {
+        Logger.info('Analytics already loaded, skipping', { category: Logger.CATEGORIES.USER })
+        return
+      }
+
+      setLoading(true)
+      try {
+        const data = await userAnalyticsService.getCompleteAnalytics()
+        setAnalytics(data)
+        setHasLoaded(true)
+      } catch (error) {
+        Logger.error(Logger.CATEGORIES.SERVICE, 'load_user_analytics', 'Error loading analytics admin', { error })
+        onError?.('Error al cargar analíticas')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [onError, hasLoaded]
+  )
 
   // Refrescar datos
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
-      await loadAnalytics()
+      await loadAnalytics(true) // Forzar refresh
       onSuccess?.('Analíticas actualizadas')
     } catch (error) {
       onError?.('Error al actualizar analíticas')
@@ -64,7 +74,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
 
   useEffect(() => {
     loadAnalytics()
-  }, [loadAnalytics])
+  }, []) // Sin dependencias para cargar solo una vez
 
   if (loading) {
     return (

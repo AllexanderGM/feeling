@@ -52,7 +52,7 @@ export const baseValidations = {
     .required('El teléfono es requerido'),
 
   // Fecha y edad
-  birthDate: yup
+  dateOfBirth: yup
     .string()
     .required('La fecha de nacimiento es requerida')
     .test('valid-date', 'Ingresa una fecha válida', function (value) {
@@ -68,11 +68,11 @@ export const baseValidations = {
     .test('age', 'Debes ser mayor de 18 años', function (value) {
       if (!value) return false
       const today = new Date()
-      const birthDate = new Date(value)
-      const age = today.getFullYear() - birthDate.getFullYear()
-      const monthDiff = today.getMonth() - birthDate.getMonth()
+      const dateOfBirth = new Date(value)
+      const age = today.getFullYear() - dateOfBirth.getFullYear()
+      const monthDiff = today.getMonth() - dateOfBirth.getMonth()
 
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
         return age - 1 >= 18
       }
       return age >= 18
@@ -145,7 +145,7 @@ export const conditionalValidations = {
     otherwise: schema => schema.notRequired()
   }),
 
-  relationshipTypeId: yup.string().when('categoryInterest', {
+  relationshipId: yup.string().when('categoryInterest', {
     is: 'ROUSE',
     then: schema => schema.required('Selecciona el tipo de relación que buscas'),
     otherwise: schema => schema.notRequired()

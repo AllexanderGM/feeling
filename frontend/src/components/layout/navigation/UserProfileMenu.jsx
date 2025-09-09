@@ -26,37 +26,13 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
   const { logout } = useAuth()
   const { isOpen: isLogoutModalOpen, onOpen: onLogoutModalOpen, onClose: onLogoutModalClose } = useDisclosure()
 
-  // ========================================
-  // HELPERS PARA NUEVA ESTRUCTURA DE USUARIO
-  // ========================================
-
-  const getUserData = () => {
-    // Si el usuario tiene la nueva estructura organizada
-    if (user?.profile) {
-      return {
-        name: user.profile.name,
-        lastName: user.profile.lastName,
-        email: user.profile.email,
-        images: user.profile.images || [],
-        displayName: user.profile.name || (isAdmin ? 'Admin' : 'Usuario'),
-        fullName: `${user.profile.name || ''} ${user.profile.lastName || ''}`.trim(),
-        avatar: user.profile.images?.[0] || imgProfile
-      }
-    }
-
-    // Fallback para estructura legacy o datos incompletos
-    return {
-      name: user?.name,
-      lastName: user?.lastName,
-      email: user?.email,
-      images: user?.images || [],
-      displayName: user?.name || (isAdmin ? 'Admin' : 'Usuario'),
-      fullName: `${user?.name || ''} ${user?.lastName || ''}`.trim(),
-      avatar: user?.images?.[0] || user?.avatar || imgProfile
-    }
+  // Obtener datos del usuario simplificado
+  const userData = {
+    displayName: user?.profile?.name || user?.name || (isAdmin ? 'Admin' : 'Usuario'),
+    fullName: `${user?.profile?.name || user?.name || ''} ${user?.profile?.lastName || user?.lastName || ''}`.trim(),
+    email: user?.profile?.email || user?.email,
+    avatar: user?.profile?.images?.[0] || user?.images?.[0] || user?.avatar || imgProfile
   }
-
-  const userData = getUserData()
 
   // ========================================
   // HANDLERS

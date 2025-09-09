@@ -1,5 +1,4 @@
 import { ServiceREST } from '@services/utils/serviceREST.js'
-import { ErrorManager } from '@utils/errorManager.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
 
 /**
@@ -16,7 +15,15 @@ class UserAnalyticsService extends ServiceREST {
   // ========================================
 
   /**
-   * GET /user-analytics/overview - Resumen analítico
+   * GET /user-analytics/overview - Resumen analítico general con conteos por estado
+   * @returns {Promise<Object>} Objeto directo con contadores de usuarios:
+   *   - total: número total de usuarios
+   *   - active: usuarios activos (verificados + aprobados + perfil completo + no desactivados)
+   *   - pending: usuarios pendientes de aprobación
+   *   - incomplete: usuarios con perfil incompleto
+   *   - unverified: usuarios sin verificar
+   *   - rejected: usuarios no aprobados/rechazados
+   *   - deactivated: usuarios desactivados
    */
   async getAnalyticsOverview() {
     const context = 'obtener resumen analítico'
@@ -32,7 +39,11 @@ class UserAnalyticsService extends ServiceREST {
 
   /**
    * GET /user-analytics/user-metrics - Métricas comprehensivas de usuarios
-   * Incluye: conteo por estatus + engagement + crecimiento + distribución geográfica
+   * @returns {Promise<Object>} Objeto con 4 secciones principales:
+   *   - userTabsCount: conteo de usuarios por estado (active, pending, incomplete, unverified, unapproved)
+   *   - engagementStats: estadísticas de engagement de usuarios
+   *   - growthStats: estadísticas de crecimiento temporal
+   *   - geographicDistribution: distribución geográfica de usuarios
    */
   async getUserMetrics() {
     const context = 'obtener métricas de usuarios'
@@ -47,7 +58,9 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * GET /user-analytics/metrics/{userId} - Métricas detalladas por usuario
+   * GET /user-analytics/metrics/{userId} - Métricas detalladas de un usuario específico
+   * @param {string|number} userId - ID del usuario
+   * @returns {Promise<UserMetricsDTO>} Objeto UserMetricsDTO con métricas detalladas del usuario
    */
   async getUserDetailedMetrics(userId) {
     const context = 'obtener métricas detalladas del usuario'
@@ -63,7 +76,9 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * GET /user-analytics/top-users - Top usuarios
+   * GET /user-analytics/top-users - Rankings de usuarios más populares y activos
+   * @param {number} limit - Límite de usuarios a retornar (default: 10)
+   * @returns {Promise<Object>} Map con rankings de usuarios más populares y activos
    */
   async getTopUsers(limit = 10) {
     const context = 'obtener top usuarios'
@@ -79,7 +94,8 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * GET /user-analytics/attribute-statistics - Estadísticas generales de atributos
+   * GET /user-analytics/attribute-statistics - Estadísticas de uso de atributos de usuario
+   * @returns {Promise<Object>} Map con estadísticas comprehensivas sobre uso de atributos
    */
   async getAttributeStatistics() {
     const context = 'obtener estadísticas de atributos'
@@ -94,7 +110,8 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * GET /user-analytics/interests-statistics - Estadísticas generales de intereses
+   * GET /user-analytics/interests-statistics - Estadísticas de uso de intereses de usuario
+   * @returns {Promise<Object>} Map con estadísticas comprehensivas sobre uso de intereses
    */
   async getInterestsStatistics() {
     const context = 'obtener estadísticas de intereses'
@@ -109,7 +126,8 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * GET /user-analytics/tags-statistics - Estadísticas generales de tags
+   * GET /user-analytics/tags-statistics - Estadísticas del sistema de tags de usuario
+   * @returns {Promise<UserTagStatisticsDTO>} Objeto UserTagStatisticsDTO con estadísticas del sistema de tags
    */
   async getTagsStatistics() {
     const context = 'obtener estadísticas de tags'
@@ -128,7 +146,14 @@ class UserAnalyticsService extends ServiceREST {
   // ========================================
 
   /**
-   * Obtener resumen completo de todas las estadísticas
+   * Obtener resumen completo de todas las estadísticas disponibles
+   * @returns {Promise<Object>} Objeto consolidado con todas las estadísticas:
+   *   - overview: resumen general del sistema
+   *   - userMetrics: métricas comprehensivas de usuarios
+   *   - topUsers: rankings de usuarios
+   *   - attributeStatistics: estadísticas de atributos
+   *   - interestsStatistics: estadísticas de intereses
+   *   - tagsStatistics: estadísticas de tags
    */
   async getCompleteAnalytics() {
     const context = 'obtener analytics completas'
@@ -158,7 +183,9 @@ class UserAnalyticsService extends ServiceREST {
   }
 
   /**
-   * Manejo de errores específico del servicio
+   * Manejo de errores específico del servicio de analytics
+   * @param {string} operation - Nombre de la operación que falló
+   * @param {Error} error - Error capturado
    */
   logError(operation, error) {
     error.operation = operation

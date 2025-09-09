@@ -205,6 +205,7 @@ export default function useUserAttributes() {
     hairColorOptions: getSelectOptions('HAIR_COLOR'),
     bodyTypeOptions: getSelectOptions('BODY_TYPE'),
     religionOptions: getSelectOptions('RELIGION'),
+    churchOptions: getSelectOptions('CHURCH'),
     maritalStatusOptions: getSelectOptions('MARITAL_STATUS'),
     educationLevelOptions: getSelectOptions('EDUCATION_LEVEL'),
     relationshipTypeOptions: getSelectOptions('RELATIONSHIP_TYPE'),

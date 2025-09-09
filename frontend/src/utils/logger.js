@@ -83,23 +83,23 @@ export class Logger {
     switch (level) {
       case this.LEVELS.ERROR:
         console.error(...logMessage)
-        if (dataToShow) console.error('%c📦 Data:', 'color: #6c757d; font-weight: bold;', dataToShow)
+        if (dataToShow) console.error('%c📦 Data:', 'color: #8a8a8a; font-weight: bold;', dataToShow)
         break
       case this.LEVELS.WARN:
         console.warn(...logMessage)
-        if (dataToShow) console.warn('%c📦 Data:', 'color: #6c757d; font-weight: bold;', dataToShow)
+        if (dataToShow) console.warn('%c📦 Data:', 'color: #8a8a8a; font-weight: bold;', dataToShow)
         break
       case this.LEVELS.INFO:
         console.info(...logMessage)
-        if (dataToShow) console.info('%c📦 Data:', 'color: #6c757d; font-weight: bold;', dataToShow)
+        if (dataToShow) console.info('%c📦 Data:', 'color: #8a8a8a; font-weight: bold;', dataToShow)
         break
       case this.LEVELS.DEBUG:
         console.log(...logMessage)
-        if (dataToShow) console.log('%c📦 Data:', 'color: #6c757d; font-weight: bold;', dataToShow)
+        if (dataToShow) console.log('%c📦 Data:', 'color: #8a8a8a; font-weight: bold;', dataToShow)
         break
       default:
         console.log(...logMessage)
-        if (dataToShow) console.log('%c📦 Data:', 'color: #6c757d; font-weight: bold;', dataToShow)
+        if (dataToShow) console.log('%c📦 Data:', 'color: #8a8a8a; font-weight: bold;', dataToShow)
     }
 
     return logData
@@ -412,32 +412,32 @@ export class Logger {
   static getLevelColors(level) {
     const baseStyles = {
       [this.LEVELS.ERROR]: {
-        icon: 'color: #dc3545; font-weight: bold;',
-        category: 'color: #ffffff; font-weight: bold; background: #dc3545; padding: 2px 8px; border-radius: 4px;',
-        operation: 'color: #dc3545; font-weight: bold;',
-        message: 'color: #333333; font-weight: 500;',
-        details: 'color: #666666; font-style: italic;'
+        icon: 'color: #b85450; font-weight: bold;',
+        category: 'color: #b85450; font-weight: bold; padding: 2px 8px; border-radius: 4px; background: rgba(184, 84, 80, 0.1);',
+        operation: 'color: #b85450; font-weight: bold;',
+        message: 'font-weight: 500;',
+        details: 'color: #8a8a8a; font-style: italic;'
       },
       [this.LEVELS.WARN]: {
-        icon: 'color: #ff8c00; font-weight: bold;',
-        category: 'color: #ffffff; font-weight: bold; background: #ff8c00; padding: 2px 8px; border-radius: 4px;',
-        operation: 'color: #ff8c00; font-weight: bold;',
-        message: 'color: #333333; font-weight: 500;',
-        details: 'color: #666666; font-style: italic;'
+        icon: 'color: #cc8800; font-weight: bold;',
+        category: 'color: #cc8800; font-weight: bold; padding: 2px 8px; border-radius: 4px; background: rgba(204, 136, 0, 0.1);',
+        operation: 'color: #cc8800; font-weight: bold;',
+        message: 'font-weight: 500;',
+        details: 'color: #8a8a8a; font-style: italic;'
       },
       [this.LEVELS.INFO]: {
-        icon: 'color: #007acc; font-weight: bold;',
-        category: 'color: #ffffff; font-weight: bold; background: #007acc; padding: 2px 8px; border-radius: 4px;',
-        operation: 'color: #007acc; font-weight: bold;',
-        message: 'color: #333333; font-weight: 500;',
-        details: 'color: #666666; font-style: italic;'
+        icon: 'color: #5b9bd5; font-weight: bold;',
+        category: 'color: #5b9bd5; font-weight: bold; padding: 2px 8px; border-radius: 4px; background: rgba(91, 155, 213, 0.1);',
+        operation: 'color: #5b9bd5; font-weight: bold;',
+        message: 'font-weight: 500;',
+        details: 'color: #8a8a8a; font-style: italic;'
       },
       [this.LEVELS.DEBUG]: {
-        icon: 'color: #8e44ad; font-weight: bold;',
-        category: 'color: #ffffff; font-weight: bold; background: #8e44ad; padding: 2px 8px; border-radius: 4px;',
-        operation: 'color: #8e44ad; font-weight: bold;',
-        message: 'color: #333333; font-weight: 500;',
-        details: 'color: #666666; font-style: italic;'
+        icon: 'color: #9966cc; font-weight: bold;',
+        category: 'color: #9966cc; font-weight: bold; padding: 2px 8px; border-radius: 4px; background: rgba(153, 102, 204, 0.1);',
+        operation: 'color: #9966cc; font-weight: bold;',
+        message: 'font-weight: 500;',
+        details: 'color: #8a8a8a; font-style: italic;'
       }
     }
 

@@ -249,7 +249,7 @@ export const validators = {
     document: validateDocument,
     phoneCode: validatePhoneCode,
     phone: validatePhone,
-    birthDate: validateBirthDate,
+    dateOfBirth: validateBirthDate,
     country: value => (!value ? 'Selecciona un país' : null),
     city: value => (!value?.trim() ? 'Selecciona una ciudad' : null)
   },
@@ -261,7 +261,7 @@ export const validators = {
     document: validateDocument,
     phoneCode: validatePhoneCode,
     phone: validatePhone,
-    birthDate: validateBirthDate,
+    dateOfBirth: validateBirthDate,
     country: value => (!value ? 'Selecciona un país' : null),
     city: value => (!value?.trim() ? 'Selecciona una ciudad' : null)
   },
@@ -309,7 +309,7 @@ export const validators = {
       }
       return null
     },
-    relationshipTypeId: (value, data) => {
+    relationshipId: (value, data) => {
       if (data.categoryInterest === 'ROUSE' && !value) {
         return 'Selecciona el tipo de relación que buscas'
       }

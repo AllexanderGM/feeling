@@ -118,7 +118,7 @@ export const USER_PROFILE_RESPONSE_TYPE = {
     profession: 'string|null',
     religionId: 'string|null',
     sexualRoleId: 'string|null',
-    relationshipTypeId: 'string|null'
+    relationshipId: 'string|null'
   },
   metrics: {
     profileViews: 'number',

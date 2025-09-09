@@ -1,195 +1,265 @@
-import { useState, useCallback } from 'react'
-import userService from '@services'
+import { useState, useCallback, useMemo } from 'react'
+import userAnalyticsService from '@services/user/userAnalyticsService.js'
 import { Logger } from '@utils/logger.js'
+import { useError } from '@hooks/utils/useError.js'
+import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 
-/**
- * Hook personalizado para manejo de analytics de usuarios
- */
 export const useUserAnalytics = () => {
-  const [analyticsData, setAnalyticsData] = useState({
-    overview: null,
-    geographic: null,
-    engagement: null,
-    topUsers: null,
-    growth: null
+  const { handleApiResponse } = useError()
+  const { loading, withLoading } = useAsyncOperation()
+
+  // Estados independientes para cada tipo de datos analytics
+  const [overview, setOverview] = useState({
+    active: 0,
+    deactivated: 0,
+    incomplete: 0,
+    pending: 0,
+    rejected: 0,
+    total: 0,
+    unverified: 0
   })
 
-  const [loading, setLoading] = useState({
-    overview: false,
-    geographic: false,
-    engagement: false,
-    topUsers: false,
-    growth: false
-  })
-
-  const [error, setError] = useState({
-    overview: null,
-    geographic: null,
-    engagement: null,
-    topUsers: null,
-    growth: null
-  })
-
-  // Función para manejar loading y errores
-  const handleRequest = useCallback(async (type, requestFn) => {
-    setLoading(prev => ({ ...prev, [type]: true }))
-    setError(prev => ({ ...prev, [type]: null }))
-
-    try {
-      const result = await requestFn()
-      setAnalyticsData(prev => ({ ...prev, [type]: result }))
-      return result
-    } catch (err) {
-      Logger.error(Logger.CATEGORIES.USER, `Error in ${type} analytics`, err)
-      setError(prev => ({ ...prev, [type]: err.message || 'Error desconocido' }))
-      throw err
-    } finally {
-      setLoading(prev => ({ ...prev, [type]: false }))
-    }
-  }, [])
+  const [userMetrics, setUserMetrics] = useState(null)
+  const [userDetailedMetrics, setUserDetailedMetrics] = useState({})
+  const [topUsers, setTopUsers] = useState(null)
+  const [attributeStatistics, setAttributeStatistics] = useState(null)
+  const [interestsStatistics, setInterestsStatistics] = useState(null)
+  const [tagsStatistics, setTagsStatistics] = useState(null)
+  const [completeAnalytics, setCompleteAnalytics] = useState(null)
 
   // ========================================
-  // MÉTODOS DE ANALYTICS
+  // MÉTODOS DE ANALYTICS PRINCIPALES
   // ========================================
 
-  const getOverview = useCallback(
-    async (force = false) => {
-      if (!force && analyticsData.overview) return analyticsData.overview
-      return handleRequest('overview', userService.getAnalyticsOverview)
+  const getUserOverview = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getAnalyticsOverview())
+      if (result?.data) setOverview(result.data)
+      return handleApiResponse(result, 'Contador de usuarios obtenidas', { showNotifications })
     },
-    [analyticsData.overview, handleRequest]
+    [withLoading, handleApiResponse]
   )
 
-  const getGeographicDistribution = useCallback(
-    async (force = false) => {
-      if (!force && analyticsData.geographic) return analyticsData.geographic
-      return handleRequest('geographic', userService.getGeographicDistribution)
+  const getUserMetrics = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getUserMetrics())
+      if (result?.data) setUserMetrics(result.data)
+      return handleApiResponse(result, 'Métricas de usuarios obtenidas', { showNotifications })
     },
-    [analyticsData.geographic, handleRequest]
+    [withLoading, handleApiResponse]
   )
 
-  const getEngagementStats = useCallback(
-    async (force = false) => {
-      if (!force && analyticsData.engagement) return analyticsData.engagement
-      return handleRequest('engagement', userService.getEngagementStats)
+  const getUserDetailedMetrics = useCallback(
+    async (userId, showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getUserDetailedMetrics(userId))
+      if (result?.data) {
+        // Caso especial: actualizar objeto anidado con clave específica
+        setUserDetailedMetrics(prev => ({ ...prev, [userId]: result.data }))
+      }
+      return handleApiResponse(result, 'Métricas detalladas obtenidas', { showNotifications })
     },
-    [analyticsData.engagement, handleRequest]
+    [withLoading, handleApiResponse]
   )
 
   const getTopUsers = useCallback(
-    async (limit = 10, force = false) => {
-      if (!force && analyticsData.topUsers) return analyticsData.topUsers
-      return handleRequest('topUsers', () => userService.getTopUsers(limit))
+    async (limit = 10, showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getTopUsers(limit))
+      if (result?.data) setTopUsers(result.data)
+      return handleApiResponse(result, 'Rankings de usuarios obtenidos', { showNotifications })
     },
-    [analyticsData.topUsers, handleRequest]
+    [withLoading, handleApiResponse]
   )
 
-  const getGrowthStats = useCallback(
-    async (period = 'monthly', force = false) => {
-      if (!force && analyticsData.growth) return analyticsData.growth
-      return handleRequest('growth', () => userService.getGrowthStats(period))
+  const getAttributeStatistics = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getAttributeStatistics())
+      if (result?.data) setAttributeStatistics(result.data)
+      return handleApiResponse(result, 'Estadísticas de atributos obtenidas', { showNotifications })
     },
-    [analyticsData.growth, handleRequest]
+    [withLoading, handleApiResponse]
   )
 
-  const getUserMetrics = useCallback(async userId => {
-    setLoading(prev => ({ ...prev, userMetrics: true }))
-    setError(prev => ({ ...prev, userMetrics: null }))
+  const getInterestsStatistics = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getInterestsStatistics())
+      if (result?.data) setInterestsStatistics(result.data)
+      return handleApiResponse(result, 'Estadísticas de intereses obtenidas', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
 
-    try {
-      const result = await userService.getUserDetailedMetrics(userId)
-      return result
-    } catch (err) {
-      Logger.error(Logger.CATEGORIES.USER, 'Error getting user metrics', err)
-      setError(prev => ({ ...prev, userMetrics: err.message || 'Error desconocido' }))
-      throw err
-    } finally {
-      setLoading(prev => ({ ...prev, userMetrics: false }))
-    }
-  }, [])
+  const getTagsStatistics = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getTagsStatistics())
+      if (result?.data) setTagsStatistics(result.data)
+      return handleApiResponse(result, 'Estadísticas de tags obtenidas', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const getCompleteAnalytics = useCallback(
+    async (showNotifications = false) => {
+      const result = await withLoading(async () => await userAnalyticsService.getCompleteAnalytics())
+      if (result?.data) setCompleteAnalytics(result.data)
+      return handleApiResponse(result, 'Estadísticas completas obtenidas', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
 
   // ========================================
   // MÉTODOS DE UTILIDAD
   // ========================================
 
-  const refreshAll = useCallback(async () => {
-    Logger.debug(Logger.CATEGORIES.USER, 'Refreshing all analytics', {})
+  const refreshAllAnalytics = useCallback(
+    async (showNotifications = false) => {
+      Logger.info(Logger.CATEGORIES.USER, 'Actualizando todas las estadísticas')
 
-    try {
-      await Promise.all([
-        getOverview(true),
-        getGeographicDistribution(true),
-        getEngagementStats(true),
-        getTopUsers(10, true),
-        getGrowthStats('monthly', true)
-      ])
-      Logger.debug(Logger.CATEGORIES.USER, 'Analytics refreshed successfully', {})
-    } catch (err) {
-      Logger.error(Logger.CATEGORIES.USER, 'Error refreshing analytics', err)
-    }
-  }, [getOverview, getGeographicDistribution, getEngagementStats, getTopUsers, getGrowthStats])
+      const result = await withLoading(async () => {
+        const promises = [
+          getUserOverview(false),
+          getUserMetrics(false),
+          getTopUsers(10, false),
+          getAttributeStatistics(false),
+          getInterestsStatistics(false),
+          getTagsStatistics(false)
+        ]
 
-  const clearData = useCallback(() => {
-    setAnalyticsData({
-      overview: null,
-      geographic: null,
-      engagement: null,
-      topUsers: null,
-      growth: null
+        const results = await Promise.allSettled(promises)
+
+        // Verificar si alguna promesa falló
+        const failures = results.filter(result => result.status === 'rejected')
+        if (failures.length > 0) {
+          Logger.warn(Logger.CATEGORIES.USER, 'Algunas estadísticas fallaron al actualizarse', {
+            failures: failures.length,
+            total: promises.length
+          })
+        }
+
+        return {
+          success: true,
+          updated: results.length - failures.length,
+          failed: failures.length
+        }
+      })
+
+      return handleApiResponse(result, 'Todas las estadísticas han sido actualizadas', { showNotifications })
+    },
+    [
+      getUserOverview,
+      getUserMetrics,
+      getTopUsers,
+      getAttributeStatistics,
+      getInterestsStatistics,
+      getTagsStatistics,
+      withLoading,
+      handleApiResponse
+    ]
+  )
+
+  const clearAnalyticsData = useCallback(() => {
+    Logger.info(Logger.CATEGORIES.USER, 'Limpiando datos de estadísticas')
+    setOverview({
+      active: 0,
+      deactivated: 0,
+      incomplete: 0,
+      pending: 0,
+      rejected: 0,
+      total: 0,
+      unverified: 0
     })
-    setError({
-      overview: null,
-      geographic: null,
-      engagement: null,
-      topUsers: null,
-      growth: null
-    })
+    setUserMetrics(null)
+    setUserDetailedMetrics({})
+    setTopUsers(null)
+    setAttributeStatistics(null)
+    setInterestsStatistics(null)
+    setTagsStatistics(null)
+    setCompleteAnalytics(null)
   }, [])
 
   // ========================================
-  // DATOS CALCULADOS
+  // DATOS CALCULADOS Y ESTADOS
   // ========================================
 
-  const isLoading = Object.values(loading).some(Boolean)
-  const hasError = Object.values(error).some(Boolean)
-  const hasData = Object.values(analyticsData).some(Boolean)
+  // Estados derivados de los datos
+  const hasAnalyticsData = useMemo(() => {
+    return (
+      overview.total > 0 ||
+      userMetrics !== null ||
+      Object.keys(userDetailedMetrics).length > 0 ||
+      topUsers !== null ||
+      attributeStatistics !== null ||
+      interestsStatistics !== null ||
+      tagsStatistics !== null ||
+      completeAnalytics !== null
+    )
+  }, [overview, userMetrics, userDetailedMetrics, topUsers, attributeStatistics, interestsStatistics, tagsStatistics, completeAnalytics])
 
   // Estados específicos de cada sección
-  const overviewReady = analyticsData.overview && !loading.overview && !error.overview
-  const geographicReady = analyticsData.geographic && !loading.geographic && !error.geographic
-  const engagementReady = analyticsData.engagement && !loading.engagement && !error.engagement
-  const topUsersReady = analyticsData.topUsers && !loading.topUsers && !error.topUsers
-  const growthReady = analyticsData.growth && !loading.growth && !error.growth
+  const isOverviewReady = useMemo(() => overview.total > 0 && !loading, [overview.total, loading])
+
+  const isUserMetricsReady = useMemo(() => userMetrics !== null && !loading, [userMetrics, loading])
+
+  const isTopUsersReady = useMemo(() => topUsers !== null && !loading, [topUsers, loading])
+
+  const isAttributeStatisticsReady = useMemo(() => attributeStatistics !== null && !loading, [attributeStatistics, loading])
+
+  const isInterestsStatisticsReady = useMemo(() => interestsStatistics !== null && !loading, [interestsStatistics, loading])
+
+  const isTagsStatisticsReady = useMemo(() => tagsStatistics !== null && !loading, [tagsStatistics, loading])
+
+  const isCompleteAnalyticsReady = useMemo(() => completeAnalytics !== null && !loading, [completeAnalytics, loading])
+
+  // ========================================
+  // API PÚBLICA DEL HOOK
+  // ========================================
 
   return {
-    // Datos
-    analyticsData,
-
-    // Estados de carga
+    // Estados principales
     loading,
-    isLoading,
+    hasAnalyticsData,
 
-    // Estados de error
-    error,
-    hasError,
+    // Estados independientes de analytics
+    overview,
+    userMetrics,
+    userDetailedMetrics,
+    topUsers,
+    attributeStatistics,
+    interestsStatistics,
+    tagsStatistics,
+    completeAnalytics,
 
-    // Estados de datos
-    hasData,
-    overviewReady,
-    geographicReady,
-    engagementReady,
-    topUsersReady,
-    growthReady,
+    // Estados de secciones específicas
+    isOverviewReady,
+    isUserMetricsReady,
+    isTopUsersReady,
+    isAttributeStatisticsReady,
+    isInterestsStatisticsReady,
+    isTagsStatisticsReady,
+    isCompleteAnalyticsReady,
 
-    // Métodos
-    getOverview,
-    getGeographicDistribution,
-    getEngagementStats,
-    getTopUsers,
-    getGrowthStats,
+    // Métodos principales de analytics
+    getUserOverview,
     getUserMetrics,
-    refreshAll,
-    clearData
+    getUserDetailedMetrics,
+    getTopUsers,
+    getAttributeStatistics,
+    getInterestsStatistics,
+    getTagsStatistics,
+    getCompleteAnalytics,
+
+    // Métodos de utilidad
+    refreshAllAnalytics,
+    clearAnalyticsData,
+
+    // Setters individuales para manipulación independiente
+    setOverview,
+    setUserMetrics,
+    setUserDetailedMetrics,
+    setTopUsers,
+    setAttributeStatistics,
+    setInterestsStatistics,
+    setTagsStatistics,
+    setCompleteAnalytics
   }
 }
 

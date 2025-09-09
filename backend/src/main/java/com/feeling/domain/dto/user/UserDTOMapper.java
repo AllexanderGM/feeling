@@ -52,7 +52,10 @@ public class UserDTOMapper {
                 // Campos de preferencias
                 user.getAgePreferenceMin(),
                 user.getAgePreferenceMax(),
-                user.getLocationPreferenceRadius()
+                user.getLocationPreferenceRadius(),
+                // Campos específicos para SPIRIT
+                user.getChurch() != null ? user.getChurch().getName() : null,
+                user.getCustomChurch()
         );
     }
 
@@ -97,6 +100,62 @@ public class UserDTOMapper {
                         user.getPopularityScore(),
                         user.getProfileCompletenessPercentage()
                 ),
+                new UserMatchesDTO(
+                        user.getAvailableAttempts(),
+                        0, // todayMatches - TODO: implementar lógica para obtener matches de hoy
+                        user.getMatchesCount().intValue(), // Convertir Long a Integer
+                        10, // maxDailyAttempts - TODO: obtener de configuración
+                        0L, // pendingSent - se calculará con servicios
+                        0L, // pendingReceived - se calculará con servicios
+                        0L, // accepted - se calculará con servicios
+                        0L  // favorites - se calculará con servicios
+                ),
+                new UserAuthDTO(
+                        user.getUserAuthProvider(),
+                        user.getExternalId(),
+                        user.getExternalAvatarUrl(),
+                        user.getLastExternalSync()
+                ),
+                new UserAccountStatusDTO(
+                        user.isAccountDeactivated(),
+                        user.getDeactivationDate(),
+                        user.getDeactivationReason()
+                )
+        );
+    }
+
+    /**
+     * Convierte una entidad User a UserExtendedResponseDTO (con datos adicionales y métricas de matches)
+     */
+    public static UserExtendedResponseDTO toUserExtendedResponseDTO(User user, UserMatchesDTO matches) {
+        return new UserExtendedResponseDTO(
+                toUserStatusDTO(user),
+                toUserProfileDataDTO(user),
+                new UserPrivacyDTO(
+                        user.isPublicAccount(),
+                        user.isSearchVisibility(),
+                        user.isLocationPublic(),
+                        user.isShowAge(),
+                        user.isShowLocation(),
+                        user.isShowPhone(),
+                        user.isShowMeInSearch()
+                ),
+                new UserNotificationDTO(
+                        user.isNotificationsEmailEnabled(),
+                        user.isNotificationsPhoneEnabled(),
+                        user.isNotificationsMatchesEnabled(),
+                        user.isNotificationsEventsEnabled(),
+                        user.isNotificationsLoginEnabled(),
+                        user.isNotificationsPaymentsEnabled()
+                ),
+                new UserMetricsDTO(
+                        user.getProfileViews(),
+                        user.getLikesReceived(),
+                        user.getMatchesCount(),
+                        user.getPopularityScore(),
+                        user.getProfileCompletenessPercentage()
+                ),
+                matches,
                 new UserAuthDTO(
                         user.getUserAuthProvider(),
                         user.getExternalId(),
