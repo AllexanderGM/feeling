@@ -5,17 +5,10 @@ import com.feeling.domain.dto.auth.UserProfileDataDTO;
 
 /**
  * DTO estandarizado para respuestas que incluyen datos completos del usuario
- * Extiende UserBaseResponseDTO con información completa de status
+ * Base común para responses con status + profile
  */
 public record UserStandardResponseDTO(
         UserStatusDTO status,
         UserProfileDataDTO profile
 ) {
-
-    /**
-     * Constructor desde UserBaseResponseDTO (conversión)
-     */
-    public UserStandardResponseDTO(UserBaseResponseDTO base) {
-        this(base.status(), base.profile());
-    }
 }

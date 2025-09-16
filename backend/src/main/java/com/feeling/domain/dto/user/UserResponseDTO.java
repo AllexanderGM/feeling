@@ -5,7 +5,8 @@ import com.feeling.domain.dto.auth.UserProfileDataDTO;
 import com.feeling.infrastructure.entities.user.User;
 
 /**
- * DTO de respuesta del usuario usando estructura estándar
+ * DTO de respuesta del usuario para administración (incluye ID)
+ * Extiende UserExtendedResponseDTO añadiendo ID para funciones admin
  */
 public record UserResponseDTO(
         Long id, // ID adicional para administración
@@ -14,9 +15,18 @@ public record UserResponseDTO(
         UserPrivacyDTO privacy,
         UserNotificationDTO notifications,
         UserMetricsDTO metrics,
+        UserMatchesDTO matches, // Añadido para completud
         UserAuthDTO auth,
         UserAccountStatusDTO account
 ) {
+
+    /**
+     * Constructor desde UserExtendedResponseDTO + ID
+     */
+    public UserResponseDTO(Long id, UserExtendedResponseDTO extended) {
+        this(id, extended.status(), extended.profile(), extended.privacy(),
+             extended.notifications(), extended.metrics(), extended.matches(), extended.auth(), extended.account());
+    }
     
     public UserResponseDTO(User user) {
         this(
@@ -46,6 +56,16 @@ public record UserResponseDTO(
                         user.getMatchesCount(),
                         user.getPopularityScore(),
                         user.getProfileCompletenessPercentage()
+                ),
+                new UserMatchesDTO(
+                        user.getAvailableAttempts(),
+                        0, // todayMatches - TODO: implementar lógica
+                        user.getMatchesCount().intValue(),
+                        10, // maxDailyAttempts - TODO: obtener de configuración
+                        0L, // pendingSent
+                        0L, // pendingReceived
+                        0L, // accepted
+                        0L  // favorites
                 ),
                 new UserAuthDTO(
                         user.getUserAuthProvider(),

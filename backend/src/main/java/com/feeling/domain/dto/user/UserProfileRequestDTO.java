@@ -1,5 +1,6 @@
 package com.feeling.domain.dto.user;
 
+import com.feeling.domain.dto.validation.ValidationGroups;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
