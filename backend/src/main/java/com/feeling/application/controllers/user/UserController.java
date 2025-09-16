@@ -117,12 +117,12 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get user suggestions", 
                description = "Get user suggestions for matching")
-    public ResponseEntity<Page<UserPublicResponseDTO>> getUserSuggestions(
+    public ResponseEntity<Page<UserSuggestionResponseDTO>> getUserSuggestions(
             @PageableDefault(size = 10) Pageable pageable,
             Authentication authentication) {
         try {
             String currentUserEmail = authentication.getName();
-            Page<UserPublicResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, pageable);
+            Page<UserSuggestionResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
             log.error("Error obteniendo sugerencias para el usuario: {}", authentication.getName(), e);

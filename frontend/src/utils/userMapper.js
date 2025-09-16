@@ -8,7 +8,9 @@
  * @returns {Object} Usuario en formato frontend
  */
 export const mapBackendUserToFrontend = backendUser => {
-  if (!backendUser) return null
+  if (!backendUser) {
+    return null
+  }
 
   // Si ya viene en formato plano (fallback)
   if (!backendUser.status && !backendUser.profile) {
@@ -17,7 +19,7 @@ export const mapBackendUserToFrontend = backendUser => {
 
   const { status, profile, privacy, notifications, metrics, auth, account } = backendUser
 
-  return {
+  const mappedUser = {
     // Información básica del perfil
     id: backendUser.id || profile?.id,
     name: profile?.name || profile?.firstName || '',
@@ -94,6 +96,8 @@ export const mapBackendUserToFrontend = backendUser => {
     fullName: `${profile?.name || ''} ${profile?.lastName || ''}`.trim(),
     initials: `${profile?.name?.[0] || ''}${profile?.lastName?.[0] || ''}`.toUpperCase()
   }
+
+  return mappedUser
 }
 
 /**

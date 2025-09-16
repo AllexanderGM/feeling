@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Heart, Search, Calendar, User, Star } from 'lucide-react'
 import { Button, Badge } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
-import MatchControls from './MatchControls.jsx'
 import UserProfileMenu from './UserProfileMenu.jsx'
 import { isProfileActive, isActive, getNavigationStyles } from './navigationUtils.js'
 
@@ -11,13 +10,6 @@ const NavClient = ({ user }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [showMatchControls, setShowMatchControls] = useState(false)
-
-  // Mostrar controles de match solo en página de Home
-  useEffect(() => {
-    const isHomePage = location.pathname === APP_PATHS.ROOT
-    setShowMatchControls(isHomePage)
-  }, [location.pathname])
 
   // ========================================
   // CONFIGURACIÓN DE NAVEGACIÓN
@@ -82,7 +74,7 @@ const NavClient = ({ user }) => {
         isInvisible={!active}
         classNames={{ badge: styles.badge }}>
         {isProfileButton ? (
-          <UserProfileMenu user={user} isAdmin={false} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' />
+          <UserProfileMenu user={user} isAdmin={false} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' isActive={active} />
         ) : (
           <Button
             isIconOnly
@@ -106,13 +98,6 @@ const NavClient = ({ user }) => {
 
   return (
     <>
-      {/* Controles de match - solo en página Home, arriba de la navegación */}
-      {showMatchControls && (
-        <div className='fixed bottom-20 left-1/2 transform -translate-x-1/2 z-40 px-4'>
-          <MatchControls user={user} isAdmin={false} />
-        </div>
-      )}
-
       {/* Navegación horizontal - siempre visible en todas las páginas */}
       <div className='fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-4'>
         <div className={styles.container}>

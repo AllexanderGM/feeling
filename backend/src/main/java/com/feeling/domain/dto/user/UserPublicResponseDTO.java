@@ -10,16 +10,4 @@ public record UserPublicResponseDTO(
         UserPublicStatusDTO status,
         UserProfileDataDTO profile
 ) {
-    
-    /**
-     * Status público sin información sensible
-     */
-    public record UserPublicStatusDTO(
-            Boolean verified,
-            Boolean profileComplete,
-            Boolean approved,
-            String approvalStatus,
-            String categoryInterest
-    ) {
-    }
 }

@@ -5,14 +5,14 @@ import com.feeling.infrastructure.entities.tour.DestinationTour;
 public record DestinationResponseDTO(
         String region,
         String country,
-        CityResponseDTO city,
+        String city,
         String image
 ) {
     public DestinationResponseDTO(DestinationTour destinationTour) {
         this(
                 destinationTour.getRegion(),
                 destinationTour.getCountry(),
-                new CityResponseDTO(destinationTour.getCity()),
+                destinationTour.getCity(),
                 destinationTour.getImage()
         );
     }

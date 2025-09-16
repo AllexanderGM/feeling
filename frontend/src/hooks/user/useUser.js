@@ -5,7 +5,7 @@ import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialFi
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
-import { mapBackendUserToFrontend, mapBackendUsersPaginatedResponse } from '@utils/userMapper.js'
+// Ya no necesitamos mapear usuarios, usamos la estructura estándar
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
 const useUser = () => {
@@ -97,13 +97,18 @@ const useUser = () => {
   const fetchUserSuggestions = useCallback(
     async (page = 0, size = 4, showNotifications = false) => {
       const result = await withLoading(async () => {
+        console.log('🌐 Calling userService.getUserSuggestions with page:', page, 'size:', size)
         const response = await userService.getUserSuggestions(page, size)
+        console.log('📡 API Response received:', response)
 
         // Manejar respuesta paginada
         if (response.content && Array.isArray(response.content)) {
-          // Mapear cada usuario de la respuesta para compatibilidad con UserCard
-          const mappedSuggestions = response.content.map(user => mapBackendUserToFrontend(user))
-          setSuggestions(mappedSuggestions)
+          console.log('📄 Processing paginated response with', response.content.length, 'users')
+          // Usar directamente la estructura estándar del proyecto
+          const suggestions = response.content
+          console.log('📋 Final suggestions to set:', suggestions)
+          
+          setSuggestions(suggestions)
           setSuggestionsPagination({
             page: response.number || page,
             size: response.size || size,
@@ -112,21 +117,20 @@ const useUser = () => {
             hasNext: !response.last,
             hasPrevious: !response.first
           })
-          return mappedSuggestions
+          return suggestions
         } else {
           // Fallback para respuesta no paginada
-          const rawSuggestions = Array.isArray(response) ? response : [response].filter(Boolean)
-          const mappedSuggestions = rawSuggestions.map(user => mapBackendUserToFrontend(user))
-          setSuggestions(mappedSuggestions)
+          const suggestions = Array.isArray(response) ? response : [response].filter(Boolean)
+          setSuggestions(suggestions)
           setSuggestionsPagination({
             page: 0,
-            size: mappedSuggestions.length,
+            size: suggestions.length,
             totalPages: 1,
-            totalElements: mappedSuggestions.length,
+            totalElements: suggestions.length,
             hasNext: false,
             hasPrevious: false
           })
-          return mappedSuggestions
+          return suggestions
         }
       }, 'obtener sugerencias')
 

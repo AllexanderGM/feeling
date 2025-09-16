@@ -21,7 +21,7 @@ import { Logger } from '@utils/logger.js'
 
 import imgProfile from '/profile.png'
 
-const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, placement = 'top' }) => {
+const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, placement = 'top', isActive = false }) => {
   const navigate = useNavigate()
   const { logout } = useAuth()
   const { isOpen: isLogoutModalOpen, onOpen: onLogoutModalOpen, onClose: onLogoutModalClose } = useDisclosure()
@@ -110,11 +110,11 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
             name={userData.displayName}
             size='sm'
             className={`
-              cursor-pointer transition-all duration-300 ease-in-out
-              hover:scale-102
+              cursor-pointer transition-all duration-300 ease-in-out hover:scale-105
+              ${isOpen ? 'ring-2 ring-primary-400 ring-offset-2' : ''}
             `}
-            isBordered={false}
-            color='default'
+            isBordered={true}
+            color={isActive ? 'primary' : 'default'}
           />
         </PopoverTrigger>
         <PopoverContent className='p-1'>

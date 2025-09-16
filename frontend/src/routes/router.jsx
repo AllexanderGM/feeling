@@ -22,7 +22,6 @@ import Profile from '@pages/user/profile/Profile.jsx'
 import Settings from '@pages/user/settings/Settings.jsx'
 import Help from '@pages/help/Help.jsx'
 import Matches from '@pages/matches/Matches.jsx'
-import MatchesNew from '@pages/matches/MatchesNew.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 // Páginas de administración
@@ -67,8 +66,7 @@ const router = createBrowserRouter([
             index: true,
             element: (
               <RequireCompleteProfile>
-                {/* <Home /> */}
-                <div></div>
+                <Home />
               </RequireCompleteProfile>
             )
           },
@@ -76,7 +74,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.MATCHES.slice(1),
             element: (
               <RequireCompleteProfile>
-                <MatchesNew />
+                <Matches />
               </RequireCompleteProfile>
             )
           },

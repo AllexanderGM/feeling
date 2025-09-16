@@ -97,7 +97,8 @@ public class UserService {
         return users.map(UserResponseDTO::new);
     }
 
-    public Page<UserPublicResponseDTO> getUserSuggestions(String userEmail, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<UserSuggestionResponseDTO> getUserSuggestions(String userEmail, Pageable pageable) {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
@@ -105,11 +106,24 @@ public class UserService {
             throw new RuntimeException("Debes completar tu perfil antes de ver sugerencias");
         }
 
+        // DEBUG: Log de parámetros de búsqueda
+        Long categoryId = currentUser.getCategoryInterest() != null ? 
+            currentUser.getCategoryInterest().getId() : null;
+        
+        Map<String, Object> debugData = new HashMap<>();
+        debugData.put("usuario", userEmail);
+        debugData.put("userId", currentUser.getId());
+        debugData.put("categoryId", categoryId);
+        debugData.put("minAge", currentUser.getAgePreferenceMin());
+        debugData.put("maxAge", currentUser.getAgePreferenceMax());
+        debugData.put("ciudad", currentUser.getCity());
+        debugData.put("departamento", currentUser.getDepartment());
+        logger.info("🔍 DEBUG Suggestions", debugData);
+
         // Obtener usuarios compatibles con paginación optimizada
         Page<User> suggestedUsers = userRepository.findCompatibleUsersOptimized(
                 currentUser.getId(),
-                currentUser.getCategoryInterest() != null ? 
-                    currentUser.getCategoryInterest().getId() : null,
+                categoryId,
                 currentUser.getAgePreferenceMin(),
                 currentUser.getAgePreferenceMax(),
                 currentUser.getCity(),
@@ -117,13 +131,63 @@ public class UserService {
                 pageable
         );
 
+        // DEBUG: Log de resultados
+        logger.info("🔍 DEBUG Suggestions - Resultados", Map.of(
+                "encontrados", suggestedUsers.getTotalElements(), 
+                "pagina", suggestedUsers.getNumber(), 
+                "tamano", suggestedUsers.getSize()));
+
+        // DEBUG: Verificar manualmente algunos usuarios compatibles
+        if (suggestedUsers.getTotalElements() == 0) {
+            debugCompatibleUsers(currentUser);
+            
+            // Probar query simplificada
+            List<User> debugResults = userRepository.findCompatibleUsersDebug(
+                currentUser.getId(), categoryId);
+            logger.info("🔍 DEBUG - Query simplificada", Map.of("usuarios_encontrados", debugResults.size()));
+            
+            for (User u : debugResults.stream().limit(3).collect(java.util.stream.Collectors.toList())) {
+                logger.info("🔍 DEBUG - Usuario simplificado", Map.of(
+                    "email", u.getEmail(), 
+                    "ciudad", u.getCity(), 
+                    "departamento", u.getDepartment()));
+            }
+        }
+
         logger.logMatching(userEmail, "suggestions", (int) suggestedUsers.getTotalElements(), 
                 Map.of("page", (int) pageable.getPageNumber()));
 
-        return suggestedUsers.map(this::convertToUserPublicResponseDTO);
+        return suggestedUsers.map(this::convertToUserSuggestionResponseDTO);
     }
 
-
+    /**
+     * DEBUG: Verificar manualmente usuarios que deberían ser compatibles
+     */
+    private void debugCompatibleUsers(User currentUser) {
+        logger.info("🔍 DEBUG - Verificando usuarios compatibles", Map.of("usuario", currentUser.getEmail()));
+        
+        // Buscar usuarios con la misma categoría
+        List<User> sameCategory = userRepository.findAll().stream()
+            .filter(u -> !u.getId().equals(currentUser.getId()))
+            .filter(u -> u.getCategoryInterest() != null && currentUser.getCategoryInterest() != null)
+            .filter(u -> u.getCategoryInterest().getId().equals(currentUser.getCategoryInterest().getId()))
+            .limit(5)
+            .collect(java.util.stream.Collectors.toList());
+            
+        logger.info("🔍 DEBUG - Usuarios misma categoría", Map.of("encontrados", sameCategory.size()));
+        
+        for (User user : sameCategory) {
+            logger.info("🔍 DEBUG - Usuario detalle", Map.of(
+                "email", user.getEmail(), 
+                "verificado", user.isVerified(), 
+                "aprobado", user.getApprovalStatus().toString(), 
+                "visible", user.isShowMeInSearch(), 
+                "perfil_completo", user.isProfileComplete(), 
+                "publico", user.isPublicAccount(),
+                "ciudad", user.getCity(), 
+                "edad", user.getAge()));
+        }
+    }
 
     /**
      * Completa el perfil del usuario y retorna el usuario actualizado
@@ -746,6 +810,10 @@ public class UserService {
         return UserDTOMapper.toUserPublicResponseDTO(user);
     }
 
+    public UserSuggestionResponseDTO convertToUserSuggestionResponseDTO(User user) {
+        return UserDTOMapper.toUserSuggestionResponseDTO(user);
+    }
+
     /**
      * Obtiene usuarios que no están aprobados y no han completado su perfil
      */
@@ -832,6 +900,7 @@ public class UserService {
     /**
      * Envía un correo recordatorio para completar el perfil
      */
+    @Transactional(readOnly = true)
     public boolean sendProfileCompletionReminder(Long userId) {
         try {
             Optional<User> userOpt = userRepository.findById(userId);
@@ -1378,6 +1447,7 @@ public class UserService {
     /**
      * Obtiene usuarios filtrados por estado
      */
+    @Transactional(readOnly = true)
     public Page<UserResponseDTO> getUsersByStatus(String status, String search, Pageable pageable) {
         Page<User> users;
         

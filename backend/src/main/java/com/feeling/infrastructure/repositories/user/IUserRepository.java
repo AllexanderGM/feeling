@@ -111,6 +111,19 @@ public interface IUserRepository extends JpaRepository<User, Long> {
             Pageable pageable
     );
 
+    // DEBUG: Versión simplificada para debug
+    @Query("SELECT DISTINCT u FROM User u " +
+            "LEFT JOIN FETCH u.categoryInterest uci " +
+            "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true " +
+            "AND u.profileComplete = true AND u.publicAccount = true AND u.searchVisibility = true " +
+            "AND u.accountDeactivated = false " +
+            "AND u.id != :excludeUserId " +
+            "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId)")
+    List<User> findCompatibleUsersDebug(
+            @Param("excludeUserId") Long excludeUserId,
+            @Param("categoryInterestId") Long categoryInterestId
+    );
+
     // Versión aleatoria para variedad (usar alternativamente)
     @Query(value = "SELECT u.* FROM users u " +
             "LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id " +

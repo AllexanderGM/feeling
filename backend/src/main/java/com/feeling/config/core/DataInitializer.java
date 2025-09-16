@@ -886,27 +886,49 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         String[][] ciudadesCol = {
-                {"Colombia", "Bogotá", "Cundinamarca"},
-                {"Colombia", "Medellín", "Antioquia"},
-                {"Colombia", "Cali", "Valle del Cauca"},
-                {"Colombia", "Barranquilla", "Atlántico"},
-                {"Colombia", "Cartagena", "Bolívar"},
-                {"Colombia", "Bucaramanga", "Santander"},
-                {"Colombia", "Pereira", "Risaralda"},
-                {"Colombia", "Manizales", "Caldas"}
+                {"Colombia", "Bogotá", "Cundinamarca"},    // 60% de usuarios
+                {"Colombia", "Bogotá", "Cundinamarca"},    // concentrar en Bogotá
+                {"Colombia", "Bogotá", "Cundinamarca"},    // para más matches
+                {"Colombia", "Bogotá", "Cundinamarca"},    // 
+                {"Colombia", "Bogotá", "Cundinamarca"},    //
+                {"Colombia", "Medellín", "Antioquia"},      // 20% en otras ciudades
+                {"Colombia", "Cali", "Valle del Cauca"},    // principales
+                {"Colombia", "Barranquilla", "Atlántico"}   //
         };
 
-        String[] descripciones = {
-                "Me encanta viajar y conocer nuevas culturas. Busco personas auténticas.",
-                "Apasionado por la música y el arte. Me gusta conversar sobre la vida.",
-                "Amo la naturaleza y los deportes al aire libre. Siempre dispuesto a nuevas experiencias.",
+        // Descripciones específicas por categoría 
+        String[] descripcionesEssence = {
+                "Me encanta viajar y conocer nuevas culturas. Busco personas auténticas para compartir aventuras.",
+                "Apasionado por la música y el arte. Me gusta conversar sobre la vida y crear memorias juntos.",
+                "Amo la naturaleza y los deportes al aire libre. Siempre dispuesto a nuevas experiencias con alguien especial.",
                 "Foodie empedernido. Las mejores conversaciones se dan alrededor de una buena comida.",
-                "Lector voraz y amante del cine. Busco conexiones profundas.",
-                "Empresario en crecimiento. Balanceo trabajo y vida personal.",
-                "Artista en el alma, práctico en la vida. Me gusta crear e inspirar.",
-                "Deportista por pasión, optimista por naturaleza.",
-                "Tecnólogo innovador con alma aventurera.",
-                "Espíritu libre que cree en las conexiones genuinas."
+                "Lector voraz y amante del cine. Busco conexiones profundas y relaciones significativas.",
+                "Empresario en crecimiento. Balanceo trabajo y vida personal, buscando alguien que comparta mis valores.",
+                "Artista en el alma, práctico en la vida. Me gusta crear e inspirar junto a mi pareja ideal.",
+                "Deportista por pasión, optimista por naturaleza. Busco alguien que comparta mi energía positiva."
+        };
+        
+        String[] descripcionesSpirit = {
+                "Cristiano comprometido que busca una relación centrada en Dios. La fe es fundamental en mi vida.",
+                "Amo servir a otros y busco alguien que comparta mi pasión por el Reino de Dios.",
+                "Mi relación con Cristo es lo más importante. Busco una pareja que camine conmigo en la fe.",
+                "Participo activamente en mi iglesia y busco una relación con propósito divino.",
+                "Creo en el matrimonio como institución sagrada. Busco mi compañera/o de vida en Cristo.",
+                "La oración y la Palabra son pilares en mi vida. Quiero compartir este camino espiritual.",
+                "Busco una relación que honre a Dios en todo momento. Los valores cristianos me guían.",
+                "Mi corazón está en las misiones y el servicio. Busco alguien con un corazón similar.",
+                "La familia y la fe son mis prioridades. Busco construir un hogar cristiano sólido."
+        };
+        
+        String[] descripcionesRouse = {
+                "Orgullosamente parte de la comunidad LGBTI+. Busco conexiones auténticas y sin prejuicios.",
+                "Creo en el amor sin etiquetas. Busco alguien que celebre la diversidad y la autenticidad.",
+                "Activista por los derechos LGBTI+. Busco una pareja que comparta mi pasión por la igualdad.",
+                "Mi identidad es parte de mi fortaleza. Busco alguien que me ame tal como soy.",
+                "Arte, cultura y diversidad son mi pasión. Busco conexiones profundas en un ambiente inclusivo.",
+                "Libre de ser yo mismo/a. Busco una relación honesta y sin máscaras.",
+                "La comunidad LGBTI+ es mi familia. Busco expandir ese círculo de amor y aceptación.",
+                "Creo en el poder transformador del amor auténtico. Busco mi persona especial."
         };
 
         String[] profesiones = {
@@ -927,8 +949,17 @@ public class DataInitializer implements CommandLineRunner {
         // Ubicación aleatoria
         String[] ubicacion = ciudadesCol[random.nextInt(ciudadesCol.length)];
 
-        // Fecha de nacimiento (18-65 años)
-        int edad = 18 + random.nextInt(47);
+        // Fecha de nacimiento (18-45 años, concentrado en 18-40 para más matches)
+        int edad;
+        if (categoria.equals("ACTIVE")) {
+            // 80% de usuarios activos entre 18-40, 20% entre 41-45
+            edad = random.nextDouble() < 0.8 ? 
+                18 + random.nextInt(23) :  // 18-40 años
+                41 + random.nextInt(5);    // 41-45 años
+        } else {
+            // Otros usuarios con rango normal pero limitado
+            edad = 18 + random.nextInt(32); // 18-50 años
+        }
         LocalDate fechaNacimiento = LocalDate.now().minusYears(edad)
                 .minusDays(random.nextInt(365));
 
@@ -967,7 +998,7 @@ public class DataInitializer implements CommandLineRunner {
                 .country(ubicacion[0])
                 .city(ubicacion[1])
                 .department(ubicacion[2])
-                .showMeInSearch(random.nextDouble() < 0.9) // 90% visible
+                .showMeInSearch(categoria.equals("ACTIVE")) // Solo usuarios activos aparecen en búsquedas
                 .allowNotifications(random.nextDouble() < 0.8) // 80% notificaciones
                 .showAge(random.nextDouble() < 0.85)
                 .showLocation(random.nextDouble() < 0.9)
@@ -985,7 +1016,7 @@ public class DataInitializer implements CommandLineRunner {
                     .phone(generatePhone(random))
                     .phoneCode("+57")
                     .document(generateDocument(random))
-                    .description(descripciones[random.nextInt(descripciones.length)])
+                    .description("TEMPORAL_DESCRIPTION") // Se reemplazará después según la categoría
                     .profession(profesiones[random.nextInt(profesiones.length)])
                     .height(150 + random.nextInt(50)) // 150-200 cm
                     .agePreferenceMin(Math.max(18, edad - 10))
@@ -1003,7 +1034,7 @@ public class DataInitializer implements CommandLineRunner {
                     .phone(generatePhone(random))
                     .phoneCode("+57")
                     .document(generateDocument(random))
-                    .description(descripciones[random.nextInt(descripciones.length)])
+                    .description("TEMPORAL_DESCRIPTION") // Se reemplazará después según la categoría
                     .profession(profesiones[random.nextInt(profesiones.length)])
                     .height(150 + random.nextInt(50))
                     .agePreferenceMin(Math.max(18, edad - 10))
@@ -1022,10 +1053,58 @@ public class DataInitializer implements CommandLineRunner {
             user.setUpdatedAt(fechaDesactivacion);
         }
 
+        // Asignar descripción específica según la categoría después de crear el usuario
+        if (user.getDescription() != null && "TEMPORAL_DESCRIPTION".equals(user.getDescription()) 
+            && user.getCategoryInterest() != null) {
+            String[] descripcionesSeleccionadas;
+            UserCategoryInterestList categoria_interes = user.getCategoryInterest().getCategoryInterestEnum();
+            
+            if (categoria_interes == UserCategoryInterestList.SPIRIT) {
+                descripcionesSeleccionadas = descripcionesSpirit;
+            } else if (categoria_interes == UserCategoryInterestList.ROUSE) {
+                descripcionesSeleccionadas = descripcionesRouse;
+            } else { // ESSENCE
+                descripcionesSeleccionadas = descripcionesEssence;
+            }
+            
+            user.setDescription(descripcionesSeleccionadas[random.nextInt(descripcionesSeleccionadas.length)]);
+        }
+
         // Asignar atributos según la categoría
         // Asignar categoría de interés para TODOS los usuarios (necesario para perfil completo)
+        // Distribución estratégica: más usuarios SPIRIT activos
         if (!categories.isEmpty()) {
-            user.setCategoryInterest(categories.get(random.nextInt(categories.size())));
+            UserCategoryInterest selectedCategory;
+            
+            // Para usuarios ACTIVOS, distribución específica para testing
+            if (categoria.equals("ACTIVE")) {
+                // 40% ESSENCE, 30% ROUSE, 30% SPIRIT para usuarios activos
+                double random_category = random.nextDouble();
+                if (random_category < 0.40) {
+                    // Buscar ESSENCE
+                    selectedCategory = categories.stream()
+                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ESSENCE)
+                        .findFirst()
+                        .orElse(categories.get(0));
+                } else if (random_category < 0.70) {
+                    // Buscar ROUSE
+                    selectedCategory = categories.stream()
+                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE)
+                        .findFirst()
+                        .orElse(categories.get(0));
+                } else {
+                    // Buscar SPIRIT
+                    selectedCategory = categories.stream()
+                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT)
+                        .findFirst()
+                        .orElse(categories.get(0));
+                }
+            } else {
+                // Para otros estados, distribución más equilibrada
+                selectedCategory = categories.get(random.nextInt(categories.size()));
+            }
+            
+            user.setCategoryInterest(selectedCategory);
         }
 
         // Asignar atributos físicos básicos para TODOS los usuarios
@@ -1043,6 +1122,64 @@ public class DataInitializer implements CommandLineRunner {
             }
             if (!bodyTypes.isEmpty()) {
                 user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
+            }
+            
+            // Agregar atributos específicos según la categoría del usuario
+            UserCategoryInterest userCategory = user.getCategoryInterest();
+            if (userCategory != null) {
+                if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT) {
+                    // Asignar religión para usuarios SPIRIT
+                    List<UserAttribute> religions = userAttributeRepository.findByAttributeTypeAndActiveTrue("RELIGION");
+                    if (!religions.isEmpty()) {
+                        // Favorecer religiones cristianas para SPIRIT
+                        List<UserAttribute> christianReligions = religions.stream()
+                            .filter(r -> r.getCode().contains("CHRISTIAN") || r.getCode().contains("CATHOLIC") || 
+                                       r.getCode().contains("PROTESTANT") || r.getCode().contains("EVANGELICAL") ||
+                                       r.getCode().contains("PENTECOSTAL"))
+                            .collect(java.util.stream.Collectors.toList());
+                        
+                        if (!christianReligions.isEmpty()) {
+                            user.setReligion(christianReligions.get(random.nextInt(christianReligions.size())));
+                        } else {
+                            user.setReligion(religions.get(random.nextInt(religions.size())));
+                        }
+                    }
+                    
+                    // Asignar iglesia para algunos usuarios SPIRIT
+                    if (random.nextDouble() < 0.7) { // 70% de usuarios SPIRIT tienen iglesia
+                        List<UserAttribute> churches = userAttributeRepository.findByAttributeTypeAndActiveTrue("CHURCH");
+                        if (!churches.isEmpty()) {
+                            user.setChurch(churches.get(random.nextInt(churches.size())));
+                        }
+                    }
+                    
+                    // Agregar momentos espirituales y prácticas espirituales para usuarios SPIRIT activos
+                    if (categoria.equals("ACTIVE") && random.nextDouble() < 0.8) { // 80% de SPIRIT activos
+                        String[] spiritualMoments = {
+                            "Oración matutina diaria", "Lectura bíblica antes de dormir", "Adoración los domingos",
+                            "Momentos de reflexión en la naturaleza", "Servicio comunitario mensual", "Retiros espirituales"
+                        };
+                        String[] spiritualPractices = {
+                            "Oración personal", "Estudio bíblico", "Meditación cristiana", "Ayuno ocasional",
+                            "Servicio a otros", "Participación en grupos pequeños", "Adoración musical"
+                        };
+                        
+                        user.setSpiritualMoments(spiritualMoments[random.nextInt(spiritualMoments.length)]);
+                        user.setSpiritualPractices(spiritualPractices[random.nextInt(spiritualPractices.length)]);
+                    }
+                    
+                } else if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE) {
+                    // Asignar atributos específicos para usuarios ROUSE
+                    List<UserAttribute> sexualRoles = userAttributeRepository.findByAttributeTypeAndActiveTrue("SEXUAL_ROLE");
+                    if (!sexualRoles.isEmpty()) {
+                        user.setSexualRole(sexualRoles.get(random.nextInt(sexualRoles.size())));
+                    }
+                    
+                    List<UserAttribute> relationshipTypes = userAttributeRepository.findByAttributeTypeAndActiveTrue("RELATIONSHIP_TYPE");
+                    if (!relationshipTypes.isEmpty()) {
+                        user.setRelationshipType(relationshipTypes.get(random.nextInt(relationshipTypes.size())));
+                    }
+                }
             }
         }
 
@@ -1117,24 +1254,68 @@ public class DataInitializer implements CommandLineRunner {
 
     /**
      * Asigna tags aleatorios a un usuario para completar su perfil
+     * Ahora considera la categoría del usuario para asignar tags más relevantes
      */
     private void assignRandomTags(User user, Random random) {
         try {
-            // Obtener algunos tags existentes aleatoriamente
+            // Obtener todos los tags disponibles
             List<UserTag> availableTags = userTagRepository.findAll();
             if (!availableTags.isEmpty()) {
                 List<UserTag> userTags = new ArrayList<>();
-                int numTags = 2 + random.nextInt(4); // 2-5 tags por usuario
+                int numTags = 3 + random.nextInt(3); // 3-5 tags por usuario
 
-                // Seleccionar tags aleatorios sin repetir
-                Set<Integer> selectedIndexes = new HashSet<>();
-                while (selectedIndexes.size() < Math.min(numTags, availableTags.size())) {
-                    selectedIndexes.add(random.nextInt(availableTags.size()));
+                // Definir tags específicos por categoría
+                List<String> categorySpecificTags = new ArrayList<>();
+                UserCategoryInterest userCategory = user.getCategoryInterest();
+                
+                if (userCategory != null) {
+                    if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT) {
+                        // Tags específicos para SPIRIT
+                        categorySpecificTags.addAll(Arrays.asList(
+                            "oración", "biblia", "iglesia", "adoración", "servicio", "misiones",
+                            "grupos pequeños", "retiros", "conferencias", "música cristiana",
+                            "familia", "valores", "fe", "esperanza", "caridad"
+                        ));
+                    } else if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE) {
+                        // Tags específicos para ROUSE
+                        categorySpecificTags.addAll(Arrays.asList(
+                            "diversidad", "inclusión", "arte", "cultura", "teatro", "drag",
+                            "pride", "activismo", "comunidad", "autenticidad", "expresión"
+                        ));
+                    } else { // ESSENCE
+                        // Tags más generales para ESSENCE
+                        categorySpecificTags.addAll(Arrays.asList(
+                            "romántico", "aventurero", "deportes", "viajes", "música", "cine",
+                            "gastronomía", "fotografía", "naturaleza", "fitness", "lectura"
+                        ));
+                    }
                 }
 
-                for (Integer index : selectedIndexes) {
-                    UserTag tag = availableTags.get(index);
-                    userTags.add(tag);
+                // Primero, intentar asignar 2-3 tags específicos de la categoría
+                int categoryTagsToAdd = Math.min(2 + random.nextInt(2), categorySpecificTags.size());
+                Set<String> addedTagNames = new HashSet<>();
+                
+                for (int i = 0; i < categoryTagsToAdd; i++) {
+                    String tagName = categorySpecificTags.get(random.nextInt(categorySpecificTags.size()));
+                    if (!addedTagNames.contains(tagName)) {
+                        UserTag tag = availableTags.stream()
+                            .filter(t -> t.getName().equalsIgnoreCase(tagName))
+                            .findFirst()
+                            .orElse(null);
+                        
+                        if (tag != null) {
+                            userTags.add(tag);
+                            addedTagNames.add(tagName);
+                        }
+                    }
+                }
+
+                // Luego, completar con tags aleatorios generales
+                while (userTags.size() < numTags && userTags.size() < availableTags.size()) {
+                    UserTag randomTag = availableTags.get(random.nextInt(availableTags.size()));
+                    if (!userTags.contains(randomTag)) {
+                        userTags.add(randomTag);
+                    }
                 }
 
                 user.setTags(userTags);
