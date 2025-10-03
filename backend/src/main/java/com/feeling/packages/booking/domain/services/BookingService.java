@@ -5,7 +5,8 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.booking.domain.dto.BookingRequestDTO;
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
-import com.feeling.packages.booking.infrastructure.entities.*;
+import com.feeling.packages.booking.infrastructure.entities.Booking;
+import com.feeling.packages.booking.infrastructure.entities.PaymentMethod;
 import com.feeling.packages.booking.infrastructure.repositories.IAvailabilityRepository;
 import com.feeling.packages.booking.infrastructure.repositories.IBookingRepository;
 import com.feeling.packages.booking.infrastructure.repositories.IPaymentMethodRepository;
@@ -33,21 +34,21 @@ public class BookingService {
     private final IAvailabilityRepository availabilityRepository;
 
     @Transactional
-    public BookingResponseDTO createBooking(BookingRequestDTO bookingRequest, Long userId) {
+    public BookingResponseDTO createBooking(BookingRequestDTO bookingRequest, String userEmail) {
         // Validar usuario
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Validar evento
         Event event = eventRepository.findById(bookingRequest.getEventId())
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         // Verificar que el evento esté activo y tenga capacidad
         if (!event.getIsActive()) {
             throw new BadRequestException("El evento no está activo");
         }
 
-        if (event.getCapacity() != null && getBookedAttendeesForEvent(event.getId()) + bookingRequest.getAttendees() > event.getCapacity()) {
+        if (event.getMaxCapacity() != null && getBookedAttendeesForEvent(event.getId()) + bookingRequest.getAttendees() > event.getMaxCapacity()) {
             throw new BadRequestException("No hay suficiente capacidad en el evento");
         }
 
@@ -58,19 +59,19 @@ public class BookingService {
 
         // Crear la reserva
         Booking booking = Booking.builder()
-                .user(user)
-                .event(event)
-                .bookingDate(bookingRequest.getBookingDate())
-                .attendees(bookingRequest.getAttendees())
-                .totalPrice(calculateTotalPrice(event, bookingRequest.getAttendees()))
-                .specialRequests(bookingRequest.getSpecialRequests())
-                .status(Booking.BookingStatus.PENDING)
-                .build();
+            .user(user)
+            .event(event)
+            .bookingDate(bookingRequest.getBookingDate())
+            .attendees(bookingRequest.getAttendees())
+            .totalPrice(calculateTotalPrice(event, bookingRequest.getAttendees()))
+            .specialRequests(bookingRequest.getSpecialRequests())
+            .status(Booking.BookingStatus.PENDING)
+            .build();
 
         // Procesar pago si se proporciona método de pago
         if (bookingRequest.getPaymentMethodId() != null) {
             PaymentMethod paymentMethod = paymentMethodRepository.findById(bookingRequest.getPaymentMethodId())
-                    .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
+                .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
 
             // Aquí se procesaría el pago
             booking.setStatus(Booking.BookingStatus.CONFIRMED);
@@ -80,30 +81,33 @@ public class BookingService {
         return new BookingResponseDTO(booking);
     }
 
-    public List<BookingResponseDTO> getUserBookings(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+    public List<BookingResponseDTO> getUserBookings(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         List<Booking> bookings = bookingRepository.findByUserOrderByCreatedAtDesc(user);
         return bookings.stream()
-                .map(BookingResponseDTO::new)
-                .collect(Collectors.toList());
+            .map(BookingResponseDTO::new)
+            .collect(Collectors.toList());
     }
 
     public Page<BookingResponseDTO> getEventBookings(Long eventId, Pageable pageable) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         Page<Booking> bookings = bookingRepository.findByEventOrderByCreatedAtDesc(event, pageable);
         return bookings.map(BookingResponseDTO::new);
     }
 
-    public BookingResponseDTO getBookingById(Long bookingId, Long userId) {
+    public BookingResponseDTO getBookingById(Long bookingId, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Verificar que el usuario sea el propietario de la reserva
-        if (!booking.getUser().getId().equals(userId)) {
+        if (!booking.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedException("No tiene permisos para acceder a esta reserva");
         }
 
@@ -111,12 +115,15 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponseDTO cancelBooking(Long bookingId, Long userId) {
+    public BookingResponseDTO cancelBooking(Long bookingId, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Verificar que el usuario sea el propietario
-        if (!booking.getUser().getId().equals(userId)) {
+        if (!booking.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedException("No tiene permisos para cancelar esta reserva");
         }
 
@@ -154,12 +161,15 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponseDTO updateBookingStatus(Long bookingId, Booking.BookingStatus newStatus, Long userId) {
+    public BookingResponseDTO updateBookingStatus(Long bookingId, Booking.BookingStatus newStatus, String userEmail) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Reserva no encontrada"));
+
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Verificar que el usuario sea el propietario
-        if (!booking.getUser().getId().equals(userId)) {
+        if (!booking.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedException("No tiene permisos para modificar esta reserva");
         }
 

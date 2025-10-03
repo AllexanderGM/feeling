@@ -1,4 +1,4 @@
-package com.feeling.domain.services.email;
+package com.feeling.packages.common.domain.services.email;
 
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
 import com.feeling.packages.event.domain.dto.EventRegistrationResponseDTO;
@@ -174,7 +174,7 @@ public class EmailService {
             Context context = new Context();
             context.setVariable("name", name);
             context.setVariable("changeDate", LocalDateTime.now().format(
-                    DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")
+                DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")
             ));
 
             String htmlContent = templateEngine.process("email-password-changed.html", context);
@@ -192,40 +192,66 @@ public class EmailService {
     }
 
     // ==============================
-    // EMAIL DE RESERVA (LEGACY)
+    // EMAIL DE CONFIRMACIÓN DE EVENTOS
     // ==============================
-    @Async
-    public void sendMailBooking(String email, String name, BookingResponseDTO bookingResponseDTO) throws MessagingException {
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            Context context = new Context();
-            context.setVariable("name", name);
-            context.setVariable("tourName", bookingResponseDTO.getTourName());
-            context.setVariable("tourDescription", bookingResponseDTO.getTourDescription());
-            context.setVariable("startDate", bookingResponseDTO.getStartDate().format(formatter));
-            context.setVariable("endDate", bookingResponseDTO.getEndDate().format(formatter));
-            context.setVariable("creationDate", bookingResponseDTO.getCreationDate().format(formatter));
-            context.setVariable("adults", bookingResponseDTO.getAdults());
-            context.setVariable("children", bookingResponseDTO.getChildren());
-            context.setVariable("includes", bookingResponseDTO.getIncludes());
-            context.setVariable("price", bookingResponseDTO.getPrice());
-            context.setVariable("paymentMethod", bookingResponseDTO.getPaymentMethod());
 
-            String html = templateEngine.process("email-verification.html", context);
+    /**
+     * Envía correo de confirmación cuando un usuario se registra en un evento.
+     *
+     * @param email        Email del usuario registrado
+     * @param userName     Nombre completo del usuario
+     * @param registration DTO con información del registro y evento
+     * @throws MessagingException si ocurre un error al enviar el correo
+     */
+    @Async
+    public void sendEventRegistrationConfirmation(
+            String email,
+            String userName,
+            EventRegistrationResponseDTO registration
+    ) throws MessagingException {
+        try {
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            Context context = new Context();
+
+            // Información del usuario
+            context.setVariable("userName", userName);
+
+            // Información del evento
+            context.setVariable("eventTitle", registration.eventTitle());
+            context.setVariable("eventDate", registration.eventDate().format(dateFormatter));
+            context.setVariable("eventTime", registration.eventDate().format(timeFormatter));
+
+            // Información del registro
+            context.setVariable("registrationId", registration.id());
+            context.setVariable("registrationDate", registration.registrationDate().format(dateFormatter));
+
+            // Información de pago
+            context.setVariable("amountPaid", registration.amountPaid());
+            context.setVariable("paymentStatus", registration.paymentStatusDisplayName());
+            context.setVariable("isPaid", registration.isPaid());
+            context.setVariable("isPending", registration.isPending());
+
+            // Link al evento (puedes personalizarlo)
+            String eventLink = frontendUrl + "/events/" + registration.eventId();
+            context.setVariable("eventLink", eventLink);
+
+            String html = templateEngine.process("event-registration-confirmation.html", context);
 
             MimeMessage mensaje = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mensaje, true);
 
             helper.setTo(email);
-            helper.setSubject("Confirmación de reserva GT");
+            helper.setSubject("Confirmación de registro - " + registration.eventTitle());
             helper.setText(html, true);
 
             mailSender.send(mensaje);
 
-            logger.info("Correo de confirmación de reserva enviado a {}", email);
+            logger.info("Correo de confirmación de registro a evento enviado a {}", email);
         } catch (Exception e) {
-            logger.error("Error al enviar correo de confirmación de reserva: {}", e.getMessage(), e);
-            throw new MessagingException("Error al enviar correo de confirmación de reserva", e);
+            logger.error("Error al enviar correo de confirmación de registro a evento: {}", e.getMessage(), e);
+            throw new MessagingException("Error al enviar correo de confirmación de registro a evento", e);
         }
     }
 

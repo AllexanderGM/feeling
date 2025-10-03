@@ -1,15 +1,15 @@
 package com.feeling.packages.user.domain.services;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
-import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.domain.services.email.EmailService;
-import com.feeling.domain.services.storage.StorageService;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.services.email.EmailService;
+import com.feeling.packages.common.domain.services.storage.StorageService;
 import com.feeling.packages.user.domain.dto.*;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;

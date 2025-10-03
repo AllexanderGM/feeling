@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class JsonViewsTest {
 
     private ObjectMapper objectMapper;
-    private UserExtendedResponseDTO testUserDTO;
+    private com.feeling.packages.user.domain.dto.UserResponseDTO testUserDTO;
 
     @BeforeEach
     void setUp() {
@@ -64,7 +64,7 @@ public class JsonViewsTest {
                 10, 2, 5, 10, 3L, 1L, 2L, 5L
         );
 
-        UserAuthDTO auth = new UserAuthDTO(
+        com.feeling.packages.auth.domain.dto.AuthProviderInfoDTO auth = new com.feeling.packages.auth.domain.dto.AuthProviderInfoDTO(
                 null, null, null, null
         );
 
@@ -72,8 +72,8 @@ public class JsonViewsTest {
                 false, null, null
         );
 
-        testUserDTO = new UserExtendedResponseDTO(
-                status, profile, privacy, notifications, metrics, matches, auth, account
+        testUserDTO = new com.feeling.packages.user.domain.dto.UserResponseDTO(
+                status, profile, privacy, metrics, matches, auth, account, notifications
         );
     }
 

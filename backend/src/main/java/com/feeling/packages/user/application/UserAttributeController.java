@@ -1,6 +1,6 @@
 package com.feeling.packages.user.application;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserAttributeCreateDTO;
 import com.feeling.packages.user.domain.dto.UserAttributeDTO;
 import com.feeling.packages.user.domain.dto.UserResponseDTO;
@@ -42,8 +42,8 @@ public class UserAttributeController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all attributes grouped by type", 
-               description = "Get all user attributes grouped by type (authenticated users)")
+    @Operation(summary = "Get all attributes grouped by type",
+        description = "Get all user attributes grouped by type (authenticated users)")
     public ResponseEntity<Map<String, List<UserAttributeDTO>>> getAllAttributes() {
         try {
             Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAllAttributesGrouped();
@@ -56,10 +56,10 @@ public class UserAttributeController {
 
     @GetMapping("/{attributeType}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get attributes by type", 
-               description = "Get attributes of a specific type (authenticated users)")
+    @Operation(summary = "Get attributes by type",
+        description = "Get attributes of a specific type (authenticated users)")
     public ResponseEntity<List<UserAttributeDTO>> getAttributesByType(
-            @Parameter(description = "Attribute type") @PathVariable String attributeType) {
+        @Parameter(description = "Attribute type") @PathVariable String attributeType) {
         try {
             List<UserAttributeDTO> attributes = userAttributeService.getAttributesByType(attributeType);
             return ResponseEntity.ok(attributes);
@@ -71,11 +71,11 @@ public class UserAttributeController {
 
     @GetMapping("/{attributeId}/users")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get users filtered by attribute", 
-               description = "Get users with matching profile format filtered by specific attribute")
+    @Operation(summary = "Get users filtered by attribute",
+        description = "Get users with matching profile format filtered by specific attribute")
     public ResponseEntity<Page<UserResponseDTO>> getUsersByAttribute(
-            @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
-            @PageableDefault(size = 20) Pageable pageable) {
+        @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
+        @PageableDefault(size = 20) Pageable pageable) {
         try {
             Page<UserResponseDTO> users = userAttributeService.getUsersByAttributeWithResponseDTO(attributeId, pageable);
             return ResponseEntity.ok(users);
@@ -87,8 +87,8 @@ public class UserAttributeController {
 
     @GetMapping("/types")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get available attribute types", 
-               description = "Get list of available attribute types (authenticated users)")
+    @Operation(summary = "Get available attribute types",
+        description = "Get list of available attribute types (authenticated users)")
     public ResponseEntity<List<String>> getAttributeTypes() {
         try {
             Map<String, List<UserAttributeDTO>> grouped = userAttributeService.getAllAttributesGrouped();
@@ -102,11 +102,11 @@ public class UserAttributeController {
 
     @PostMapping("/church")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Create new church", 
-               description = "Add a new church for authenticated users")
+    @Operation(summary = "Create new church",
+        description = "Add a new church for authenticated users")
     public ResponseEntity<?> createChurch(@Valid @RequestBody UserAttributeCreateDTO createDTO,
-                                         BindingResult bindingResult) {
-        
+                                          BindingResult bindingResult) {
+
         log.info("Usuario creando nueva iglesia: {}", createDTO);
 
         if (bindingResult.hasErrors()) {
@@ -114,10 +114,10 @@ public class UserAttributeController {
             errorResponse.put("error", "VALIDATION_ERROR");
             errorResponse.put("message", "Error de validación en los datos de la iglesia");
             errorResponse.put("details", bindingResult.getFieldErrors().stream()
-                    .collect(Collectors.toMap(
-                            error -> error.getField(),
-                            error -> error.getDefaultMessage()
-                    )));
+                .collect(Collectors.toMap(
+                    error -> error.getField(),
+                    error -> error.getDefaultMessage()
+                )));
 
             log.warn("Error de validación creando iglesia: {}", errorResponse);
             return ResponseEntity.badRequest().body(errorResponse);
@@ -132,7 +132,7 @@ public class UserAttributeController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "INVALID_CHURCH_DATA");
             errorResponse.put("message", e.getMessage());
-            
+
             log.error("Error creando iglesia: {}", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
 
@@ -140,7 +140,7 @@ public class UserAttributeController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "INTERNAL_SERVER_ERROR");
             errorResponse.put("message", "Error interno creando la iglesia");
-            
+
             log.error("Error interno creando iglesia", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
@@ -152,12 +152,12 @@ public class UserAttributeController {
 
     @PostMapping("/{attributeType}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Create new attribute", 
-               description = "Add a new attribute by attribute type (admin only)")
+    @Operation(summary = "Create new attribute",
+        description = "Add a new attribute by attribute type (admin only)")
     public ResponseEntity<?> createAttribute(
-            @Parameter(description = "Attribute type") @PathVariable String attributeType,
-            @Valid @RequestBody UserAttributeCreateDTO createDTO,
-            BindingResult bindingResult) {
+        @Parameter(description = "Attribute type") @PathVariable String attributeType,
+        @Valid @RequestBody UserAttributeCreateDTO createDTO,
+        BindingResult bindingResult) {
 
         log.info("Creando nuevo atributo del tipo: {} con datos: {}", attributeType, createDTO);
 
@@ -166,10 +166,10 @@ public class UserAttributeController {
             errorResponse.put("error", "VALIDATION_ERROR");
             errorResponse.put("message", "Error de validación en los datos enviados");
             errorResponse.put("details", bindingResult.getFieldErrors().stream()
-                    .collect(Collectors.toMap(
-                            error -> error.getField(),
-                            error -> error.getDefaultMessage()
-                    )));
+                .collect(Collectors.toMap(
+                    error -> error.getField(),
+                    error -> error.getDefaultMessage()
+                )));
 
             log.warn("Error de validación creando atributo {}: {}", attributeType, errorResponse);
             return ResponseEntity.badRequest().body(errorResponse);
@@ -211,11 +211,11 @@ public class UserAttributeController {
 
     @PutMapping("/{attributeId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Update attribute", 
-               description = "Modify an existing attribute (admin only)")
+    @Operation(summary = "Update attribute",
+        description = "Modify an existing attribute (admin only)")
     public ResponseEntity<UserAttributeDTO> updateAttribute(
-            @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
-            @Valid @RequestBody UserAttributeCreateDTO updateDTO) {
+        @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
+        @Valid @RequestBody UserAttributeCreateDTO updateDTO) {
         try {
             UserAttributeDTO updatedAttribute = userAttributeService.updateAttribute(attributeId, updateDTO);
             return ResponseEntity.ok(updatedAttribute);
@@ -227,17 +227,17 @@ public class UserAttributeController {
 
     @DeleteMapping("/{attributeId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Delete attribute", 
-               description = "Delete an existing attribute (admin only)")
+    @Operation(summary = "Delete attribute",
+        description = "Delete an existing attribute (admin only)")
     public ResponseEntity<MessageResponseDTO> deleteAttribute(
-            @Parameter(description = "Attribute ID") @PathVariable Long attributeId) {
+        @Parameter(description = "Attribute ID") @PathVariable Long attributeId) {
         try {
             MessageResponseDTO response = userAttributeService.deleteAttribute(attributeId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Error eliminando atributo: {}", attributeId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new MessageResponseDTO("Error al eliminar atributo"));
+                .body(new MessageResponseDTO("Error al eliminar atributo"));
         }
     }
 }

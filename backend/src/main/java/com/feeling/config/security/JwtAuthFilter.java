@@ -1,11 +1,11 @@
 package com.feeling.config.security;
 
-import com.feeling.infrastructure.logging.StructuredLoggerFactory;
+import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.auth.domain.services.JwtService;
-import com.feeling.packages.user.domain.services.CachedUserService;
-import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
+import com.feeling.packages.user.domain.services.CachedUserService;
+import com.feeling.packages.user.infrastructure.entities.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +29,7 @@ import java.util.Optional;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final StructuredLoggerFactory.StructuredLogger logger =
-            StructuredLoggerFactory.create(JwtAuthFilter.class);
+        StructuredLoggerFactory.create(JwtAuthFilter.class);
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -39,9 +39,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
         try {
@@ -132,8 +132,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Para rutas de completar perfil, permitir usuarios verificados pero no aprobados
             boolean isProfileCompletionRoute = requestPath.equals("/user/complete-profile");
             Boolean isUserValid = isProfileCompletionRoute ?
-                    cachedUserService.isUserValidForProfileCompletion(userEmail) :
-                    cachedUserService.isUserValidForAuth(userEmail);
+                cachedUserService.isUserValidForProfileCompletion(userEmail) :
+                cachedUserService.isUserValidForAuth(userEmail);
 
             if (!isUserValid) {
                 logger.warn("❌ Usuario no encontrado o deshabilitado: " + userEmail);
@@ -187,9 +187,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             // Crear token de autenticación para Spring Security
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
+                userDetails,
+                null,
+                userDetails.getAuthorities()
             );
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
@@ -230,9 +230,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
 
         String jsonResponse = String.format(
-                "{\"error\": \"%s\", \"status\": 401, \"timestamp\": \"%s\"}",
-                message,
-                java.time.Instant.now().toString()
+            "{\"error\": \"%s\", \"status\": 401, \"timestamp\": \"%s\"}",
+            message,
+            java.time.Instant.now().toString()
         );
 
         response.getWriter().write(jsonResponse);

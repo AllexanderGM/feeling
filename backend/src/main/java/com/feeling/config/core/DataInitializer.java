@@ -6,6 +6,7 @@ import com.feeling.packages.event.infrastructure.entities.EventStatus;
 import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.match.infrastructure.entities.MatchPlan;
 import com.feeling.packages.match.infrastructure.repositories.IMatchPlanRepository;
+import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.user.domain.enums.ApprovalStatus;
 import com.feeling.packages.user.domain.enums.TagApprovalStatus;
 import com.feeling.packages.user.infrastructure.entities.*;
@@ -993,7 +994,7 @@ public class DataInitializer implements CommandLineRunner {
                 .approvalStatus(approvalStatus)
                 .accountDeactivated(accountDeactivated)
                 .userRole(clientRole)
-                .userAuthProvider(UserAuthProvider.LOCAL)
+                .userAuthProvider(AuthProvider.LOCAL)
                 .createdAt(LocalDateTime.now().minusDays(random.nextInt(365)))
                 .updatedAt(LocalDateTime.now())
                 .dateOfBirth(fechaNacimiento)
@@ -1423,6 +1424,7 @@ public class DataInitializer implements CommandLineRunner {
                             .category(category)
                             .status(status)
                             .mainImage(eventData[6])
+                            .location(eventData[7])
                             .createdBy(creator)
                             .isActive(isActive)
                             .createdAt(LocalDateTime.now())
@@ -1444,27 +1446,27 @@ public class DataInitializer implements CommandLineRunner {
         switch (category) {
             case CULTURAL:
                 return new String[][]{
-                        {"Exposición de Arte Contemporáneo", "Descubre las últimas tendencias del arte contemporáneo en esta increíble exposición. Artistas locales e internacionales muestran sus obras más innovadoras.", "15", "25000", "50", "12", "https://picsum.photos/600/400?random=1001"},
-                        {"Teatro: Romeo y Julieta", "La clásica obra de Shakespeare interpretada por la compañía nacional de teatro. Una experiencia única e inolvidable.", "22", "45000", "200", "85", "https://picsum.photos/600/400?random=1002"},
-                        {"Festival de Cine Independiente", "Tres días de proyecciones de películas independientes de todo el mundo. Incluye charlas con directores y actores.", "30", "35000", "150", "67", "https://picsum.photos/600/400?random=1003"}
+                        {"Exposición de Arte Contemporáneo", "Descubre las últimas tendencias del arte contemporáneo en esta increíble exposición. Artistas locales e internacionales muestran sus obras más innovadoras.", "15", "25000", "50", "12", "https://picsum.photos/600/400?random=1001", "Museo de Arte Moderno - Bogotá"},
+                        {"Teatro: Romeo y Julieta", "La clásica obra de Shakespeare interpretada por la compañía nacional de teatro. Una experiencia única e inolvidable.", "22", "45000", "200", "85", "https://picsum.photos/600/400?random=1002", "Teatro Colón - Centro de Bogotá"},
+                        {"Festival de Cine Independiente", "Tres días de proyecciones de películas independientes de todo el mundo. Incluye charlas con directores y actores.", "30", "35000", "150", "67", "https://picsum.photos/600/400?random=1003", "Cinemateca Distrital - Chapinero"}
                 };
             case DEPORTIVO:
                 return new String[][]{
-                        {"Torneo de Fútbol Amateur", "Participa en nuestro torneo de fútbol amateur. Equipos de toda la ciudad compiten por el primer lugar.", "18", "20000", "80", "24", "https://picsum.photos/600/400?random=2001"},
-                        {"Maratón Ciudad 10K", "Únete a nuestra carrera de 10 kilómetros por los lugares más emblemáticos de la ciudad. Para todos los niveles.", "25", "15000", "300", "156", "https://picsum.photos/600/400?random=2002"},
-                        {"Clase de Yoga al Aire Libre", "Sesión de yoga en el parque principal de la ciudad. Perfecto para relajarse y conectar con la naturaleza.", "12", "12000", "30", "18", "https://picsum.photos/600/400?random=2003"}
+                        {"Torneo de Fútbol Amateur", "Participa en nuestro torneo de fútbol amateur. Equipos de toda la ciudad compiten por el primer lugar.", "18", "20000", "80", "24", "https://picsum.photos/600/400?random=2001", "Parque Simón Bolívar - Bogotá"},
+                        {"Maratón Ciudad 10K", "Únete a nuestra carrera de 10 kilómetros por los lugares más emblemáticos de la ciudad. Para todos los niveles.", "25", "15000", "300", "156", "https://picsum.photos/600/400?random=2002", "Carrera 7ma - Centro Histórico"},
+                        {"Clase de Yoga al Aire Libre", "Sesión de yoga en el parque principal de la ciudad. Perfecto para relajarse y conectar con la naturaleza.", "12", "12000", "30", "18", "https://picsum.photos/600/400?random=2003", "Parque Nacional - Bogotá"}
                 };
             case MUSICAL:
                 return new String[][]{
-                        {"Concierto de Rock Nacional", "Los mejores exponentes del rock nacional se presentan en un solo escenario. Una noche épica de música.", "20", "55000", "500", "245", "https://picsum.photos/600/400?random=3001"},
-                        {"Festival de Jazz", "Dos días de jazz con artistas nacionales e internacionales. Una experiencia única para los amantes de este género.", "35", "65000", "300", "134", "https://picsum.photos/600/400?random=3002"},
-                        {"Concierto Sinfónico", "La orquesta sinfónica de la ciudad interpreta las mejores piezas clásicas. Una noche de elegancia y cultura.", "28", "40000", "250", "98", "https://picsum.photos/600/400?random=3003"}
+                        {"Concierto de Rock Nacional", "Los mejores exponentes del rock nacional se presentan en un solo escenario. Una noche épica de música.", "20", "55000", "500", "245", "https://picsum.photos/600/400?random=3001", "Movistar Arena - Bogotá"},
+                        {"Festival de Jazz", "Dos días de jazz con artistas nacionales e internacionales. Una experiencia única para los amantes de este género.", "35", "65000", "300", "134", "https://picsum.photos/600/400?random=3002", "Teatro Mayor Julio Mario Santo Domingo"},
+                        {"Concierto Sinfónico", "La orquesta sinfónica de la ciudad interpreta las mejores piezas clásicas. Una noche de elegancia y cultura.", "28", "40000", "250", "98", "https://picsum.photos/600/400?random=3003", "Auditorio León de Greiff - Universidad Nacional"}
                 };
             case SOCIAL:
                 return new String[][]{
-                        {"Networking para Emprendedores", "Conecta con otros emprendedores y expande tu red de contactos. Incluye conferencias magistrales y espacios de networking.", "14", "30000", "100", "45", "https://picsum.photos/600/400?random=4001"},
-                        {"Cena de Gala Benéfica", "Elegante cena a beneficio de organizaciones locales. Una noche de buena comida y mejores causas.", "40", "120000", "150", "67", "https://picsum.photos/600/400?random=4002"},
-                        {"Speed Dating Profesional", "Conoce personas afines en un ambiente profesional y relajado. Para profesionales de 25 a 45 años.", "17", "25000", "40", "23", "https://picsum.photos/600/400?random=4003"}
+                        {"Networking para Emprendedores", "Conecta con otros emprendedores y expande tu red de contactos. Incluye conferencias magistrales y espacios de networking.", "14", "30000", "100", "45", "https://picsum.photos/600/400?random=4001", "WeWork - Zona T, Bogotá"},
+                        {"Cena de Gala Benéfica", "Elegante cena a beneficio de organizaciones locales. Una noche de buena comida y mejores causas.", "40", "120000", "150", "67", "https://picsum.photos/600/400?random=4002", "Hotel Sofitel Victoria Regia - Bogotá"},
+                        {"Speed Dating Profesional", "Conoce personas afines en un ambiente profesional y relajado. Para profesionales de 25 a 45 años.", "17", "25000", "40", "23", "https://picsum.photos/600/400?random=4003", "Andrés Carne de Res - Zona Rosa"}
                 };
             default:
                 return new String[0][0];

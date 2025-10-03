@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserAttributeCreateDTO;
 import com.feeling.packages.user.domain.dto.UserAttributeDTO;
 import com.feeling.packages.user.domain.dto.UserResponseDTO;
@@ -29,8 +29,8 @@ public class UserAttributeService {
 
     // Tipos de atributos válidos
     private static final Set<String> VALID_ATTRIBUTE_TYPES = Set.of(
-            "GENDER", "EYE_COLOR", "HAIR_COLOR", "BODY_TYPE", "RELIGION",
-            "MARITAL_STATUS", "EDUCATION_LEVEL", "RELATIONSHIP_TYPE", "SEXUAL_ROLE"
+        "GENDER", "EYE_COLOR", "HAIR_COLOR", "BODY_TYPE", "RELIGION",
+        "MARITAL_STATUS", "EDUCATION_LEVEL", "RELATIONSHIP_TYPE", "SEXUAL_ROLE"
     );
 
     /**
@@ -40,8 +40,8 @@ public class UserAttributeService {
         List<UserAttribute> attributes = userAttributeRepository.findByActiveTrue();
 
         return attributes.stream()
-                .map(UserAttributeDTO::new)
-                .collect(Collectors.groupingBy(UserAttributeDTO::attributeType));
+            .map(UserAttributeDTO::new)
+            .collect(Collectors.groupingBy(UserAttributeDTO::attributeType));
     }
 
     /**
@@ -49,9 +49,9 @@ public class UserAttributeService {
      */
     public List<UserAttributeDTO> getAttributesByType(String attributeType) {
         return userAttributeRepository.findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
-                .stream()
-                .map(UserAttributeDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .map(UserAttributeDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -59,8 +59,8 @@ public class UserAttributeService {
      */
     public UserAttributeDTO getAttributeById(Long id) {
         return userAttributeRepository.findById(id)
-                .map(UserAttributeDTO::new)
-                .orElse(null);
+            .map(UserAttributeDTO::new)
+            .orElse(null);
     }
 
     /**
@@ -84,13 +84,13 @@ public class UserAttributeService {
 
         try {
             UserAttribute newAttribute = UserAttribute.builder()
-                    .code(code)
-                    .name(createDTO.name().trim())
-                    .attributeType(attributeType.toUpperCase())
-                    .detail(createDTO.detail() != null ? createDTO.detail().trim() : null)
-                    .displayOrder(getNextDisplayOrder(attributeType))
-                    .active(false) // Por defecto inactivo hasta aprobación
-                    .build();
+                .code(code)
+                .name(createDTO.name().trim())
+                .attributeType(attributeType.toUpperCase())
+                .detail(createDTO.detail() != null ? createDTO.detail().trim() : null)
+                .displayOrder(getNextDisplayOrder(attributeType))
+                .active(false) // Por defecto inactivo hasta aprobación
+                .build();
 
             UserAttribute saved = userAttributeRepository.save(newAttribute);
             log.info("Atributo creado exitosamente: {}", saved);
@@ -116,8 +116,8 @@ public class UserAttributeService {
 
         if (!VALID_ATTRIBUTE_TYPES.contains(attributeType.toUpperCase())) {
             throw new IllegalArgumentException(
-                    String.format("Tipo de atributo no válido: %s. Tipos válidos: %s",
-                            attributeType, String.join(", ", VALID_ATTRIBUTE_TYPES))
+                String.format("Tipo de atributo no válido: %s. Tipos válidos: %s",
+                    attributeType, String.join(", ", VALID_ATTRIBUTE_TYPES))
             );
         }
     }
@@ -157,10 +157,10 @@ public class UserAttributeService {
 
         // Verificar nombre duplicado (case-insensitive)
         List<UserAttribute> existingWithSameName = userAttributeRepository
-                .findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
-                .stream()
-                .filter(attr -> attr.getName().trim().equalsIgnoreCase(name.trim()))
-                .toList();
+            .findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
+            .stream()
+            .filter(attr -> attr.getName().trim().equalsIgnoreCase(name.trim()))
+            .toList();
 
         if (!existingWithSameName.isEmpty()) {
             throw new RuntimeException(String.format("Ya existe un atributo con el nombre '%s' para el tipo '%s'", name, attributeType));
@@ -183,11 +183,11 @@ public class UserAttributeService {
         }
 
         return name.trim()
-                .toUpperCase()
-                .replaceAll("[\\s-]+", "_")
-                .replaceAll("[^A-Z0-9_]", "")
-                .replaceAll("_{2,}", "_") // Remover múltiples guiones bajos consecutivos
-                .replaceAll("^_|_$", ""); // Remover guiones bajos al inicio y final
+            .toUpperCase()
+            .replaceAll("[\\s-]+", "_")
+            .replaceAll("[^A-Z0-9_]", "")
+            .replaceAll("_{2,}", "_") // Remover múltiples guiones bajos consecutivos
+            .replaceAll("^_|_$", ""); // Remover guiones bajos al inicio y final
     }
 
     /**
@@ -195,10 +195,10 @@ public class UserAttributeService {
      */
     private Integer getNextDisplayOrder(String attributeType) {
         return userAttributeRepository.findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
-                .stream()
-                .mapToInt(UserAttribute::getDisplayOrder)
-                .max()
-                .orElse(0) + 1;
+            .stream()
+            .mapToInt(UserAttribute::getDisplayOrder)
+            .max()
+            .orElse(0) + 1;
     }
 
     /**
@@ -240,7 +240,7 @@ public class UserAttributeService {
     public UserAttributeDTO updateAttribute(Long attributeId, UserAttributeCreateDTO updateDTO) {
         try {
             UserAttribute attribute = userAttributeRepository.findById(attributeId)
-                    .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+                .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
 
             // Validar datos del DTO
             validateAttributeData(updateDTO);
@@ -267,7 +267,7 @@ public class UserAttributeService {
     public MessageResponseDTO deleteAttribute(Long attributeId) {
         try {
             UserAttribute attribute = userAttributeRepository.findById(attributeId)
-                    .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+                .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
 
             userAttributeRepository.delete(attribute);
             log.info("Atributo eliminado exitosamente: {}", attributeId);
@@ -296,19 +296,19 @@ public class UserAttributeService {
 
             // Distribución por tipo
             Map<String, Long> distributionByType = allAttributes.stream()
-                    .collect(Collectors.groupingBy(
-                            UserAttribute::getAttributeType,
-                            Collectors.counting()
-                    ));
+                .collect(Collectors.groupingBy(
+                    UserAttribute::getAttributeType,
+                    Collectors.counting()
+                ));
             statistics.put("distributionByType", distributionByType);
 
             // Atributos activos por tipo
             Map<String, Long> activeByType = allAttributes.stream()
-                    .filter(UserAttribute::isActive)
-                    .collect(Collectors.groupingBy(
-                            UserAttribute::getAttributeType,
-                            Collectors.counting()
-                    ));
+                .filter(UserAttribute::isActive)
+                .collect(Collectors.groupingBy(
+                    UserAttribute::getAttributeType,
+                    Collectors.counting()
+                ));
             statistics.put("activeByType", activeByType);
 
             // Tipos de atributos disponibles
@@ -319,8 +319,8 @@ public class UserAttributeService {
         } catch (Exception e) {
             log.error("Error obteniendo estadísticas de atributos", e);
             return Map.of(
-                    "error", "Error al obtener estadísticas",
-                    "message", e.getMessage()
+                "error", "Error al obtener estadísticas",
+                "message", e.getMessage()
             );
         }
     }
@@ -329,20 +329,20 @@ public class UserAttributeService {
      * Busca un atributo por ID con manejo de errores
      * Método usado internamente por el mapper para validar atributos
      *
-     * @param id ID del atributo a buscar
+     * @param id            ID del atributo a buscar
      * @param attributeName Nombre descriptivo del atributo para mensajes de error
      * @return UserAttribute encontrado
      * @throws RuntimeException si el atributo no se encuentra
      */
     public UserAttribute findAttributeById(Long id, String attributeName) {
         return userAttributeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(attributeName + " no encontrado"));
+            .orElseThrow(() -> new RuntimeException(attributeName + " no encontrado"));
     }
 
     /**
      * Busca un atributo por código y tipo
      *
-     * @param code Código del atributo
+     * @param code          Código del atributo
      * @param attributeType Tipo de atributo
      * @return Optional con el UserAttribute si existe
      */

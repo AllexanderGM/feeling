@@ -1,6 +1,6 @@
 package com.feeling.packages.user.application;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
 import com.feeling.packages.user.domain.services.UserCategoryInterestService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,8 +31,8 @@ public class UserInterestController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all interest categories", 
-               description = "Get all available interest categories (authenticated users)")
+    @Operation(summary = "Get all interest categories",
+        description = "Get all available interest categories (authenticated users)")
     public ResponseEntity<List<UserCategoryInterestDTO>> getAllInterests() {
         try {
             List<UserCategoryInterestDTO> categories = categoryService.getAllActiveCategories();
@@ -45,14 +45,14 @@ public class UserInterestController {
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get interest category by ID", 
-               description = "Get specific interest category by ID (authenticated users)")
+    @Operation(summary = "Get interest category by ID",
+        description = "Get specific interest category by ID (authenticated users)")
     public ResponseEntity<UserCategoryInterestDTO> getInterestById(
-            @Parameter(description = "Interest ID") @PathVariable Long id) {
+        @Parameter(description = "Interest ID") @PathVariable Long id) {
         try {
             return categoryService.getCategoryById(id)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             log.error("Error obteniendo categoría de interés por ID: {}", id, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -65,10 +65,10 @@ public class UserInterestController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Create new interest category", 
-               description = "Add a new interest category (admin only)")
+    @Operation(summary = "Create new interest category",
+        description = "Add a new interest category (admin only)")
     public ResponseEntity<UserCategoryInterestDTO> createInterest(
-            @Valid @RequestBody UserCategoryInterestDTO categoryDTO) {
+        @Valid @RequestBody UserCategoryInterestDTO categoryDTO) {
         try {
             UserCategoryInterestDTO createdCategory = categoryService.createCategory(categoryDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
@@ -80,11 +80,11 @@ public class UserInterestController {
 
     @PutMapping("/{interestId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Update interest category", 
-               description = "Update an existing interest category (admin only)")
+    @Operation(summary = "Update interest category",
+        description = "Update an existing interest category (admin only)")
     public ResponseEntity<UserCategoryInterestDTO> updateInterest(
-            @Parameter(description = "Interest ID") @PathVariable Long interestId,
-            @Valid @RequestBody UserCategoryInterestDTO categoryDTO) {
+        @Parameter(description = "Interest ID") @PathVariable Long interestId,
+        @Valid @RequestBody UserCategoryInterestDTO categoryDTO) {
         try {
             UserCategoryInterestDTO updated = categoryService.updateCategory(interestId, categoryDTO);
             return ResponseEntity.ok(updated);
@@ -99,21 +99,21 @@ public class UserInterestController {
 
     @DeleteMapping("/{interestId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Delete interest category", 
-               description = "Delete an existing interest category (admin only)")
+    @Operation(summary = "Delete interest category",
+        description = "Delete an existing interest category (admin only)")
     public ResponseEntity<MessageResponseDTO> deleteInterest(
-            @Parameter(description = "Interest ID") @PathVariable Long interestId) {
+        @Parameter(description = "Interest ID") @PathVariable Long interestId) {
         try {
             MessageResponseDTO response = categoryService.deleteCategory(interestId);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             log.error("Error eliminando categoría de interés: {}", interestId, e);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new MessageResponseDTO("Categoría de interés no encontrada"));
+                .body(new MessageResponseDTO("Categoría de interés no encontrada"));
         } catch (Exception e) {
             log.error("Error inesperado eliminando categoría de interés: {}", interestId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new MessageResponseDTO("Error al eliminar categoría de interés"));
+                .body(new MessageResponseDTO("Error al eliminar categoría de interés"));
         }
     }
 
@@ -123,8 +123,8 @@ public class UserInterestController {
 
     @GetMapping("/admin/all")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get all interest categories (admin)", 
-               description = "Get all interest categories including inactive ones (admin only)")
+    @Operation(summary = "Get all interest categories (admin)",
+        description = "Get all interest categories including inactive ones (admin only)")
     public ResponseEntity<List<UserCategoryInterestDTO>> getAllInterestsAdmin() {
         try {
             List<UserCategoryInterestDTO> categories = categoryService.getAllCategories();
@@ -137,10 +137,10 @@ public class UserInterestController {
 
     @PatchMapping("/{interestId}/toggle-status")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Toggle interest category status", 
-               description = "Activate/deactivate an interest category (admin only)")
+    @Operation(summary = "Toggle interest category status",
+        description = "Activate/deactivate an interest category (admin only)")
     public ResponseEntity<UserCategoryInterestDTO> toggleInterestStatus(
-            @Parameter(description = "Interest ID") @PathVariable Long interestId) {
+        @Parameter(description = "Interest ID") @PathVariable Long interestId) {
         try {
             UserCategoryInterestDTO updated = categoryService.toggleCategoryStatus(interestId);
             return ResponseEntity.ok(updated);

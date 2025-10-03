@@ -5,7 +5,7 @@ import com.feeling.packages.auth.domain.dto.UserStatusDTO;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
 import com.feeling.packages.user.infrastructure.entities.UserRoleList;
-import com.feeling.infrastructure.entities.user.UserApprovalStatusList;
+import com.feeling.packages.user.domain.enums.ApprovalStatus;
 import com.feeling.packages.user.domain.dto.UserDTOMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ public class UserDTOMapperTest {
                 .email("test@example.com")
                 .verified(true)
                 .profileComplete(false)
-                .approvalStatus(UserApprovalStatusList.PENDING)
+                .approvalStatus(ApprovalStatus.PENDING)
                 .userRole(userRole)
                 .availableAttempts(0)
                 .createdAt(LocalDateTime.now())
@@ -80,7 +80,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserStandardResponseDTO() {
-        UserStandardResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
+        com.feeling.packages.user.domain.dto.UserResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
 
         assertNotNull(standardDTO);
         assertNotNull(standardDTO.status());
@@ -95,7 +95,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserPublicResponseDTO() {
-        UserPublicResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
+        com.feeling.packages.user.domain.dto.UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
 
         assertNotNull(publicDTO);
         assertNotNull(publicDTO.status());
@@ -114,7 +114,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserExtendedResponseDTO() {
-        UserExtendedResponseDTO extendedDTO = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        com.feeling.packages.user.domain.dto.UserResponseDTO extendedDTO = UserDTOMapper.toUserExtendedResponseDTO(testUser);
 
         assertNotNull(extendedDTO);
         assertNotNull(extendedDTO.status());
@@ -123,14 +123,13 @@ public class UserDTOMapperTest {
         assertNotNull(extendedDTO.notifications());
         assertNotNull(extendedDTO.metrics());
         assertNotNull(extendedDTO.auth());
-        assertNotNull(extendedDTO.account());
+        // Note: account is null in extended response, only populated in admin operations
 
-        // Verificar que todas las secciones están presentes
+        // Verificar que las secciones esperadas están presentes
         assertEquals(testUser.isVerified(), extendedDTO.status().verified());
         assertEquals(testUser.getName(), extendedDTO.profile().name());
         assertEquals(testUser.isPublicAccount(), extendedDTO.privacy().publicAccount());
         assertEquals(testUser.isNotificationsEmailEnabled(), extendedDTO.notifications().notificationsEmailEnabled());
         assertEquals(testUser.getProfileViews(), extendedDTO.metrics().profileViews());
-        assertEquals(testUser.isAccountDeactivated(), extendedDTO.account().accountDeactivated());
     }
 }

@@ -1,17 +1,24 @@
 package com.feeling.packages.auth.domain.services;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
-import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.domain.services.email.EmailService;
 import com.feeling.exception.*;
 import com.feeling.packages.auth.application.PasswordController;
 import com.feeling.packages.auth.domain.dto.*;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
-import com.feeling.packages.user.infrastructure.entities.*;
-import com.feeling.packages.user.infrastructure.repositories.*;
-import com.feeling.packages.auth.infrastructure.repositories.*;
-import com.feeling.packages.auth.infrastructure.entities.*;
+import com.feeling.packages.auth.infrastructure.entities.AuthPasswordResetToken;
+import com.feeling.packages.auth.infrastructure.entities.AuthToken;
+import com.feeling.packages.auth.infrastructure.entities.AuthVerificationCode;
+import com.feeling.packages.auth.infrastructure.repositories.IAuthPasswordResetTokenRepository;
+import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
+import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCodeRepository;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.services.email.EmailService;
+import com.feeling.packages.user.domain.dto.UserDTOMapper;
+import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.entities.UserRole;
+import com.feeling.packages.user.infrastructure.entities.UserRoleList;
+import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
+import com.feeling.packages.user.infrastructure.repositories.IUserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +36,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AuthService {
     private static final StructuredLoggerFactory.StructuredLogger logger =
-            StructuredLoggerFactory.create(AuthService.class);
+        StructuredLoggerFactory.create(AuthService.class);
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 30;
 
@@ -73,11 +80,11 @@ public class AuthService {
                 // Si el usuario existe Y está verificado, dar mensaje según el proveedor
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
-                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
+                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
                     case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
-                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
                     case LOCAL -> "El correo electrónico ya está registrado y verificado. " +
-                            "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
+                        "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
                     default -> "El correo electrónico ya está registrado con otro método.";
                 };
 
@@ -88,34 +95,34 @@ public class AuthService {
             validateMinimumRegistrationData(newUser);
 
             UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                    .orElseGet(() -> {
-                        UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                        return userRoleRepository.save(newRole);
-                    });
+                .orElseGet(() -> {
+                    UserRole newRole = new UserRole(UserRoleList.CLIENT);
+                    return userRoleRepository.save(newRole);
+                });
 
             User userEntity = User.builder()
-                    .name(newUser.name().trim())
-                    .lastName(newUser.lastName().trim())
-                    .email(newUser.email().toLowerCase().trim())
-                    .password(passwordEncoder.encode(newUser.password()))
-                    .userRole(clientRole)
-                    .userAuthProvider(AuthProvider.LOCAL)
-                    .verified(false)
-                    .profileComplete(false)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .allowNotifications(true)
-                    .showMeInSearch(true)
-                    .showAge(true)
-                    .showLocation(true)
-                    .showPhone(false)
-                    .availableAttempts(0)
-                    .totalAttemptsPurchased(0)
-                    .profileViews(0L)
-                    .likesReceived(0L)
-                    .matchesCount(0L)
-                    .popularityScore(0.0)
-                    .build();
+                .name(newUser.name().trim())
+                .lastName(newUser.lastName().trim())
+                .email(newUser.email().toLowerCase().trim())
+                .password(passwordEncoder.encode(newUser.password()))
+                .userRole(clientRole)
+                .userAuthProvider(AuthProvider.LOCAL)
+                .verified(false)
+                .profileComplete(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .allowNotifications(true)
+                .showMeInSearch(true)
+                .showAge(true)
+                .showLocation(true)
+                .showPhone(false)
+                .availableAttempts(0)
+                .totalAttemptsPurchased(0)
+                .profileViews(0L)
+                .likesReceived(0L)
+                .matchesCount(0L)
+                .popularityScore(0.0)
+                .build();
 
             User savedUser = userRepository.save(userEntity);
 
@@ -161,12 +168,12 @@ public class AuthService {
 
                 String conflictMessage = switch (user.getUserAuthProvider()) {
                     case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
-                            "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
-                            "o usa 'Iniciar Sesión con Google' para vincular tu cuenta.";
+                        "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
+                        "o usa 'Iniciar Sesión con Google' para vincular tu cuenta.";
                     case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
-                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
+                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
                     case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
-                            "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
                     default -> "Esta cuenta ya existe con otro método de autenticación.";
                 };
                 throw new ExistEmailException(conflictMessage);
@@ -176,36 +183,36 @@ public class AuthService {
             logger.logAuth("google_register", googleUser.email(), "creating new user");
 
             UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                    .orElseGet(() -> userRoleRepository.save(new UserRole(UserRoleList.CLIENT)));
+                .orElseGet(() -> userRoleRepository.save(new UserRole(UserRoleList.CLIENT)));
 
             User newUser = User.builder()
-                    .name(googleUser.getFirstName())
-                    .lastName(googleUser.getLastName())
-                    .email(googleUser.email().toLowerCase().trim())
-                    .password(passwordEncoder.encode(
-                            googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
-                    ))
-                    .userRole(clientRole)
-                    .userAuthProvider(AuthProvider.GOOGLE)
-                    .externalId(googleUser.sub())
-                    .externalAvatarUrl(googleUser.picture())
-                    .verified(true)
-                    .profileComplete(false)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .lastExternalSync(LocalDateTime.now())
-                    .allowNotifications(true)
-                    .showMeInSearch(true)
-                    .showAge(true)
-                    .showLocation(true)
-                    .showPhone(false)
-                    .availableAttempts(0)
-                    .totalAttemptsPurchased(0)
-                    .profileViews(0L)
-                    .likesReceived(0L)
-                    .matchesCount(0L)
-                    .popularityScore(0.0)
-                    .build();
+                .name(googleUser.getFirstName())
+                .lastName(googleUser.getLastName())
+                .email(googleUser.email().toLowerCase().trim())
+                .password(passwordEncoder.encode(
+                    googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
+                ))
+                .userRole(clientRole)
+                .userAuthProvider(AuthProvider.GOOGLE)
+                .externalId(googleUser.sub())
+                .externalAvatarUrl(googleUser.picture())
+                .verified(true)
+                .profileComplete(false)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .lastExternalSync(LocalDateTime.now())
+                .allowNotifications(true)
+                .showMeInSearch(true)
+                .showAge(true)
+                .showLocation(true)
+                .showPhone(false)
+                .availableAttempts(0)
+                .totalAttemptsPurchased(0)
+                .profileViews(0L)
+                .likesReceived(0L)
+                .matchesCount(0L)
+                .popularityScore(0.0)
+                .build();
 
             // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
             // No necesitamos agregarla a la lista de images
@@ -216,9 +223,9 @@ public class AuthService {
             if (newUser.isApproved()) {
                 try {
                     emailService.sendWelcomeEmailForGoogleUser(
-                            newUser.getEmail(),
-                            newUser.getName() + " " + newUser.getLastName(),
-                            googleUser.picture()
+                        newUser.getEmail(),
+                        newUser.getName() + " " + newUser.getLastName(),
+                        googleUser.picture()
                     );
                     logger.logUserOperation("welcome_email_sent", newUser.getEmail(), Map.of("provider", "GOOGLE"));
                 } catch (Exception emailError) {
@@ -279,27 +286,27 @@ public class AuthService {
                     user.setUserAuthProvider(AuthProvider.GOOGLE);
                     user.setExternalId(googleUser.sub());
                     user.updateFromOAuthProvider(
-                            googleUser.sub(),
-                            googleUser.getFirstName(),
-                            googleUser.getLastName(),
-                            googleUser.email(),
-                            googleUser.picture()
+                        googleUser.sub(),
+                        googleUser.getFirstName(),
+                        googleUser.getLastName(),
+                        googleUser.email(),
+                        googleUser.picture()
                     );
 
                 } else if (user.getUserAuthProvider() == AuthProvider.GOOGLE) {
                     // Usuario Google existente - actualizar información
                     user.updateFromOAuthProvider(
-                            googleUser.sub(),
-                            googleUser.getFirstName(),
-                            googleUser.getLastName(),
-                            googleUser.email(),
-                            googleUser.picture()
+                        googleUser.sub(),
+                        googleUser.getFirstName(),
+                        googleUser.getLastName(),
+                        googleUser.email(),
+                        googleUser.picture()
                     );
                 } else {
                     // Usuario con otro proveedor OAuth
                     throw new UnauthorizedException(
-                            "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
-                                    ". " + user.getAuthMethodMessage()
+                        "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
+                            ". " + user.getAuthMethodMessage()
                     );
                 }
 
@@ -309,41 +316,41 @@ public class AuthService {
 
                 // Obtener rol de cliente - usar transacción separada para evitar conflictos
                 UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                        .orElseGet(() -> {
-                            UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                            return userRoleRepository.save(newRole);
-                        });
+                    .orElseGet(() -> {
+                        UserRole newRole = new UserRole(UserRoleList.CLIENT);
+                        return userRoleRepository.save(newRole);
+                    });
 
                 // Crear usuario
                 user = User.builder()
-                        .name(googleUser.getFirstName())
-                        .lastName(googleUser.getLastName())
-                        .email(googleUser.email().toLowerCase().trim())
-                        .password(passwordEncoder.encode(
-                                googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
-                        ))
-                        .userRole(clientRole)
-                        .userAuthProvider(AuthProvider.GOOGLE)
-                        .externalId(googleUser.sub())
-                        .externalAvatarUrl(googleUser.picture())
-                        .verified(true) // Google ya verificó el email
-                        .profileComplete(false) // Necesita completar perfil en Feeling
-                        .createdAt(LocalDateTime.now())
-                        .updatedAt(LocalDateTime.now())
-                        .lastExternalSync(LocalDateTime.now())
-                        // Configuración por defecto
-                        .allowNotifications(true)
-                        .showMeInSearch(true)
-                        .showAge(true)
-                        .showLocation(true)
-                        .showPhone(false)
-                        .availableAttempts(0)
-                        .totalAttemptsPurchased(0)
-                        .profileViews(0L)
-                        .likesReceived(0L)
-                        .matchesCount(0L)
-                        .popularityScore(0.0)
-                        .build();
+                    .name(googleUser.getFirstName())
+                    .lastName(googleUser.getLastName())
+                    .email(googleUser.email().toLowerCase().trim())
+                    .password(passwordEncoder.encode(
+                        googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
+                    ))
+                    .userRole(clientRole)
+                    .userAuthProvider(AuthProvider.GOOGLE)
+                    .externalId(googleUser.sub())
+                    .externalAvatarUrl(googleUser.picture())
+                    .verified(true) // Google ya verificó el email
+                    .profileComplete(false) // Necesita completar perfil en Feeling
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .lastExternalSync(LocalDateTime.now())
+                    // Configuración por defecto
+                    .allowNotifications(true)
+                    .showMeInSearch(true)
+                    .showAge(true)
+                    .showLocation(true)
+                    .showPhone(false)
+                    .availableAttempts(0)
+                    .totalAttemptsPurchased(0)
+                    .profileViews(0L)
+                    .likesReceived(0L)
+                    .matchesCount(0L)
+                    .popularityScore(0.0)
+                    .build();
 
                 // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
                 // No necesitamos agregarla a la lista de images
@@ -356,9 +363,9 @@ public class AuthService {
             if (existingUser.isEmpty() && user.isApproved()) {
                 try {
                     emailService.sendWelcomeEmailForGoogleUser(
-                            user.getEmail(),
-                            user.getName() + " " + user.getLastName(),
-                            googleUser.picture()
+                        user.getEmail(),
+                        user.getName() + " " + user.getLastName(),
+                        googleUser.picture()
                     );
                     logger.logUserOperation("welcome_email_sent", user.getEmail(), Map.of("provider", "GOOGLE"));
                 } catch (Exception emailError) {
@@ -394,16 +401,16 @@ public class AuthService {
             // Buscar usuario ANTES de la autenticación para verificar el proveedor
             String normalizedEmail = auth.email().toLowerCase().trim();
             logger.info("Debug login", Map.of(
-                    "originalEmail", auth.email(),
-                    "normalizedEmail", normalizedEmail,
-                    "category", "LOGIN_DEBUG"
+                "originalEmail", auth.email(),
+                "normalizedEmail", normalizedEmail,
+                "category", "LOGIN_DEBUG"
             ));
 
             Optional<User> userOptional = userRepository.findByEmail(normalizedEmail);
             if (userOptional.isEmpty()) {
                 logger.warn("Usuario no encontrado", Map.of(
-                        "normalizedEmail", normalizedEmail,
-                        "category", "LOGIN_ERROR"
+                    "normalizedEmail", normalizedEmail,
+                    "category", "LOGIN_ERROR"
                 ));
                 throw new UnauthorizedException("Usuario no encontrado");
             }
@@ -413,27 +420,27 @@ public class AuthService {
             // Verificar que el usuario pueda usar login tradicional
             if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
                 logger.warn("Intento de login tradicional con cuenta OAuth", Map.of(
-                        "email", auth.email(),
-                        "provider", user.getUserAuthProvider()));
+                    "email", auth.email(),
+                    "provider", user.getUserAuthProvider()));
                 throw new UnauthorizedException(
-                        "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
-                                ". " + user.getAuthMethodMessage()
+                    "Esta cuenta está registrada con " + user.getUserAuthProvider().getDisplayName() +
+                        ". " + user.getAuthMethodMessage()
                 );
             }
 
             // Validar credenciales
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            normalizedEmail,
-                            auth.password()
-                    )
+                new UsernamePasswordAuthenticationToken(
+                    normalizedEmail,
+                    auth.password()
+                )
             );
 
             // Verificar que el usuario esté verificado
             if (!user.isVerified()) {
                 logger.logAuth("login", auth.email(), "failed - user not verified");
                 throw new UnauthorizedException(
-                        "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada."
+                    "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada."
                 );
             }
 
@@ -517,20 +524,20 @@ public class AuthService {
             LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
 
             AuthVerificationCode verificationCode = AuthVerificationCode.builder()
-                    .code(code)
-                    .user(user)
-                    .expirationTime(expirationTime)
-                    .verified(false)
-                    .build();
+                .code(code)
+                .user(user)
+                .expirationTime(expirationTime)
+                .verified(false)
+                .build();
 
             verificationCodeRepository.save(verificationCode);
             logger.logUserOperation("verification_code_created", user.getEmail(), Map.of("code_length", CODE_LENGTH));
 
             // 3. Enviar correo con el código
             emailService.sendVerificationEmail(
-                    user.getEmail(),
-                    user.getName() + " " + user.getLastName(),
-                    code
+                user.getEmail(),
+                user.getName() + " " + user.getLastName(),
+                code
             );
 
             logger.logUserOperation("verification_code_sent", user.getEmail(), null);
@@ -549,11 +556,11 @@ public class AuthService {
     public MessageResponseDTO verifyCode(AuthVerifyCodeDTO authVerifyCodeDTO) {
         // Buscar usuario
         User user = userRepository.findByEmail(authVerifyCodeDTO.email().toLowerCase().trim())
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         // Buscar código de verificación
         AuthVerificationCode verificationCode = verificationCodeRepository.findByCode(authVerifyCodeDTO.code())
-                .orElseThrow(() -> new UnauthorizedException("Código de verificación inválido"));
+            .orElseThrow(() -> new UnauthorizedException("Código de verificación inválido"));
 
         // Verificar que el código pertenece al usuario
         if (!verificationCode.getUser().getId().equals(user.getId())) {
@@ -586,8 +593,8 @@ public class AuthService {
         if (user.isApproved()) {
             try {
                 emailService.sendWelcomeEmailForLocalUser(
-                        user.getEmail(),
-                        user.getName() + " " + user.getLastName()
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastName()
                 );
                 logger.logUserOperation("welcome_email_sent", user.getEmail(), Map.of("provider", "LOCAL"));
             } catch (Exception emailError) {
@@ -610,7 +617,7 @@ public class AuthService {
     public MessageResponseDTO resendCode(String email) {
         try {
             User user = userRepository.findByEmail(email.toLowerCase().trim())
-                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
             if (user.isVerified()) {
                 logger.logUserOperation("resend_code_attempt", email, Map.of("status", "already_verified"));
@@ -628,7 +635,7 @@ public class AuthService {
                 if (minutesElapsed < 2) {
                     long waitTime = 2 - minutesElapsed;
                     throw new TooManyRequestsException(
-                            String.format("Debes esperar %d minuto(s) antes de solicitar un nuevo código", waitTime)
+                        String.format("Debes esperar %d minuto(s) antes de solicitar un nuevo código", waitTime)
                     );
                 }
             }
@@ -661,7 +668,7 @@ public class AuthService {
         try {
             // Buscar usuario por email
             User user = userRepository.findByEmail(request.email().toLowerCase().trim())
-                    .orElseThrow(() -> new NotFoundException("No encontramos ninguna cuenta asociada a este email"));
+                .orElseThrow(() -> new NotFoundException("No encontramos ninguna cuenta asociada a este email"));
 
             // Verificar que el usuario esté verificado
             if (!user.isVerified()) {
@@ -672,9 +679,9 @@ public class AuthService {
             if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
                 String message = switch (user.getUserAuthProvider()) {
                     case GOOGLE ->
-                            "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
+                        "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
                     case FACEBOOK ->
-                            "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
+                        "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
                     default -> "Esta cuenta usa un método de autenticación externo.";
                 };
                 throw new UnauthorizedException(message);
@@ -689,27 +696,27 @@ public class AuthService {
 
             // Crear nuevo token de recuperación
             AuthPasswordResetToken passwordResetToken = AuthPasswordResetToken.builder()
-                    .token(resetToken)
-                    .user(user)
-                    .expirationTime(expirationTime)
-                    .used(false)
-                    .build();
+                .token(resetToken)
+                .user(user)
+                .expirationTime(expirationTime)
+                .used(false)
+                .build();
 
             userPasswordResetTokenRepository.save(passwordResetToken);
 
             // Enviar email con el enlace de recuperación
             String resetLink = frontendUrl + "/reset-password/" + resetToken;
             emailService.sendPasswordResetEmail(
-                    user.getEmail(),
-                    user.getName() + " " + user.getLastName(),
-                    resetLink,
-                    60 // minutos de validez
+                user.getEmail(),
+                user.getName() + " " + user.getLastName(),
+                resetLink,
+                60 // minutos de validez
             );
 
             logger.logUserOperation("password_reset_token_sent", request.email(), null);
             return new MessageResponseDTO(
-                    "Hemos enviado un enlace de recuperación a tu correo electrónico. " +
-                            "Revisa tu bandeja de entrada y spam. El enlace expira en 1 hora."
+                "Hemos enviado un enlace de recuperación a tu correo electrónico. " +
+                    "Revisa tu bandeja de entrada y spam. El enlace expira en 1 hora."
             );
 
         } catch (NotFoundException | UnauthorizedException e) {
@@ -734,7 +741,7 @@ public class AuthService {
 
             // Buscar y validar token
             AuthPasswordResetToken resetToken = userPasswordResetTokenRepository.findByToken(request.token())
-                    .orElseThrow(() -> new UnauthorizedException("Token de recuperación inválido"));
+                .orElseThrow(() -> new UnauthorizedException("Token de recuperación inválido"));
 
             // Verificar expiración
             if (resetToken.getExpirationTime().isBefore(LocalDateTime.now())) {
@@ -768,8 +775,8 @@ public class AuthService {
             // Enviar email de confirmación
             try {
                 emailService.sendPasswordChangeConfirmationEmail(
-                        user.getEmail(),
-                        user.getName() + " " + user.getLastName()
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastName()
                 );
             } catch (Exception emailError) {
                 logger.warn("Error al enviar email de confirmación", Map.of("error", emailError.getMessage()));
@@ -777,8 +784,8 @@ public class AuthService {
 
             logger.logUserOperation("password_reset_complete", user.getEmail(), null);
             return new MessageResponseDTO(
-                    "Tu contraseña ha sido restablecida exitosamente. " +
-                            "Ya puedes iniciar sesión con tu nueva contraseña."
+                "Tu contraseña ha sido restablecida exitosamente. " +
+                    "Ya puedes iniciar sesión con tu nueva contraseña."
             );
 
         } catch (IllegalArgumentException | UnauthorizedException e) {
@@ -799,10 +806,10 @@ public class AuthService {
 
             if (resetTokenOpt.isEmpty()) {
                 return new TokenValidationDTO(
-                        false,
-                        null,
-                        "Token de recuperación inválido",
-                        null
+                    false,
+                    null,
+                    "Token de recuperación inválido",
+                    null
                 );
             }
 
@@ -811,10 +818,10 @@ public class AuthService {
             // Verificar si ya fue usado
             if (resetToken.isUsed()) {
                 return new TokenValidationDTO(
-                        false,
-                        resetToken.getUser().getEmail(),
-                        "Este token ya ha sido utilizado",
-                        null
+                    false,
+                    resetToken.getUser().getEmail(),
+                    "Este token ya ha sido utilizado",
+                    null
                 );
             }
 
@@ -822,10 +829,10 @@ public class AuthService {
             LocalDateTime now = LocalDateTime.now();
             if (resetToken.getExpirationTime().isBefore(now)) {
                 return new TokenValidationDTO(
-                        false,
-                        resetToken.getUser().getEmail(),
-                        "El token ha expirado",
-                        null
+                    false,
+                    resetToken.getUser().getEmail(),
+                    "El token ha expirado",
+                    null
                 );
             }
 
@@ -833,10 +840,10 @@ public class AuthService {
             long minutesRemaining = java.time.Duration.between(now, resetToken.getExpirationTime()).toMinutes();
 
             return new TokenValidationDTO(
-                    true,
-                    resetToken.getUser().getEmail(),
-                    "Token válido",
-                    minutesRemaining
+                true,
+                resetToken.getUser().getEmail(),
+                "Token válido",
+                minutesRemaining
             );
 
         } catch (Exception e) {
@@ -922,7 +929,7 @@ public class AuthService {
      */
     private String generatePasswordResetToken() {
         return UUID.randomUUID().toString().replace("-", "") +
-                System.currentTimeMillis();
+            System.currentTimeMillis();
     }
 
     // ==============================
@@ -966,16 +973,16 @@ public class AuthService {
             var userExtended = UserDTOMapper.toUserExtendedResponseDTO(user);
 
             return new AuthLoginResponseDTO(
-                    accessToken,
-                    refreshToken,
-                    userExtended.status(),
-                    userExtended.profile(),
-                    userExtended.privacy(),
-                    userExtended.notifications(),
-                    userExtended.metrics(),
-                    userExtended.matches(),
-                    userExtended.auth(),
-                    userExtended.account()
+                accessToken,
+                refreshToken,
+                userExtended.status(),
+                userExtended.profile(),
+                userExtended.privacy(),
+                userExtended.notifications(),
+                userExtended.metrics(),
+                userExtended.matches(),
+                userExtended.auth(),
+                userExtended.account()
             );
         } catch (Exception e) {
             logger.error("Error al generar tokens", Map.of("userEmail", user.getEmail()), e);
@@ -990,12 +997,12 @@ public class AuthService {
     private void saveAuthToken(User user, String token, AuthToken.TokenType tokenType) {
         try {
             AuthToken userToken = AuthToken.builder()
-                    .token(token)
-                    .user(user)
-                    .type(tokenType)
-                    .expired(false)
-                    .revoked(false)
-                    .build();
+                .token(token)
+                .user(user)
+                .type(tokenType)
+                .expired(false)
+                .revoked(false)
+                .build();
 
             tokenRepository.save(userToken);
             logger.logUserOperation("token_saved", user.getEmail(), Map.of("tokenType", tokenType.toString()));
@@ -1011,7 +1018,7 @@ public class AuthService {
      */
     private void revokeAllAccessTokens(User user) {
         final List<AuthToken> validAccessTokens = tokenRepository
-                .findAllValidAccessTokensByUserId(user.getId());
+            .findAllValidAccessTokensByUserId(user.getId());
 
         if (!validAccessTokens.isEmpty()) {
             validAccessTokens.forEach(token -> {
@@ -1029,7 +1036,7 @@ public class AuthService {
     private void revokeAllAuthTokens(User user) {
         try {
             final List<AuthToken> validAuthTokens = tokenRepository
-                    .findAllValidTokensByUserId(user.getId());
+                .findAllValidTokensByUserId(user.getId());
 
             if (!validAuthTokens.isEmpty()) {
                 logger.logUserOperation("tokens_revoked", user.getEmail(), Map.of("count", validAuthTokens.size()));
@@ -1153,7 +1160,7 @@ public class AuthService {
         try {
             String userEmail = jwtService.extractUsername(authHeader.replace("Bearer ", ""));
             User user = userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
             // Verificar contraseña actual
             if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
@@ -1229,10 +1236,10 @@ public class AuthService {
 
             User user = userOpt.get();
             return new AuthUserStatusDTO(
-                    email,
-                    true,
-                    user.isVerified(),
-                    user.isProfileComplete()
+                email,
+                true,
+                user.isVerified(),
+                user.isProfileComplete()
             );
         } catch (Exception e) {
             logger.error("Error al obtener estado de verificación", e);
@@ -1252,7 +1259,7 @@ public class AuthService {
 
             User user = userOpt.get();
             Optional<AuthVerificationCode> verificationCodeOpt =
-                    verificationCodeRepository.findByUserAndCode(user, code);
+                verificationCodeRepository.findByUserAndCode(user, code);
 
             if (verificationCodeOpt.isEmpty()) {
                 return false;
@@ -1367,14 +1374,14 @@ public class AuthService {
 
             User user = userOpt.get();
             return new SessionInfoDTO(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getName(),
-                    user.getLastName(),
-                    user.getUserRole().getUserRoleList().name(),
-                    user.isVerified(),
-                    user.getProfileComplete(),
-                    user.getLastActive()
+                user.getId(),
+                user.getEmail(),
+                user.getName(),
+                user.getLastName(),
+                user.getUserRole().getUserRoleList().name(),
+                user.isVerified(),
+                user.getProfileComplete(),
+                user.getLastActive()
             );
         } catch (Exception e) {
             logger.error("Error obteniendo información de sesión", e);
@@ -1391,11 +1398,11 @@ public class AuthService {
 
             if (userOpt.isEmpty()) {
                 return new AuthMethodInfoDTO(
-                        email,
-                        null,
-                        false,
-                        "Email no registrado",
-                        List.of("LOCAL", "GOOGLE")
+                    email,
+                    null,
+                    false,
+                    "Email no registrado",
+                    List.of("LOCAL", "GOOGLE")
                 );
             }
 
@@ -1409,20 +1416,20 @@ public class AuthService {
             };
 
             return new AuthMethodInfoDTO(
-                    email,
-                    provider,
-                    true,
-                    message,
-                    List.of(provider)
+                email,
+                provider,
+                true,
+                message,
+                List.of(provider)
             );
         } catch (Exception e) {
             logger.error("Error obteniendo método de autenticación", e);
             return new AuthMethodInfoDTO(
-                    email,
-                    null,
-                    false,
-                    "Error al verificar método de autenticación",
-                    List.of()
+                email,
+                null,
+                false,
+                "Error al verificar método de autenticación",
+                List.of()
             );
         }
     }

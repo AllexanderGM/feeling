@@ -1,9 +1,9 @@
 package com.feeling.packages.event.domain.services;
 
-import com.feeling.domain.services.email.EmailService;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
+import com.feeling.packages.common.domain.services.email.EmailService;
 import com.feeling.packages.event.domain.dto.EventRegistrationRequestDTO;
 import com.feeling.packages.event.domain.dto.EventRegistrationResponseDTO;
 import com.feeling.packages.event.domain.dto.EventResponseDTO;
@@ -38,17 +38,17 @@ public class EventRegistrationService {
 
     public List<EventRegistrationResponseDTO> getUserRegistrations(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         List<EventRegistration> registrations = registrationRepository.findByUserIdOrderByRegistrationDateDesc(user.getId());
         return registrations.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventRegistrationResponseDTO> getUserRegistrations(String userEmail, Pageable pageable) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         Page<EventRegistration> registrations = registrationRepository.findByUserIdOrderByRegistrationDateDesc(user.getId(), pageable);
         return registrations.map(this::convertToResponseDTO);
@@ -56,33 +56,33 @@ public class EventRegistrationService {
 
     public List<EventRegistrationResponseDTO> getEventAttendees(Long eventId, String userEmail) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only event creator or admin can see attendees
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para ver los asistentes de este evento");
         }
 
         List<EventRegistration> registrations = registrationRepository.findByEventIdOrderByRegistrationDateAsc(eventId);
         return registrations.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventRegistrationResponseDTO> getEventAttendees(Long eventId, String userEmail, Pageable pageable) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only event creator or admin can see attendees
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para ver los asistentes de este evento");
         }
 
@@ -92,30 +92,30 @@ public class EventRegistrationService {
 
     public List<EventRegistrationResponseDTO> getConfirmedAttendees(Long eventId, String userEmail) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only event creator or admin can see confirmed attendees
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para ver los asistentes de este evento");
         }
 
         List<EventRegistration> registrations = registrationRepository.findConfirmedAttendeesByEventId(eventId);
         return registrations.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     @Transactional
     public EventRegistrationResponseDTO registerForEvent(EventRegistrationRequestDTO request, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         Event event = eventRepository.findById(request.eventId())
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         // Validate event is active and not in the past
         if (!event.getIsActive()) {
@@ -138,11 +138,11 @@ public class EventRegistrationService {
 
         // Create registration
         EventRegistration registration = EventRegistration.builder()
-                .user(user)
-                .event(event)
-                .paymentStatus(PaymentStatus.PENDING)
-                .isConfirmed(false)
-                .build();
+            .user(user)
+            .event(event)
+            .paymentStatus(PaymentStatus.PENDING)
+            .isConfirmed(false)
+            .build();
 
         EventRegistration savedRegistration = registrationRepository.save(registration);
         return convertToResponseDTO(savedRegistration);
@@ -151,7 +151,7 @@ public class EventRegistrationService {
     @Transactional
     public void confirmPayment(Long registrationId, BigDecimal amount, String stripePaymentIntentId) {
         EventRegistration registration = registrationRepository.findById(registrationId)
-                .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
 
         registration.markAsPaid(amount, stripePaymentIntentId);
 
@@ -176,7 +176,7 @@ public class EventRegistrationService {
     @Transactional
     public void markPaymentFailed(Long registrationId) {
         EventRegistration registration = registrationRepository.findById(registrationId)
-                .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
 
         registration.markAsFailed();
         registrationRepository.save(registration);
@@ -185,14 +185,14 @@ public class EventRegistrationService {
     @Transactional
     public void cancelRegistration(Long registrationId, String userEmail) {
         EventRegistration registration = registrationRepository.findById(registrationId)
-                .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Registro no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the user who registered or admin can cancel
         if (!registration.getUser().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para cancelar este registro");
         }
 
@@ -214,31 +214,31 @@ public class EventRegistrationService {
 
     public boolean isUserRegistered(Long eventId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         return registrationRepository.existsByUserIdAndEventId(user.getId(), eventId);
     }
 
     public EventRegistrationResponseDTO getUserEventRegistration(Long eventId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         EventRegistration registration = registrationRepository.findByUserIdAndEventId(user.getId(), eventId)
-                .orElseThrow(() -> new NotFoundException("No estás registrado en este evento"));
+            .orElseThrow(() -> new NotFoundException("No estás registrado en este evento"));
 
         return convertToResponseDTO(registration);
     }
 
     public EventRegistrationResponseDTO getRegistrationByStripePaymentIntent(String stripePaymentIntentId) {
         EventRegistration registration = registrationRepository.findByStripePaymentIntentId(stripePaymentIntentId)
-                .orElseThrow(() -> new NotFoundException("Registro no encontrado para este pago"));
+            .orElseThrow(() -> new NotFoundException("Registro no encontrado para este pago"));
 
         return convertToResponseDTO(registration);
     }
 
     public Long countUserCompletedRegistrations(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         return registrationRepository.countCompletedRegistrationsByUserId(user.getId());
     }
@@ -249,51 +249,52 @@ public class EventRegistrationService {
 
     private EventRegistrationResponseDTO convertToResponseDTO(EventRegistration registration) {
         return new EventRegistrationResponseDTO(
-                registration.getId(),
-                registration.getUser() != null ? registration.getUser().getId() : null,
-                registration.getUser() != null ? registration.getUser().getName() + " " + registration.getUser().getLastName() : null,
-                registration.getEvent() != null ? registration.getEvent().getId() : null,
-                registration.getEvent() != null ? registration.getEvent().getTitle() : null,
-                registration.getEvent() != null ? registration.getEvent().getEventDate() : null,
-                registration.getRegistrationDate(),
-                registration.getPaymentStatus(),
-                registration.getPaymentStatus().getDisplayName(),
-                registration.getAmountPaid(),
-                registration.getStripePaymentIntentId(),
-                registration.getPaymentDate(),
-                registration.getCancellationDate(),
-                registration.getIsConfirmed(),
-                registration.isPaid(),
-                registration.isPending(),
-                registration.isCancelled()
+            registration.getId(),
+            registration.getUser() != null ? registration.getUser().getId() : null,
+            registration.getUser() != null ? registration.getUser().getName() + " " + registration.getUser().getLastName() : null,
+            registration.getEvent() != null ? registration.getEvent().getId() : null,
+            registration.getEvent() != null ? registration.getEvent().getTitle() : null,
+            registration.getEvent() != null ? registration.getEvent().getEventDate() : null,
+            registration.getRegistrationDate(),
+            registration.getPaymentStatus(),
+            registration.getPaymentStatus().getDisplayName(),
+            registration.getAmountPaid(),
+            registration.getStripePaymentIntentId(),
+            registration.getPaymentDate(),
+            registration.getCancellationDate(),
+            registration.getIsConfirmed(),
+            registration.isPaid(),
+            registration.isPending(),
+            registration.isCancelled()
         );
     }
 
     private EventResponseDTO convertEventToResponseDTO(Event event) {
         return new EventResponseDTO(
-                event.getId(),
-                event.getTitle(),
-                event.getDescription(),
-                event.getEventDate(),
-                event.getPrice(),
-                event.getMaxCapacity(),
-                event.getCurrentAttendees(),
-                event.getAvailableSpots(),
-                event.getCategory(),
-                event.getCategory().getDisplayName(),
-                event.getStatus(),
-                event.getStatus().getDisplayName(),
-                event.getMainImage(),
-                event.getImages(),
-                event.getCreatedAt(),
-                event.getUpdatedAt(),
-                event.getIsActive(),
-                event.isFull(),
-                event.hasAvailableSpots(),
-                event.isPublished(),
-                event.canAcceptRegistrations(),
-                event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
-                event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
+            event.getId(),
+            event.getTitle(),
+            event.getDescription(),
+            event.getLocation(),
+            event.getEventDate(),
+            event.getPrice(),
+            event.getMaxCapacity(),
+            event.getCurrentAttendees(),
+            event.getAvailableSpots(),
+            event.getCategory(),
+            event.getCategory().getDisplayName(),
+            event.getStatus(),
+            event.getStatus().getDisplayName(),
+            event.getMainImage(),
+            event.getImages(),
+            event.getCreatedAt(),
+            event.getUpdatedAt(),
+            event.getIsActive(),
+            event.isFull(),
+            event.hasAvailableSpots(),
+            event.isPublished(),
+            event.canAcceptRegistrations(),
+            event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
+            event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
         );
     }
 }

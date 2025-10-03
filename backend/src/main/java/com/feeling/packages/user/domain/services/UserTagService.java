@@ -1,34 +1,31 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.packages.common.domain.dto.MessageResponseDTO;
+import com.feeling.exception.NotFoundException;
+import com.feeling.exception.UnauthorizedException;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.user.domain.dto.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.UserTagDTO;
 import com.feeling.packages.user.domain.dto.UserTagStatisticsDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
-import com.feeling.packages.common.exception.NotFoundException;
-import com.feeling.packages.common.exception.UnauthorizedException;
+import com.feeling.packages.user.domain.enums.TagApprovalStatus;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.entities.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
-import com.feeling.packages.user.domain.enums.TagApprovalStatus;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserTagRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 /**
  * Servicio para la gestión completa del sistema de tags dinámicos de usuarios en la plataforma Feeling.
@@ -87,10 +84,10 @@ public class UserTagService {
      * - Logging para auditoría
      *
      * @param userEmail Email del usuario al que se añadirá el tag
-     * @param tagName Nombre del tag a añadir (será normalizado automáticamente)
+     * @param tagName   Nombre del tag a añadir (será normalizado automáticamente)
      * @return El tag añadido (nuevo o existente)
      * @throws IllegalArgumentException Si se excede el límite de tags, el tag ya existe en el perfil o es inválido
-     * @throws NotFoundException Si el usuario no existe
+     * @throws NotFoundException        Si el usuario no existe
      */
     @Transactional
     public UserTag addTagToUser(String userEmail, String tagName) {
@@ -99,7 +96,7 @@ public class UserTagService {
         // Validar límite de tags por usuario
         if (user.getTags() != null && user.getTags().size() >= MAX_TAGS_PER_USER) {
             throw new IllegalArgumentException(
-                    String.format("No puedes tener más de %d tags en tu perfil", MAX_TAGS_PER_USER)
+                String.format("No puedes tener más de %d tags en tu perfil", MAX_TAGS_PER_USER)
             );
         }
 
@@ -121,12 +118,12 @@ public class UserTagService {
         } else {
             // Crear un nuevo tag
             tag = UserTag.builder()
-                    .name(normalizedTagName)
-                    .createdBy(userEmail)
-                    .createdAt(LocalDateTime.now())
-                    .usageCount(0L)
-                    .lastUsed(LocalDateTime.now())
-                    .build();
+                .name(normalizedTagName)
+                .createdBy(userEmail)
+                .createdAt(LocalDateTime.now())
+                .usageCount(0L)
+                .lastUsed(LocalDateTime.now())
+                .build();
 
             tag = userTagRepository.save(tag);
             logger.info("Nuevo tag creado: '{}' por usuario {}", normalizedTagName, userEmail);
@@ -134,6 +131,7 @@ public class UserTagService {
 
         // Añadir el tag al usuario
         user.addTag(tag);
+        tag.incrementUsage(); // Incrementar contador de uso
         userRepository.save(user);
 
         logger.info("Tag '{}' añadido al usuario {}", normalizedTagName, userEmail);
@@ -149,7 +147,7 @@ public class UserTagService {
         String normalizedTagName = normalizeTagName(tagName);
 
         UserTag tag = userTagRepository.findByNameIgnoreCase(normalizedTagName)
-                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
 
         // Verificar si el usuario tiene este tag
         if (user.getTags() == null || !user.getTags().contains(tag)) {
@@ -158,6 +156,7 @@ public class UserTagService {
 
         // Remover el tag del usuario
         user.removeTag(tag);
+        tag.decrementUsage(); // Decrementar contador de uso
         userRepository.save(user);
 
         // Si el tag no tiene usuarios, eliminarlo
@@ -176,14 +175,21 @@ public class UserTagService {
     public List<UserTagDTO> getUserTags(String userEmail) {
         User user = findUserByEmail(userEmail);
         return user.getTags() != null ?
-                user.getTags().stream()
-                        .map(UserTagDTO::new)
-                        .collect(Collectors.toList()) :
-                List.of();
+            user.getTags().stream()
+                .map(UserTagDTO::new)
+                .collect(Collectors.toList()) :
+            List.of();
     }
 
     /**
-     * Reemplaza todos los tags de un usuario con una nueva lista
+     * Reemplaza todos los tags de un usuario con una nueva lista.
+     * Decrementa el contador de uso de los tags antiguos e incrementa el de los nuevos.
+     *
+     * @param userEmail Email del usuario
+     * @param tagNames  Lista de nombres de tags nuevos
+     * @return Lista de tags actuales del usuario
+     * @throws IllegalArgumentException si se excede el límite de tags
+     * @throws NotFoundException        si el usuario no existe
      */
     @Transactional
     public List<UserTagDTO> replaceUserTags(String userEmail, List<String> tagNames) {
@@ -192,7 +198,7 @@ public class UserTagService {
         // Validar límite
         if (tagNames.size() > MAX_TAGS_PER_USER) {
             throw new IllegalArgumentException(
-                    String.format("No puedes tener más de %d tags", MAX_TAGS_PER_USER)
+                String.format("No puedes tener más de %d tags", MAX_TAGS_PER_USER)
             );
         }
 
@@ -206,6 +212,9 @@ public class UserTagService {
                 tag.decrementUsage();
                 if (tag.shouldBeDeleted()) {
                     userTagRepository.delete(tag);
+                    logger.debug("Tag '{}' eliminado por falta de uso", tag.getName());
+                } else {
+                    userTagRepository.save(tag);
                 }
             });
         }
@@ -216,26 +225,28 @@ public class UserTagService {
             validateTagName(normalizedTagName);
 
             UserTag tag = userTagRepository.findByNameIgnoreCase(normalizedTagName)
-                    .orElseGet(() -> {
-                        UserTag newTag = UserTag.builder()
-                                .name(normalizedTagName)
-                                .createdBy(userEmail)
-                                .createdAt(LocalDateTime.now())
-                                .usageCount(0L)
-                                .lastUsed(LocalDateTime.now())
-                                .build();
-                        return userTagRepository.save(newTag);
-                    });
+                .orElseGet(() -> {
+                    UserTag newTag = UserTag.builder()
+                        .name(normalizedTagName)
+                        .createdBy(userEmail)
+                        .createdAt(LocalDateTime.now())
+                        .usageCount(0L)
+                        .lastUsed(LocalDateTime.now())
+                        .build();
+                    return userTagRepository.save(newTag);
+                });
 
             user.addTag(tag);
+            tag.incrementUsage(); // Incrementar contador de uso
+            userTagRepository.save(tag);
         }
 
         User savedUser = userRepository.save(user);
         logger.info("Tags reemplazados para usuario {}: {}", userEmail, tagNames);
 
         return savedUser.getTags().stream()
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     // ========================================
@@ -248,17 +259,17 @@ public class UserTagService {
     public List<UserTagDTO> searchTags(String searchTerm, int limit) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return userTagRepository.findMostPopularTags()
-                    .stream()
-                    .limit(limit)
-                    .map(UserTagDTO::new)
-                    .collect(Collectors.toList());
-        }
-
-        return userTagRepository.searchByNameContaining(searchTerm.trim())
                 .stream()
                 .limit(limit)
                 .map(UserTagDTO::new)
                 .collect(Collectors.toList());
+        }
+
+        return userTagRepository.searchByNameContaining(searchTerm.trim())
+            .stream()
+            .limit(limit)
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -266,9 +277,9 @@ public class UserTagService {
      */
     public List<UserTagDTO> getPopularTags(int limit) {
         return userTagRepository.findTopPopularTags(limit)
-                .stream()
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -277,10 +288,10 @@ public class UserTagService {
     public List<UserTagDTO> getTrendingTags(int limit) {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
         return userTagRepository.findTrendingTags(oneWeekAgo)
-                .stream()
-                .limit(limit)
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .limit(limit)
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -295,7 +306,7 @@ public class UserTagService {
      * Las sugerencias están ordenadas por popularidad y relevancia.
      *
      * @param userEmail Email del usuario para el que se generan sugerencias
-     * @param limit Número máximo de sugerencias a retornar
+     * @param limit     Número máximo de sugerencias a retornar
      * @return Lista de tags sugeridos ordenados por relevancia
      * @throws NotFoundException Si el usuario no existe
      */
@@ -306,10 +317,10 @@ public class UserTagService {
         List<String> userTagNames = user.getTagNames();
 
         return userTagRepository.findSuggestedTagsExcluding(userTagNames)
-                .stream()
-                .limit(limit)
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .limit(limit)
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -342,13 +353,13 @@ public class UserTagService {
         Double averageUsageCount = userTagRepository.getAverageUsageCount();
 
         return UserTagStatisticsDTO.builder()
-                .totalTags(totalTags)
-                .activeTags(activeTags)
-                .unusedTags(totalTags - activeTags)
-                .uniqueUsersWithTags(uniqueUsersWithTags)
-                .averageTagsPerUser(averageTagsPerUser != null ? averageTagsPerUser : 0.0)
-                .averageUsageCount(averageUsageCount != null ? averageUsageCount : 0.0)
-                .build();
+            .totalTags(totalTags)
+            .activeTags(activeTags)
+            .unusedTags(totalTags - activeTags)
+            .uniqueUsersWithTags(uniqueUsersWithTags)
+            .averageTagsPerUser(averageTagsPerUser != null ? averageTagsPerUser : 0.0)
+            .averageUsageCount(averageUsageCount != null ? averageUsageCount : 0.0)
+            .build();
     }
 
     /**
@@ -365,9 +376,9 @@ public class UserTagService {
         }
 
         return userTagRepository.findPopularTagsByCategory(category.toUpperCase(), limit)
-                .stream()
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     // ========================================
@@ -411,7 +422,7 @@ public class UserTagService {
     public MessageResponseDTO cleanupUnusedTagsManually(String adminEmail) {
         User admin = findUserByEmail(adminEmail);
 
-        if (!isAdmin(admin)) {
+        if (isNotAdmin(admin)) {
             throw new UnauthorizedException("Solo los administradores pueden realizar esta acción");
         }
 
@@ -434,13 +445,13 @@ public class UserTagService {
         }
 
         return tagName.toLowerCase()
-                .trim()
-                .replaceAll("\\s+", " ") // Reemplazar múltiples espacios por uno solo
-                .replaceAll("[^a-záéíóúñü0-9\\s]", ""); // Mantener solo letras, números y espacios
+            .trim()
+            .replaceAll("\\s+", " ") // Reemplazar múltiples espacios por uno solo
+            .replaceAll("[^a-záéíóúñü0-9\\s]", ""); // Mantener solo letras, números y espacios
     }
 
     /**
-     * Valida que el nombre del tag cumple con las reglas
+     * Válida que el nombre del tag cumple con las reglas
      */
     private void validateTagName(String tagName) {
         if (tagName.isEmpty()) {
@@ -472,15 +483,14 @@ public class UserTagService {
      */
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
     }
 
     /**
-     * Verifica si un usuario es administrador
+     * Verifica si un usuario NO es administrador
      */
-    private boolean isAdmin(User user) {
-        return user.getUserRole() != null &&
-                "ADMIN".equals(user.getUserRole().getUserRoleList().name());
+    private boolean isNotAdmin(User user) {
+        return !(user.getUserRole() != null && "ADMIN".equals(user.getUserRole().getUserRoleList().name()));
     }
 
     // ========================================
@@ -516,8 +526,8 @@ public class UserTagService {
      * @param userEmail1 Email del primer usuario
      * @param userEmail2 Email del segundo usuario
      * @return Puntuación de compatibilidad (0.0 - 1.0), donde:
-     *         - 0.0 = Sin tags en común o uno no tiene tags
-     *         - 1.0 = Todos los tags son idénticos
+     * - 0.0 = Sin tags en común o uno no tiene tags
+     * - 1.0 = Todos los tags son idénticos
      * @throws NotFoundException Si alguno de los usuarios no existe
      */
     public double calculateTagCompatibility(String userEmail1, String userEmail2) {
@@ -525,7 +535,7 @@ public class UserTagService {
         User user2 = findUserByEmail(userEmail2);
 
         if (user1.getTags() == null || user1.getTags().isEmpty() ||
-                user2.getTags() == null || user2.getTags().isEmpty()) {
+            user2.getTags() == null || user2.getTags().isEmpty()) {
             return 0.0;
         }
 
@@ -534,8 +544,8 @@ public class UserTagService {
 
         // Contar tags en común
         long commonTags = tags1.stream()
-                .filter(tags2::contains)
-                .count();
+            .filter(tags2::contains)
+            .count();
 
         // Calcular índice de Jaccard: intersección / unión
         double union = tags1.size() + tags2.size() - commonTags;
@@ -560,10 +570,10 @@ public class UserTagService {
         }
 
         return userTagRepository.findMatchCandidatesByTags(
-                user.getTagNames(),
-                userEmail,
-                categoryFilter,
-                limit
+            user.getTagNames(),
+            userEmail,
+            categoryFilter,
+            limit
         );
     }
 
@@ -591,18 +601,18 @@ public class UserTagService {
     public UserTag findOrCreateTag(String tagName) {
         // Busca un tag por nombre, ignorando mayúsculas y minúsculas
         return userTagRepository.findByNameIgnoreCase(tagName)
-                .orElseGet(() -> {
-                    UserTag newTag = UserTag.builder()
-                            .name(tagName.toLowerCase().trim())
-                            .createdBy("system") // Asignar un creador por defecto
-                            .createdAt(LocalDateTime.now())
-                            .usageCount(0L)
-                            .lastUsed(LocalDateTime.now())
-                            .approvalStatus(TagApprovalStatus.PENDING) // Los tags nuevos requieren aprobación (sistema general)
-                            .build();
-                    logger.info("Nuevo tag creado pendiente de aprobación: '{}'", tagName);
-                    return userTagRepository.save(newTag);
-                });
+            .orElseGet(() -> {
+                UserTag newTag = UserTag.builder()
+                    .name(tagName.toLowerCase().trim())
+                    .createdBy("system") // Asignar un creador por defecto
+                    .createdAt(LocalDateTime.now())
+                    .usageCount(0L)
+                    .lastUsed(LocalDateTime.now())
+                    .approvalStatus(TagApprovalStatus.PENDING) // Los tags nuevos requieren aprobación (sistema general)
+                    .build();
+                logger.info("Nuevo tag creado pendiente de aprobación: '{}'", tagName);
+                return userTagRepository.save(newTag);
+            });
     }
 
     /**
@@ -610,30 +620,30 @@ public class UserTagService {
      */
     public UserTag findOrCreateTagForProfile(String tagName, String userEmail) {
         return userTagRepository.findByNameIgnoreCase(tagName)
-                .orElseGet(() -> {
-                    // Verificar si el usuario es admin para auto-aprobar sus tags
-                    boolean isAdmin = isUserAdmin(userEmail);
-                    
-                    UserTag newTag = UserTag.builder()
-                            .name(tagName.toLowerCase().trim())
-                            .createdBy(userEmail) // Usuario que creó el tag
-                            .createdAt(LocalDateTime.now())
-                            .usageCount(1L) // Empieza con 1 porque el usuario lo está usando
-                            .lastUsed(LocalDateTime.now())
-                            .approvalStatus(isAdmin ? TagApprovalStatus.APPROVED : TagApprovalStatus.PENDING) // Los admins auto-aprueban, otros necesitan aprobación
-                            .build();
-                    
-                    // Si es admin, agregar información de aprobación
-                    if (isAdmin) {
-                        newTag.setApprovedBy(userEmail);
-                        newTag.setApprovedAt(LocalDateTime.now());
-                        logger.info("Tag creado y auto-aprobado por administrador '{}': '{}'", userEmail, tagName);
-                    } else {
-                        logger.info("Tag creado por usuario '{}' pendiente de aprobación: '{}'", userEmail, tagName);
-                    }
-                    
-                    return userTagRepository.save(newTag);
-                });
+            .orElseGet(() -> {
+                // Verificar si el usuario es admin para auto-aprobar sus tags
+                boolean isAdmin = isUserAdmin(userEmail);
+
+                UserTag newTag = UserTag.builder()
+                    .name(tagName.toLowerCase().trim())
+                    .createdBy(userEmail) // Usuario que creó el tag
+                    .createdAt(LocalDateTime.now())
+                    .usageCount(1L) // Empieza con 1 porque el usuario lo está usando
+                    .lastUsed(LocalDateTime.now())
+                    .approvalStatus(isAdmin ? TagApprovalStatus.APPROVED : TagApprovalStatus.PENDING) // Los admins auto-aprueban, otros necesitan aprobación
+                    .build();
+
+                // Si es admin, agregar información de aprobación
+                if (isAdmin) {
+                    newTag.setApprovedBy(userEmail);
+                    newTag.setApprovedAt(LocalDateTime.now());
+                    logger.info("Tag creado y auto-aprobado por administrador '{}': '{}'", userEmail, tagName);
+                } else {
+                    logger.info("Tag creado por usuario '{}' pendiente de aprobación: '{}'", userEmail, tagName);
+                }
+
+                return userTagRepository.save(newTag);
+            });
     }
 
     // ========================================
@@ -645,9 +655,9 @@ public class UserTagService {
      */
     public List<UserTagDTO> getPendingApprovalTags() {
         return userTagRepository.findPendingApprovalTags()
-                .stream()
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -656,12 +666,12 @@ public class UserTagService {
     @Transactional
     public MessageResponseDTO approveTag(Long tagId, String adminEmail) {
         User admin = findUserByEmail(adminEmail);
-        if (!isAdmin(admin)) {
+        if (isNotAdmin(admin)) {
             throw new UnauthorizedException("Solo los administradores pueden aprobar tags");
         }
 
         UserTag tag = userTagRepository.findById(tagId)
-                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
 
         tag.approve(adminEmail);
         userTagRepository.save(tag);
@@ -676,12 +686,12 @@ public class UserTagService {
     @Transactional
     public MessageResponseDTO rejectTag(Long tagId, String rejectionReason, String adminEmail) {
         User admin = findUserByEmail(adminEmail);
-        if (!isAdmin(admin)) {
+        if (isNotAdmin(admin)) {
             throw new UnauthorizedException("Solo los administradores pueden rechazar tags");
         }
 
         UserTag tag = userTagRepository.findById(tagId)
-                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
 
         tag.reject(rejectionReason);
         userTagRepository.save(tag);
@@ -696,7 +706,7 @@ public class UserTagService {
     @Transactional
     public MessageResponseDTO approveBatchTags(List<Long> tagIds, String adminEmail) {
         User admin = findUserByEmail(adminEmail);
-        if (!isAdmin(admin)) {
+        if (isNotAdmin(admin)) {
             throw new UnauthorizedException("Solo los administradores pueden aprobar tags");
         }
 
@@ -723,16 +733,16 @@ public class UserTagService {
      */
     public Map<String, Object> getTagApprovalStatistics() {
         Map<String, Object> stats = new HashMap<>();
-        
+
         long totalTags = userTagRepository.count();
         long pendingTags = userTagRepository.countByApprovalStatus(TagApprovalStatus.PENDING);
         long approvedTags = totalTags - pendingTags;
-        
+
         stats.put("totalTags", totalTags);
         stats.put("approvedTags", approvedTags);
         stats.put("pendingTags", pendingTags);
         stats.put("approvalRate", totalTags > 0 ? Math.round((double) approvedTags / totalTags * 100) : 0);
-        
+
         return stats;
     }
 
@@ -743,17 +753,17 @@ public class UserTagService {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return userTagRepository.findTopApprovedPopularTags(
                     org.springframework.data.domain.PageRequest.of(0, limit)
-            )
-                    .stream()
-                    .map(UserTagDTO::new)
-                    .collect(Collectors.toList());
+                )
+                .stream()
+                .map(UserTagDTO::new)
+                .collect(Collectors.toList());
         }
 
         return userTagRepository.searchApprovedTagsByName(searchTerm.trim())
-                .stream()
-                .limit(limit)
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            .stream()
+            .limit(limit)
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -762,10 +772,10 @@ public class UserTagService {
     public List<UserTagDTO> getPopularApprovedTags(int limit) {
         return userTagRepository.findTopApprovedPopularTags(
                 org.springframework.data.domain.PageRequest.of(0, limit)
-        )
-                .stream()
-                .map(UserTagDTO::new)
-                .collect(Collectors.toList());
+            )
+            .stream()
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -774,8 +784,8 @@ public class UserTagService {
     private boolean isUserAdmin(String userEmail) {
         try {
             return userRepository.findByEmail(userEmail)
-                    .map(user -> user.getUserRole().getUserRoleList() == UserRoleList.ADMIN)
-                    .orElse(false);
+                .map(user -> user.getUserRole().getUserRoleList() == UserRoleList.ADMIN)
+                .orElse(false);
         } catch (Exception e) {
             logger.warn("Error al verificar rol de administrador para {}: {}", userEmail, e.getMessage());
             return false;
@@ -787,37 +797,136 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Agregar múltiples tags a un usuario
+     * Agregar múltiples tags a un usuario.
+     * Optimizado para evitar N+1 queries.
+     *
+     * @param userEmail Email del usuario
+     * @param tagNames  Lista de nombres de tags a agregar
+     * @return Lista de tags actuales del usuario después de la operación
+     * @throws NotFoundException   si el usuario no existe
+     * @throws IllegalArgumentException si se excede el límite de tags permitidos
      */
     @Transactional
     public List<UserTagDTO> addTagsToUser(String userEmail, List<String> tagNames) {
         User user = findUserByEmail(userEmail);
-        
-        for (String tagName : tagNames) {
-            if (user.getTags().size() >= MAX_TAGS_PER_USER) {
-                break; // No agregar más si ya alcanzó el límite
-            }
-            addTagToUser(userEmail, tagName);
+
+        // Validar que no se agreguen más tags de los permitidos
+        int currentTagCount = user.getTags().size();
+        int tagsToAddCount = tagNames.size();
+        int availableSlots = MAX_TAGS_PER_USER - currentTagCount;
+
+        if (availableSlots <= 0) {
+            logger.warn("Usuario {} ya tiene el máximo de tags permitidos ({}/{})",
+                userEmail, currentTagCount, MAX_TAGS_PER_USER);
+            return getUserTags(userEmail);
         }
-        
-        return getUserTags(userEmail);
+
+        if (tagsToAddCount > availableSlots) {
+            logger.warn("Usuario {} intentó agregar {} tags pero solo tiene {} espacios disponibles",
+                userEmail, tagsToAddCount, availableSlots);
+        }
+
+        // Normalizar nombres de tags y eliminar duplicados
+        List<String> normalizedTagNames = tagNames.stream()
+            .limit(availableSlots) // Limitar a espacios disponibles
+            .map(name -> name.toLowerCase().trim())
+            .distinct()
+            .toList();
+
+        // Obtener tags existentes del usuario para evitar duplicados
+        Set<String> existingTagNames = user.getTags().stream()
+            .map(tag -> tag.getName().toLowerCase())
+            .collect(Collectors.toSet());
+
+        int addedCount = 0;
+        int skippedCount = 0;
+
+        for (String tagName : normalizedTagNames) {
+            if (user.getTags().size() >= MAX_TAGS_PER_USER) {
+                break;
+            }
+
+            // Validar que el tag no esté vacío
+            if (tagName.isEmpty()) {
+                logger.warn("Tag vacío ignorado para usuario {}", userEmail);
+                skippedCount++;
+                continue;
+            }
+
+            // Verificar que el usuario no tenga ya este tag
+            if (existingTagNames.contains(tagName)) {
+                logger.debug("Usuario {} ya tiene el tag '{}'", userEmail, tagName);
+                skippedCount++;
+                continue;
+            }
+
+            // Buscar o crear el tag
+            UserTag tag = userTagRepository.findByNameIgnoreCase(tagName)
+                .orElseGet(() -> {
+                    UserTag newTag = new UserTag(tagName, userEmail);
+                    logger.info("Nuevo tag creado: '{}' por usuario {}", tagName, userEmail);
+                    return userTagRepository.save(newTag);
+                });
+
+            // Verificar que el tag esté aprobado (excepto si es el creador)
+            if (!tag.isApproved() && !tag.getCreatedBy().equals(userEmail)) {
+                logger.warn("Tag '{}' no está aprobado y fue rechazado para usuario {}", tagName, userEmail);
+                skippedCount++;
+                continue;
+            }
+
+            // Agregar tag al usuario
+            user.addTag(tag);
+            tag.incrementUsage();
+            userTagRepository.save(tag);
+            existingTagNames.add(tagName); // Actualizar set para evitar duplicados en el mismo lote
+            addedCount++;
+
+            logger.debug("Tag '{}' agregado al usuario {}", tagName, userEmail);
+        }
+
+        userRepository.save(user);
+
+        logger.info("Operación addTagsToUser completada para {}: {} agregados, {} omitidos",
+            userEmail, addedCount, skippedCount);
+
+        // Retornar tags del usuario ya guardado (sin query adicional)
+        return user.getTags().stream()
+            .map(UserTagDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
-     * Remover tag de usuario por ID
+     * Remover tag de usuario por ID.
+     * Decrementa el contador de uso y elimina el tag si ya no está en uso.
+     *
+     * @param userEmail Email del usuario
+     * @param tagId     ID del tag a remover
+     * @return Mensaje de confirmación
+     * @throws NotFoundException si el usuario o tag no existen
      */
     @Transactional
     public MessageResponseDTO removeTagFromUser(String userEmail, Long tagId) {
         User user = findUserByEmail(userEmail);
-        
+
         UserTag tagToRemove = user.getTags().stream()
-                .filter(tag -> tag.getId().equals(tagId))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("Tag no encontrado en el perfil del usuario"));
-                
+            .filter(tag -> tag.getId().equals(tagId))
+            .findFirst()
+            .orElseThrow(() -> new NotFoundException("Tag no encontrado en el perfil del usuario"));
+
         user.getTags().remove(tagToRemove);
+        tagToRemove.decrementUsage(); // Decrementar contador de uso
         userRepository.save(user);
-        
+
+        // Si el tag no tiene usuarios, eliminarlo
+        if (tagToRemove.shouldBeDeleted()) {
+            userTagRepository.delete(tagToRemove);
+            logger.info("Tag '{}' eliminado por falta de uso", tagToRemove.getName());
+        } else {
+            userTagRepository.save(tagToRemove);
+        }
+
+        logger.debug("Tag '{}' removido del usuario {}", tagToRemove.getName(), userEmail);
         return new MessageResponseDTO("Tag removido exitosamente");
     }
 
@@ -855,6 +964,7 @@ public class UserTagService {
 
     /**
      * Obtener usuarios por tags con paginación
+     *
      * @deprecated Use {@link #getUsersByTagsWithResponseDTO(List, Pageable)} instead
      */
     @Deprecated(since = "1.8", forRemoval = true)
@@ -889,7 +999,7 @@ public class UserTagService {
         if (!isUserAdmin(adminEmail)) {
             throw new UnauthorizedException("Solo los administradores pueden crear tags");
         }
-        
+
         return findOrCreateTag(tagName);
     }
 
@@ -899,11 +1009,11 @@ public class UserTagService {
     @Transactional
     public UserTagDTO updateTag(Long tagId, String newName) {
         UserTag tag = userTagRepository.findById(tagId)
-                .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
-                
+            .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
+
         tag.setName(newName.trim().toLowerCase());
         // Note: UserTag entity doesn't have updatedAt field
-        
+
         UserTag saved = userTagRepository.save(tag);
         return new UserTagDTO(saved);
     }
@@ -914,11 +1024,11 @@ public class UserTagService {
     private Page<UserTagDTO> createPageFromList(List<UserTagDTO> list, Pageable pageable) {
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), list.size());
-        
+
         if (start > list.size()) {
             return new PageImpl<>(List.of(), pageable, list.size());
         }
-        
+
         List<UserTagDTO> subList = list.subList(start, end);
         return new PageImpl<>(subList, pageable, list.size());
     }

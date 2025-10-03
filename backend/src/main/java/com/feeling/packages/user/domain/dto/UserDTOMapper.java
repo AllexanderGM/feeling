@@ -1,16 +1,11 @@
 package com.feeling.packages.user.domain.dto;
 
-import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
-import com.feeling.packages.auth.domain.dto.UserStatusDTO;
-import com.feeling.packages.user.infrastructure.entities.User;
-import com.feeling.packages.auth.domain.dto.AuthLoginEssentialResponseDTO;
-import com.feeling.packages.auth.domain.dto.AuthLoginResponseDTO;
-import com.feeling.packages.auth.domain.dto.AuthProviderInfoDTO;
+import com.feeling.packages.auth.domain.dto.*;
 import com.feeling.packages.user.domain.services.UserAttributeService;
+import com.feeling.packages.user.infrastructure.entities.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 /**
  * Utilidad para mapear entidades User a DTOs estandarizados
@@ -22,15 +17,15 @@ public class UserDTOMapper {
      */
     public static UserStatusDTO toUserStatusDTO(User user) {
         return new UserStatusDTO(
-                user.getId(),
-                user.isVerified(),
-                user.getProfileComplete(),
-                user.isApproved(),
-                user.getApprovalStatus().name(),
-                user.getUserRole().getUserRoleList().name(),
-                user.getAvailableAttempts(),
-                user.getCreatedAt(),
-                user.getLastActive()
+            user.getId(),
+            user.isVerified(),
+            user.getProfileComplete(),
+            user.isApproved(),
+            user.getApprovalStatus().name(),
+            user.getUserRole().getUserRoleList().name(),
+            user.getAvailableAttempts(),
+            user.getCreatedAt(),
+            user.getLastActive()
         );
     }
 
@@ -39,32 +34,32 @@ public class UserDTOMapper {
      */
     public static UserProfileDataDTO toUserProfileDataDTO(User user) {
         return new UserProfileDataDTO(
-                user.getName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getDateOfBirth(),
-                user.getAge(),
-                user.getDocument(),
-                user.getPhone(),
-                user.getPhoneCode(),
-                user.getCountry(),
-                user.getCity(),
-                user.getDepartment(),
-                user.getLocality(),
-                user.getDescription(),
-                user.getImages(),
-                user.getMainImage(),
-                user.getCategoryInterest() != null ?
-                        user.getCategoryInterest().getCategoryInterestEnum().name() : null,
-                user.getGender() != null ? user.getGender().getName() : null,
-                user.getTagNames(),
-                // Campos de preferencias
-                user.getAgePreferenceMin(),
-                user.getAgePreferenceMax(),
-                user.getLocationPreferenceRadius(),
-                // Campos específicos para SPIRIT
-                user.getChurch() != null ? user.getChurch().getName() : null,
-                user.getCustomChurch()
+            user.getName(),
+            user.getLastName(),
+            user.getEmail(),
+            user.getDateOfBirth(),
+            user.getAge(),
+            user.getDocument(),
+            user.getPhone(),
+            user.getPhoneCode(),
+            user.getCountry(),
+            user.getCity(),
+            user.getDepartment(),
+            user.getLocality(),
+            user.getDescription(),
+            user.getImages(),
+            user.getMainImage(),
+            user.getCategoryInterest() != null ?
+                user.getCategoryInterest().getCategoryInterestEnum().name() : null,
+            user.getGender() != null ? user.getGender().getName() : null,
+            user.getTagNames(),
+            // Campos de preferencias
+            user.getAgePreferenceMin(),
+            user.getAgePreferenceMax(),
+            user.getLocationPreferenceRadius(),
+            // Campos específicos para SPIRIT
+            user.getChurch() != null ? user.getChurch().getName() : null,
+            user.getCustomChurch()
         );
     }
 
@@ -73,9 +68,9 @@ public class UserDTOMapper {
      */
     public static UserResponseDTO toUserStandardResponseDTO(User user) {
         return new UserResponseDTO(
-                toUserStatusDTO(user),
-                toUserProfileDataDTO(user),
-                null, null, null, null, null, null
+            toUserStatusDTO(user),
+            toUserProfileDataDTO(user),
+            null, null, null, null, null, null
         );
     }
 
@@ -84,14 +79,14 @@ public class UserDTOMapper {
      */
     public static UserResponseDTO toUserExtendedResponseDTO(User user) {
         return new UserResponseDTO(
-                toUserStatusDTO(user),
-                toUserProfileDataDTO(user),
-                toUserPrivacyDTO(user),
-                toUserMetricsDTO(user),
-                null, // matches
-                toAuthProviderInfoDTO(user),
-                null, // account
-                toUserNotificationDTO(user)
+            toUserStatusDTO(user),
+            toUserProfileDataDTO(user),
+            toUserPrivacyDTO(user),
+            toUserMetricsDTO(user),
+            null, // matches
+            toAuthProviderInfoDTO(user),
+            null, // account
+            toUserNotificationDTO(user)
         );
     }
 
@@ -100,14 +95,14 @@ public class UserDTOMapper {
      */
     public static UserResponseDTO toUserExtendedResponseDTO(User user, UserMatchesDTO matches) {
         return new UserResponseDTO(
-                toUserStatusDTO(user),
-                toUserProfileDataDTO(user),
-                toUserPrivacyDTO(user),
-                toUserMetricsDTO(user),
-                matches, // matches
-                toAuthProviderInfoDTO(user),
-                null, // account
-                toUserNotificationDTO(user)
+            toUserStatusDTO(user),
+            toUserProfileDataDTO(user),
+            toUserPrivacyDTO(user),
+            toUserMetricsDTO(user),
+            matches, // matches
+            toAuthProviderInfoDTO(user),
+            null, // account
+            toUserNotificationDTO(user)
         );
     }
 
@@ -116,9 +111,9 @@ public class UserDTOMapper {
      */
     public static UserResponseDTO toUserPublicResponseDTO(User user) {
         return new UserResponseDTO(
-                toUserStatusDTO(user),
-                toUserProfileDataDTO(user),
-                null, null, null, null, null, null
+            toUserStatusDTO(user),
+            toUserProfileDataDTO(user),
+            null, null, null, null, null, null
         );
     }
 
@@ -128,16 +123,16 @@ public class UserDTOMapper {
      */
     public static AuthLoginResponseDTO toAuthLoginResponseDTO(User user, String accessToken, String refreshToken) {
         return new AuthLoginResponseDTO(
-                accessToken,
-                refreshToken,
-                toUserStatusDTO(user),
-                toUserProfileDataDTO(user),
-                toUserPrivacyDTO(user),
-                toUserNotificationDTO(user),
-                toUserMetricsDTO(user),
-                toUserMatchesDTO(user),
-                toAuthProviderInfoDTO(user),
-                toUserAccountStatusDTO(user)
+            accessToken,
+            refreshToken,
+            toUserStatusDTO(user),
+            toUserProfileDataDTO(user),
+            toUserPrivacyDTO(user),
+            toUserNotificationDTO(user),
+            toUserMetricsDTO(user),
+            toUserMatchesDTO(user),
+            toAuthProviderInfoDTO(user),
+            toUserAccountStatusDTO(user)
         );
     }
 
@@ -146,16 +141,16 @@ public class UserDTOMapper {
      */
     public static UserEssentialDTO toUserEssentialDTO(User user) {
         return new UserEssentialDTO(
-                user.getId(),
-                user.getName(),
-                user.getLastName(),
-                user.getEmail(),
-                user.getUserRole().getUserRoleList().name(),
-                user.isApproved(),
-                user.getApprovalStatus().name(),
-                user.getCategoryInterest() != null ?
-                        user.getCategoryInterest().getCategoryInterestEnum().name() : null,
-                user.isProfileComplete()
+            user.getId(),
+            user.getName(),
+            user.getLastName(),
+            user.getEmail(),
+            user.getUserRole().getUserRoleList().name(),
+            user.isApproved(),
+            user.getApprovalStatus().name(),
+            user.getCategoryInterest() != null ?
+                user.getCategoryInterest().getCategoryInterestEnum().name() : null,
+            user.isProfileComplete()
         );
     }
 
@@ -164,9 +159,9 @@ public class UserDTOMapper {
      */
     public static AuthLoginEssentialResponseDTO toAuthLoginEssentialResponseDTO(User user, String accessToken, String refreshToken) {
         return new AuthLoginEssentialResponseDTO(
-                accessToken,
-                refreshToken,
-                toUserEssentialDTO(user)
+            accessToken,
+            refreshToken,
+            toUserEssentialDTO(user)
         );
     }
 
@@ -175,12 +170,12 @@ public class UserDTOMapper {
      */
     public static UserNotificationDTO toUserNotificationDTO(User user) {
         return new UserNotificationDTO(
-                user.isNotificationsEmailEnabled(),
-                user.isNotificationsPhoneEnabled(),
-                user.isNotificationsMatchesEnabled(),
-                user.isNotificationsEventsEnabled(),
-                user.isNotificationsLoginEnabled(),
-                user.isNotificationsPaymentsEnabled()
+            user.isNotificationsEmailEnabled(),
+            user.isNotificationsPhoneEnabled(),
+            user.isNotificationsMatchesEnabled(),
+            user.isNotificationsEventsEnabled(),
+            user.isNotificationsLoginEnabled(),
+            user.isNotificationsPaymentsEnabled()
         );
     }
 
@@ -189,13 +184,13 @@ public class UserDTOMapper {
      */
     public static UserPrivacyDTO toUserPrivacyDTO(User user) {
         return new UserPrivacyDTO(
-                user.isPublicAccount(),
-                user.isSearchVisibility(),
-                user.isLocationPublic(),
-                user.isShowAge(),
-                user.isShowLocation(),
-                user.isShowPhone(),
-                user.isShowMeInSearch()
+            user.isPublicAccount(),
+            user.isSearchVisibility(),
+            user.isLocationPublic(),
+            user.isShowAge(),
+            user.isShowLocation(),
+            user.isShowPhone(),
+            user.isShowMeInSearch()
         );
     }
 
@@ -204,11 +199,11 @@ public class UserDTOMapper {
      */
     public static UserMetricsDTO toUserMetricsDTO(User user) {
         return new UserMetricsDTO(
-                user.getProfileViews(),
-                user.getLikesReceived(),
-                user.getMatchesCount(),
-                user.getPopularityScore(),
-                user.getProfileCompletenessPercentage()
+            user.getProfileViews(),
+            user.getLikesReceived(),
+            user.getMatchesCount(),
+            user.getPopularityScore(),
+            user.getProfileCompletenessPercentage()
         );
     }
 
@@ -217,14 +212,14 @@ public class UserDTOMapper {
      */
     public static UserMatchesDTO toUserMatchesDTO(User user) {
         return new UserMatchesDTO(
-                user.getAvailableAttempts(),
-                0, // todayMatches - TODO: implementar lógica
-                user.getMatchesCount().intValue(),
-                10, // maxDailyAttempts - TODO: obtener de configuración
-                0L, // pendingSent
-                0L, // pendingReceived
-                0L, // accepted
-                0L  // favorites
+            user.getAvailableAttempts(),
+            0, // todayMatches - TODO: implementar lógica
+            user.getMatchesCount() != null ? user.getMatchesCount().intValue() : 0,
+            10, // maxDailyAttempts - TODO: obtener de configuración
+            0L, // pendingSent
+            0L, // pendingReceived
+            0L, // accepted
+            0L  // favorites
         );
     }
 
@@ -233,10 +228,10 @@ public class UserDTOMapper {
      */
     public static AuthProviderInfoDTO toAuthProviderInfoDTO(User user) {
         return new AuthProviderInfoDTO(
-                user.getUserAuthProvider(),
-                user.getExternalId(),
-                user.getExternalAvatarUrl(),
-                user.getLastExternalSync()
+            user.getUserAuthProvider(),
+            user.getExternalId(),
+            user.getExternalAvatarUrl(),
+            user.getLastExternalSync()
         );
     }
 
@@ -245,9 +240,9 @@ public class UserDTOMapper {
      */
     public static UserAccountStatusDTO toUserAccountStatusDTO(User user) {
         return new UserAccountStatusDTO(
-                user.isAccountDeactivated(),
-                user.getDeactivationDate(),
-                user.getDeactivationReason()
+            user.isAccountDeactivated(),
+            user.getDeactivationDate(),
+            user.getDeactivationReason()
         );
     }
 
@@ -256,15 +251,15 @@ public class UserDTOMapper {
      */
     public static UserStatusDTO toUserPublicStatusDTO(User user) {
         return new UserStatusDTO(
-                user.getId(),
-                user.isVerified(),
-                user.getProfileComplete(),
-                user.isApproved(),
-                user.getApprovalStatus().name(),
-                user.getUserRole().getUserRoleList().name(),
-                null, // availableAttempts - no mostrar en vista pública
-                user.getCreatedAt(),
-                user.getLastActive()
+            user.getId(),
+            user.isVerified(),
+            user.getProfileComplete(),
+            user.isApproved(),
+            user.getApprovalStatus().name(),
+            user.getUserRole().getUserRoleList().name(),
+            null, // availableAttempts - no mostrar en vista pública
+            user.getCreatedAt(),
+            user.getLastActive()
         );
     }
 
@@ -280,7 +275,7 @@ public class UserDTOMapper {
         partialUpdate.lastName().ifPresent(user::setLastName);
         partialUpdate.email().ifPresent(user::setEmail);
         partialUpdate.password().ifPresent(password ->
-                user.setPassword(passwordEncoder.encode(password)));
+            user.setPassword(passwordEncoder.encode(password)));
 
         // Datos personales
         partialUpdate.document().ifPresent(user::setDocument);
@@ -292,11 +287,11 @@ public class UserDTOMapper {
 
         // Atributos dinámicos con validación (ahora usa el servicio)
         partialUpdate.genderId().ifPresent(id ->
-                user.setGender(userAttributeService.findAttributeById(id, "Género")));
+            user.setGender(userAttributeService.findAttributeById(id, "Género")));
         partialUpdate.maritalStatusId().ifPresent(id ->
-                user.setMaritalStatus(userAttributeService.findAttributeById(id, "Estado civil")));
+            user.setMaritalStatus(userAttributeService.findAttributeById(id, "Estado civil")));
         partialUpdate.educationLevelId().ifPresent(id ->
-                user.setEducation(userAttributeService.findAttributeById(id, "Nivel educativo")));
+            user.setEducation(userAttributeService.findAttributeById(id, "Nivel educativo")));
 
         // Ubicación
         if (partialUpdate.hasLocationUpdates()) {
@@ -304,18 +299,14 @@ public class UserDTOMapper {
             partialUpdate.department().ifPresent(user::setDepartment);
             partialUpdate.city().ifPresent(user::setCity);
             partialUpdate.locality().ifPresent(user::setLocality);
-            partialUpdate.latitude().ifPresent(user::setLatitude);
-            partialUpdate.longitude().ifPresent(user::setLongitude);
-            partialUpdate.address().ifPresent(user::setAddress);
         }
 
         // Preferencias
         if (partialUpdate.hasPreferenceUpdates()) {
             partialUpdate.agePreferenceMin().ifPresent(user::setAgePreferenceMin);
             partialUpdate.agePreferenceMax().ifPresent(user::setAgePreferenceMax);
-            partialUpdate.locationPreferenceRadius().ifPresent(user::setLocationPreferenceRadius);
-            partialUpdate.genderPreference().ifPresent(user::setGenderPreference);
-            partialUpdate.maxDistance().ifPresent(user::setMaxDistance);
+            partialUpdate.locationPreferenceRadius().ifPresent(radius ->
+                user.setLocationPreferenceRadius(radius.intValue()));
         }
 
         // Privacidad
@@ -348,10 +339,9 @@ public class UserDTOMapper {
         }
 
         // Colecciones
-        partialUpdate.tags().ifPresent(tags ->
-                user.setTagNames(tags != null ? tags : new ArrayList<>()));
+        // Note: tags are managed through UserTagService, not directly set here
         partialUpdate.imageUrls().ifPresent(imageUrls ->
-                user.setImages(imageUrls != null ? imageUrls : new ArrayList<>()));
+            user.setImages(imageUrls));
 
         // Actualizar timestamp
         user.setUpdatedAt(LocalDateTime.now());

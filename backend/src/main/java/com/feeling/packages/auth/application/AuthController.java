@@ -1,10 +1,10 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.exception.ExistEmailException;
-import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.auth.domain.dto.*;
+import com.feeling.packages.auth.domain.services.AuthService;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.user.infrastructure.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,13 +38,13 @@ public class AuthController {
 
     @PostMapping("/register")
     @Operation(
-            summary = "Registro de nuevo usuario",
-            description = "Registra un nuevo usuario con datos mínimos. Envía un código de verificación por email."
+        summary = "Registro de nuevo usuario",
+        description = "Registra un nuevo usuario con datos mínimos. Envía un código de verificación por email."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Usuario registrado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos de registro inválidos"),
-            @ApiResponse(responseCode = "409", description = "El email ya está registrado")
+        @ApiResponse(responseCode = "201", description = "Usuario registrado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Datos de registro inválidos"),
+        @ApiResponse(responseCode = "409", description = "El email ya está registrado")
     })
     public ResponseEntity<MessageResponseDTO> register(@Valid @RequestBody AuthRegisterRequestDTO newUser) {
         try {
@@ -59,15 +59,15 @@ public class AuthController {
 
     @PostMapping("/google/register")
     @Operation(
-            summary = "Registrarse con Google",
-            description = "Registra un nuevo usuario específicamente usando Google OAuth2. " +
-                    "Si el email ya existe, devuelve error con instrucciones específicas."
+        summary = "Registrarse con Google",
+        description = "Registra un nuevo usuario específicamente usando Google OAuth2. " +
+            "Si el email ya existe, devuelve error con instrucciones específicas."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Usuario registrado con Google exitosamente",
-                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
-            @ApiResponse(responseCode = "409", description = "Email ya registrado con otro método")
+        @ApiResponse(responseCode = "201", description = "Usuario registrado con Google exitosamente",
+            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
+        @ApiResponse(responseCode = "409", description = "Email ya registrado con otro método")
     })
     public ResponseEntity<AuthLoginResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
         try {
@@ -89,13 +89,13 @@ public class AuthController {
 
     @PostMapping("/verify-email")
     @Operation(
-            summary = "Verificar código de email",
-            description = "Verifica el código de 6 dígitos enviado al email del usuario"
+        summary = "Verificar código de email",
+        description = "Verifica el código de 6 dígitos enviado al email del usuario"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Email verificado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Código inválido o expirado"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+        @ApiResponse(responseCode = "200", description = "Email verificado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Código inválido o expirado"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<MessageResponseDTO> verifyEmail(@Valid @RequestBody AuthVerifyCodeDTO verifyCodeDTO) {
         try {
@@ -111,13 +111,13 @@ public class AuthController {
 
     @PostMapping("/resend-verification")
     @Operation(
-            summary = "Reenviar código de verificación",
-            description = "Reenvía el código de verificación al email del usuario"
+        summary = "Reenviar código de verificación",
+        description = "Reenvía el código de verificación al email del usuario"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Código reenviado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Solicitud demasiado frecuente"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+        @ApiResponse(responseCode = "200", description = "Código reenviado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Solicitud demasiado frecuente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<MessageResponseDTO> resendVerificationCode(@Valid @RequestBody AuthResendCodeRequestDTO request) {
         try {
@@ -136,14 +136,14 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(
-            summary = "Iniciar sesión",
-            description = "Autentica un usuario con email y contraseña. Retorna un token JWT."
+        summary = "Iniciar sesión",
+        description = "Autentica un usuario con email y contraseña. Retorna un token JWT."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Login exitoso",
-                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Credenciales incorrectas o usuario no verificado"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+        @ApiResponse(responseCode = "200", description = "Login exitoso",
+            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Credenciales incorrectas o usuario no verificado"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<AuthLoginResponseDTO> login(@Valid @RequestBody AuthLoginRequestDTO authRequest) {
         try {
@@ -158,16 +158,16 @@ public class AuthController {
 
     @PostMapping("/google/login")
     @Operation(
-            summary = "Iniciar sesión con Google",
-            description = "Autentica un usuario usando Google OAuth2. Crea una cuenta automáticamente si no existe."
+        summary = "Iniciar sesión con Google",
+        description = "Autentica un usuario usando Google OAuth2. Crea una cuenta automáticamente si no existe."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Login con Google exitoso (usuario existente)",
-                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-            @ApiResponse(responseCode = "201", description = "Usuario creado y autenticado con Google (usuario nuevo)",
-                    content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
-            @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
+        @ApiResponse(responseCode = "200", description = "Login con Google exitoso (usuario existente)",
+            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
+        @ApiResponse(responseCode = "201", description = "Usuario creado y autenticado con Google (usuario nuevo)",
+            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
+        @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
     })
     public ResponseEntity<AuthLoginResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
         try {
@@ -182,12 +182,12 @@ public class AuthController {
 
     @GetMapping("/check-auth-method/{email}")
     @Operation(
-            summary = "Verificar método de autenticación",
-            description = "Verifica qué método de autenticación debe usar un email específico"
+        summary = "Verificar método de autenticación",
+        description = "Verifica qué método de autenticación debe usar un email específico"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Método de autenticación verificado"),
-            @ApiResponse(responseCode = "404", description = "Email no registrado")
+        @ApiResponse(responseCode = "200", description = "Método de autenticación verificado"),
+        @ApiResponse(responseCode = "404", description = "Email no registrado")
     })
     public ResponseEntity<AuthMethodInfoDTO> checkAuthMethod(@PathVariable String email) {
         try {
@@ -198,21 +198,21 @@ public class AuthController {
             if (userOptional.isEmpty()) {
                 // Email no registrado - puede usar cualquier método
                 return ResponseEntity.ok(new AuthMethodInfoDTO(
-                        email,
-                        null,
-                        false,
-                        "Email no registrado. Puedes registrarte con cualquier método.",
-                        List.of("LOCAL", "GOOGLE")
+                    email,
+                    null,
+                    false,
+                    "Email no registrado. Puedes registrarte con cualquier método.",
+                    List.of("LOCAL", "GOOGLE")
                 ));
             }
 
             User user = userOptional.get();
             return ResponseEntity.ok(new AuthMethodInfoDTO(
-                    email,
-                    user.getUserAuthProvider().name(),
-                    true,
-                    user.getAuthMethodMessage(),
-                    List.of(user.getUserAuthProvider().name())
+                email,
+                user.getUserAuthProvider().name(),
+                true,
+                user.getAuthMethodMessage(),
+                List.of(user.getUserAuthProvider().name())
             ));
 
         } catch (Exception e) {
@@ -223,11 +223,11 @@ public class AuthController {
 
     @GetMapping("/check-email/{email}")
     @Operation(
-            summary = "Verificar disponibilidad de email",
-            description = "Verifica si un email está disponible para registro y con qué método"
+        summary = "Verificar disponibilidad de email",
+        description = "Verifica si un email está disponible para registro y con qué método"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Información del email verificada")
+        @ApiResponse(responseCode = "200", description = "Información del email verificada")
     })
     public ResponseEntity<EmailAvailabilityDTO> checkEmailAvailability(@PathVariable String email) {
         try {
@@ -238,12 +238,12 @@ public class AuthController {
             if (userOptional.isEmpty()) {
                 // Email disponible
                 return ResponseEntity.ok(new EmailAvailabilityDTO(
-                        email,
-                        true,
-                        null,
-                        "Email disponible para registro",
-                        List.of("LOCAL", "GOOGLE"),
-                        null
+                    email,
+                    true,
+                    null,
+                    "Email disponible para registro",
+                    List.of("LOCAL", "GOOGLE"),
+                    null
                 ));
             }
 
@@ -253,19 +253,19 @@ public class AuthController {
             String suggestion = switch (user.getUserAuthProvider()) {
                 case LOCAL -> "Este email ya tiene una cuenta. Ve a 'Iniciar Sesión' y usa tu contraseña.";
                 case GOOGLE ->
-                        "Este email ya tiene una cuenta con Google. Ve a 'Iniciar Sesión' y usa 'Continuar con Google'.";
+                    "Este email ya tiene una cuenta con Google. Ve a 'Iniciar Sesión' y usa 'Continuar con Google'.";
                 case FACEBOOK ->
-                        "Este email ya tiene una cuenta con Facebook. Ve a 'Iniciar Sesión' y usa 'Continuar con Facebook'.";
+                    "Este email ya tiene una cuenta con Facebook. Ve a 'Iniciar Sesión' y usa 'Continuar con Facebook'.";
                 default -> "Este email ya está registrado.";
             };
 
             return ResponseEntity.ok(new EmailAvailabilityDTO(
-                    email,
-                    false,
-                    user.getUserAuthProvider().name(),
-                    suggestion,
-                    List.of(), // No hay métodos disponibles
-                    user.getAuthMethodMessage()
+                email,
+                false,
+                user.getUserAuthProvider().name(),
+                suggestion,
+                List.of(), // No hay métodos disponibles
+                user.getAuthMethodMessage()
             ));
 
         } catch (Exception e) {
@@ -280,15 +280,15 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     @Operation(
-            summary = "Refrescar access token",
-            description = "Genera un nuevo access token usando un refresh token válido"
+        summary = "Refrescar access token",
+        description = "Genera un nuevo access token usando un refresh token válido"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Access token refrescado exitosamente"),
-            @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
+        @ApiResponse(responseCode = "200", description = "Access token refrescado exitosamente"),
+        @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
     })
     public ResponseEntity<RefreshTokenResponseDTO> refreshToken(
-            @RequestBody @Valid RefreshTokenRequestDTO request) throws BadRequestException {
+        @RequestBody @Valid RefreshTokenRequestDTO request) throws BadRequestException {
         try {
             logger.info("Solicitud de refresh token");
             RefreshTokenResponseDTO response = authService.refreshToken(request);
@@ -301,12 +301,12 @@ public class AuthController {
 
     @PostMapping("/logout")
     @Operation(
-            summary = "Cerrar sesión",
-            description = "Invalida el token JWT del usuario"
+        summary = "Cerrar sesión",
+        description = "Invalida el token JWT del usuario"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Sesión cerrada exitosamente"),
-            @ApiResponse(responseCode = "401", description = "Token inválido")
+        @ApiResponse(responseCode = "200", description = "Sesión cerrada exitosamente"),
+        @ApiResponse(responseCode = "401", description = "Token inválido")
     })
     public ResponseEntity<MessageResponseDTO> logout(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -326,13 +326,13 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     @Operation(
-            summary = "Solicitar recuperación de contraseña",
-            description = "Envía un enlace de recuperación de contraseña al email del usuario"
+        summary = "Solicitar recuperación de contraseña",
+        description = "Envía un enlace de recuperación de contraseña al email del usuario"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Enlace de recuperación enviado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
-            @ApiResponse(responseCode = "400", description = "Email inválido o usuario no verificado")
+        @ApiResponse(responseCode = "200", description = "Enlace de recuperación enviado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Email inválido o usuario no verificado")
     })
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
         try {
@@ -347,13 +347,13 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     @Operation(
-            summary = "Restablecer contraseña",
-            description = "Restablece la contraseña del usuario usando el token enviado por email"
+        summary = "Restablecer contraseña",
+        description = "Restablece la contraseña del usuario usando el token enviado por email"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Contraseña restablecida exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Token inválido o expirado"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+        @ApiResponse(responseCode = "200", description = "Contraseña restablecida exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Token inválido o expirado"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         try {
@@ -368,12 +368,12 @@ public class AuthController {
 
     @GetMapping("/validate-reset-token/{token}")
     @Operation(
-            summary = "Validar token de recuperación",
-            description = "Verifica si un token de recuperación de contraseña es válido"
+        summary = "Validar token de recuperación",
+        description = "Verifica si un token de recuperación de contraseña es válido"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Token válido"),
-            @ApiResponse(responseCode = "400", description = "Token inválido o expirado")
+        @ApiResponse(responseCode = "200", description = "Token válido"),
+        @ApiResponse(responseCode = "400", description = "Token inválido o expirado")
     })
     public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
         try {
@@ -392,12 +392,12 @@ public class AuthController {
 
     @GetMapping("/status/{email}")
     @Operation(
-            summary = "Verificar estado del usuario",
-            description = "Verifica si un usuario está completamente registrado y verificado"
+        summary = "Verificar estado del usuario",
+        description = "Verifica si un usuario está completamente registrado y verificado"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Estado verificado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+        @ApiResponse(responseCode = "200", description = "Estado verificado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
     public ResponseEntity<AuthUserStatusDTO> checkUserStatus(@PathVariable String email) {
         try {
@@ -405,10 +405,10 @@ public class AuthController {
             boolean isFullyRegistered = authService.isUserFullyRegistered(email);
 
             AuthUserStatusDTO status = new AuthUserStatusDTO(
-                    email,
-                    isFullyRegistered,
-                    authService.getUserByEmail(email).map(User::isVerified).orElse(false),
-                    authService.getUserByEmail(email).map(User::getProfileComplete).orElse(false)
+                email,
+                isFullyRegistered,
+                authService.getUserByEmail(email).map(User::isVerified).orElse(false),
+                authService.getUserByEmail(email).map(User::getProfileComplete).orElse(false)
             );
 
             return ResponseEntity.ok(status);

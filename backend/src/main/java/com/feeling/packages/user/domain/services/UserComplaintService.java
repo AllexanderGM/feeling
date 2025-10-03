@@ -1,9 +1,9 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.infrastructure.logging.StructuredLoggerFactory;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserComplaintAdminActionDTO;
 import com.feeling.packages.user.domain.dto.UserComplaintRequestDTO;
 import com.feeling.packages.user.domain.dto.UserComplaintResponseDTO;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class UserComplaintService {
 
     private static final StructuredLoggerFactory.StructuredLogger logger =
-            StructuredLoggerFactory.create(UserComplaintService.class);
+        StructuredLoggerFactory.create(UserComplaintService.class);
 
     private final IUserComplaintRepository complaintRepository;
     private final IUserRepository userRepository;
@@ -43,28 +43,28 @@ public class UserComplaintService {
                                                     HttpServletRequest request) {
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         // Crear la queja
         UserComplaint complaint = UserComplaint.builder()
-                .user(user)
-                .subject(requestDTO.subject().trim())
-                .message(requestDTO.message().trim())
-                .complaintType(requestDTO.complaintType())
-                .priority(requestDTO.priority())
-                .userIp(getClientIpAddress(request))
-                .userAgent(request.getHeader("User-Agent"))
-                .referencedUserId(requestDTO.referencedUserId())
-                .referencedEventId(requestDTO.referencedEventId())
-                .referencedBookingId(requestDTO.referencedBookingId())
-                .build();
+            .user(user)
+            .subject(requestDTO.subject().trim())
+            .message(requestDTO.message().trim())
+            .complaintType(requestDTO.complaintType())
+            .priority(requestDTO.priority())
+            .userIp(getClientIpAddress(request))
+            .userAgent(request.getHeader("User-Agent"))
+            .referencedUserId(requestDTO.referencedUserId())
+            .referencedEventId(requestDTO.referencedEventId())
+            .referencedBookingId(requestDTO.referencedBookingId())
+            .build();
 
         UserComplaint savedComplaint = complaintRepository.save(complaint);
 
         logger.logUserOperation("complaint_created", userEmail, Map.of(
-                "complaintId", savedComplaint.getId(),
-                "type", requestDTO.complaintType().name(),
-                "priority", requestDTO.priority().name()
+            "complaintId", savedComplaint.getId(),
+            "type", requestDTO.complaintType().name(),
+            "priority", requestDTO.priority().name()
         ));
 
         return new UserComplaintResponseDTO(savedComplaint);
@@ -75,14 +75,14 @@ public class UserComplaintService {
      */
     public Page<UserComplaintResponseDTO> getUserComplaints(String userEmail, Pageable pageable) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         Page<UserComplaint> complaints = complaintRepository.findByUserOptimized(user, pageable);
 
         logger.info("Quejas de usuario obtenidas", Map.of(
-                "userEmail", userEmail,
-                "total", complaints.getTotalElements(),
-                "page", pageable.getPageNumber()
+            "userEmail", userEmail,
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
         ));
 
         return complaints.map(UserComplaintResponseDTO::new);
@@ -93,10 +93,10 @@ public class UserComplaintService {
      */
     public UserComplaintResponseDTO getUserComplaint(String userEmail, Long complaintId) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         UserComplaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
 
         // Verificar que la queja pertenece al usuario
         if (!complaint.getUser().equals(user)) {
@@ -123,9 +123,9 @@ public class UserComplaintService {
         }
 
         logger.info("Quejas administrativas obtenidas", Map.of(
-                "total", complaints.getTotalElements(),
-                "page", pageable.getPageNumber(),
-                "hasSearch", search != null && !search.trim().isEmpty()
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber(),
+            "hasSearch", search != null && !search.trim().isEmpty()
         ));
 
         return complaints.map(UserComplaintResponseDTO::new);
@@ -138,8 +138,8 @@ public class UserComplaintService {
         Page<UserComplaint> complaints = complaintRepository.findPendingComplaintsOptimized(pageable);
 
         logger.info("Quejas pendientes obtenidas", Map.of(
-                "total", complaints.getTotalElements(),
-                "page", pageable.getPageNumber()
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
         ));
 
         return complaints.map(UserComplaintResponseDTO::new);
@@ -154,8 +154,8 @@ public class UserComplaintService {
         logger.info("Quejas urgentes obtenidas", Map.of("count", complaints.size()));
 
         return complaints.stream()
-                .map(UserComplaintResponseDTO::new)
-                .collect(Collectors.toList());
+            .map(UserComplaintResponseDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -167,7 +167,7 @@ public class UserComplaintService {
                                                           String adminEmail) {
 
         UserComplaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
 
         // Validar que si el estado es RESOLVED, debe haber una respuesta
         if (actionDTO.requiresResponse() && !actionDTO.hasValidResponse()) {
@@ -201,9 +201,9 @@ public class UserComplaintService {
         UserComplaint savedComplaint = complaintRepository.save(complaint);
 
         logger.logUserOperation("complaint_updated_by_admin", adminEmail, Map.of(
-                "complaintId", complaintId,
-                "newStatus", actionDTO.status().name(),
-                "userEmail", complaint.getUser().getEmail()
+            "complaintId", complaintId,
+            "newStatus", actionDTO.status().name(),
+            "userEmail", complaint.getUser().getEmail()
         ));
 
         return new UserComplaintResponseDTO(savedComplaint);
@@ -278,10 +278,10 @@ public class UserComplaintService {
 
         // Distribución por prioridad
         Map<String, Long> priorityDistribution = Map.of(
-                "low", lowPriorityComplaints,
-                "medium", mediumPriorityComplaints,
-                "high", highPriorityComplaints,
-                "urgent", urgentComplaints
+            "low", lowPriorityComplaints,
+            "medium", mediumPriorityComplaints,
+            "high", highPriorityComplaints,
+            "urgent", urgentComplaints
         );
         stats.put("priorityDistribution", priorityDistribution);
 
@@ -303,18 +303,18 @@ public class UserComplaintService {
 
         // Métricas de contexto
         Map<String, Long> contextMetrics = Map.of(
-                "complaintsWithUserReference", complaintsWithUserReference,
-                "complaintsWithEventReference", complaintsWithEventReference,
-                "complaintsWithBookingReference", complaintsWithBookingReference,
-                "totalContextualComplaints", complaintsWithUserReference + complaintsWithEventReference + complaintsWithBookingReference
+            "complaintsWithUserReference", complaintsWithUserReference,
+            "complaintsWithEventReference", complaintsWithEventReference,
+            "complaintsWithBookingReference", complaintsWithBookingReference,
+            "totalContextualComplaints", complaintsWithUserReference + complaintsWithEventReference + complaintsWithBookingReference
         );
         stats.put("contextMetrics", contextMetrics);
 
         logger.info("Estadísticas expandidas de quejas generadas", Map.of(
-                "totalComplaints", totalComplaints,
-                "pendingComplaints", pendingComplaints,
-                "resolvedComplaints", resolvedComplaints,
-                "typesWithComplaints", stats.toString()
+            "totalComplaints", totalComplaints,
+            "pendingComplaints", pendingComplaints,
+            "resolvedComplaints", resolvedComplaints,
+            "typesWithComplaints", stats.toString()
         ));
 
         return stats;
@@ -330,8 +330,8 @@ public class UserComplaintService {
         logger.info("Quejas atrasadas obtenidas", Map.of("count", complaints.size()));
 
         return complaints.stream()
-                .map(UserComplaintResponseDTO::new)
-                .collect(Collectors.toList());
+            .map(UserComplaintResponseDTO::new)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -339,11 +339,11 @@ public class UserComplaintService {
      */
     public Page<UserComplaintResponseDTO> getResolvedComplaints(Pageable pageable) {
         Page<UserComplaint> complaints = complaintRepository.findByStatus(
-                UserComplaint.Status.RESOLVED, pageable);
+            UserComplaint.Status.RESOLVED, pageable);
 
         logger.info("Quejas resueltas obtenidas", Map.of(
-                "total", complaints.getTotalElements(),
-                "page", pageable.getPageNumber()
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
         ));
 
         return complaints.map(UserComplaintResponseDTO::new);
@@ -355,14 +355,14 @@ public class UserComplaintService {
     @Transactional
     public MessageResponseDTO deleteComplaint(Long complaintId, String adminEmail) {
         UserComplaint complaint = complaintRepository.findById(complaintId)
-                .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
+            .orElseThrow(() -> new NotFoundException("Queja no encontrada"));
 
         String userEmail = complaint.getUser().getEmail();
         complaintRepository.delete(complaint);
 
         logger.logUserOperation("complaint_deleted_by_admin", adminEmail, Map.of(
-                "complaintId", complaintId,
-                "userEmail", userEmail
+            "complaintId", complaintId,
+            "userEmail", userEmail
         ));
 
         return new MessageResponseDTO("Queja eliminada correctamente");

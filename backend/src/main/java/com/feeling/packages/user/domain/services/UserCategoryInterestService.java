@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterest;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterestList;
@@ -29,9 +29,9 @@ public class UserCategoryInterestService {
     @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllActiveCategories() {
         return repository.findByIsActiveTrueOrderByDisplayOrder()
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
+            .stream()
+            .map(this::mapToDTO)
+            .toList();
     }
 
     /**
@@ -40,9 +40,9 @@ public class UserCategoryInterestService {
     @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllCategories() {
         return repository.findAllByOrderByDisplayOrder()
-                .stream()
-                .map(this::mapToDTO)
-                .toList();
+            .stream()
+            .map(this::mapToDTO)
+            .toList();
     }
 
     /**
@@ -51,7 +51,7 @@ public class UserCategoryInterestService {
     @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryByEnum(UserCategoryInterestList categoryEnum) {
         return repository.findByCategoryInterestEnum(categoryEnum)
-                .map(this::mapToDTO);
+            .map(this::mapToDTO);
     }
 
     /**
@@ -60,7 +60,7 @@ public class UserCategoryInterestService {
     @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryById(Long id) {
         return repository.findById(id)
-                .map(this::mapToDTO);
+            .map(this::mapToDTO);
     }
 
     /**
@@ -69,7 +69,7 @@ public class UserCategoryInterestService {
     @Transactional
     public UserCategoryInterestDTO updateCategory(Long id, UserCategoryInterestDTO categoryDTO) {
         UserCategoryInterest category = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
+            .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
         // Actualización usando los métodos de acceso del record
         category.setName(categoryDTO.name());
@@ -91,7 +91,7 @@ public class UserCategoryInterestService {
     @Transactional
     public UserCategoryInterestDTO toggleCategoryStatus(Long id) {
         UserCategoryInterest category = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
+            .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
         category.setActive(!category.isActive());
         UserCategoryInterest saved = repository.save(category);
@@ -128,7 +128,7 @@ public class UserCategoryInterestService {
     public MessageResponseDTO deleteCategory(Long id) {
         try {
             UserCategoryInterest category = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
             repository.delete(category);
             return new MessageResponseDTO("Categoría eliminada exitosamente");
@@ -156,30 +156,30 @@ public class UserCategoryInterestService {
 
             // Distribución por audiencia objetivo
             Map<String, Long> distributionByAudience = allCategories.stream()
-                    .filter(cat -> cat.getTargetAudience() != null)
-                    .collect(Collectors.groupingBy(
-                            UserCategoryInterest::getTargetAudience,
-                            Collectors.counting()
-                    ));
+                .filter(cat -> cat.getTargetAudience() != null)
+                .collect(Collectors.groupingBy(
+                    UserCategoryInterest::getTargetAudience,
+                    Collectors.counting()
+                ));
             statistics.put("distributionByTargetAudience", distributionByAudience);
 
             // Categorías activas por audiencia
             Map<String, Long> activeByAudience = allCategories.stream()
-                    .filter(UserCategoryInterest::isActive)
-                    .filter(cat -> cat.getTargetAudience() != null)
-                    .collect(Collectors.groupingBy(
-                            UserCategoryInterest::getTargetAudience,
-                            Collectors.counting()
-                    ));
+                .filter(UserCategoryInterest::isActive)
+                .filter(cat -> cat.getTargetAudience() != null)
+                .collect(Collectors.groupingBy(
+                    UserCategoryInterest::getTargetAudience,
+                    Collectors.counting()
+                ));
             statistics.put("activeByTargetAudience", activeByAudience);
 
             // Lista de categorías más populares (ordenadas por display order)
             List<String> popularCategories = allCategories.stream()
-                    .filter(UserCategoryInterest::isActive)
-                    .sorted((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()))
-                    .limit(10)
-                    .map(UserCategoryInterest::getName)
-                    .collect(Collectors.toList());
+                .filter(UserCategoryInterest::isActive)
+                .sorted((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()))
+                .limit(10)
+                .map(UserCategoryInterest::getName)
+                .collect(Collectors.toList());
             statistics.put("topCategories", popularCategories);
 
             return statistics;
@@ -187,8 +187,8 @@ public class UserCategoryInterestService {
         } catch (Exception e) {
             log.error("Error obteniendo estadísticas de intereses", e);
             return Map.of(
-                    "error", "Error al obtener estadísticas",
-                    "message", e.getMessage()
+                "error", "Error al obtener estadísticas",
+                "message", e.getMessage()
             );
         }
     }
@@ -198,10 +198,10 @@ public class UserCategoryInterestService {
      */
     private Integer getNextDisplayOrder() {
         return repository.findAll()
-                .stream()
-                .mapToInt(UserCategoryInterest::getDisplayOrder)
-                .max()
-                .orElse(0) + 1;
+            .stream()
+            .mapToInt(UserCategoryInterest::getDisplayOrder)
+            .max()
+            .orElse(0) + 1;
     }
 
     /**
@@ -223,18 +223,18 @@ public class UserCategoryInterestService {
         }
 
         return new UserCategoryInterestDTO(
-                entity.getId(),
-                entity.getCategoryInterestEnum().name(),
-                entity.getName(),
-                entity.getDescription(),
-                entity.getIcon(),
-                entity.getFullDescription(),
-                entity.getTargetAudience(),
-                features,
-                entity.isActive(),
-                entity.getDisplayOrder(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
+            entity.getId(),
+            entity.getCategoryInterestEnum().name(),
+            entity.getName(),
+            entity.getDescription(),
+            entity.getIcon(),
+            entity.getFullDescription(),
+            entity.getTargetAudience(),
+            features,
+            entity.isActive(),
+            entity.getDisplayOrder(),
+            entity.getCreatedAt(),
+            entity.getUpdatedAt()
         );
     }
 }

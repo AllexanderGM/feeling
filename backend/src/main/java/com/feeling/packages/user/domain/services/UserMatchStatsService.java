@@ -34,7 +34,7 @@ public class UserMatchStatsService {
         return new UserMatchesDTO(
                 matchPlanService.getTotalRemainingAttempts(user),
                 0, // todayMatches - TODO: implementar lógica para obtener matches de hoy
-                user.getMatchesCount().intValue(), // Total de matches del usuario
+                user.getMatchesCount() != null ? user.getMatchesCount().intValue() : 0, // Total de matches del usuario
                 10, // maxDailyAttempts - TODO: obtener de configuración
                 matchService.countPendingSentMatches(user),
                 matchService.countPendingReceivedMatches(user),

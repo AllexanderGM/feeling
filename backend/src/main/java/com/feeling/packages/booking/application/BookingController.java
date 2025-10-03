@@ -1,11 +1,11 @@
 package com.feeling.packages.booking.application;
 
-import com.feeling.handlers.ResponseHandler;
 import com.feeling.packages.booking.domain.dto.BookingRequestDTO;
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
 import com.feeling.packages.booking.domain.services.BookingService;
 import com.feeling.packages.booking.infrastructure.entities.Booking;
-import com.feeling.packages.user.domain.services.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,113 +14,92 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping("/bookings")
 @RequiredArgsConstructor
+@Tag(name = "Bookings", description = "Event booking management endpoints")
 public class BookingController {
 
     private final BookingService bookingService;
-    private final UserService userService;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> createBooking(@Valid @RequestBody BookingRequestDTO bookingRequestDTO) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long userId = userService.get(email).id();
+    @Operation(summary = "Create booking", description = "Create a new booking for an event")
+    public ResponseEntity<BookingResponseDTO> createBooking(
+            @Valid @RequestBody BookingRequestDTO bookingRequestDTO,
+            Authentication authentication) {
 
-            BookingResponseDTO bookingResponseDTO = bookingService.createBooking(bookingRequestDTO, userId);
-            return ResponseHandler.success("Reserva creada exitosamente", bookingResponseDTO, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        String userEmail = authentication.getName();
+        BookingResponseDTO booking = bookingService.createBooking(bookingRequestDTO, userEmail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> getBooking(@PathVariable Long id) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long userId = userService.get(email).id();
+    @Operation(summary = "Get booking by ID", description = "Retrieve a specific booking by ID")
+    public ResponseEntity<BookingResponseDTO> getBooking(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-            BookingResponseDTO bookingResponseDTO = bookingService.getBookingById(id, userId);
-            return ResponseHandler.success("Reserva obtenida exitosamente", bookingResponseDTO, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+        String userEmail = authentication.getName();
+        BookingResponseDTO booking = bookingService.getBookingById(id, userEmail);
+        return ResponseEntity.ok(booking);
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> getAllBookings() {
-        try {
-            List<BookingResponseDTO> bookingResponseDTOList = bookingService.getAllBookings();
-            return ResponseHandler.success("Todas las reservas obtenidas exitosamente", bookingResponseDTOList, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @Operation(summary = "Get all bookings", description = "Admin endpoint to retrieve all bookings")
+    public ResponseEntity<List<BookingResponseDTO>> getAllBookings() {
+        List<BookingResponseDTO> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(bookings);
     }
 
     @GetMapping("/event/{eventId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> getBookingsByEvent(@PathVariable Long eventId, Pageable pageable) {
-        try {
-            Page<BookingResponseDTO> bookingResponseDTOPage = bookingService.getEventBookings(eventId, pageable);
-            return ResponseHandler.success("Reservas del evento obtenidas exitosamente", bookingResponseDTOPage, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    @Operation(summary = "Get bookings by event", description = "Admin endpoint to retrieve bookings for a specific event")
+    public ResponseEntity<Page<BookingResponseDTO>> getBookingsByEvent(
+            @PathVariable Long eventId,
+            Pageable pageable) {
+
+        Page<BookingResponseDTO> bookings = bookingService.getEventBookings(eventId, pageable);
+        return ResponseEntity.ok(bookings);
     }
 
     @PutMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> cancelBooking(@PathVariable Long id) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long userId = userService.get(email).id();
+    @Operation(summary = "Cancel booking", description = "Cancel a booking")
+    public ResponseEntity<BookingResponseDTO> cancelBooking(
+            @PathVariable Long id,
+            Authentication authentication) {
 
-            BookingResponseDTO bookingResponseDTO = bookingService.cancelBooking(id, userId);
-            return ResponseHandler.success("Reserva cancelada exitosamente", bookingResponseDTO, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        String userEmail = authentication.getName();
+        BookingResponseDTO booking = bookingService.cancelBooking(id, userEmail);
+        return ResponseEntity.ok(booking);
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> updateBookingStatus(@PathVariable Long id, @RequestParam Booking.BookingStatus status) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long userId = userService.get(email).id();
+    @Operation(summary = "Update booking status", description = "Update the status of a booking")
+    public ResponseEntity<BookingResponseDTO> updateBookingStatus(
+            @PathVariable Long id,
+            @RequestParam Booking.BookingStatus status,
+            Authentication authentication) {
 
-            BookingResponseDTO bookingResponseDTO = bookingService.updateBookingStatus(id, status, userId);
-            return ResponseHandler.success("Estado de reserva actualizado exitosamente", bookingResponseDTO, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+        String userEmail = authentication.getName();
+        BookingResponseDTO booking = bookingService.updateBookingStatus(id, status, userEmail);
+        return ResponseEntity.ok(booking);
     }
 
     @GetMapping("/my-bookings")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> getMyBookings() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
-            Long userId = userService.get(email).id();
-
-            List<BookingResponseDTO> bookingResponseDTOList = bookingService.getUserBookings(userId);
-            return ResponseHandler.success("Reservas del usuario obtenidas exitosamente", bookingResponseDTOList, HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseHandler.error(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    @Operation(summary = "Get my bookings", description = "Retrieve bookings for the authenticated user")
+    public ResponseEntity<List<BookingResponseDTO>> getMyBookings(Authentication authentication) {
+        String userEmail = authentication.getName();
+        List<BookingResponseDTO> bookings = bookingService.getUserBookings(userEmail);
+        return ResponseEntity.ok(bookings);
     }
 }

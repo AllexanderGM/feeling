@@ -2,8 +2,8 @@ package com.feeling.packages.auth.application;
 
 import com.feeling.packages.auth.domain.dto.ForgotPasswordRequestDTO;
 import com.feeling.packages.auth.domain.dto.ResetPasswordRequestDTO;
-import com.feeling.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.auth.domain.services.AuthService;
+import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,23 +32,23 @@ public class PasswordController {
 
     @PostMapping("/forgot")
     @Operation(
-            summary = "Solicitar recuperación de contraseña",
-            description = "Envía un token de recuperación al email del usuario para restablecer su contraseña"
+        summary = "Solicitar recuperación de contraseña",
+        description = "Envía un token de recuperación al email del usuario para restablecer su contraseña"
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Token de recuperación enviado exitosamente",
-                    content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Email no encontrado en el sistema"
-            ),
-            @ApiResponse(
-                    responseCode = "429",
-                    description = "Demasiadas solicitudes de recuperación"
-            )
+        @ApiResponse(
+            responseCode = "200",
+            description = "Token de recuperación enviado exitosamente",
+            content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Email no encontrado en el sistema"
+        ),
+        @ApiResponse(
+            responseCode = "429",
+            description = "Demasiadas solicitudes de recuperación"
+        )
     })
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
         logger.info("Solicitud de recuperación de contraseña para email: {}", request.email());
@@ -61,32 +61,32 @@ public class PasswordController {
 
     @PostMapping("/reset")
     @Operation(
-            summary = "Restablecer contraseña",
-            description = "Restablece la contraseña del usuario usando el token de recuperación recibido por email"
+        summary = "Restablecer contraseña",
+        description = "Restablece la contraseña del usuario usando el token de recuperación recibido por email"
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Contraseña restablecida exitosamente",
-                    content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Token inválido, expirado o contraseña no válida"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Token no encontrado"
-            )
+        @ApiResponse(
+            responseCode = "200",
+            description = "Contraseña restablecida exitosamente",
+            content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Token inválido, expirado o contraseña no válida"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Token no encontrado"
+        )
     })
     public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         logger.info("Intento de restablecimiento de contraseña con token: {}",
-                request.token().substring(0, Math.min(10, request.token().length())) + "...");
+            request.token().substring(0, Math.min(10, request.token().length())) + "...");
 
         MessageResponseDTO response = authService.resetPassword(request);
 
         logger.info("Contraseña restablecida exitosamente para token: {}",
-                request.token().substring(0, Math.min(10, request.token().length())) + "...");
+            request.token().substring(0, Math.min(10, request.token().length())) + "...");
         return ResponseEntity.ok(response);
     }
 
@@ -96,27 +96,27 @@ public class PasswordController {
 
     @GetMapping("/validate-reset-token/{token}")
     @Operation(
-            summary = "Validar token de recuperación",
-            description = "Verifica si un token de recuperación de contraseña es válido y no ha expirado"
+        summary = "Validar token de recuperación",
+        description = "Verifica si un token de recuperación de contraseña es válido y no ha expirado"
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Token válido",
-                    content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Token inválido o expirado"
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Token no encontrado"
-            )
+        @ApiResponse(
+            responseCode = "200",
+            description = "Token válido",
+            content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Token inválido o expirado"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Token no encontrado"
+        )
     })
     public ResponseEntity<MessageResponseDTO> validateResetToken(@PathVariable String token) {
         logger.debug("Validando token de recuperación: {}...",
-                token.substring(0, Math.min(10, token.length())));
+            token.substring(0, Math.min(10, token.length())));
 
         boolean isValid = authService.isPasswordResetTokenValid(token);
 
@@ -126,7 +126,7 @@ public class PasswordController {
         } else {
             logger.warn("Token de recuperación inválido o expirado");
             return ResponseEntity.badRequest()
-                    .body(new MessageResponseDTO("Token inválido o expirado"));
+                .body(new MessageResponseDTO("Token inválido o expirado"));
         }
     }
 
@@ -136,27 +136,27 @@ public class PasswordController {
 
     @PostMapping("/change")
     @Operation(
-            summary = "Cambiar contraseña (autenticado)",
-            description = "Permite a un usuario autenticado cambiar su contraseña actual"
+        summary = "Cambiar contraseña (autenticado)",
+        description = "Permite a un usuario autenticado cambiar su contraseña actual"
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Contraseña cambiada exitosamente",
-                    content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Contraseña actual incorrecta o nueva contraseña inválida"
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Usuario no autenticado"
-            )
+        @ApiResponse(
+            responseCode = "200",
+            description = "Contraseña cambiada exitosamente",
+            content = @Content(schema = @Schema(implementation = MessageResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Contraseña actual incorrecta o nueva contraseña inválida"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Usuario no autenticado"
+        )
     })
     public ResponseEntity<MessageResponseDTO> changePassword(
-            @Valid @RequestBody ChangePasswordRequestDTO request,
-            @RequestHeader("Authorization") String authHeader) {
+        @Valid @RequestBody ChangePasswordRequestDTO request,
+        @RequestHeader("Authorization") String authHeader) {
 
         logger.info("Solicitud de cambio de contraseña para usuario autenticado");
 
@@ -171,19 +171,19 @@ public class PasswordController {
     // ==============================
 
     public record ChangePasswordRequestDTO(
-            @jakarta.validation.constraints.NotBlank(message = "La contraseña actual es obligatoria")
-            String currentPassword,
+        @jakarta.validation.constraints.NotBlank(message = "La contraseña actual es obligatoria")
+        String currentPassword,
 
-            @jakarta.validation.constraints.NotBlank(message = "La nueva contraseña es obligatoria")
-            @jakarta.validation.constraints.Size(min = 8, message = "La nueva contraseña debe tener al menos 8 caracteres")
-            @jakarta.validation.constraints.Pattern(
-                    regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-                    message = "La nueva contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 símbolo"
-            )
-            String newPassword,
+        @jakarta.validation.constraints.NotBlank(message = "La nueva contraseña es obligatoria")
+        @jakarta.validation.constraints.Size(min = 8, message = "La nueva contraseña debe tener al menos 8 caracteres")
+        @jakarta.validation.constraints.Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+            message = "La nueva contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 símbolo"
+        )
+        String newPassword,
 
-            @jakarta.validation.constraints.NotBlank(message = "La confirmación de contraseña es obligatoria")
-            String confirmPassword
+        @jakarta.validation.constraints.NotBlank(message = "La confirmación de contraseña es obligatoria")
+        String confirmPassword
     ) {
         public ChangePasswordRequestDTO {
             if (!newPassword.equals(confirmPassword)) {

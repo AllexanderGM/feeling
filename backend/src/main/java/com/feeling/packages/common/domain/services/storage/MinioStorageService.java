@@ -1,14 +1,10 @@
-package com.feeling.domain.services.storage;
+package com.feeling.packages.common.domain.services.storage;
 
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.ListObjectsArgs;
-import io.minio.Result;
-import io.minio.messages.Item;
+import io.minio.*;
 import io.minio.http.Method;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -18,7 +14,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -40,12 +35,12 @@ public class MinioStorageService {
     public String uploadFile(MultipartFile file, String filePath) throws IOException {
         try {
             minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .stream(file.getInputStream(), file.getSize(), -1)
-                            .contentType(file.getContentType())
-                            .build()
+                PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(filePath)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .contentType(file.getContentType())
+                    .build()
             );
 
             // Generar URL pública para MinIO
@@ -59,10 +54,10 @@ public class MinioStorageService {
     public boolean deleteFile(String fileName) {
         try {
             minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(fileName)
-                            .build()
+                RemoveObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(fileName)
+                    .build()
             );
 
             return true;
@@ -83,7 +78,7 @@ public class MinioStorageService {
 
             // Generar URL con acceso directo (para MinIO con bucket público)
             String directUrl = String.format("%s/%s/%s", minioUrl, bucketName, filePath);
-            
+
             // Verificar si el bucket está configurado como público
             // Si no, generar URL pre-firmada
             try {
@@ -105,12 +100,12 @@ public class MinioStorageService {
     public String generatePresignedUrl(String filePath) {
         try {
             return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
-                            .bucket(bucketName)
-                            .object(filePath)
-                            .expiry(7, TimeUnit.DAYS) // URL válida por 7 días
-                            .build()
+                GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)
+                    .bucket(bucketName)
+                    .object(filePath)
+                    .expiry(7, TimeUnit.DAYS) // URL válida por 7 días
+                    .build()
             );
         } catch (Exception e) {
             log.error("Error generando URL pre-firmada para {}: {}", filePath, e.getMessage());
@@ -122,11 +117,11 @@ public class MinioStorageService {
         List<String> fileUrls = new ArrayList<>();
         try {
             Iterable<Result<Item>> results = minioClient.listObjects(
-                    ListObjectsArgs.builder()
-                            .bucket(bucketName)
-                            .prefix(folder + "/")
-                            .recursive(true)
-                            .build()
+                ListObjectsArgs.builder()
+                    .bucket(bucketName)
+                    .prefix(folder + "/")
+                    .recursive(true)
+                    .build()
             );
 
             for (Result<Item> result : results) {

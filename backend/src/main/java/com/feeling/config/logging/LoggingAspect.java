@@ -46,78 +46,51 @@ public class LoggingAspect {
 
     /**
      * Método genérico para logging de ejecución de métodos
+     * Solo loggea operaciones lentas (>100ms) o con errores para reducir ruido
      */
     private Object logMethodExecution(ProceedingJoinPoint joinPoint, String category) throws Throwable {
         String className = joinPoint.getTarget().getClass().getSimpleName();
         String methodName = joinPoint.getSignature().getName();
         String fullMethodName = className + "." + methodName;
-        
-        LocalDateTime startTime = LocalDateTime.now();
+
         long startMillis = System.currentTimeMillis();
-        
-        Map<String, Object> context = new HashMap<>();
-        context.put("class", className);
-        context.put("method", methodName);
-        context.put("category", category);
-        context.put("startTime", startTime);
-        
-        // Agregar información de argumentos (sin datos sensibles)
-        Object[] args = joinPoint.getArgs();
-        if (args != null && args.length > 0) {
-            context.put("argumentCount", args.length);
-            
-            // Log de tipos de argumentos (sin valores para evitar exposición de datos)
-            StringBuilder argTypes = new StringBuilder();
-            for (int i = 0; i < args.length; i++) {
-                if (i > 0) argTypes.append(", ");
-                if (args[i] != null) {
-                    argTypes.append(args[i].getClass().getSimpleName());
-                } else {
-                    argTypes.append("null");
-                }
-            }
-            context.put("argumentTypes", argTypes.toString());
-        }
 
         try {
-            logger.debug("Method execution started", context);
-            
             Object result = joinPoint.proceed();
-            
+
             // Calcular duración
             long duration = System.currentTimeMillis() - startMillis;
-            
-            Map<String, Object> successContext = new HashMap<>(context);
-            successContext.put("duration", duration);
-            successContext.put("status", "SUCCESS");
-            
-            if (result != null) {
-                successContext.put("resultType", result.getClass().getSimpleName());
+
+            // Solo loggear operaciones lentas (>100ms)
+            if (duration > 100) {
+                Map<String, Object> context = new HashMap<>();
+                context.put("method", fullMethodName);
+                context.put("category", category);
+                context.put("duration", duration + "ms");
+                context.put("status", "OK");
+
+                if (duration > 1000) {
+                    logger.warn("Slow operation detected", context);
+                } else {
+                    logger.info("Operation completed", context);
+                }
             }
-            
-            // Log específico para operaciones lentas
-            logger.logPerformance(fullMethodName, duration, successContext);
-            
-            if (duration < 1000) {
-                logger.debug("Method execution completed", successContext);
-            } else {
-                logger.info("Method execution completed", successContext);
-            }
-            
+
             return result;
-            
+
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startMillis;
-            
-            Map<String, Object> errorContext = new HashMap<>(context);
-            errorContext.put("duration", duration);
-            errorContext.put("status", "ERROR");
-            errorContext.put("exceptionType", e.getClass().getSimpleName());
-            
-            // Log del error con contexto completo
+
+            Map<String, Object> errorContext = new HashMap<>();
+            errorContext.put("method", fullMethodName);
+            errorContext.put("category", category);
+            errorContext.put("duration", duration + "ms");
+            errorContext.put("error", e.getClass().getSimpleName());
+            errorContext.put("message", e.getMessage());
+
+            // Siempre loggear errores
             logger.error("Method execution failed", errorContext, e);
-            
-            // Re-lanzar la excepción para no interferir con el flujo normal
+
             throw e;
         }
     }

@@ -1,9 +1,9 @@
 package com.feeling.packages.event.domain.services;
 
-import com.feeling.domain.services.storage.StorageService;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
+import com.feeling.packages.common.domain.services.storage.StorageService;
 import com.feeling.packages.event.infrastructure.entities.Event;
 import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -99,7 +99,7 @@ public class EventImageService {
 
     public String getMainImageUrl(Long eventId) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         return event.getMainImage();
     }
@@ -110,14 +110,14 @@ public class EventImageService {
             List<String> imageUrls = storageService.listImages(EVENTS_FOLDER + "/imagenes");
 
             return imageUrls.stream()
-                    .map(url -> {
-                        Map<String, String> imageInfo = new HashMap<>();
-                        imageInfo.put("url", url);
-                        imageInfo.put("name", extractImageName(url));
-                        imageInfo.put("thumbnail", url); // For now, use the same URL
-                        return imageInfo;
-                    })
-                    .collect(Collectors.toList());
+                .map(url -> {
+                    Map<String, String> imageInfo = new HashMap<>();
+                    imageInfo.put("url", url);
+                    imageInfo.put("name", extractImageName(url));
+                    imageInfo.put("thumbnail", url); // For now, use the same URL
+                    return imageInfo;
+                })
+                .collect(Collectors.toList());
         } catch (Exception e) {
             // Return empty list if folder doesn't exist or error occurs
             return createDefaultEventImages();
@@ -127,25 +127,25 @@ public class EventImageService {
     private List<Map<String, String>> createDefaultEventImages() {
         // Return some default placeholder images for events
         List<String> defaultImages = Arrays.asList(
-                "https://picsum.photos/600/400?random=5001",
-                "https://picsum.photos/600/400?random=5002",
-                "https://picsum.photos/600/400?random=5003",
-                "https://picsum.photos/600/400?random=5004",
-                "https://picsum.photos/600/400?random=5005",
-                "https://picsum.photos/600/400?random=5006",
-                "https://picsum.photos/600/400?random=5007",
-                "https://picsum.photos/600/400?random=5008"
+            "https://picsum.photos/600/400?random=5001",
+            "https://picsum.photos/600/400?random=5002",
+            "https://picsum.photos/600/400?random=5003",
+            "https://picsum.photos/600/400?random=5004",
+            "https://picsum.photos/600/400?random=5005",
+            "https://picsum.photos/600/400?random=5006",
+            "https://picsum.photos/600/400?random=5007",
+            "https://picsum.photos/600/400?random=5008"
         );
 
         return defaultImages.stream()
-                .map(url -> {
-                    Map<String, String> imageInfo = new HashMap<>();
-                    imageInfo.put("url", url);
-                    imageInfo.put("name", "Imagen " + url.substring(url.lastIndexOf("=") + 1));
-                    imageInfo.put("thumbnail", url);
-                    return imageInfo;
-                })
-                .collect(Collectors.toList());
+            .map(url -> {
+                Map<String, String> imageInfo = new HashMap<>();
+                imageInfo.put("url", url);
+                imageInfo.put("name", "Imagen " + url.substring(url.lastIndexOf("=") + 1));
+                imageInfo.put("thumbnail", url);
+                return imageInfo;
+            })
+            .collect(Collectors.toList());
     }
 
     private String extractImageName(String url) {
@@ -161,14 +161,14 @@ public class EventImageService {
 
     private Event validateEventAndPermissions(Long eventId, String userEmail) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the creator or admin can manage event images
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para gestionar las imágenes de este evento");
         }
 
@@ -192,7 +192,7 @@ public class EventImageService {
         String extension = getFileExtension(originalFilename).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
             throw new BadRequestException("Formato de archivo no permitido. Solo se permiten: " +
-                    String.join(", ", ALLOWED_EXTENSIONS));
+                String.join(", ", ALLOWED_EXTENSIONS));
         }
 
         // Validate content type

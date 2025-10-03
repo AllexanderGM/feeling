@@ -1,4 +1,4 @@
-package com.feeling.domain.services.storage;
+package com.feeling.packages.common.domain.services.storage;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,20 +42,20 @@ public class StorageService {
                 yield minioStorageService.uploadFile(file, filePath);
             }
             default ->
-                    throw new IllegalStateException("Tipo de almacenamiento no configurado correctamente. Usa 'minio' para desarrollo o 's3' para producción");
+                throw new IllegalStateException("Tipo de almacenamiento no configurado correctamente. Usa 'minio' para desarrollo o 's3' para producción");
         };
     }
 
     public List<String> uploadImages(List<MultipartFile> files, String folder) throws IOException {
         return files.stream()
-                .map(file -> {
-                    try {
-                        return uploadImage(file, folder);
-                    } catch (IOException e) {
-                        throw new RuntimeException("Error subiendo archivo: " + file.getOriginalFilename(), e);
-                    }
-                })
-                .collect(Collectors.toList());
+            .map(file -> {
+                try {
+                    return uploadImage(file, folder);
+                } catch (IOException e) {
+                    throw new RuntimeException("Error subiendo archivo: " + file.getOriginalFilename(), e);
+                }
+            })
+            .collect(Collectors.toList());
     }
 
     public boolean deleteImage(String imageUrl) {

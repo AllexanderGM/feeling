@@ -1,4 +1,4 @@
-package com.feeling.domain.services.storage;
+package com.feeling.packages.common.domain.services.storage;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,11 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,16 +29,16 @@ public class S3StorageService {
     public String uploadFile(MultipartFile file, String filePath) throws IOException {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(filePath)
-                    .contentType(file.getContentType())
-                    .build();
+                .bucket(bucketName)
+                .key(filePath)
+                .contentType(file.getContentType())
+                .build();
 
             s3Client.putObject(putObjectRequest,
-                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
             return String.format("https://%s.s3.%s.amazonaws.com/%s",
-                    bucketName, region, filePath);
+                bucketName, region, filePath);
 
         } catch (Exception e) {
             throw new IOException("Error subiendo archivo a S3: " + e.getMessage(), e);
@@ -52,9 +48,9 @@ public class S3StorageService {
     public boolean deleteFile(String fileName) {
         try {
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(fileName)
-                    .build();
+                .bucket(bucketName)
+                .key(fileName)
+                .build();
 
             s3Client.deleteObject(deleteObjectRequest);
             return true;
@@ -67,18 +63,18 @@ public class S3StorageService {
         List<String> fileUrls = new ArrayList<>();
         try {
             ListObjectsV2Request request = ListObjectsV2Request.builder()
-                    .bucket(bucketName)
-                    .prefix(folder + "/")
-                    .build();
+                .bucket(bucketName)
+                .prefix(folder + "/")
+                .build();
 
             ListObjectsV2Response response = s3Client.listObjectsV2(request);
-            
+
             for (S3Object object : response.contents()) {
                 String objectKey = object.key();
                 // Filter for image files
                 if (isImageFile(objectKey)) {
                     String url = String.format("https://%s.s3.%s.amazonaws.com/%s",
-                            bucketName, region, objectKey);
+                        bucketName, region, objectKey);
                     fileUrls.add(url);
                 }
             }

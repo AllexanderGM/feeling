@@ -40,8 +40,8 @@ public class EventService {
     public List<EventResponseDTO> getAllActiveEvents() {
         List<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc();
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     @Cacheable(value = "events", key = "'active_paginated_' + #pageable.pageNumber + '_' + #pageable.pageSize")
@@ -54,8 +54,8 @@ public class EventService {
     public List<EventResponseDTO> getUpcomingEvents() {
         List<Event> events = eventRepository.findUpcomingEvents(LocalDateTime.now());
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> getUpcomingEvents(Pageable pageable) {
@@ -67,8 +67,8 @@ public class EventService {
     public List<EventResponseDTO> getEventsByCategory(EventCategory category) {
         List<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category);
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByCategory(EventCategory category, Pageable pageable) {
@@ -83,8 +83,8 @@ public class EventService {
 
         List<Event> events = eventRepository.searchEvents(searchTerm.trim());
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> searchEvents(String searchTerm, Pageable pageable) {
@@ -98,7 +98,7 @@ public class EventService {
 
     public EventResponseDTO getEventById(Long id) {
         Event event = eventRepository.findByIdWithCreatedBy(id)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         if (!event.getIsActive()) {
             throw new NotFoundException("Evento no disponible");
@@ -110,8 +110,8 @@ public class EventService {
     public List<EventResponseDTO> getEventsByCreator(Long userId) {
         List<Event> events = eventRepository.findByCreatedBy(userId);
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByCreator(Long userId, Pageable pageable) {
@@ -121,13 +121,13 @@ public class EventService {
 
     public List<EventResponseDTO> getEventsByCreatorEmail(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
         return getEventsByCreator(user.getId());
     }
 
     public Page<EventResponseDTO> getEventsByCreatorEmail(String userEmail, Pageable pageable) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
         return getEventsByCreator(user.getId(), pageable);
     }
 
@@ -135,20 +135,20 @@ public class EventService {
     @CacheEvict(value = "events", allEntries = true)
     public EventResponseDTO createEvent(EventCreateRequestDTO request, String userEmail) {
         User creator = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         Event event = Event.builder()
-                .title(request.title())
-                .description(request.description())
-                .eventDate(request.eventDate())
-                .price(request.price())
-                .maxCapacity(request.maxCapacity())
-                .category(request.category())
-                .mainImage(request.mainImage())
-                .createdBy(creator)
-                .currentAttendees(0)
-                .isActive(true)
-                .build();
+            .title(request.title())
+            .description(request.description())
+            .eventDate(request.eventDate())
+            .price(request.price())
+            .maxCapacity(request.maxCapacity())
+            .category(request.category())
+            .mainImage(request.mainImage())
+            .createdBy(creator)
+            .currentAttendees(0)
+            .isActive(true)
+            .build();
 
         Event savedEvent = eventRepository.save(event);
         return convertToResponseDTO(savedEvent);
@@ -158,14 +158,14 @@ public class EventService {
     @CacheEvict(value = "events", allEntries = true)
     public EventResponseDTO updateEvent(Long eventId, EventUpdateRequestDTO request, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the creator or admin can update the event
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para modificar este evento");
         }
 
@@ -209,14 +209,14 @@ public class EventService {
     @CacheEvict(value = "events", allEntries = true)
     public void deleteEvent(Long eventId, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the creator or admin can delete the event
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para eliminar este evento");
         }
 
@@ -242,14 +242,14 @@ public class EventService {
     @CacheEvict(value = "events", allEntries = true)
     public EventResponseDTO toggleEventStatus(Long eventId, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the creator or admin can toggle status
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para modificar este evento");
         }
 
@@ -347,41 +347,41 @@ public class EventService {
 
     public List<Map<String, Object>> getEventRegistrations(Long eventId) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         return event.getRegistrations().stream()
-                .map(registration -> {
-                    Map<String, Object> regInfo = new HashMap<>();
-                    User user = registration.getUser();
-                    regInfo.put("id", registration.getId());
-                    regInfo.put("userId", user.getId());
-                    regInfo.put("userName", user.getName() + " " + user.getLastName());
-                    regInfo.put("userEmail", user.getEmail());
-                    regInfo.put("registrationDate", registration.getRegistrationDate());
-                    regInfo.put("paymentStatus", registration.getPaymentStatus());
-                    regInfo.put("amountPaid", registration.getAmountPaid());
-                    return regInfo;
-                })
-                .collect(Collectors.toList());
+            .map(registration -> {
+                Map<String, Object> regInfo = new HashMap<>();
+                User user = registration.getUser();
+                regInfo.put("id", registration.getId());
+                regInfo.put("userId", user.getId());
+                regInfo.put("userName", user.getName() + " " + user.getLastName());
+                regInfo.put("userEmail", user.getEmail());
+                regInfo.put("registrationDate", registration.getRegistrationDate());
+                regInfo.put("paymentStatus", registration.getPaymentStatus());
+                regInfo.put("amountPaid", registration.getAmountPaid());
+                return regInfo;
+            })
+            .collect(Collectors.toList());
     }
 
     public List<EventResponseDTO> getUserRegisteredEvents(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         // Find all events where the user has registrations
         List<Event> events = eventRepository.findEventsByUserRegistrations(user.getId());
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public boolean isEventCreator(Long eventId, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
         return event.getCreatedBy().getId().equals(user.getId());
     }
@@ -393,8 +393,8 @@ public class EventService {
     public List<EventResponseDTO> getEventsByStatus(EventStatus status) {
         List<Event> events = eventRepository.findByStatus(status);
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByStatus(EventStatus status, Pageable pageable) {
@@ -405,8 +405,8 @@ public class EventService {
     public List<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm) {
         List<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm);
         return events.stream()
-                .map(this::convertToResponseDTO)
-                .toList();
+            .map(this::convertToResponseDTO)
+            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm, Pageable pageable) {
@@ -420,14 +420,14 @@ public class EventService {
 
     private Event validateEventAndPermissions(Long eventId, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)
-                .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
+            .orElseThrow(() -> new NotFoundException("Evento no encontrado"));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
         // Only the creator or admin can manage the event
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
-                !user.getUserRole().getAuthority().equals("ADMIN")) {
+            !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para gestionar este evento");
         }
 
@@ -436,29 +436,30 @@ public class EventService {
 
     private EventResponseDTO convertToResponseDTO(Event event) {
         return new EventResponseDTO(
-                event.getId(),
-                event.getTitle(),
-                event.getDescription(),
-                event.getEventDate(),
-                event.getPrice(),
-                event.getMaxCapacity(),
-                event.getCurrentAttendees(),
-                event.getAvailableSpots(),
-                event.getCategory(),
-                event.getCategory() != null ? event.getCategory().getDisplayName() : null,
-                event.getStatus(),
-                event.getStatus() != null ? event.getStatus().getDisplayName() : null,
-                event.getMainImage(),
-                event.getImages(),
-                event.getCreatedAt(),
-                event.getUpdatedAt(),
-                event.getIsActive(),
-                event.isFull(),
-                event.hasAvailableSpots(),
-                event.isPublished(),
-                event.canAcceptRegistrations(),
-                event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
-                event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
+            event.getId(),
+            event.getTitle(),
+            event.getDescription(),
+            event.getLocation(),
+            event.getEventDate(),
+            event.getPrice(),
+            event.getMaxCapacity(),
+            event.getCurrentAttendees(),
+            event.getAvailableSpots(),
+            event.getCategory(),
+            event.getCategory() != null ? event.getCategory().getDisplayName() : null,
+            event.getStatus(),
+            event.getStatus() != null ? event.getStatus().getDisplayName() : null,
+            event.getMainImage(),
+            event.getImages(),
+            event.getCreatedAt(),
+            event.getUpdatedAt(),
+            event.getIsActive(),
+            event.isFull(),
+            event.hasAvailableSpots(),
+            event.isPublished(),
+            event.canAcceptRegistrations(),
+            event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
+            event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
         );
     }
 }

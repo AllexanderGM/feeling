@@ -1,6 +1,5 @@
-package com.feeling.domain.services.cache;
+package com.feeling.packages.common.domain.services.cache;
 
-import com.feeling.config.CacheConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -58,7 +57,7 @@ public class CacheManagementService {
 
                 if (nativeCache instanceof java.util.concurrent.ConcurrentMap) {
                     java.util.concurrent.ConcurrentMap<?, ?> map =
-                            (java.util.concurrent.ConcurrentMap<?, ?>) nativeCache;
+                        (java.util.concurrent.ConcurrentMap<?, ?>) nativeCache;
                     cacheStats.put("size", map.size());
                     cacheStats.put("keys", map.keySet().size());
                 }
@@ -139,7 +138,7 @@ public class CacheManagementService {
             Object nativeCache = cache.getNativeCache();
             if (nativeCache instanceof java.util.concurrent.ConcurrentMap) {
                 java.util.concurrent.ConcurrentMap<String, ?> map =
-                        (java.util.concurrent.ConcurrentMap<String, ?>) nativeCache;
+                    (java.util.concurrent.ConcurrentMap<String, ?>) nativeCache;
 
                 // Encontrar claves que contengan el email del usuario
                 map.keySet().removeIf(key -> key.contains(userEmail));
