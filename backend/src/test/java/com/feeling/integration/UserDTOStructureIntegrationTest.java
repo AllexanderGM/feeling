@@ -2,12 +2,12 @@ package com.feeling.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.domain.dto.auth.AuthLoginResponseDTO;
-import com.feeling.domain.dto.user.*;
-import com.feeling.infrastructure.entities.user.User;
-import com.feeling.infrastructure.entities.user.UserRole;
-import com.feeling.infrastructure.entities.user.UserRoleList;
+import com.feeling.packages.auth.domain.dto.AuthLoginResponseDTO;
+import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.entities.UserRole;
+import com.feeling.packages.user.infrastructure.entities.UserRoleList;
 import com.feeling.infrastructure.entities.user.UserApprovalStatusList;
+import com.feeling.packages.user.domain.dto.UserDTOMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests de estructura de DTOs para asegurar compatibilidad durante refactoring
  * Phase 1.2: Integration Tests Creation
+ * @deprecated This test uses deprecated DTOs. Structure is now unified in UserResponseDTO
  */
+@Deprecated(since = "1.8", forRemoval = true)
 @SpringBootTest
 @DisplayName("User DTO Structure Integration Tests")
 public class UserDTOStructureIntegrationTest {

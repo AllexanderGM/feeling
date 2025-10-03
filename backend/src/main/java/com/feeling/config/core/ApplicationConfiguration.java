@@ -1,6 +1,6 @@
 package com.feeling.config.core;
 
-import com.feeling.infrastructure.repositories.user.IUserRepository;
+import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

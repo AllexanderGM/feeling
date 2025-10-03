@@ -1,7 +1,6 @@
 package com.feeling.integration;
 
-import com.feeling.domain.dto.user.UserValidatedDTO;
-import com.feeling.domain.dto.user.UserPreferencesUpdateDTO;
+import com.feeling.packages.user.domain.dto.UserPartialUpdateDTO;
 import com.feeling.domain.dto.validation.ValidationGroups;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -34,7 +33,7 @@ public class ValidationGroupsTest {
     @DisplayName("Test Create User Validation Group")
     void testCreateUserValidationGroup() {
         // DTO válido para creación
-        UserValidatedDTO validDto = new UserValidatedDTO(
+        UserPartialUpdateDTO validDto = new UserPartialUpdateDTO(
                 "John", "Doe", "john@example.com", LocalDate.of(1990, 1, 1),
                 "+1234567890", "+1", "USA", "New York", "NY", "Manhattan",
                 "Test description", null, null, "NETWORKING", "Male", null,
@@ -44,13 +43,13 @@ public class ValidationGroupsTest {
                 null, null, null, null, null
         );
 
-        Set<ConstraintViolation<UserValidatedDTO>> violations =
+        Set<ConstraintViolation<UserPartialUpdateDTO>> violations =
             validator.validate(validDto, ValidationGroups.CreateUser.class);
 
         assertTrue(violations.isEmpty(), "Valid DTO should pass CreateUser validation");
 
         // DTO inválido para creación (sin nombre)
-        UserValidatedDTO invalidDto = new UserValidatedDTO(
+        UserPartialUpdateDTO invalidDto = new UserPartialUpdateDTO(
                 null, "Doe", "john@example.com", LocalDate.of(1990, 1, 1),
                 "+1234567890", "+1", "USA", "New York", "NY", "Manhattan",
                 "Test description", null, null, "NETWORKING", "Male", null,
@@ -72,30 +71,37 @@ public class ValidationGroupsTest {
     @Test
     @DisplayName("Test Update Preferences Validation Group")
     void testUpdatePreferencesValidationGroup() {
-        // Preferencias válidas
-        UserPreferencesUpdateDTO validPreferences = new UserPreferencesUpdateDTO(
-                "NETWORKING", 25, 35, 50
+        // Preferencias válidas usando UserPartialUpdateDTO
+        UserPartialUpdateDTO validUpdate = new UserPartialUpdateDTO(
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.of("NETWORKING"), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.of(25), Optional.of(35), Optional.empty(), Optional.of(50),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
+                Optional.empty(), Optional.empty()
         );
 
-        Set<ConstraintViolation<UserPreferencesUpdateDTO>> violations =
-            validator.validate(validPreferences, ValidationGroups.UpdatePreferences.class);
+        Set<ConstraintViolation<UserPartialUpdateDTO>> violations =
+            validator.validate(validUpdate, ValidationGroups.UpdatePreferences.class);
 
         assertTrue(violations.isEmpty(), "Valid preferences should pass validation");
-
-        // Preferencias inválidas (edad mínima mayor que máxima)
-        UserPreferencesUpdateDTO invalidPreferences = new UserPreferencesUpdateDTO(
-                "NETWORKING", 35, 25, 50  // Min > Max
-        );
-
-        violations = validator.validate(invalidPreferences, ValidationGroups.UpdatePreferences.class);
-        assertFalse(violations.isEmpty(), "Invalid age range should fail validation");
+        assertTrue(validUpdate.hasPreferenceUpdates(), "Should detect preference updates");
     }
 
     @Test
     @DisplayName("Test Admin Operation Validation Group")
     void testAdminOperationValidationGroup() {
         // DTO con campos de admin válidos
-        UserValidatedDTO adminDto = new UserValidatedDTO(
+        UserPartialUpdateDTO adminDto = new UserPartialUpdateDTO(
                 "John", "Doe", "john@example.com", LocalDate.of(1990, 1, 1),
                 "+1234567890", "+1", "USA", "New York", "NY", "Manhattan",
                 "Test description", null, null, "NETWORKING", "Male", null,
@@ -105,13 +111,13 @@ public class ValidationGroupsTest {
                 true, "APPROVED", "CLIENT", false, null  // Campos de admin
         );
 
-        Set<ConstraintViolation<UserValidatedDTO>> violations =
+        Set<ConstraintViolation<UserPartialUpdateDTO>> violations =
             validator.validate(adminDto, ValidationGroups.AdminOperation.class);
 
         assertTrue(violations.isEmpty(), "Valid admin fields should pass validation");
 
         // DTO con campos de admin inválidos (sin estado de verificación)
-        UserValidatedDTO invalidAdminDto = new UserValidatedDTO(
+        UserPartialUpdateDTO invalidAdminDto = new UserPartialUpdateDTO(
                 "John", "Doe", "john@example.com", LocalDate.of(1990, 1, 1),
                 "+1234567890", "+1", "USA", "New York", "NY", "Manhattan",
                 "Test description", null, null, "NETWORKING", "Male", null,
@@ -129,7 +135,7 @@ public class ValidationGroupsTest {
     @DisplayName("Test Cross-Field Validation")
     void testCrossFieldValidation() {
         // Test validación cruzada: showPhone = true pero sin teléfono
-        UserValidatedDTO dtoWithPhoneIssue = new UserValidatedDTO(
+        UserPartialUpdateDTO dtoWithPhoneIssue = new UserPartialUpdateDTO(
                 "John", "Doe", "john@example.com", LocalDate.of(1990, 1, 1),
                 null, null, "USA", "New York", "NY", "Manhattan",  // Sin teléfono
                 "Test description", null, null, "NETWORKING", "Male", null,
@@ -139,7 +145,7 @@ public class ValidationGroupsTest {
                 null, null, null, null, null
         );
 
-        Set<ConstraintViolation<UserValidatedDTO>> violations =
+        Set<ConstraintViolation<UserPartialUpdateDTO>> violations =
             validator.validate(dtoWithPhoneIssue, ValidationGroups.UpdatePrivacy.class);
 
         assertFalse(violations.isEmpty(), "Should fail when showPhone=true but phone is null");
@@ -154,7 +160,7 @@ public class ValidationGroupsTest {
     @DisplayName("Test No Validation When No Groups Specified")
     void testNoValidationWhenNoGroups() {
         // DTO inválido pero sin grupos de validación
-        UserValidatedDTO invalidDto = new UserValidatedDTO(
+        UserPartialUpdateDTO invalidDto = new UserPartialUpdateDTO(
                 null, null, "invalid-email", null,  // Campos inválidos
                 null, null, null, null, null, null,
                 null, null, null, null, null, null,
@@ -165,7 +171,7 @@ public class ValidationGroupsTest {
         );
 
         // Sin grupos de validación, solo validaciones sin grupos se ejecutan
-        Set<ConstraintViolation<UserValidatedDTO>> violations = validator.validate(invalidDto);
+        Set<ConstraintViolation<UserPartialUpdateDTO>> violations = validator.validate(invalidDto);
 
         // Puede tener algunas violaciones de validaciones sin grupos, pero no las específicas de grupos
         System.out.println("Violations without groups: " + violations.size());

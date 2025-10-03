@@ -1,6 +1,6 @@
 package com.feeling.config.logging;
 
-import com.feeling.infrastructure.logging.RequestLoggingFilter;
+import com.feeling.config.logging.RequestLoggingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;

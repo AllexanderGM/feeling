@@ -1,19 +1,17 @@
 package com.feeling.config.security;
 
-import org.springframework.http.HttpMethod;
-
-import com.feeling.domain.services.auth.JwtService;
-import com.feeling.domain.services.user.CachedUserService;
-import com.feeling.infrastructure.entities.user.User;
-import com.feeling.infrastructure.entities.user.UserToken;
-import com.feeling.infrastructure.repositories.user.IUserRepository;
-import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
+import com.feeling.infrastructure.logging.StructuredLoggerFactory;
+import com.feeling.packages.auth.domain.services.JwtService;
+import com.feeling.packages.user.domain.services.CachedUserService;
+import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.auth.infrastructure.entities.AuthToken;
+import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import com.feeling.infrastructure.logging.StructuredLoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,12 +28,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private static final StructuredLoggerFactory.StructuredLogger logger = 
+    private static final StructuredLoggerFactory.StructuredLogger logger =
             StructuredLoggerFactory.create(JwtAuthFilter.class);
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
-    private final IUserTokenRepository tokenRepository;
+    private final IAuthTokenRepository tokenRepository;
     private final CachedUserService cachedUserService;
     private final RouteSecurityConfig routeSecurityConfig;
 
@@ -109,14 +107,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // Verificar que el token existe en la base de datos y no está revocado
-            Optional<UserToken> storedTokenOptional = tokenRepository.findByToken(jwtToken);
+            Optional<AuthToken> storedTokenOptional = tokenRepository.findByToken(jwtToken);
             if (storedTokenOptional.isEmpty()) {
                 logger.warn("❌ Token no encontrado en base de datos para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido");
                 return;
             }
 
-            UserToken storedToken = storedTokenOptional.get();
+            AuthToken storedToken = storedTokenOptional.get();
             if (storedToken.isExpired() || storedToken.isRevoked()) {
                 logger.warn("❌ Token expirado o revocado para usuario: " + userEmail);
                 setErrorResponse(response, "Token expirado o revocado");
@@ -124,7 +122,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // Verificar que es un ACCESS token en la BD también
-            if (storedToken.getType() != UserToken.TokenType.ACCESS) {
+            if (storedToken.getType() != AuthToken.TokenType.ACCESS) {
                 logger.warn("❌ Token en BD no es de tipo ACCESS para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido - tipo incorrecto");
                 return;
@@ -133,10 +131,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // OPTIMIZACIÓN: Verificar que el usuario existe y está habilitado usando cache
             // Para rutas de completar perfil, permitir usuarios verificados pero no aprobados
             boolean isProfileCompletionRoute = requestPath.equals("/user/complete-profile");
-            Boolean isUserValid = isProfileCompletionRoute ? 
-                cachedUserService.isUserValidForProfileCompletion(userEmail) : 
-                cachedUserService.isUserValidForAuth(userEmail);
-            
+            Boolean isUserValid = isProfileCompletionRoute ?
+                    cachedUserService.isUserValidForProfileCompletion(userEmail) :
+                    cachedUserService.isUserValidForAuth(userEmail);
+
             if (!isUserValid) {
                 logger.warn("❌ Usuario no encontrado o deshabilitado: " + userEmail);
                 setErrorResponse(response, "Usuario no válido");

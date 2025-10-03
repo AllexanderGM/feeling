@@ -1,11 +1,12 @@
 package com.feeling.domain.dto.user;
 
-import com.feeling.domain.dto.auth.UserProfileDataDTO;
-import com.feeling.domain.dto.auth.UserStatusDTO;
-import com.feeling.infrastructure.entities.user.User;
-import com.feeling.infrastructure.entities.user.UserRole;
-import com.feeling.infrastructure.entities.user.UserRoleList;
+import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
+import com.feeling.packages.auth.domain.dto.UserStatusDTO;
+import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.entities.UserRole;
+import com.feeling.packages.user.infrastructure.entities.UserRoleList;
 import com.feeling.infrastructure.entities.user.UserApprovalStatusList;
+import com.feeling.packages.user.domain.dto.UserDTOMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -13,6 +14,10 @@ import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * @deprecated This test uses deprecated mapper methods. Use UserResponseFactory instead
+ */
+@Deprecated(since = "1.8", forRemoval = true)
 public class UserDTOMapperTest {
 
     private User testUser;

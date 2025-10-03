@@ -1,8 +1,6 @@
 package com.feeling.config.security;
 
-import com.feeling.config.core.ApplicationConfiguration;
-import com.feeling.config.logging.LoggingConfiguration;
-import com.feeling.infrastructure.repositories.user.IUserTokenRepository;
+import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
 import jakarta.servlet.Filter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,7 +33,7 @@ public class SecurityConfiguration {
     private final JwtAuthFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
     private final SelfModificationAuthorizationFilter selfModificationAuthorizationFilter;
-    private final IUserTokenRepository tokenRepository;
+    private final IAuthTokenRepository tokenRepository;
     private final AuthenticationProvider authenticationProvider;
     private final RouteSecurityConfig routeSecurityConfig;
 
@@ -92,18 +90,18 @@ public class SecurityConfiguration {
                     // ========================================
                     // 🔓 RUTAS PÚBLICAS (desde RouteSecurityConfig)
                     // ========================================
-                    
+
                     // Configurar todas las rutas públicas desde el sistema centralizado
-                    routeSecurityConfig.getAllPublicRoutes().forEach(route -> 
-                        auth.requestMatchers(route).permitAll());
-                    
+                    routeSecurityConfig.getAllPublicRoutes().forEach(route ->
+                            auth.requestMatchers(route).permitAll());
+
                     // Eventos públicos (solo lectura)
                     auth.requestMatchers(HttpMethod.GET, "/events/**").permitAll();
 
                     // ========================================
                     // 🔒 RUTAS AUTENTICADAS (USUARIOS)
                     // ========================================
-                    
+
                     // Sesión y logout
                     auth.requestMatchers(HttpMethod.POST, "/auth/logout").authenticated();
                     auth.requestMatchers(HttpMethod.GET, "/auth/session-info").authenticated();
@@ -143,10 +141,10 @@ public class SecurityConfiguration {
                     // ========================================
                     // 👑 RUTAS ADMINISTRATIVAS (desde RouteSecurityConfig)
                     // ========================================
-                    
+
                     // Configurar todas las rutas administrativas desde el sistema centralizado
-                    routeSecurityConfig.getAllAdminRoutes().forEach(route -> 
-                        auth.requestMatchers(route).hasAuthority("ADMIN"));
+                    routeSecurityConfig.getAllAdminRoutes().forEach(route ->
+                            auth.requestMatchers(route).hasAuthority("ADMIN"));
 
                     // ========================================
                     // 🔒 CUALQUIER OTRA RUTA REQUIERE AUTENTICACIÓN
@@ -157,17 +155,17 @@ public class SecurityConfiguration {
                 .sessionManagement(management ->
                         management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
-                        // Prevenir que la página se renderice en iframes (protección XSS)
-                        .frameOptions(frameOptionsConfig -> frameOptionsConfig.deny())
-                        // Forzar detección de tipo MIME para prevenir ataques de tipo confusion
-                        .contentTypeOptions(Customizer.withDefaults())
-                        // Habilitar HSTS (HTTP Strict Transport Security)
-                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-                                .maxAgeInSeconds(31536000) // 1 año
-                                .includeSubDomains(true))
-                        // Política de referrer para proteger información sensible
-                        .referrerPolicy(policy -> policy.policy(
-                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                                // Prevenir que la página se renderice en iframes (protección XSS)
+                                .frameOptions(frameOptionsConfig -> frameOptionsConfig.deny())
+                                // Forzar detección de tipo MIME para prevenir ataques de tipo confusion
+                                .contentTypeOptions(Customizer.withDefaults())
+                                // Habilitar HSTS (HTTP Strict Transport Security)
+                                .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                                        .maxAgeInSeconds(31536000) // 1 año
+                                        .includeSubDomains(true))
+                                // Política de referrer para proteger información sensible
+                                .referrerPolicy(policy -> policy.policy(
+                                        org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                         // Headers personalizados adicionales se manejan en WebSecurityCustomizer
                 )
                 .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
@@ -224,20 +222,20 @@ public class SecurityConfiguration {
     public Filter securityHeadersFilter() {
         return (request, response, chain) -> {
             jakarta.servlet.http.HttpServletResponse httpResponse = (jakarta.servlet.http.HttpServletResponse) response;
-            
+
             // Content Security Policy
-            httpResponse.setHeader("Content-Security-Policy", 
-                "default-src 'self'; " +
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-                "style-src 'self' 'unsafe-inline'; " +
-                "img-src 'self' data: https:; " +
-                "font-src 'self' https:; " +
-                "connect-src 'self' https:");
-            
+            httpResponse.setHeader("Content-Security-Policy",
+                    "default-src 'self'; " +
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                            "style-src 'self' 'unsafe-inline'; " +
+                            "img-src 'self' data: https:; " +
+                            "font-src 'self' https:; " +
+                            "connect-src 'self' https:");
+
             // Headers adicionales de seguridad
             httpResponse.setHeader("X-Content-Type-Options", "nosniff");
             httpResponse.setHeader("X-XSS-Protection", "1; mode=block");
-            
+
             chain.doFilter(request, response);
         };
     }

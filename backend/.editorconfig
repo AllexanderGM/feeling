@@ -1,0 +1,38 @@
+# EditorConfig para el proyecto Feeling
+# https://editorconfig.org
+
+# Configuración raíz
+root = true
+
+# Configuración general para todos los archivos
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Configuración específica para archivos Java
+[*.java]
+indent_style = space
+indent_size = 4
+# Desactivar advertencia de String template migration
+ij_java_string_template_migration = false
+
+# Configuración para archivos XML
+[*.xml]
+indent_style = space
+indent_size = 2
+
+# Configuración para archivos YAML
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Configuración para archivos de propiedades
+[*.properties]
+indent_style = space
+indent_size = 2
+
+# Configuración para archivos Markdown
+[*.md]
+trim_trailing_whitespace = false

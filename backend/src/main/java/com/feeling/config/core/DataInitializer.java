@@ -1,13 +1,15 @@
 package com.feeling.config.core;
 
-import com.feeling.infrastructure.entities.event.Event;
-import com.feeling.infrastructure.entities.event.EventCategory;
-import com.feeling.infrastructure.entities.event.EventStatus;
-import com.feeling.infrastructure.entities.match.MatchPlan;
-import com.feeling.infrastructure.entities.user.*;
-import com.feeling.infrastructure.repositories.event.IEventRepository;
-import com.feeling.infrastructure.repositories.match.IMatchPlanRepository;
-import com.feeling.infrastructure.repositories.user.*;
+import com.feeling.packages.event.infrastructure.entities.Event;
+import com.feeling.packages.event.infrastructure.entities.EventCategory;
+import com.feeling.packages.event.infrastructure.entities.EventStatus;
+import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
+import com.feeling.packages.match.infrastructure.entities.MatchPlan;
+import com.feeling.packages.match.infrastructure.repositories.IMatchPlanRepository;
+import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.user.domain.enums.TagApprovalStatus;
+import com.feeling.packages.user.infrastructure.entities.*;
+import com.feeling.packages.user.infrastructure.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +31,13 @@ public class DataInitializer implements CommandLineRunner {
 
     private final IUserRoleRepository userRoleRepository;
     private final IUserRepository userRepository;
-    private final IUserAttributeRepository userAttributeRepository;
     private final IUserCategoryInterestRepository userCategoryInterestRepository;
     private final IUserTagRepository userTagRepository;
     private final IMatchPlanRepository matchPlanRepository;
     private final IEventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
     private final IUserCategoryInterestRepository categoryInterestRepository;
+    private final com.feeling.packages.user.domain.services.UserAttributeService userAttributeService;
 
     // Usar variables de entorno para el administrador del sistema
     @Value("${admin.username}")
@@ -279,7 +281,7 @@ public class DataInitializer implements CommandLineRunner {
                 new AttributeData("IGLESIA_SAGRADO_CORAZON", "Iglesia del Sagrado Corazón", "Iglesia del Sagrado Corazón - Chapinero", "church", 5),
                 new AttributeData("PARROQUIA_SAN_PATRICIO", "Parroquia San Patricio", "Zona Rosa - Chapinero", "church", 6),
                 new AttributeData("IGLESIA_LOURDES", "Iglesia de Lourdes", "Chapinero Alto", "church", 7),
-                
+
                 // Iglesias Evangélicas Reconocidas
                 new AttributeData("CASA_SOBRE_LA_ROCA", "Casa Sobre la Roca", "Iglesia Casa Sobre la Roca", "home", 8),
                 new AttributeData("CENTRO_MUNDIAL_AVIVAMIENTO", "Centro Mundial de Avivamiento", "CMA - Bogotá", "public", 9),
@@ -288,33 +290,33 @@ public class DataInitializer implements CommandLineRunner {
                 new AttributeData("CENTRO_CRISTIANO_CASA_DE_DIOS", "Centro Cristiano Casa de Dios", "Casa de Dios Bogotá", "home_work", 12),
                 new AttributeData("IGLESIA_VISION_DE_FUTURO", "Iglesia Visión de Futuro", "Visión de Futuro Bogotá", "visibility", 13),
                 new AttributeData("COMUNIDAD_VIDA_NUEVA", "Comunidad Vida Nueva", "Iglesia Vida Nueva", "refresh", 14),
-                
+
                 // Iglesias Pentecostales
                 new AttributeData("IGLESIA_PENTECOSTAL_UNIDA", "Iglesia Pentecostal Unida", "IPU Bogotá", "whatshot", 15),
                 new AttributeData("ASAMBLEAS_DE_DIOS", "Asambleas de Dios", "Asambleas de Dios Bogotá", "groups", 16),
                 new AttributeData("IGLESIA_CUADRANGULAR", "Iglesia del Evangelio Cuadrangular", "IEC Bogotá", "crop_square", 17),
-                
+
                 // Iglesias Presbiterianas y Reformadas
                 new AttributeData("IGLESIA_PRESBITERIANA_BOGOTA", "Iglesia Presbiteriana de Bogotá", "Iglesia Presbiteriana", "gavel", 18),
                 new AttributeData("IGLESIA_REFORMADA", "Iglesia Reformada", "Tradición Reformada Bogotá", "menu_book", 19),
-                
+
                 // Iglesias Bautistas
                 new AttributeData("IGLESIA_BAUTISTA_CENTRAL", "Iglesia Bautista Central", "Iglesia Bautista del Centro", "waves", 20),
                 new AttributeData("CONVENCION_BAUTISTA", "Convención Bautista", "Iglesias Bautistas de Colombia", "waves", 21),
-                
+
                 // Iglesias Adventistas
                 new AttributeData("IGLESIA_ADVENTISTA_CENTRAL", "Iglesia Adventista Central", "Adventista del Séptimo Día - Central", "schedule", 22),
                 new AttributeData("IGLESIA_ADVENTISTA_NORTE", "Iglesia Adventista Norte", "Adventista zona norte de Bogotá", "schedule", 23),
-                
+
                 // Iglesias Metodistas y Episcopales
                 new AttributeData("IGLESIA_METODISTA_BOGOTA", "Iglesia Metodista de Bogotá", "Iglesia Metodista", "favorite", 24),
                 new AttributeData("IGLESIA_EPISCOPAL", "Iglesia Episcopal", "Iglesia Episcopal Anglicana", "account_balance", 25),
-                
+
                 // Otras Denominaciones
                 new AttributeData("TESTIGOS_JEHOVA", "Testigos de Jehová", "Salón del Reino - Bogotá", "book", 26),
                 new AttributeData("IGLESIA_SUD", "Iglesia de Jesucristo SUD", "Santos de los Últimos Días", "temple_hindu", 27),
                 new AttributeData("IGLESIA_CRISTIANA_INTEGRAL", "Iglesia Cristiana Integral", "ICI Bogotá", "integration_instructions", 28),
-                
+
                 // Opciones adicionales
                 new AttributeData("OTRA_IGLESIA_BOGOTA", "Otra Iglesia de Bogotá", "Iglesia no listada específica de Bogotá", "church", 29),
                 new AttributeData("AGREGAR_NUEVA", "Agregar Nueva Iglesia", "Permite agregar una nueva iglesia", "add_circle", 30)
@@ -342,7 +344,7 @@ public class DataInitializer implements CommandLineRunner {
     private void createAttributesIfNotExists(String attributeType, List<AttributeData> attributesData) {
         attributesData.forEach(data -> {
             // Verificar si ya existe
-            boolean exists = userAttributeRepository.findByCodeAndAttributeType(data.code, attributeType).isPresent();
+            boolean exists = userAttributeService.findByCodeAndAttributeType(data.code, attributeType).isPresent();
 
             if (!exists) {
                 UserAttribute attribute = UserAttribute.builder()
@@ -357,7 +359,7 @@ public class DataInitializer implements CommandLineRunner {
                         .updatedAt(LocalDateTime.now())
                         .build();
 
-                userAttributeRepository.save(attribute);
+                userAttributeService.save(attribute);
                 logger.debug("Atributo creado: {} - {}", attributeType, data.name);
             }
         });
@@ -414,7 +416,7 @@ public class DataInitializer implements CommandLineRunner {
                             .createdAt(LocalDateTime.now())
                             .usageCount(0L)
                             .lastUsed(LocalDateTime.now())
-                            .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags comunes del sistema pre-aprobados
+                            .approvalStatus(TagApprovalStatus.APPROVED) // Tags comunes del sistema pre-aprobados
                             .approvedBy(adminEmail)
                             .approvedAt(LocalDateTime.now())
                             .build();
@@ -496,9 +498,9 @@ public class DataInitializer implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
 
             // Obtener atributos necesarios para completar el perfil
-            UserAttribute defaultGender = userAttributeRepository.findByCodeAndAttributeType("MALE", "GENDER")
+            UserAttribute defaultGender = userAttributeService.findByCodeAndAttributeType("MALE", "GENDER")
                     .orElse(null);
-            UserAttribute defaultReligion = userAttributeRepository.findByCodeAndAttributeType("CATHOLIC", "RELIGION")
+            UserAttribute defaultReligion = userAttributeService.findByCodeAndAttributeType("CATHOLIC", "RELIGION")
                     .orElse(null);
             UserCategoryInterest defaultCategory = userCategoryInterestRepository
                     .findByCategoryInterestEnum(UserCategoryInterestList.ESSENCE)
@@ -511,7 +513,7 @@ public class DataInitializer implements CommandLineRunner {
                     .password(passwordEncoder.encode(this.adminPassword))
                     .userRole(adminRole)
                     .verified(true)
-                    .approvalStatus(UserApprovalStatusList.APPROVED)
+                    .approvalStatus(ApprovalStatus.APPROVED)
                     .dateOfBirth(LocalDate.of(1990, 1, 1))
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -613,7 +615,7 @@ public class DataInitializer implements CommandLineRunner {
                 needsUpdate = true;
             }
             if (existingAdmin.getGender() == null) {
-                UserAttribute defaultGender = userAttributeRepository.findByCodeAndAttributeType("MALE", "GENDER").orElse(null);
+                UserAttribute defaultGender = userAttributeService.findByCodeAndAttributeType("MALE", "GENDER").orElse(null);
                 if (defaultGender != null) {
                     existingAdmin.setGender(defaultGender);
                     needsUpdate = true;
@@ -628,7 +630,7 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
             if (existingAdmin.getReligion() == null) {
-                UserAttribute defaultReligion = userAttributeRepository.findByCodeAndAttributeType("CATHOLIC", "RELIGION").orElse(null);
+                UserAttribute defaultReligion = userAttributeService.findByCodeAndAttributeType("CATHOLIC", "RELIGION").orElse(null);
                 if (defaultReligion != null) {
                     existingAdmin.setReligion(defaultReligion);
                     needsUpdate = true;
@@ -695,7 +697,7 @@ public class DataInitializer implements CommandLineRunner {
                         .createdAt(LocalDateTime.now())
                         .usageCount(1L)
                         .lastUsed(LocalDateTime.now())
-                        .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
+                        .approvalStatus(TagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                         .approvedBy(normalizedAdminEmail)
                         .approvedAt(LocalDateTime.now())
                         .build();
@@ -712,7 +714,7 @@ public class DataInitializer implements CommandLineRunner {
                         .createdAt(LocalDateTime.now())
                         .usageCount(1L)
                         .lastUsed(LocalDateTime.now())
-                        .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
+                        .approvalStatus(TagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                         .approvedBy(normalizedAdminEmail)
                         .approvedAt(LocalDateTime.now())
                         .build();
@@ -774,10 +776,10 @@ public class DataInitializer implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Rol CLIENT no encontrado"));
 
             List<UserCategoryInterest> categories = userCategoryInterestRepository.findAll();
-            List<UserAttribute> genders = userAttributeRepository.findByAttributeTypeAndActiveTrue("GENDER");
-            List<UserAttribute> eyeColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("EYE_COLOR");
-            List<UserAttribute> hairColors = userAttributeRepository.findByAttributeTypeAndActiveTrue("HAIR_COLOR");
-            List<UserAttribute> bodyTypes = userAttributeRepository.findByAttributeTypeAndActiveTrue("BODY_TYPE");
+            List<UserAttribute> genders = userAttributeService.findByAttributeTypeAndActiveTrue("GENDER");
+            List<UserAttribute> eyeColors = userAttributeService.findByAttributeTypeAndActiveTrue("EYE_COLOR");
+            List<UserAttribute> hairColors = userAttributeService.findByAttributeTypeAndActiveTrue("HAIR_COLOR");
+            List<UserAttribute> bodyTypes = userAttributeService.findByAttributeTypeAndActiveTrue("BODY_TYPE");
 
             Random random = new Random();
             int usuariosCreados = 0;
@@ -907,7 +909,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Artista en el alma, práctico en la vida. Me gusta crear e inspirar junto a mi pareja ideal.",
                 "Deportista por pasión, optimista por naturaleza. Busco alguien que comparta mi energía positiva."
         };
-        
+
         String[] descripcionesSpirit = {
                 "Cristiano comprometido que busca una relación centrada en Dios. La fe es fundamental en mi vida.",
                 "Amo servir a otros y busco alguien que comparta mi pasión por el Reino de Dios.",
@@ -919,7 +921,7 @@ public class DataInitializer implements CommandLineRunner {
                 "Mi corazón está en las misiones y el servicio. Busco alguien con un corazón similar.",
                 "La familia y la fe son mis prioridades. Busco construir un hogar cristiano sólido."
         };
-        
+
         String[] descripcionesRouse = {
                 "Orgullosamente parte de la comunidad LGBTI+. Busco conexiones auténticas y sin prejuicios.",
                 "Creo en el amor sin etiquetas. Busco alguien que celebre la diversidad y la autenticidad.",
@@ -953,9 +955,9 @@ public class DataInitializer implements CommandLineRunner {
         int edad;
         if (categoria.equals("ACTIVE")) {
             // 80% de usuarios activos entre 18-40, 20% entre 41-45
-            edad = random.nextDouble() < 0.8 ? 
-                18 + random.nextInt(23) :  // 18-40 años
-                41 + random.nextInt(5);    // 41-45 años
+            edad = random.nextDouble() < 0.8 ?
+                    18 + random.nextInt(23) :  // 18-40 años
+                    41 + random.nextInt(5);    // 41-45 años
         } else {
             // Otros usuarios con rango normal pero limitado
             edad = 18 + random.nextInt(32); // 18-50 años
@@ -969,13 +971,13 @@ public class DataInitializer implements CommandLineRunner {
 
         // Configurar estados según la categoría
         boolean verified = !categoria.equals("UNVERIFIED");
-        UserApprovalStatusList approvalStatus;
+        ApprovalStatus approvalStatus;
         if (categoria.equals("ACTIVE")) {
-            approvalStatus = UserApprovalStatusList.APPROVED;
+            approvalStatus = ApprovalStatus.APPROVED;
         } else if (categoria.equals("REJECTED")) {
-            approvalStatus = UserApprovalStatusList.REJECTED;
+            approvalStatus = ApprovalStatus.REJECTED;
         } else {
-            approvalStatus = UserApprovalStatusList.PENDING;
+            approvalStatus = ApprovalStatus.PENDING;
         }
         boolean accountDeactivated = categoria.equals("DEACTIVATED");
 
@@ -1054,11 +1056,11 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // Asignar descripción específica según la categoría después de crear el usuario
-        if (user.getDescription() != null && "TEMPORAL_DESCRIPTION".equals(user.getDescription()) 
-            && user.getCategoryInterest() != null) {
+        if (user.getDescription() != null && "TEMPORAL_DESCRIPTION".equals(user.getDescription())
+                && user.getCategoryInterest() != null) {
             String[] descripcionesSeleccionadas;
             UserCategoryInterestList categoria_interes = user.getCategoryInterest().getCategoryInterestEnum();
-            
+
             if (categoria_interes == UserCategoryInterestList.SPIRIT) {
                 descripcionesSeleccionadas = descripcionesSpirit;
             } else if (categoria_interes == UserCategoryInterestList.ROUSE) {
@@ -1066,7 +1068,7 @@ public class DataInitializer implements CommandLineRunner {
             } else { // ESSENCE
                 descripcionesSeleccionadas = descripcionesEssence;
             }
-            
+
             user.setDescription(descripcionesSeleccionadas[random.nextInt(descripcionesSeleccionadas.length)]);
         }
 
@@ -1075,7 +1077,7 @@ public class DataInitializer implements CommandLineRunner {
         // Distribución estratégica: más usuarios SPIRIT activos
         if (!categories.isEmpty()) {
             UserCategoryInterest selectedCategory;
-            
+
             // Para usuarios ACTIVOS, distribución específica para testing
             if (categoria.equals("ACTIVE")) {
                 // 40% ESSENCE, 30% ROUSE, 30% SPIRIT para usuarios activos
@@ -1083,27 +1085,27 @@ public class DataInitializer implements CommandLineRunner {
                 if (random_category < 0.40) {
                     // Buscar ESSENCE
                     selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ESSENCE)
-                        .findFirst()
-                        .orElse(categories.get(0));
+                            .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ESSENCE)
+                            .findFirst()
+                            .orElse(categories.get(0));
                 } else if (random_category < 0.70) {
                     // Buscar ROUSE
                     selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE)
-                        .findFirst()
-                        .orElse(categories.get(0));
+                            .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE)
+                            .findFirst()
+                            .orElse(categories.get(0));
                 } else {
                     // Buscar SPIRIT
                     selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT)
-                        .findFirst()
-                        .orElse(categories.get(0));
+                            .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT)
+                            .findFirst()
+                            .orElse(categories.get(0));
                 }
             } else {
                 // Para otros estados, distribución más equilibrada
                 selectedCategory = categories.get(random.nextInt(categories.size()));
             }
-            
+
             user.setCategoryInterest(selectedCategory);
         }
 
@@ -1123,59 +1125,59 @@ public class DataInitializer implements CommandLineRunner {
             if (!bodyTypes.isEmpty()) {
                 user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
             }
-            
+
             // Agregar atributos específicos según la categoría del usuario
             UserCategoryInterest userCategory = user.getCategoryInterest();
             if (userCategory != null) {
                 if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT) {
                     // Asignar religión para usuarios SPIRIT
-                    List<UserAttribute> religions = userAttributeRepository.findByAttributeTypeAndActiveTrue("RELIGION");
+                    List<UserAttribute> religions = userAttributeService.findByAttributeTypeAndActiveTrue("RELIGION");
                     if (!religions.isEmpty()) {
                         // Favorecer religiones cristianas para SPIRIT
                         List<UserAttribute> christianReligions = religions.stream()
-                            .filter(r -> r.getCode().contains("CHRISTIAN") || r.getCode().contains("CATHOLIC") || 
-                                       r.getCode().contains("PROTESTANT") || r.getCode().contains("EVANGELICAL") ||
-                                       r.getCode().contains("PENTECOSTAL"))
-                            .collect(java.util.stream.Collectors.toList());
-                        
+                                .filter(r -> r.getCode().contains("CHRISTIAN") || r.getCode().contains("CATHOLIC") ||
+                                        r.getCode().contains("PROTESTANT") || r.getCode().contains("EVANGELICAL") ||
+                                        r.getCode().contains("PENTECOSTAL"))
+                                .collect(java.util.stream.Collectors.toList());
+
                         if (!christianReligions.isEmpty()) {
                             user.setReligion(christianReligions.get(random.nextInt(christianReligions.size())));
                         } else {
                             user.setReligion(religions.get(random.nextInt(religions.size())));
                         }
                     }
-                    
+
                     // Asignar iglesia para algunos usuarios SPIRIT
                     if (random.nextDouble() < 0.7) { // 70% de usuarios SPIRIT tienen iglesia
-                        List<UserAttribute> churches = userAttributeRepository.findByAttributeTypeAndActiveTrue("CHURCH");
+                        List<UserAttribute> churches = userAttributeService.findByAttributeTypeAndActiveTrue("CHURCH");
                         if (!churches.isEmpty()) {
                             user.setChurch(churches.get(random.nextInt(churches.size())));
                         }
                     }
-                    
+
                     // Agregar momentos espirituales y prácticas espirituales para usuarios SPIRIT activos
                     if (categoria.equals("ACTIVE") && random.nextDouble() < 0.8) { // 80% de SPIRIT activos
                         String[] spiritualMoments = {
-                            "Oración matutina diaria", "Lectura bíblica antes de dormir", "Adoración los domingos",
-                            "Momentos de reflexión en la naturaleza", "Servicio comunitario mensual", "Retiros espirituales"
+                                "Oración matutina diaria", "Lectura bíblica antes de dormir", "Adoración los domingos",
+                                "Momentos de reflexión en la naturaleza", "Servicio comunitario mensual", "Retiros espirituales"
                         };
                         String[] spiritualPractices = {
-                            "Oración personal", "Estudio bíblico", "Meditación cristiana", "Ayuno ocasional",
-                            "Servicio a otros", "Participación en grupos pequeños", "Adoración musical"
+                                "Oración personal", "Estudio bíblico", "Meditación cristiana", "Ayuno ocasional",
+                                "Servicio a otros", "Participación en grupos pequeños", "Adoración musical"
                         };
-                        
+
                         user.setSpiritualMoments(spiritualMoments[random.nextInt(spiritualMoments.length)]);
                         user.setSpiritualPractices(spiritualPractices[random.nextInt(spiritualPractices.length)]);
                     }
-                    
+
                 } else if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE) {
                     // Asignar atributos específicos para usuarios ROUSE
-                    List<UserAttribute> sexualRoles = userAttributeRepository.findByAttributeTypeAndActiveTrue("SEXUAL_ROLE");
+                    List<UserAttribute> sexualRoles = userAttributeService.findByAttributeTypeAndActiveTrue("SEXUAL_ROLE");
                     if (!sexualRoles.isEmpty()) {
                         user.setSexualRole(sexualRoles.get(random.nextInt(sexualRoles.size())));
                     }
-                    
-                    List<UserAttribute> relationshipTypes = userAttributeRepository.findByAttributeTypeAndActiveTrue("RELATIONSHIP_TYPE");
+
+                    List<UserAttribute> relationshipTypes = userAttributeService.findByAttributeTypeAndActiveTrue("RELATIONSHIP_TYPE");
                     if (!relationshipTypes.isEmpty()) {
                         user.setRelationshipType(relationshipTypes.get(random.nextInt(relationshipTypes.size())));
                     }
@@ -1267,26 +1269,26 @@ public class DataInitializer implements CommandLineRunner {
                 // Definir tags específicos por categoría
                 List<String> categorySpecificTags = new ArrayList<>();
                 UserCategoryInterest userCategory = user.getCategoryInterest();
-                
+
                 if (userCategory != null) {
                     if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT) {
                         // Tags específicos para SPIRIT
                         categorySpecificTags.addAll(Arrays.asList(
-                            "oración", "biblia", "iglesia", "adoración", "servicio", "misiones",
-                            "grupos pequeños", "retiros", "conferencias", "música cristiana",
-                            "familia", "valores", "fe", "esperanza", "caridad"
+                                "oración", "biblia", "iglesia", "adoración", "servicio", "misiones",
+                                "grupos pequeños", "retiros", "conferencias", "música cristiana",
+                                "familia", "valores", "fe", "esperanza", "caridad"
                         ));
                     } else if (userCategory.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE) {
                         // Tags específicos para ROUSE
                         categorySpecificTags.addAll(Arrays.asList(
-                            "diversidad", "inclusión", "arte", "cultura", "teatro", "drag",
-                            "pride", "activismo", "comunidad", "autenticidad", "expresión"
+                                "diversidad", "inclusión", "arte", "cultura", "teatro", "drag",
+                                "pride", "activismo", "comunidad", "autenticidad", "expresión"
                         ));
                     } else { // ESSENCE
                         // Tags más generales para ESSENCE
                         categorySpecificTags.addAll(Arrays.asList(
-                            "romántico", "aventurero", "deportes", "viajes", "música", "cine",
-                            "gastronomía", "fotografía", "naturaleza", "fitness", "lectura"
+                                "romántico", "aventurero", "deportes", "viajes", "música", "cine",
+                                "gastronomía", "fotografía", "naturaleza", "fitness", "lectura"
                         ));
                     }
                 }
@@ -1294,15 +1296,15 @@ public class DataInitializer implements CommandLineRunner {
                 // Primero, intentar asignar 2-3 tags específicos de la categoría
                 int categoryTagsToAdd = Math.min(2 + random.nextInt(2), categorySpecificTags.size());
                 Set<String> addedTagNames = new HashSet<>();
-                
+
                 for (int i = 0; i < categoryTagsToAdd; i++) {
                     String tagName = categorySpecificTags.get(random.nextInt(categorySpecificTags.size()));
                     if (!addedTagNames.contains(tagName)) {
                         UserTag tag = availableTags.stream()
-                            .filter(t -> t.getName().equalsIgnoreCase(tagName))
-                            .findFirst()
-                            .orElse(null);
-                        
+                                .filter(t -> t.getName().equalsIgnoreCase(tagName))
+                                .findFirst()
+                                .orElse(null);
+
                         if (tag != null) {
                             userTags.add(tag);
                             addedTagNames.add(tagName);
@@ -1392,14 +1394,14 @@ public class DataInitializer implements CommandLineRunner {
 
         // Datos específicos para cada categoría
         String[][] eventsData = getEventsDataForCategory(category);
-        
+
         // Estados para distribuir los eventos y hacer pruebas
         EventStatus[] statuses = {
-            EventStatus.PUBLICADO,   // Primer evento activo
-            EventStatus.EN_EDICION,  // Segundo evento en edición
-            EventStatus.PAUSADO,     // Tercer evento pausado
-            EventStatus.PUBLICADO,   // Cuarto evento activo
-            EventStatus.CANCELADO    // Quinto evento cancelado
+                EventStatus.PUBLICADO,   // Primer evento activo
+                EventStatus.EN_EDICION,  // Segundo evento en edición
+                EventStatus.PAUSADO,     // Tercer evento pausado
+                EventStatus.PUBLICADO,   // Cuarto evento activo
+                EventStatus.CANCELADO    // Quinto evento cancelado
         };
 
         for (int i = 0; i < eventsData.length; i++) {
@@ -1410,7 +1412,7 @@ public class DataInitializer implements CommandLineRunner {
                     // Seleccionar estado según el índice
                     EventStatus status = statuses[i % statuses.length];
                     boolean isActive = status == EventStatus.PUBLICADO;
-                    
+
                     Event event = Event.builder()
                             .title(eventData[0])
                             .description(eventData[1])

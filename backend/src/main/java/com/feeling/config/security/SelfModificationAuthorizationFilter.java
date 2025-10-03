@@ -1,10 +1,9 @@
 package com.feeling.config.security;
 
-import com.feeling.config.security.RouteSecurityConfig;
 import org.springframework.http.HttpMethod;
 
-import com.feeling.domain.services.auth.JwtService;
-import com.feeling.domain.services.user.UserAuthorizationService;
+import com.feeling.packages.auth.domain.services.JwtService;
+import com.feeling.packages.user.domain.services.UserAuthorizationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +19,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Filtro que verifica que los usuarios solo puedan modificar sus propios datos

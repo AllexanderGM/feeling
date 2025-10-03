@@ -3,10 +3,10 @@ package com.feeling.integration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.domain.dto.auth.UserProfileDataDTO;
-import com.feeling.domain.dto.auth.UserStatusDTO;
-import com.feeling.domain.dto.user.*;
+import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
+import com.feeling.packages.auth.domain.dto.UserStatusDTO;
 import com.feeling.domain.dto.views.UserViews;
+import com.feeling.packages.user.domain.dto.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +20,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests para verificar que las JsonViews controlan correctamente la serialización
  * Phase 2.3: JsonViews Testing
+ * @deprecated This test uses deprecated DTOs. JsonViews functionality is now in UserResponseDTO
  */
+@Deprecated(since = "1.8", forRemoval = true)
 @DisplayName("JsonViews Serialization Tests")
 public class JsonViewsTest {
 
@@ -34,7 +36,7 @@ public class JsonViewsTest {
 
         // Crear DTO de test con todos los campos
         UserStatusDTO status = new UserStatusDTO(
-                true, true, true, "APPROVED", "CLIENT", 10,
+                1L, true, true, true, "APPROVED", "CLIENT", 10,
                 LocalDateTime.now(), LocalDateTime.now()
         );
 

@@ -1,9 +1,8 @@
 package com.feeling.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.domain.dto.user.*;
-import com.feeling.domain.dto.auth.UserProfileDataDTO;
-import com.feeling.domain.dto.auth.UserStatusDTO;
+import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
+import com.feeling.packages.auth.domain.dto.UserStatusDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
@@ -15,7 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests básicos de compatibilidad para DTOs durante refactoring
  * Phase 1.2: Integration Tests Creation - Simplified Version
+ * @deprecated This test uses deprecated DTOs. Functionality is now in UserResponseDTO
  */
+@Deprecated(since = "1.8", forRemoval = true)
 @DisplayName("User DTO Compatibility Tests")
 public class UserDTOCompatibilityTest {
 
@@ -25,7 +26,7 @@ public class UserDTOCompatibilityTest {
     @DisplayName("Test UserStandardResponseDTO Serialization")
     void testUserStandardResponseDTOSerialization() throws Exception {
         UserStatusDTO status = new UserStatusDTO(
-                true, true, true, "APPROVED", "CLIENT", 10,
+                1L, true, true, true, "APPROVED", "CLIENT", 10,
                 LocalDateTime.now(), LocalDateTime.now()
         );
 
@@ -120,7 +121,7 @@ public class UserDTOCompatibilityTest {
     void testJSONFieldNamesConsistency() throws Exception {
         // Test que los nombres de campos JSON sean consistentes
         UserStatusDTO status = new UserStatusDTO(
-                true, true, true, "APPROVED", "CLIENT", 10,
+                2L, true, true, true, "APPROVED", "CLIENT", 10,
                 LocalDateTime.now(), LocalDateTime.now()
         );
 
