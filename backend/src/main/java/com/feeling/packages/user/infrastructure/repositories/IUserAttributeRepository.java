@@ -11,92 +11,126 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio para gestión de atributos de usuario (características físicas, preferencias, etc.).
+ * Proporciona queries optimizadas para búsquedas, validaciones y administración de atributos.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Repository
 public interface IUserAttributeRepository extends JpaRepository<UserAttribute, Long> {
 
     // ========================================
-    // BÚSQUEDAS BÁSICAS (LEGACY - MANTENER COMPATIBILIDAD)
+    // BÚSQUEDAS BÁSICAS
     // ========================================
-    Optional<UserAttribute> findByCodeAndAttributeType(String code, String attributeType);
 
-    List<UserAttribute> findByAttributeTypeAndActiveTrue(String attributeType);
-
-    List<UserAttribute> findByActiveTrue();
-
-    long countByAttributeType(String attributeType);
-
+    /**
+     * Busca todos los atributos activos de un tipo específico ordenados por displayOrder.
+     *
+     * @param attributeType Tipo de atributo
+     * @return Lista de atributos activos ordenados
+     */
     @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType = :attributeType AND ua.active = true ORDER BY ua.displayOrder ASC")
-    List<UserAttribute> findByAttributeTypeOrderedByDisplay(@Param("attributeType") String attributeType);
+    List<UserAttribute> findByAttributeTypeAndActiveTrueOrderByDisplayOrderAsc(@Param("attributeType") String attributeType);
 
-    // ========================================
-    // BÚSQUEDAS OPTIMIZADAS Y MEJORADAS
-    // ========================================
+    /**
+     * Busca todos los atributos activos ordenados por tipo y displayOrder.
+     *
+     * @return Lista de todos los atributos activos ordenados
+     */
+    @Query("SELECT ua FROM UserAttribute ua WHERE ua.active = true ORDER BY ua.attributeType ASC, ua.displayOrder ASC")
+    List<UserAttribute> findAllActiveOrdered();
 
-    // OPTIMIZACIÓN: Atributos con paginación para administración
+    /**
+     * Busca todos los atributos activos con paginación para panel de administración.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de atributos activos ordenados por tipo y displayOrder
+     */
     @Query("SELECT ua FROM UserAttribute ua WHERE ua.active = true ORDER BY ua.attributeType ASC, ua.displayOrder ASC")
     Page<UserAttribute> findActiveAttributesPaged(Pageable pageable);
 
-    // OPTIMIZACIÓN: Búsqueda eficiente por múltiples tipos
-    @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType IN :attributeTypes AND ua.active = true ORDER BY ua.attributeType ASC, ua.displayOrder ASC")
-    List<UserAttribute> findByAttributeTypesOptimized(@Param("attributeTypes") List<String> attributeTypes);
+    // ========================================
+    // BÚSQUEDAS OPTIMIZADAS
+    // ========================================
 
-    // OPTIMIZACIÓN: Atributos más populares por tipo
-    @Query(value = """
-             SELECT ua.* FROM user_attributes ua\s
-             LEFT JOIN (
-                 SELECT attribute_code, attribute_type, COUNT(*) as usage_count\s
-                 FROM users u\s
-                 WHERE (
-                     (u.physical_build = ua.code AND ua.attribute_type = 'PHYSICAL_BUILD') OR
-                     (u.eye_color = ua.code AND ua.attribute_type = 'EYE_COLOR') OR
-                     (u.hair_color = ua.code AND ua.attribute_type = 'HAIR_COLOR') OR
-                     (u.body_type = ua.code AND ua.attribute_type = 'BODY_TYPE')
-                 )
-                 GROUP BY attribute_code, attribute_type
-             ) usage ON ua.code = usage.attribute_code AND ua.attribute_type = usage.attribute_type
-             WHERE ua.attribute_type = :attributeType AND ua.active = true\s
-             ORDER BY COALESCE(usage.usage_count, 0) DESC, ua.display_order ASC
-            \s""", nativeQuery = true)
-    List<UserAttribute> findPopularAttributesByType(@Param("attributeType") String attributeType);
+    /**
+     * Busca un atributo activo por código y tipo.
+     *
+     * @param code          Código del atributo (case-sensitive)
+     * @param attributeType Tipo de atributo
+     * @return Optional con el atributo activo, vacío si no existe o está inactivo
+     */
+    @Query("SELECT ua FROM UserAttribute ua WHERE ua.code = :code AND ua.attributeType = :attributeType AND ua.active = true")
+    Optional<UserAttribute> findActiveByCodeAndType(@Param("code") String code, @Param("attributeType") String attributeType);
+
+    /**
+     * Busca todos los atributos activos de un tipo específico sin orden.
+     * Usado para validaciones internas donde el orden no es relevante.
+     *
+     * @param attributeType Tipo de atributo
+     * @return Lista de atributos activos sin orden específico
+     */
+    @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType = :attributeType AND ua.active = true")
+    List<UserAttribute> findActiveByAttributeType(@Param("attributeType") String attributeType);
+
+    /**
+     * Busca atributos activos de múltiples tipos en una sola query.
+     * Optimizado para reducir llamadas a BD cuando se necesitan varios tipos.
+     *
+     * @param attributeTypes Lista de tipos de atributos a buscar
+     * @return Lista de atributos activos ordenados por tipo y displayOrder
+     */
+    @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType IN :attributeTypes AND ua.active = true ORDER BY ua.attributeType ASC, ua.displayOrder ASC")
+    List<UserAttribute> findByAttributeTypeIn(@Param("attributeTypes") List<String> attributeTypes);
+
+    // ========================================
+    // VALIDACIONES
+    // ========================================
+
+    /**
+     * Verifica existencia de un atributo por código y tipo (activos e inactivos).
+     * Usado para validación de duplicados al crear/actualizar atributos.
+     * Método derivado de Spring Data JPA (no requiere @Query explícita).
+     *
+     * @param code          Código del atributo
+     * @param attributeType Tipo de atributo
+     * @return true si existe (activo o inactivo), false en caso contrario
+     */
+    boolean existsByCodeAndAttributeType(String code, String attributeType);
 
     // ========================================
     // CONSULTAS PARA MATCHING Y ESTADÍSTICAS
     // ========================================
 
-    // Obtener estadísticas de uso por tipo de atributo
-    @Query(value = """
-             SELECT ua.code, ua.name, ua.attribute_type,\s
-                    COUNT(CASE WHEN u.physical_build = ua.code AND ua.attribute_type = 'PHYSICAL_BUILD' THEN 1 END) +
-                    COUNT(CASE WHEN u.eye_color = ua.code AND ua.attribute_type = 'EYE_COLOR' THEN 1 END) +
-                    COUNT(CASE WHEN u.hair_color = ua.code AND ua.attribute_type = 'HAIR_COLOR' THEN 1 END) +
-                    COUNT(CASE WHEN u.body_type = ua.code AND ua.attribute_type = 'BODY_TYPE' THEN 1 END) as usage_count
-             FROM user_attributes ua\s
-             LEFT JOIN users u ON (
-                 (u.physical_build = ua.code AND ua.attribute_type = 'PHYSICAL_BUILD') OR
-                 (u.eye_color = ua.code AND ua.attribute_type = 'EYE_COLOR') OR
-                 (u.hair_color = ua.code AND ua.attribute_type = 'HAIR_COLOR') OR
-                 (u.body_type = ua.code AND ua.attribute_type = 'BODY_TYPE')
-             )
-             WHERE ua.active = true AND ua.attribute_type = :attributeType
-             GROUP BY ua.id, ua.code, ua.name, ua.attribute_type
-             ORDER BY usage_count DESC
-            \s""", nativeQuery = true)
-    List<Object[]> getAttributeUsageStatistics(@Param("attributeType") String attributeType);
-
-    // Buscar atributos similares para recomendaciones
-    @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType = :attributeType AND ua.active = true AND ua.code != :excludeCode ORDER BY ua.displayOrder ASC")
-    List<UserAttribute> findSimilarAttributes(@Param("attributeType") String attributeType, @Param("excludeCode") String excludeCode);
+    // Nota: Se eliminó findSimilarAttributes por no tener uso en el sistema.
 
     // ========================================
     // GESTIÓN ADMINISTRATIVA
     // ========================================
 
+    /**
+     * Obtiene lista de tipos de atributos activos disponibles.
+     *
+     * @return Lista de tipos de atributos únicos ordenados alfabéticamente
+     */
     @Query("SELECT DISTINCT ua.attributeType FROM UserAttribute ua WHERE ua.active = true ORDER BY ua.attributeType")
     List<String> findActiveAttributeTypes();
 
+    /**
+     * Cuenta atributos inactivos pendientes de aprobación.
+     *
+     * @return Cantidad de atributos inactivos
+     */
     @Query("SELECT COUNT(ua) FROM UserAttribute ua WHERE ua.active = false")
     long countInactiveAttributes();
 
+    /**
+     * Obtiene todos los atributos inactivos para revisión administrativa.
+     *
+     * @return Lista de atributos inactivos ordenados por tipo y displayOrder
+     */
     @Query("SELECT ua FROM UserAttribute ua WHERE ua.active = false ORDER BY ua.attributeType ASC, ua.displayOrder ASC")
     List<UserAttribute> findInactiveAttributes();
 }

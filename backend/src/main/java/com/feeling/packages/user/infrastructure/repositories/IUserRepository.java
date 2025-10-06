@@ -1,9 +1,6 @@
 package com.feeling.packages.user.infrastructure.repositories;
 
 import com.feeling.packages.user.infrastructure.entities.User;
-import com.feeling.packages.user.infrastructure.entities.UserCategoryInterest;
-import com.feeling.packages.user.infrastructure.entities.UserCategoryInterestList;
-import com.feeling.packages.user.infrastructure.entities.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,365 +13,384 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio para gestión de usuarios.
+ * Proporciona métodos para búsquedas optimizadas, filtrado avanzado y estadísticas.
+ *
+ * @author J. Alexander Gavilán M.
+ */
 @Repository
 public interface IUserRepository extends JpaRepository<User, Long> {
 
     // ========================================
     // BÚSQUEDAS BÁSICAS
     // ========================================
-    Optional<User> findByEmail(String email);
-
-    boolean existsByUserRole(UserRole userRole);
-
-    boolean existsByEmail(String email);
-
-    // ========================================
-    // BÚSQUEDAS POR ESTADO DE VERIFICACIÓN
-    // ========================================
-    List<User> findByVerifiedTrue();
-
-    List<User> findByVerifiedFalse();
-
-    List<User> findByProfileCompleteTrue();
-
-    List<User> findByProfileCompleteFalse();
-
-    // ========================================
-    // BÚSQUEDAS POR APROBACIÓN
-    // ========================================
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false ORDER BY u.createdAt DESC")
-    Page<User> findPendingApprovalUsers(Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false ORDER BY u.createdAt DESC")
-    Page<User> findIncompleteProfileUsers(Pageable pageable);
-
-    @Query("SELECT u FROM User u WHERE u.approvalStatus = 'APPROVED'")
-    List<User> findByApprovedTrue();
-
-    @Query("SELECT u FROM User u WHERE u.approvalStatus != 'APPROVED'")
-    List<User> findByApprovedFalse();
-
-    // ========================================
-    // BÚSQUEDAS POR CATEGORÍA DE INTERÉS
-    // ========================================
-    List<User> findByCategoryInterest(UserCategoryInterest categoryInterest);
-
-    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
-    List<User> findVerifiedUsersByCategory(@Param("categoryInterest") UserCategoryInterestList categoryInterest);
-
-    // Si tienes consultas que usen String en lugar del enum:
-    @Query("SELECT u FROM User u WHERE u.categoryInterest.categoryInterestEnum = :categoryInterest AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
-    List<User> findVerifiedUsersByCategoryString(@Param("categoryInterest") String categoryInterest);
-
-    // ========================================
-    // BÚSQUEDAS PARA MATCHING
-    // ========================================
-    @Query("SELECT u FROM User u WHERE " +
-            "u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND " +
-            "u.categoryInterest = :categoryInterest AND " +
-            "u.id != :excludeUserId AND " +
-            "(:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) AND " +
-            "(:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) AND " +
-            "(:city IS NULL OR u.city = :city)")
-    List<User> findPotentialMatches(
-            @Param("categoryInterest") UserCategoryInterest categoryInterest,
-            @Param("excludeUserId") Long excludeUserId,
-            @Param("minAge") Integer minAge,
-            @Param("maxAge") Integer maxAge,
-            @Param("city") String city
-    );
-
-    // OPTIMIZACIÓN: Consulta con FETCH JOIN para evitar N+1
-    @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.categoryInterest uci " +
-            "LEFT JOIN FETCH u.userRole ur " +
-            "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true " +
-            "AND u.profileComplete = true AND u.publicAccount = true AND u.searchVisibility = true " +
-            "AND u.accountDeactivated = false " +
-            "AND u.id != :excludeUserId " +
-            "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId) " +
-            "AND (:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) " +
-            "AND (:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) " +
-            "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
-            "ORDER BY " +
-            "CASE WHEN u.city = :city THEN 1 " +
-            "     WHEN u.department = :department THEN 2 " +
-            "     ELSE 3 END, " +
-            "u.popularityScore DESC")
-    Page<User> findCompatibleUsersOptimized(
-            @Param("excludeUserId") Long excludeUserId,
-            @Param("categoryInterestId") Long categoryInterestId,
-            @Param("minAge") Integer minAge,
-            @Param("maxAge") Integer maxAge,
-            @Param("city") String city,
-            @Param("department") String department,
-            Pageable pageable
-    );
-
-    // DEBUG: Versión simplificada para debug
-    @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.categoryInterest uci " +
-            "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true " +
-            "AND u.profileComplete = true AND u.publicAccount = true AND u.searchVisibility = true " +
-            "AND u.accountDeactivated = false " +
-            "AND u.id != :excludeUserId " +
-            "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId)")
-    List<User> findCompatibleUsersDebug(
-            @Param("excludeUserId") Long excludeUserId,
-            @Param("categoryInterestId") Long categoryInterestId
-    );
-
-    // Versión aleatoria para variedad (usar alternativamente)
-    @Query(value = "SELECT u.* FROM users u " +
-            "LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id " +
-            "WHERE u.verified = true AND u.approval_status = 'APPROVED' AND u.show_me_in_search = true " +
-            "AND u.profile_complete = true AND u.public_account = true AND u.search_visibility = true " +
-            "AND u.account_deactivated = false " +
-            "AND u.id != :excludeUserId " +
-            "AND (:categoryInterestId IS NULL OR u.category_interest_id = :categoryInterestId) " +
-            "AND (:minAge IS NULL OR YEAR(CURDATE()) - YEAR(u.date_of_birth) >= :minAge) " +
-            "AND (:maxAge IS NULL OR YEAR(CURDATE()) - YEAR(u.date_of_birth) <= :maxAge) " +
-            "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
-            "ORDER BY RAND() " +
-            "LIMIT :limit",
-            nativeQuery = true)
-    List<User> findCompatibleUsersRandomized(
-            @Param("excludeUserId") Long excludeUserId,
-            @Param("categoryInterestId") Long categoryInterestId,
-            @Param("minAge") Integer minAge,
-            @Param("maxAge") Integer maxAge,
-            @Param("city") String city,
-            @Param("department") String department,
-            @Param("limit") int limit
-    );
-
-    // OPTIMIZACIÓN: Búsqueda con fetch join
-    @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.userRole ur " +
-            "LEFT JOIN FETCH u.categoryInterest uci " +
-            "WHERE " +
-            "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    Page<User> findBySearchTermOptimized(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    // OPTIMIZACIÓN: Cargar usuario con todas las relaciones necesarias
-    @Query("SELECT u FROM User u " +
-            "LEFT JOIN FETCH u.userRole " +
-            "LEFT JOIN FETCH u.categoryInterest " +
-            "LEFT JOIN FETCH u.authTokens " +
-            "WHERE u.email = :email")
-    Optional<User> findByEmailWithRelations(@Param("email") String email);
-
-    // OPTIMIZACIÓN: Usuarios con métricas pre-cargadas
-    @Query("SELECT u FROM User u " +
-            "LEFT JOIN FETCH u.userRole " +
-            "WHERE u.verified = true " +
-            "ORDER BY u.popularityScore DESC")
-    Page<User> findMostPopularUsersOptimized(Pageable pageable);
-
-    // ========================================
-    // BÚSQUEDAS POR UBICACIÓN
-    // ========================================
-    List<User> findByCity(String city);
-
-    List<User> findByDepartment(String department);
-
-    List<User> findByCountry(String country);
-
-    @Query("SELECT u FROM User u WHERE u.city = :city AND u.verified = true AND u.approvalStatus = 'APPROVED' AND u.showMeInSearch = true AND u.publicAccount = true AND u.searchVisibility = true AND u.accountDeactivated = false")
-    List<User> findVerifiedUsersByCity(@Param("city") String city);
-
-    // ========================================
-    // BÚSQUEDAS POR ACTIVIDAD
-    // ========================================
-    @Query("SELECT u FROM User u WHERE u.lastActive >= :since ORDER BY u.lastActive DESC")
-    List<User> findActiveUsersSince(@Param("since") LocalDateTime since);
-
-    @Query("SELECT u FROM User u WHERE u.verified = true ORDER BY u.lastActive DESC")
-    Page<User> findRecentlyActiveUsers(Pageable pageable);
-
-    // ========================================
-    // BÚSQUEDAS POR POPULARIDAD
-    // ========================================
-
-    // ========================================
-    // ESTADÍSTICAS
-    // ========================================
 
     /**
-     * Cuenta usuarios por categoría de interés
+     * Busca un usuario por email.
      *
-     * @param categoryInterest Categoría de interés
-     * @return Número de usuarios en esa categoría
+     * @param email Email del usuario (único en el sistema)
+     * @return Optional con el usuario si existe, Optional.empty() si no
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.categoryInterest = :categoryInterest")
-    Long countByCategoryInterest(@Param("categoryInterest") UserCategoryInterest categoryInterest);
+    Optional<User> findByEmail(String email);
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
-    long countNewUsersSince(@Param("since") LocalDateTime since);
+    /**
+     * Busca un usuario por ID con sus tags pre-cargados.
+     * Incluye FETCH JOIN para evitar N+1 queries.
+     *
+     * @param userId ID del usuario
+     * @return Optional con el usuario y sus tags si existe, Optional.empty() si no
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.id = :userId")
+    Optional<User> findByIdWithTags(@Param("userId") Long userId);
+
+    /**
+     * Verifica si existe un usuario con el email especificado.
+     *
+     * @param email Email a verificar
+     * @return true si existe al menos un usuario con ese email, false si no
+     */
+    boolean existsByEmail(String email);
+
+    /**
+     * Verifica si un email está disponible para registro.
+     * Es equivalente a !existsByEmail pero con semántica positiva.
+     *
+     * @param email Email a verificar
+     * @return true si el email está disponible (no existe), false si ya está registrado
+     */
+    default boolean isEmailAvailable(String email) {
+        return !existsByEmail(email);
+    }
 
     // ========================================
     // BÚSQUEDAS ADMINISTRATIVAS
     // ========================================
-    @Query("SELECT u FROM User u WHERE u.userRole.userRoleList = 'ADMIN'")
-    List<User> findAdminUsers();
 
-    @Query("SELECT u FROM User u WHERE " +
-            "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    Page<User> searchUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT u FROM User u WHERE " +
-            "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-            "ORDER BY u.createdAt DESC")
+    /**
+     * Búsqueda general de usuarios por término en múltiples campos.
+     * Busca en: nombre, apellido, email, ubicación (país, ciudad, localidad), categoría de interés y rol.
+     * Incluye FETCH JOIN para evitar N+1 queries en role, categoryInterest y tags.
+     * Búsqueda case-insensitive usando LOWER() en todos los campos de texto.
+     *
+     * @param searchTerm Término de búsqueda (case-insensitive, se aplica LIKE con comodines)
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios que coinciden con el término, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u " +
+        "LEFT JOIN FETCH u.userRole " +
+        "LEFT JOIN FETCH u.categoryInterest " +
+        "LEFT JOIN FETCH u.tags " +
+        "WHERE " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+        "ORDER BY u.createdAt DESC")
     Page<User> findBySearchTerm(@Param("searchTerm") String searchTerm, Pageable pageable);
 
-    // ========================================
-    // MÉTODOS PARA ANALYTICS BÁSICOS
-    // ========================================
+    /**
+     * Busca usuarios pendientes de aprobación administrativa con búsqueda opcional.
+     * Filtra por: verified = true, profileComplete = true, approvalStatus = PENDING, accountDeactivated = false.
+     * Solo incluye usuarios que completaron su perfil y esperan revisión del administrador.
+     * Incluye FETCH JOIN para tags.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null), busca en nombre, apellido, email y categoría
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios pendientes de aprobación, ordenados por fecha de creación (más antiguos primero = FIFO)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findPendingApprovalUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
 
+    /**
+     * Busca usuarios verificados con perfil incompleto con búsqueda opcional.
+     * Filtra por: verified = true, profileComplete = false, accountDeactivated = false.
+     * Útil para identificar usuarios que verificaron email pero no completaron su perfil.
+     * Incluye FETCH JOIN para tags.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null), busca en nombre, apellido y email
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios con perfil incompleto, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findIncompleteProfileUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    /**
+     * Busca usuarios activos en la plataforma con búsqueda opcional.
+     * Filtra por: verified = true, approvalStatus = APPROVED, profileComplete = true, accountDeactivated = false.
+     * Incluye FETCH JOIN para tags.
+     * Busca en todos los campos relevantes: identificación, ubicación, categoría y rol.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null)
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios activos, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findActiveUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    /**
+     * Busca usuarios no verificados con búsqueda opcional.
+     * Filtra por: verified = false, accountDeactivated = false.
+     * Útil para identificar usuarios que no han verificado su email.
+     * Incluye FETCH JOIN para tags.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null), busca en nombre, apellido y email
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios no verificados, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.verified = false AND u.accountDeactivated = false " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findUnverifiedUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    /**
+     * Busca usuarios rechazados con búsqueda opcional.
+     * Filtra por: verified = true, approvalStatus = REJECTED, accountDeactivated = false.
+     * Útil para revisión administrativa de usuarios rechazados.
+     * Incluye FETCH JOIN para tags.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null), busca en nombre, apellido y email
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios rechazados, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findNonApprovedUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    /**
+     * Busca usuarios desactivados con búsqueda opcional.
+     * Filtra por: accountDeactivated = true.
+     * Incluye FETCH JOIN para tags.
+     * Busca en todos los campos relevantes: identificación, ubicación, categoría y rol.
+     *
+     * @param searchTerm Término de búsqueda opcional (puede ser null)
+     * @param pageable   Configuración de paginación
+     * @return Página de usuarios desactivados, ordenados por fecha de creación (más recientes primero)
+     */
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
+        "WHERE u.accountDeactivated = true " +
+        "AND (:searchTerm IS NULL OR " +
+        "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY u.createdAt DESC")
+    Page<User> findDeactivatedUsers(@Param("searchTerm") String searchTerm, Pageable pageable);
+
+    // ========================================
+    // ESTADÍSTICAS - CONTADORES
+    // ========================================
+    // Nota: Se eliminaron countByCategoryInterest, countByApprovedTrue y countByApprovedFalse
+    // por no tener uso.
+
+    /**
+     * Cuenta nuevos usuarios registrados desde una fecha específica.
+     *
+     * @param since Fecha desde la cual contar
+     * @return Número de usuarios creados desde esa fecha
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
+    long countNewUsersSince(@Param("since") LocalDateTime since);
+
+    /**
+     * Cuenta usuarios verificados.
+     *
+     * @return Número de usuarios con verified = true
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true")
     long countByVerifiedTrue();
 
+    /**
+     * Cuenta usuarios no verificados (excluyendo desactivados).
+     *
+     * @return Número de usuarios con verified = false y accountDeactivated = false
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = false AND u.accountDeactivated = false")
     long countByVerifiedFalse();
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus = 'APPROVED'")
-    long countByApprovedTrue();
 
-    @Query("SELECT COUNT(u) FROM User u WHERE u.approvalStatus != 'APPROVED'")
-    long countByApprovedFalse();
-
+    /**
+     * Cuenta usuarios pendientes de aprobación.
+     * Solo incluye usuarios verificados con perfil completo.
+     *
+     * @return Número de usuarios en estado PENDING
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false")
     long countByPendingApproval();
 
+    /**
+     * Cuenta usuarios rechazados.
+     * Solo incluye usuarios verificados no desactivados.
+     *
+     * @return Número de usuarios con approvalStatus = 'REJECTED'
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false")
     long countByRejected();
 
+    /**
+     * Cuenta usuarios con perfil completo.
+     *
+     * @return Número de usuarios con profileComplete = true
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.profileComplete = true")
     long countByProfileCompleteTrue();
 
+    /**
+     * Cuenta usuarios verificados con perfil incompleto.
+     *
+     * @return Número de usuarios verificados con profileComplete = false
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false")
     long countByProfileCompleteFalse();
 
+    /**
+     * Cuenta usuarios activos desde una fecha específica.
+     *
+     * @param since Fecha desde la cual contar actividad
+     * @return Número de usuarios con lastActive >= since
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.lastActive >= :since")
     long countActiveUsersSince(@Param("since") LocalDateTime since);
 
+    /**
+     * Cuenta usuarios activos en la plataforma.
+     * Solo incluye verificados, aprobados, con perfil completo y no desactivados.
+     *
+     * @return Número de usuarios activos
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false")
     long countActiveUsers();
 
+    /**
+     * Cuenta usuarios desactivados.
+     *
+     * @return Número de usuarios con accountDeactivated = true
+     */
     @Query("SELECT COUNT(u) FROM User u WHERE u.accountDeactivated = true")
     long countDeactivatedUsers();
 
-    @Query("SELECT u.country, COUNT(u) FROM User u WHERE u.country IS NOT NULL GROUP BY u.country ORDER BY COUNT(u) DESC")
-    List<Object[]> getUserCountByCountry();
-
-    @Query("SELECT u.city, COUNT(u) FROM User u WHERE u.city IS NOT NULL GROUP BY u.city ORDER BY COUNT(u) DESC")
-    List<Object[]> getUserCountByCity();
-
-    // ========================================
-    // CONSULTAS PARA ADMINISTRACIÓN DE USUARIOS
-    // ========================================
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false ORDER BY u.createdAt DESC")
-    Page<User> findActiveUsers(Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = false AND u.accountDeactivated = false ORDER BY u.createdAt DESC")
-    Page<User> findUnverifiedUsers(Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false ORDER BY u.createdAt DESC")
-    Page<User> findNonApprovedUsers(Pageable pageable);
-
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.accountDeactivated = true ORDER BY u.createdAt DESC")
-    Page<User> findDeactivatedUsers(Pageable pageable);
+    /**
+     * Cuenta usuarios que contienen un dominio específico en su email.
+     * Útil para contar usuarios de prueba con @test-feeling.com.
+     *
+     * @param emailDomain Dominio a buscar en emails
+     * @return Número de usuarios con ese dominio
+     */
+    long countByEmailContaining(String emailDomain);
 
     // ========================================
-    // CONSULTAS PARA ADMINISTRACIÓN DE USUARIOS CON BÚSQUEDA
-    // ========================================
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findActiveUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findPendingApprovalUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = false AND u.accountDeactivated = false AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findUnverifiedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findNonApprovedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.accountDeactivated = true AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.country) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.city) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.locality) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.categoryInterest.categoryInterestEnum) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.userRole.userRoleList) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findDeactivatedUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.verified = true AND u.profileComplete = false AND u.accountDeactivated = false AND " +
-            "(LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY u.createdAt DESC")
-    Page<User> findIncompleteProfileUsersWithSearch(@Param("searchTerm") String searchTerm, Pageable pageable);
-
-    // ========================================
-    // CONSULTA CON TAGS PARA APROBACIÓN
-    // ========================================
-    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags WHERE u.id = :userId")
-    Optional<User> findByIdWithTags(@Param("userId") Long userId);
-
-    // ========================================
-    // ACTUALIZACIONES ESPECÍFICAS
-    // ========================================
-    @Modifying
-    @Query("UPDATE User u SET u.lastActive = :lastActive, u.updatedAt = :updatedAt WHERE u.id = :userId")
-    int updateLastActive(@Param("userId") Long userId, @Param("lastActive") LocalDateTime lastActive, @Param("updatedAt") LocalDateTime updatedAt);
-
-    // ========================================
-    // MÉTODOS PARA USUARIOS DE PRUEBA
+    // ESTADÍSTICAS - AGREGADOS
     // ========================================
 
     /**
-     * Cuenta usuarios que contienen el dominio especificado en su email
-     * Útil para contar usuarios de prueba con @test-feeling.com
+     * Obtiene distribución de usuarios por país.
+     * Retorna pares [país, cantidad] ordenados por cantidad (descendente).
+     *
+     * @return Lista de Object[] donde [0] = país (String), [1] = cantidad (Long)
      */
-    long countByEmailContaining(String emailDomain);
+    @Query("SELECT u.country, COUNT(u) FROM User u WHERE u.country IS NOT NULL GROUP BY u.country ORDER BY COUNT(u) DESC")
+    List<Object[]> getUserCountByCountry();
+
+    /**
+     * Obtiene distribución de usuarios por ciudad.
+     * Retorna pares [ciudad, cantidad] ordenados por cantidad (descendente).
+     *
+     * @return Lista de Object[] donde [0] = ciudad (String), [1] = cantidad (Long)
+     */
+    @Query("SELECT u.city, COUNT(u) FROM User u WHERE u.city IS NOT NULL GROUP BY u.city ORDER BY COUNT(u) DESC")
+    List<Object[]> getUserCountByCity();
+
+    /**
+     * Cuenta cuántos usuarios tienen al menos un tag asignado.
+     * Métrica útil para medir adopción del sistema de tags.
+     * Movido desde IUserTagRepository para cumplir con SRP.
+     *
+     * @return Número de usuarios únicos que tienen al menos un tag
+     */
+    @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE SIZE(u.tags) > 0")
+    long countUniqueUsersWithTags();
+
+    /**
+     * Calcula el promedio de tags por usuario.
+     * Solo considera usuarios que tienen al menos un tag.
+     * Métrica útil para medir engagement con el sistema de tags.
+     * Movido desde IUserTagRepository para cumplir con SRP.
+     *
+     * @return Promedio de tags por usuario, null si ningún usuario tiene tags
+     */
+    @Query("SELECT AVG(CAST(SIZE(u.tags) AS double)) FROM User u WHERE SIZE(u.tags) > 0")
+    Double getAverageTagsPerUser();
+
+    // ========================================
+    // ACTUALIZACIONES
+    // ========================================
+
+    /**
+     * Actualiza la última fecha de actividad de un usuario.
+     * También actualiza el timestamp de updatedAt automáticamente.
+     * <p>
+     * IMPORTANTE: Este método DEBE ejecutarse dentro de una transacción activa.
+     * El servicio que invoque este método debe estar anotado con @Transactional,
+     * de lo contrario la actualización no se persistirá en la base de datos.
+     * <p>
+     * Uso típico:
+     * <pre>
+     * {@code
+     * @Transactional
+     * public void updateUserActivity(Long userId) {
+     *     LocalDateTime now = LocalDateTime.now();
+     *     userRepository.updateLastActive(userId, now, now);
+     * }
+     * }
+     * </pre>
+     *
+     * @param userId     ID del usuario a actualizar
+     * @param lastActive Nueva fecha de última actividad
+     * @param updatedAt  Nueva fecha de actualización
+     * @return Número de registros actualizados (0 si el usuario no existe, 1 si se actualizó)
+     */
+    @Modifying
+    @Query("UPDATE User u SET u.lastActive = :lastActive, u.updatedAt = :updatedAt WHERE u.id = :userId")
+    int updateLastActive(@Param("userId") Long userId, @Param("lastActive") LocalDateTime lastActive, @Param("updatedAt") LocalDateTime updatedAt);
 }

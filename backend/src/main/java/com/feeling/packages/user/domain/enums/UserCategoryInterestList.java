@@ -1,4 +1,4 @@
-package com.feeling.packages.user.infrastructure.entities;
+package com.feeling.packages.user.domain.enums;
 
 import java.util.Arrays;
 
@@ -29,9 +29,9 @@ public enum UserCategoryInterestList {
      */
     public static UserCategoryInterestList lookup(String userCategoryInterest) {
         return Arrays.stream(values())
-                .filter(r -> r.name().equalsIgnoreCase(userCategoryInterest))
-                .findFirst()
-                .orElse(ESSENCE);
+            .filter(r -> r.name().equalsIgnoreCase(userCategoryInterest))
+            .findFirst()
+            .orElse(ESSENCE);
     }
 
     /**

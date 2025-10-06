@@ -49,7 +49,7 @@ public record UserProfileDataDTO(
         @JsonView({UserViews.Public.class, UserViews.Standard.class, UserViews.Internal.class, UserViews.Admin.class, UserViews.Basic.class, UserViews.Suggestions.class})
         List<String> images,
 
-        @JsonView({UserViews.Public.class, UserViews.Standard.class, UserViews.Internal.class, UserViews.Admin.class, UserViews.Basic.class, UserViews.Suggestions.class})
+        @JsonView({UserViews.Matched.class, UserViews.Internal.class, UserViews.Admin.class})
         String mainImage,
 
         @JsonView({UserViews.Public.class, UserViews.Standard.class, UserViews.Internal.class, UserViews.Admin.class, UserViews.Suggestions.class})

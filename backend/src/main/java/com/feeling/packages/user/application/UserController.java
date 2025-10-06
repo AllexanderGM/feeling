@@ -1,14 +1,13 @@
 package com.feeling.packages.user.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.auth.domain.services.JwtService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserCompatibilityDTO;
 import com.feeling.packages.user.domain.dto.UserPartialUpdateDTO;
 import com.feeling.packages.user.domain.dto.UserResponseDTO;
-import com.feeling.packages.user.domain.dto.UserResponseLevel;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.domain.services.UserAttributeService;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.domain.services.UserTagService;
@@ -46,6 +45,7 @@ public class UserController {
     private final UserAttributeService userAttributeService;
     private final Validator validator;
     private final JwtService jwtService;
+    private final ObjectMapper objectMapper;
 
     // ========================================
     // CLIENT ENDPOINTS (AUTHENTICATED)
@@ -126,7 +126,7 @@ public class UserController {
         Authentication authentication) {
         try {
             // Validar nivel de inclusión
-            if (!UserResponseLevel.isValidLevel(includeLevel)) {
+            if (UserResponseLevel.isValidLevel(includeLevel)) {
                 return ResponseEntity.badRequest().build();
             }
 
@@ -198,12 +198,13 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get user suggestions",
         description = "Get user suggestions for matching")
+    @com.fasterxml.jackson.annotation.JsonView(com.feeling.domain.dto.views.UserViews.Suggestions.class)
     public ResponseEntity<Page<UserResponseDTO>> getUserSuggestions(
         @PageableDefault(size = 10) Pageable pageable,
         Authentication authentication) {
         try {
             String currentUserEmail = authentication.getName();
-            Page<UserResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, "standard", pageable);
+            Page<UserResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, "public", pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
             log.error("Error obteniendo sugerencias para el usuario: {}", authentication.getName(), e);
@@ -262,7 +263,7 @@ public class UserController {
         Authentication authentication) {
         try {
             // Validar nivel de inclusión
-            if (!UserResponseLevel.isValidLevel(includeLevel)) {
+            if (UserResponseLevel.isValidLevel(includeLevel)) {
                 return ResponseEntity.badRequest().build();
             }
 
@@ -300,6 +301,16 @@ public class UserController {
             // Actualizar datos si hay cambios
             if (profileRequest.hasAnyUpdate()) {
                 updatedUser = userService.update(userEmail, profileRequest);
+            }
+
+            // Procesar tags si se proporcionan
+            if (profileRequest.tags().isPresent() && profileRequest.tags().get() != null) {
+                List<String> tagNames = profileRequest.tags().get();
+                if (!tagNames.isEmpty()) {
+                    userTagService.addTagsToUser(userEmail, tagNames);
+                    // Recargar usuario actualizado con los tags usando el método get que retorna DTO
+                    updatedUser = userService.get(userEmail);
+                }
             }
 
             // Subir imágenes si se proporcionan
@@ -805,11 +816,9 @@ public class UserController {
     // ========================================
 
     /**
-     * Parsea JSON a UserPartialUpdateDTO
+     * Parsea JSON a UserPartialUpdateDTO usando el ObjectMapper configurado
      */
     private UserPartialUpdateDTO parseProfileData(String profileDataJson) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
         return objectMapper.readValue(profileDataJson, UserPartialUpdateDTO.class);
     }
 
@@ -827,5 +836,108 @@ public class UserController {
             sb.append(violation.getMessage()).append("; ");
         }
         return sb.toString();
+    }
+
+    // ========================================
+    // ADMINISTRACIÓN DE ATRIBUTOS
+    // ========================================
+
+    /**
+     * Obtiene todos los atributos activos con paginación para panel de administración.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de atributos ordenados por tipo y displayOrder
+     */
+    @GetMapping("/attributes/admin")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Get all attributes paginated", description = "Get all active attributes with pagination for admin panel")
+    public ResponseEntity<Page<com.feeling.packages.user.domain.dto.UserAttributeDTO>> getAllAttributesPaged(
+        @PageableDefault(size = 20, sort = {"attributeType", "displayOrder"}) Pageable pageable) {
+        try {
+            Page<com.feeling.packages.user.domain.dto.UserAttributeDTO> attributes =
+                userAttributeService.getActiveAttributesPaged(pageable);
+            return ResponseEntity.ok(attributes);
+        } catch (Exception e) {
+            log.error("Error obteniendo atributos paginados", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Obtiene atributos activos de múltiples tipos en una sola consulta.
+     * Útil para formularios que necesitan varios tipos de atributos a la vez.
+     *
+     * @param types Lista de tipos separados por coma (ej: GENDER,EYE_COLOR,HAIR_COLOR)
+     * @return Map con atributos agrupados por tipo
+     */
+    @GetMapping("/attributes/multiple")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Get attributes by multiple types", description = "Get active attributes of multiple types in a single query")
+    public ResponseEntity<java.util.Map<String, List<com.feeling.packages.user.domain.dto.UserAttributeDTO>>> getAttributesByTypes(
+        @Parameter(description = "Attribute types separated by comma") @RequestParam String types) {
+        try {
+            List<String> typeList = List.of(types.split(","));
+            java.util.Map<String, List<com.feeling.packages.user.domain.dto.UserAttributeDTO>> attributes =
+                userAttributeService.getAttributesByTypes(typeList);
+            return ResponseEntity.ok(attributes);
+        } catch (Exception e) {
+            log.error("Error obteniendo atributos por tipos: {}", types, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Obtiene lista de tipos de atributos activos disponibles.
+     *
+     * @return Lista de tipos de atributos únicos
+     */
+    @GetMapping("/attributes/types")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Get active attribute types", description = "Get list of active attribute types available")
+    public ResponseEntity<List<String>> getActiveAttributeTypes() {
+        try {
+            List<String> types = userAttributeService.getActiveAttributeTypes();
+            return ResponseEntity.ok(types);
+        } catch (Exception e) {
+            log.error("Error obteniendo tipos de atributos activos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Obtiene cantidad de atributos inactivos pendientes de aprobación.
+     *
+     * @return Cantidad de atributos inactivos
+     */
+    @GetMapping("/attributes/inactive/count")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Count inactive attributes", description = "Get count of inactive attributes pending approval")
+    public ResponseEntity<java.util.Map<String, Long>> countInactiveAttributes() {
+        try {
+            long count = userAttributeService.countInactiveAttributes();
+            return ResponseEntity.ok(java.util.Map.of("count", count));
+        } catch (Exception e) {
+            log.error("Error contando atributos inactivos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Obtiene todos los atributos inactivos para revisión administrativa.
+     *
+     * @return Lista de atributos inactivos
+     */
+    @GetMapping("/attributes/inactive")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Get inactive attributes", description = "Get all inactive attributes for admin review")
+    public ResponseEntity<List<com.feeling.packages.user.domain.dto.UserAttributeDTO>> getInactiveAttributes() {
+        try {
+            List<com.feeling.packages.user.domain.dto.UserAttributeDTO> attributes =
+                userAttributeService.getInactiveAttributes();
+            return ResponseEntity.ok(attributes);
+        } catch (Exception e) {
+            log.error("Error obteniendo atributos inactivos", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

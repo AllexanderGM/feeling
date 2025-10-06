@@ -2,8 +2,8 @@ package com.feeling.packages.user.domain.services;
 
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
+import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterest;
-import com.feeling.packages.user.infrastructure.entities.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class UserCategoryInterestService {
      */
     @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllActiveCategories() {
-        return repository.findByIsActiveTrueOrderByDisplayOrder()
+        return repository.findByActiveTrueOrderByDisplayOrder()
             .stream()
             .map(this::mapToDTO)
             .toList();

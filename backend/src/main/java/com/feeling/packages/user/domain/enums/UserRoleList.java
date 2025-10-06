@@ -1,4 +1,7 @@
-package com.feeling.packages.user.infrastructure.entities;
+package com.feeling.packages.user.domain.enums;
+
+import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.entities.UserRole;
 
 import java.util.Arrays;
 
@@ -17,9 +20,9 @@ import java.util.Arrays;
  *
  * @author J. Alexander Gavilán M.
  * @version 1.0
- * @since 1.0
  * @see UserRole
  * @see User
+ * @since 1.0
  */
 public enum UserRoleList {
     /**
@@ -69,8 +72,8 @@ public enum UserRoleList {
      */
     public static UserRoleList lookup(String rol) {
         return Arrays.stream(values())
-                .filter(r -> r.name().equalsIgnoreCase(rol))
-                .findFirst()
-                .orElse(CLIENT);
+            .filter(r -> r.name().equalsIgnoreCase(rol))
+            .findFirst()
+            .orElse(CLIENT);
     }
 }

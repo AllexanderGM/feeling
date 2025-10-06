@@ -34,10 +34,12 @@ public class UserAttributeService {
     );
 
     /**
-     * Obtiene todos los atributos agrupados por tipo
+     * Obtiene todos los atributos agrupados por tipo.
+     *
+     * @return Map con atributos agrupados por tipo y ordenados
      */
     public Map<String, List<UserAttributeDTO>> getAllAttributesGrouped() {
-        List<UserAttribute> attributes = userAttributeRepository.findByActiveTrue();
+        List<UserAttribute> attributes = userAttributeRepository.findAllActiveOrdered();
 
         return attributes.stream()
             .map(UserAttributeDTO::new)
@@ -48,7 +50,7 @@ public class UserAttributeService {
      * Obtiene atributos de un tipo específico
      */
     public List<UserAttributeDTO> getAttributesByType(String attributeType) {
-        return userAttributeRepository.findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
+        return userAttributeRepository.findByAttributeTypeAndActiveTrueOrderByDisplayOrderAsc(attributeType.toUpperCase())
             .stream()
             .map(UserAttributeDTO::new)
             .collect(Collectors.toList());
@@ -147,17 +149,23 @@ public class UserAttributeService {
     }
 
     /**
-     * Valida que no existan duplicados
+     * Valida que no existan duplicados de código o nombre para un tipo de atributo.
+     * Verifica tanto atributos activos como inactivos.
+     *
+     * @param attributeType Tipo de atributo
+     * @param code          Código del atributo
+     * @param name          Nombre del atributo
+     * @throws RuntimeException si existe un duplicado
      */
     private void validateNoDuplicates(String attributeType, String code, String name) {
-        // Verificar código duplicado
-        if (userAttributeRepository.findByCodeAndAttributeType(code, attributeType.toUpperCase()).isPresent()) {
+        // Verificar código duplicado (activos e inactivos)
+        if (userAttributeRepository.existsByCodeAndAttributeType(code, attributeType.toUpperCase())) {
             throw new RuntimeException(String.format("Ya existe un atributo con el código '%s' para el tipo '%s'", code, attributeType));
         }
 
         // Verificar nombre duplicado (case-insensitive)
         List<UserAttribute> existingWithSameName = userAttributeRepository
-            .findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
+            .findActiveByAttributeType(attributeType.toUpperCase())
             .stream()
             .filter(attr -> attr.getName().trim().equalsIgnoreCase(name.trim()))
             .toList();
@@ -191,10 +199,13 @@ public class UserAttributeService {
     }
 
     /**
-     * Obtiene el siguiente displayOrder para un tipo de atributo
+     * Obtiene el siguiente displayOrder para un tipo de atributo.
+     *
+     * @param attributeType Tipo de atributo
+     * @return Siguiente número de orden disponible
      */
     private Integer getNextDisplayOrder(String attributeType) {
-        return userAttributeRepository.findByAttributeTypeOrderedByDisplay(attributeType.toUpperCase())
+        return userAttributeRepository.findActiveByAttributeType(attributeType.toUpperCase())
             .stream()
             .mapToInt(UserAttribute::getDisplayOrder)
             .max()
@@ -280,7 +291,37 @@ public class UserAttributeService {
     }
 
     /**
-     * Obtiene estadísticas completas de los atributos de usuario
+     * Obtiene todos los atributos activos con paginación para panel de administración.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de UserAttributeDTO ordenados por tipo y displayOrder
+     */
+    public Page<UserAttributeDTO> getActiveAttributesPaged(Pageable pageable) {
+        return userAttributeRepository.findActiveAttributesPaged(pageable)
+            .map(UserAttributeDTO::new);
+    }
+
+    /**
+     * Obtiene atributos activos de múltiples tipos en una sola consulta.
+     *
+     * @param attributeTypes Lista de tipos de atributos
+     * @return Map con atributos agrupados por tipo
+     */
+    public Map<String, List<UserAttributeDTO>> getAttributesByTypes(List<String> attributeTypes) {
+        List<String> normalizedTypes = attributeTypes.stream()
+            .map(String::toUpperCase)
+            .toList();
+
+        return userAttributeRepository.findByAttributeTypeIn(normalizedTypes)
+            .stream()
+            .map(UserAttributeDTO::new)
+            .collect(Collectors.groupingBy(UserAttributeDTO::attributeType));
+    }
+
+    /**
+     * Obtiene estadísticas completas de los atributos de usuario.
+     *
+     * @return Map con estadísticas de atributos
      */
     public Map<String, Object> getAttributeStatistics() {
         try {
@@ -340,34 +381,64 @@ public class UserAttributeService {
     }
 
     /**
-     * Busca un atributo por código y tipo
+     * Busca un atributo activo por código y tipo.
      *
      * @param code          Código del atributo
      * @param attributeType Tipo de atributo
-     * @return Optional con el UserAttribute si existe
+     * @return Optional con el UserAttribute activo, vacío si no existe o está inactivo
      */
     public java.util.Optional<UserAttribute> findByCodeAndAttributeType(String code, String attributeType) {
-        return userAttributeRepository.findByCodeAndAttributeType(code, attributeType);
+        return userAttributeRepository.findActiveByCodeAndType(code, attributeType);
     }
 
     /**
-     * Busca todos los atributos activos de un tipo específico
+     * Busca todos los atributos activos de un tipo específico ordenados por displayOrder.
      *
      * @param attributeType Tipo de atributo
-     * @return Lista de UserAttribute activos
+     * @return Lista de UserAttribute activos ordenados
      */
     public List<UserAttribute> findByAttributeTypeAndActiveTrue(String attributeType) {
-        return userAttributeRepository.findByAttributeTypeAndActiveTrue(attributeType);
+        return userAttributeRepository.findByAttributeTypeAndActiveTrueOrderByDisplayOrderAsc(attributeType.toUpperCase());
     }
 
     /**
-     * Guarda un atributo en el repositorio
-     * Usado principalmente por DataInitializer
+     * Guarda un atributo en el repositorio.
+     * Usado principalmente por DataInitializer.
      *
      * @param attribute Atributo a guardar
      * @return UserAttribute guardado
      */
     public UserAttribute save(UserAttribute attribute) {
         return userAttributeRepository.save(attribute);
+    }
+
+    /**
+     * Obtiene lista de tipos de atributos activos disponibles.
+     *
+     * @return Lista de tipos de atributos únicos
+     */
+    public List<String> getActiveAttributeTypes() {
+        return userAttributeRepository.findActiveAttributeTypes();
+    }
+
+    /**
+     * Cuenta atributos inactivos pendientes de aprobación.
+     *
+     * @return Cantidad de atributos inactivos
+     */
+    public long countInactiveAttributes() {
+        return userAttributeRepository.countInactiveAttributes();
+    }
+
+    /**
+     * Obtiene todos los atributos inactivos para revisión administrativa.
+     *
+     * @return Lista de UserAttributeDTO inactivos
+     */
+    public List<UserAttributeDTO> getInactiveAttributes() {
+        return userAttributeRepository.findInactiveAttributes()
+            .stream()
+            .map(UserAttributeDTO::new)
+            .collect(Collectors.toList());
     }
 }

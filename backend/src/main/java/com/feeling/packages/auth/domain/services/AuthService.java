@@ -14,9 +14,9 @@ import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCo
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
 import com.feeling.packages.user.domain.dto.UserDTOMapper;
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
-import com.feeling.packages.user.infrastructure.entities.UserRoleList;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -869,6 +869,8 @@ public class AuthService {
             throw new BadRequestException("Refresh token requerido");
         }
 
+        logger.info("Procesando refresh token", Map.of("tokenLength", refreshToken.length()));
+
         // Verificar que es un REFRESH token
         if (!jwtService.isRefreshToken(refreshToken)) {
             logger.error("Token no es de tipo REFRESH");
@@ -880,6 +882,8 @@ public class AuthService {
             logger.error("No se pudo extraer email del refresh token");
             throw new BadRequestException("Refresh token inválido");
         }
+
+        logger.info("Email extraído del refresh token", Map.of("email", userEmail));
 
         final Optional<User> userOptional = userRepository.findByEmail(userEmail);
         if (userOptional.isEmpty()) {
@@ -895,11 +899,31 @@ public class AuthService {
             throw new BadRequestException("Refresh token inválido");
         }
 
+        logger.info("Buscando refresh token en BD", Map.of("email", userEmail, "tokenPrefix", refreshToken.substring(0, Math.min(20, refreshToken.length()))));
+
         // Verificar que el refresh token existe en BD y no está revocado
         Optional<AuthToken> storedToken = tokenRepository.findByToken(refreshToken);
-        if (storedToken.isEmpty() || storedToken.get().isRevoked() || storedToken.get().isExpired()) {
-            logger.error("Refresh token revocado o no encontrado en BD: " + userEmail);
-            throw new BadRequestException("Refresh token inválido");
+
+        if (storedToken.isEmpty()) {
+            logger.error("Refresh token NO encontrado en BD", Map.of("email", userEmail));
+            throw new BadRequestException("Refresh token inválido - no encontrado");
+        }
+
+        AuthToken token = storedToken.get();
+        logger.info("Refresh token encontrado en BD", Map.of(
+            "email", userEmail,
+            "revoked", token.isRevoked(),
+            "expired", token.isExpired(),
+            "type", token.getType().toString()
+        ));
+
+        if (token.isRevoked() || token.isExpired()) {
+            logger.error("Refresh token revocado o expirado en BD", Map.of(
+                "email", userEmail,
+                "revoked", token.isRevoked(),
+                "expired", token.isExpired()
+            ));
+            throw new BadRequestException("Refresh token inválido - revocado o expirado");
         }
 
         // Generar NUEVOS tokens (rotación de refresh token)

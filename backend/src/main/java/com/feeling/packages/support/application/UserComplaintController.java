@@ -6,6 +6,7 @@ import com.feeling.packages.user.domain.dto.UserComplaintAdminActionDTO;
 import com.feeling.packages.user.domain.dto.UserComplaintRequestDTO;
 import com.feeling.packages.user.domain.dto.UserComplaintResponseDTO;
 import com.feeling.packages.user.domain.services.UserComplaintService;
+import com.feeling.packages.user.infrastructure.entities.UserComplaint;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -101,18 +102,20 @@ public class UserComplaintController {
     @GetMapping("/complaints/urgent")
     @Operation(summary = "Get urgent complaints", description = "Get urgent complaints that need immediate attention")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<List<UserComplaintResponseDTO>> getUrgentComplaints() {
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getUrgentComplaints(
+        @PageableDefault(size = 20) Pageable pageable) {
 
-        List<UserComplaintResponseDTO> complaints = complaintService.getUrgentComplaints();
+        Page<UserComplaintResponseDTO> complaints = complaintService.getUrgentComplaints(pageable);
         return ResponseEntity.ok(complaints);
     }
 
     @GetMapping("/complaints/overdue")
     @Operation(summary = "Get overdue complaints", description = "Get complaints that are overdue (>24h)")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public ResponseEntity<List<UserComplaintResponseDTO>> getOverdueComplaints() {
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getOverdueComplaints(
+        @PageableDefault(size = 20) Pageable pageable) {
 
-        List<UserComplaintResponseDTO> complaints = complaintService.getOverdueComplaints();
+        Page<UserComplaintResponseDTO> complaints = complaintService.getOverdueComplaints(pageable);
         return ResponseEntity.ok(complaints);
     }
 
@@ -123,6 +126,104 @@ public class UserComplaintController {
         @PageableDefault(size = 20) Pageable pageable) {
 
         Page<UserComplaintResponseDTO> complaints = complaintService.getResolvedComplaints(pageable);
+        return ResponseEntity.ok(complaints);
+    }
+
+    /**
+     * Obtiene quejas filtradas por tipo para panel administrativo.
+     *
+     * @param type Tipo de queja (HARASSMENT, SPAM, INAPPROPRIATE_CONTENT, etc.)
+     * @param pageable Configuración de paginación
+     * @return Página de quejas del tipo especificado
+     */
+    @GetMapping("/complaints/type/{type}")
+    @Operation(summary = "Get complaints by type", description = "Get complaints filtered by complaint type for admin panel")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getComplaintsByType(
+        @Parameter(description = "Complaint type") @PathVariable UserComplaint.ComplaintType type,
+        @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<UserComplaintResponseDTO> complaints = complaintService.getComplaintsByType(type, pageable);
+        return ResponseEntity.ok(complaints);
+    }
+
+    /**
+     * Obtiene quejas filtradas por prioridad para panel administrativo.
+     *
+     * @param priority Prioridad (URGENT, HIGH, NORMAL, LOW)
+     * @param pageable Configuración de paginación
+     * @return Página de quejas con la prioridad especificada
+     */
+    @GetMapping("/complaints/priority/{priority}")
+    @Operation(summary = "Get complaints by priority", description = "Get complaints filtered by priority level for admin panel")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getComplaintsByPriority(
+        @Parameter(description = "Priority level") @PathVariable UserComplaint.Priority priority,
+        @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<UserComplaintResponseDTO> complaints = complaintService.getComplaintsByPriority(priority, pageable);
+        return ResponseEntity.ok(complaints);
+    }
+
+    /**
+     * Obtiene quejas filtradas por rango de fechas para reportes administrativos.
+     *
+     * @param start Fecha y hora de inicio (formato: yyyy-MM-dd'T'HH:mm:ss)
+     * @param end Fecha y hora de fin (formato: yyyy-MM-dd'T'HH:mm:ss)
+     * @param pageable Configuración de paginación
+     * @return Página de quejas en el rango de fechas especificado
+     */
+    @GetMapping("/complaints/dates")
+    @Operation(summary = "Get complaints by date range", description = "Get complaints filtered by creation date range for admin reports")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getComplaintsByDateRange(
+        @Parameter(description = "Start date (ISO format)") @RequestParam java.time.LocalDateTime start,
+        @Parameter(description = "End date (ISO format)") @RequestParam java.time.LocalDateTime end,
+        @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<UserComplaintResponseDTO> complaints = complaintService.getComplaintsBetweenDates(start, end, pageable);
+        return ResponseEntity.ok(complaints);
+    }
+
+    /**
+     * Obtiene quejas resueltas por un administrador específico.
+     * Útil para métricas de rendimiento por administrador.
+     *
+     * @param adminEmail Email del administrador
+     * @param pageable Configuración de paginación
+     * @return Página de quejas resueltas por el admin
+     */
+    @GetMapping("/complaints/resolved-by/{adminEmail}")
+    @Operation(summary = "Get complaints resolved by admin", description = "Get complaints resolved by a specific administrator for performance metrics")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getComplaintsResolvedByAdmin(
+        @Parameter(description = "Admin email") @PathVariable String adminEmail,
+        @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<UserComplaintResponseDTO> complaints = complaintService.getComplaintsResolvedByAdmin(adminEmail, pageable);
+        return ResponseEntity.ok(complaints);
+    }
+
+    /**
+     * Obtiene quejas relacionadas con referencias específicas.
+     * Útil para investigar todas las quejas relacionadas con un usuario, evento o reserva específica.
+     *
+     * @param userId ID del usuario referenciado (opcional)
+     * @param eventId ID del evento referenciado (opcional)
+     * @param bookingId ID de la reserva referenciada (opcional)
+     * @param pageable Configuración de paginación
+     * @return Página de quejas relacionadas con las referencias
+     */
+    @GetMapping("/complaints/reference")
+    @Operation(summary = "Get complaints by reference", description = "Get complaints related to a specific user, event, or booking")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<Page<UserComplaintResponseDTO>> getComplaintsByReference(
+        @Parameter(description = "User ID") @RequestParam(required = false) Long userId,
+        @Parameter(description = "Event ID") @RequestParam(required = false) Long eventId,
+        @Parameter(description = "Booking ID") @RequestParam(required = false) Long bookingId,
+        @PageableDefault(size = 20) Pageable pageable) {
+
+        Page<UserComplaintResponseDTO> complaints = complaintService.getComplaintsByReference(userId, eventId, bookingId, pageable);
         return ResponseEntity.ok(complaints);
     }
 

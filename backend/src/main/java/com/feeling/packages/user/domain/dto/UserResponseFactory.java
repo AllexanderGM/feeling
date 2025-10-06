@@ -1,5 +1,6 @@
 package com.feeling.packages.user.domain.dto;
 
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 
 /**
@@ -35,9 +36,9 @@ public class UserResponseFactory {
      */
     private static UserResponseDTO createPublicResponse(User user) {
         return new UserResponseDTO(
-                UserDTOMapper.toUserStatusDTO(user),
-                UserDTOMapper.toUserProfileDataDTO(user),
-                null, null, null, null, null, null
+            UserDTOMapper.toUserStatusDTO(user),
+            UserDTOMapper.toUserProfileDataDTO(user),
+            null, null, null, null, null, null
         );
     }
 
@@ -46,9 +47,9 @@ public class UserResponseFactory {
      */
     private static UserResponseDTO createBasicResponse(User user) {
         return new UserResponseDTO(
-                UserDTOMapper.toUserStatusDTO(user),
-                UserDTOMapper.toUserProfileDataDTO(user),
-                null, null, null, null, null, null
+            UserDTOMapper.toUserStatusDTO(user),
+            UserDTOMapper.toUserProfileDataDTO(user),
+            null, null, null, null, null, null
         );
     }
 
@@ -57,11 +58,11 @@ public class UserResponseFactory {
      */
     private static UserResponseDTO createStandardResponse(User user) {
         return new UserResponseDTO(
-                UserDTOMapper.toUserStatusDTO(user),
-                UserDTOMapper.toUserProfileDataDTO(user),
-                null,
-                UserDTOMapper.toUserMetricsDTO(user),
-                null, null, null, null
+            UserDTOMapper.toUserStatusDTO(user),
+            UserDTOMapper.toUserProfileDataDTO(user),
+            null,
+            UserDTOMapper.toUserMetricsDTO(user),
+            null, null, null, null
         );
     }
 
@@ -70,13 +71,13 @@ public class UserResponseFactory {
      */
     private static UserResponseDTO createExtendedResponse(User user) {
         return new UserResponseDTO(
-                UserDTOMapper.toUserStatusDTO(user),
-                UserDTOMapper.toUserProfileDataDTO(user),
-                UserDTOMapper.toUserPrivacyDTO(user),
-                UserDTOMapper.toUserMetricsDTO(user),
-                UserDTOMapper.toUserMatchesDTO(user),
-                null, null,
-                UserDTOMapper.toUserNotificationDTO(user)
+            UserDTOMapper.toUserStatusDTO(user),
+            UserDTOMapper.toUserProfileDataDTO(user),
+            UserDTOMapper.toUserPrivacyDTO(user),
+            UserDTOMapper.toUserMetricsDTO(user),
+            UserDTOMapper.toUserMatchesDTO(user),
+            null, null,
+            UserDTOMapper.toUserNotificationDTO(user)
         );
     }
 
@@ -85,14 +86,14 @@ public class UserResponseFactory {
      */
     private static UserResponseDTO createFullResponse(User user) {
         return new UserResponseDTO(
-                UserDTOMapper.toUserStatusDTO(user),
-                UserDTOMapper.toUserProfileDataDTO(user),
-                UserDTOMapper.toUserPrivacyDTO(user),
-                UserDTOMapper.toUserMetricsDTO(user),
-                UserDTOMapper.toUserMatchesDTO(user),
-                UserDTOMapper.toAuthProviderInfoDTO(user),
-                UserDTOMapper.toUserAccountStatusDTO(user),
-                UserDTOMapper.toUserNotificationDTO(user)
+            UserDTOMapper.toUserStatusDTO(user),
+            UserDTOMapper.toUserProfileDataDTO(user),
+            UserDTOMapper.toUserPrivacyDTO(user),
+            UserDTOMapper.toUserMetricsDTO(user),
+            UserDTOMapper.toUserMatchesDTO(user),
+            UserDTOMapper.toAuthProviderInfoDTO(user),
+            UserDTOMapper.toUserAccountStatusDTO(user),
+            UserDTOMapper.toUserNotificationDTO(user)
         );
     }
 
@@ -135,6 +136,6 @@ public class UserResponseFactory {
 
     private static boolean isAdmin(User user) {
         return user.getUserRole() != null &&
-               ("ADMIN".equals(user.getUserRole().getAuthority()) || "SUPER_ADMIN".equals(user.getUserRole().getAuthority()));
+            ("ADMIN".equals(user.getUserRole().getAuthority()) || "SUPER_ADMIN".equals(user.getUserRole().getAuthority()));
     }
 }

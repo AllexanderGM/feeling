@@ -2,17 +2,18 @@ package com.feeling.domain.dto.user;
 
 import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
 import com.feeling.packages.auth.domain.dto.UserStatusDTO;
+import com.feeling.packages.user.domain.dto.UserDTOMapper;
+import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
-import com.feeling.packages.user.infrastructure.entities.UserRoleList;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @deprecated This test uses deprecated mapper methods. Use UserResponseFactory instead
@@ -28,18 +29,18 @@ public class UserDTOMapperTest {
         userRole.setUserRoleList(UserRoleList.CLIENT);
 
         testUser = User.builder()
-                .id(1L)
-                .name("Test")
-                .lastName("User")
-                .email("test@example.com")
-                .verified(true)
-                .profileComplete(false)
-                .approvalStatus(ApprovalStatus.PENDING)
-                .userRole(userRole)
-                .availableAttempts(0)
-                .createdAt(LocalDateTime.now())
-                .lastActive(LocalDateTime.now())
-                .build();
+            .id(1L)
+            .name("Test")
+            .lastName("User")
+            .email("test@example.com")
+            .verified(true)
+            .profileComplete(false)
+            .approvalStatus(ApprovalStatus.PENDING)
+            .userRole(userRole)
+            .availableAttempts(0)
+            .createdAt(LocalDateTime.now())
+            .lastActive(LocalDateTime.now())
+            .build();
     }
 
     @Test

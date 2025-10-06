@@ -7,10 +7,11 @@ import com.feeling.packages.user.domain.dto.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.UserTagDTO;
 import com.feeling.packages.user.domain.dto.UserTagStatisticsDTO;
 import com.feeling.packages.user.domain.enums.TagApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
-import com.feeling.packages.user.infrastructure.entities.UserCategoryInterestList;
-import com.feeling.packages.user.infrastructure.entities.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
+import com.feeling.packages.user.infrastructure.repositories.IUserMatchingRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserTagRepository;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,7 @@ public class UserTagService {
 
     private final IUserTagRepository userTagRepository;
     private final IUserRepository userRepository;
+    private final IUserMatchingRepository userMatchingRepository;
 
     // ========================================
     // GESTIÓN DE TAGS POR USUARIOS
@@ -335,7 +337,7 @@ public class UserTagService {
 
         List<String> userTagNames = user.getTagNames();
 
-        return userTagRepository.findUsersWithSimilarTags(userTagNames, userEmail, limit);
+        return userMatchingRepository.findUsersWithSimilarTags(userTagNames, userEmail, limit);
     }
 
     // ========================================
@@ -348,8 +350,8 @@ public class UserTagService {
     public UserTagStatisticsDTO getTagStatistics() {
         long totalTags = userTagRepository.count();
         long activeTags = userTagRepository.countActiveTags();
-        long uniqueUsersWithTags = userTagRepository.countUniqueUsersWithTags();
-        Double averageTagsPerUser = userTagRepository.getAverageTagsPerUser();
+        long uniqueUsersWithTags = userRepository.countUniqueUsersWithTags();
+        Double averageTagsPerUser = userRepository.getAverageTagsPerUser();
         Double averageUsageCount = userTagRepository.getAverageUsageCount();
 
         return UserTagStatisticsDTO.builder()
@@ -426,7 +428,7 @@ public class UserTagService {
             throw new UnauthorizedException("Solo los administradores pueden realizar esta acción");
         }
 
-        int deletedCount = userTagRepository.deleteAllUnusedTags();
+        int deletedCount = userTagRepository.deleteUnusedTags();
 
         logger.info("Limpieza manual ejecutada por {}: {} tags eliminados", adminEmail, deletedCount);
         return new MessageResponseDTO(String.format("Se eliminaron %d tags sin uso", deletedCount));
@@ -569,7 +571,7 @@ public class UserTagService {
             categoryFilter = user.getCategoryInterest().getCategoryInterestEnum().name();
         }
 
-        return userTagRepository.findMatchCandidatesByTags(
+        return userMatchingRepository.findMatchCandidatesByTags(
             user.getTagNames(),
             userEmail,
             categoryFilter,
@@ -803,7 +805,7 @@ public class UserTagService {
      * @param userEmail Email del usuario
      * @param tagNames  Lista de nombres de tags a agregar
      * @return Lista de tags actuales del usuario después de la operación
-     * @throws NotFoundException   si el usuario no existe
+     * @throws NotFoundException        si el usuario no existe
      * @throws IllegalArgumentException si se excede el límite de tags permitidos
      */
     @Transactional

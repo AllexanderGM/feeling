@@ -84,8 +84,9 @@ export const useAuth = () => {
     async (email, password, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await authService.login(email, password)
-        updateTokens(data.accessToken, data.refreshToken)
+        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+        return data
       }, 'Inicio de sesión')
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
@@ -97,8 +98,9 @@ export const useAuth = () => {
     async (tokenResponse, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await authService.registerWithGoogle(tokenResponse)
-        updateTokens(data.accessToken, data.refreshToken)
+        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+        return data
       }, 'Registro con Google')
 
       if (result?.status === 409) return result
@@ -113,8 +115,9 @@ export const useAuth = () => {
     async (tokenResponse, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await authService.loginWithGoogle(tokenResponse)
-        updateTokens(data.accessToken, data.refreshToken)
+        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+        return data
       }, 'Inicio de sesión con Google')
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })

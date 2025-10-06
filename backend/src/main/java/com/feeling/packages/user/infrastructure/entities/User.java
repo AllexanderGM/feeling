@@ -3,6 +3,7 @@ package com.feeling.packages.user.infrastructure.entities;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -317,9 +318,9 @@ public class User implements UserDetails {
      */
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE})
     @JoinTable(
-            name = "user_tag_relations",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
+        name = "user_tag_relations",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     @Builder.Default
     private List<UserTag> tags = new ArrayList<>();
@@ -783,41 +784,41 @@ public class User implements UserDetails {
     public boolean isProfileComplete() {
         // Información personal básica
         boolean basicInfoComplete = name != null && !name.trim().isEmpty() &&
-                lastName != null && !lastName.trim().isEmpty() &&
-                document != null && !document.trim().isEmpty() &&
-                phone != null && !phone.trim().isEmpty() &&
-                phoneCode != null && !phoneCode.trim().isEmpty() &&
-                dateOfBirth != null;
+            lastName != null && !lastName.trim().isEmpty() &&
+            document != null && !document.trim().isEmpty() &&
+            phone != null && !phone.trim().isEmpty() &&
+            phoneCode != null && !phoneCode.trim().isEmpty() &&
+            dateOfBirth != null;
 
         // Ubicación
         boolean locationComplete = country != null && !country.trim().isEmpty() &&
-                city != null && !city.trim().isEmpty();
+            city != null && !city.trim().isEmpty();
 
         // Imágenes de perfil
         boolean hasImages = images != null && !images.isEmpty();
 
         // Características
         boolean characteristicsComplete = description != null && !description.trim().isEmpty() &&
-                gender != null &&
-                height != null && height > 0 &&
-                getApprovedTags() != null && !getApprovedTags().isEmpty();
+            gender != null &&
+            height != null && height > 0 &&
+            getApprovedTags() != null && !getApprovedTags().isEmpty();
 
         // Preferencias de matching
         boolean preferencesComplete = categoryInterest != null &&
-                agePreferenceMin != null && agePreferenceMin >= 18 &&
-                agePreferenceMax != null && agePreferenceMax <= 80 &&
-                locationPreferenceRadius != null && locationPreferenceRadius >= 5;
+            agePreferenceMin != null && agePreferenceMin >= 18 &&
+            agePreferenceMax != null && agePreferenceMax <= 80 &&
+            locationPreferenceRadius != null && locationPreferenceRadius >= 5;
 
         // Campos condicionales según categoría de interés
         boolean conditionalFieldsComplete = categoryInterest == null ||
-                switch (categoryInterest.getCategoryInterestEnum()) {
-                    case UserCategoryInterestList.SPIRIT -> religion != null;
-                    case UserCategoryInterestList.ROUSE -> sexualRole != null && relationshipType != null;
-                    case UserCategoryInterestList.ESSENCE -> true; // Sin campos adicionales requeridos
-                };
+            switch (categoryInterest.getCategoryInterestEnum()) {
+                case UserCategoryInterestList.SPIRIT -> religion != null;
+                case UserCategoryInterestList.ROUSE -> sexualRole != null && relationshipType != null;
+                case UserCategoryInterestList.ESSENCE -> true; // Sin campos adicionales requeridos
+            };
 
         return basicInfoComplete && locationComplete && hasImages &&
-                characteristicsComplete && preferencesComplete && conditionalFieldsComplete;
+            characteristicsComplete && preferencesComplete && conditionalFieldsComplete;
     }
 
     /**
@@ -888,7 +889,7 @@ public class User implements UserDetails {
             completedFields += switch (categoryType) {
                 case UserCategoryInterestList.SPIRIT -> (religion != null) ? 1 : 0;
                 case UserCategoryInterestList.ROUSE ->
-                        ((sexualRole != null) ? 1 : 0) + ((relationshipType != null) ? 1 : 0);
+                    ((sexualRole != null) ? 1 : 0) + ((relationshipType != null) ? 1 : 0);
                 case UserCategoryInterestList.ESSENCE -> 0; // sin campos adicionales
             };
         }
@@ -937,7 +938,7 @@ public class User implements UserDetails {
      */
     public boolean hasActiveAttempts() {
         return availableAttempts != null && availableAttempts > 0 &&
-                (attemptsExpiryDate == null || attemptsExpiryDate.isAfter(LocalDateTime.now()));
+            (attemptsExpiryDate == null || attemptsExpiryDate.isAfter(LocalDateTime.now()));
     }
 
     // ========================================
@@ -979,11 +980,16 @@ public class User implements UserDetails {
      * @return Lista de nombres de tags aprobados
      */
     public List<String> getTagNames() {
-        return tags != null ?
+        try {
+            return tags != null ?
                 tags.stream()
-                        .filter(UserTag::isApproved)
-                        .map(UserTag::getName)
-                        .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+                    .filter(UserTag::isApproved)
+                    .map(UserTag::getName)
+                    .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+        } catch (org.hibernate.LazyInitializationException e) {
+            // Si los tags no se cargaron, retornar lista vacía
+            return new ArrayList<>();
+        }
     }
 
     /**
@@ -993,14 +999,23 @@ public class User implements UserDetails {
      * @return Lista de tags aprobados
      */
     public List<UserTag> getApprovedTags() {
-        return tags != null ?
+        try {
+            return tags != null ?
                 tags.stream()
-                        .filter(UserTag::isApproved)
-                        .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+                    .filter(UserTag::isApproved)
+                    .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+        } catch (org.hibernate.LazyInitializationException e) {
+            // Si los tags no se cargaron, retornar lista vacía
+            return new ArrayList<>();
+        }
     }
 
     public List<UserTag> getAllTags() {
-        return tags != null ? new ArrayList<>(tags) : new ArrayList<>();
+        try {
+            return tags != null ? new ArrayList<>(tags) : new ArrayList<>();
+        } catch (org.hibernate.LazyInitializationException e) {
+            return new ArrayList<>();
+        }
     }
 
     // ========================================
@@ -1090,8 +1105,8 @@ public class User implements UserDetails {
         double matchesWeight = 0.2;
 
         this.popularityScore = (profileViews * viewsWeight) +
-                (likesReceived * likesWeight) +
-                (matchesCount * matchesWeight);
+            (likesReceived * likesWeight) +
+            (matchesCount * matchesWeight);
     }
 
     /**
@@ -1249,7 +1264,7 @@ public class User implements UserDetails {
     public boolean isCompatibleWith(User otherUser) {
         // Lógica básica de compatibilidad
         if (otherUser == null || !otherUser.isEnabled() || !otherUser.showMeInSearch ||
-                !otherUser.isApproved() || !otherUser.searchVisibility || !otherUser.publicAccount) {
+            !otherUser.isApproved() || !otherUser.searchVisibility || !otherUser.publicAccount) {
             return false;
         }
 
@@ -1295,8 +1310,8 @@ public class User implements UserDetails {
         List<UserTag> otherApprovedTags = otherUser.getApprovedTags();
         if (!myApprovedTags.isEmpty() && !otherApprovedTags.isEmpty()) {
             long commonTags = myApprovedTags.stream()
-                    .filter(otherApprovedTags::contains)
-                    .count();
+                .filter(otherApprovedTags::contains)
+                .count();
             double tagScore = (double) commonTags / Math.max(myApprovedTags.size(), otherApprovedTags.size());
             score += tagScore * 0.4;
             factors++;
@@ -1307,7 +1322,7 @@ public class User implements UserDetails {
             if (this.city.equalsIgnoreCase(otherUser.city)) {
                 score += 0.3;
             } else if (this.department != null && otherUser.department != null &&
-                    this.department.equalsIgnoreCase(otherUser.department)) {
+                this.department.equalsIgnoreCase(otherUser.department)) {
                 score += 0.15;
             }
             factors++;
@@ -1315,9 +1330,9 @@ public class User implements UserDetails {
 
         // Compatibilidad religiosa para SPIRIT (peso: 20%)
         if (this.categoryInterest != null &&
-                "SPIRIT".equals(this.categoryInterest.getCategoryInterestEnum().name())) {
+            "SPIRIT".equals(this.categoryInterest.getCategoryInterestEnum().name())) {
             if (this.religion != null && otherUser.religion != null &&
-                    this.religion.equals(otherUser.religion)) {
+                this.religion.equals(otherUser.religion)) {
                 score += 0.2;
             }
             factors++;

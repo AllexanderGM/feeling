@@ -11,9 +11,12 @@ import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
 import com.feeling.packages.common.domain.services.storage.StorageService;
 import com.feeling.packages.user.domain.dto.*;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
-import com.feeling.packages.user.infrastructure.entities.UserRoleList;
+import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
+import com.feeling.packages.user.infrastructure.repositories.IUserMatchingRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -82,7 +85,9 @@ public class UserService {
     // Repositorios
     private final IUserRepository userRepository;
     private final IUserRoleRepository roleRepository;
+    private final IUserCategoryInterestRepository categoryInterestRepository;
     private final IAuthTokenRepository tokenRepository;
+    private final IUserMatchingRepository userMatchingRepository;
 
     // Servicios externos
     private final PasswordEncoder passwordEncoder;
@@ -353,7 +358,7 @@ public class UserService {
         }
 
         // Obtener usuarios compatibles con paginación optimizada
-        Page<User> suggestedUsers = userRepository.findCompatibleUsersOptimized(
+        Page<User> suggestedUsers = userMatchingRepository.findCompatibleUsers(
             currentUser.getId(),
             currentUser.getCategoryInterest() != null ? currentUser.getCategoryInterest().getId() : null,
             currentUser.getAgePreferenceMin(),
@@ -441,7 +446,7 @@ public class UserService {
         }
 
         // Aplicar actualizaciones usando el mapper centralizado
-        UserDTOMapper.applyPartialUpdate(user, userRequestDTO, userAttributeService, passwordEncoder);
+        UserDTOMapper.applyPartialUpdate(user, userRequestDTO, userAttributeService, categoryInterestRepository, passwordEncoder);
 
         User savedUser = userRepository.save(user);
         logger.logUserOperation("user_partial_updated", email,
@@ -673,9 +678,8 @@ public class UserService {
      * @return Página de usuarios pendientes de aprobación
      */
     public Page<UserResponseDTO> getPendingApprovalUsers(Pageable pageable, String searchTerm) {
-        Page<User> pendingUsers = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findPendingApprovalUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findPendingApprovalUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> pendingUsers = userRepository.findPendingApprovalUsers(search, pageable);
 
         logger.info("Usuarios pendientes de aprobación encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -705,9 +709,8 @@ public class UserService {
      * @return Página de usuarios activos
      */
     public Page<UserResponseDTO> getActiveUsers(Pageable pageable, String searchTerm) {
-        Page<User> activeUsers = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findActiveUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findActiveUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> activeUsers = userRepository.findActiveUsers(search, pageable);
 
         logger.info("Usuarios activos encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -733,9 +736,8 @@ public class UserService {
      * @return Página de usuarios no verificados
      */
     public Page<UserResponseDTO> getUnverifiedUsers(Pageable pageable, String searchTerm) {
-        Page<User> unverifiedUsers = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findUnverifiedUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findUnverifiedUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> unverifiedUsers = userRepository.findUnverifiedUsers(search, pageable);
 
         logger.info("Usuarios con email no verificado encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -762,9 +764,8 @@ public class UserService {
      * @return Página de usuarios rechazados
      */
     public Page<UserResponseDTO> getNonApprovedUsers(Pageable pageable, String searchTerm) {
-        Page<User> nonApprovedUsers = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findNonApprovedUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findNonApprovedUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> nonApprovedUsers = userRepository.findNonApprovedUsers(search, pageable);
 
         logger.info("Usuarios no aprobados encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -792,9 +793,8 @@ public class UserService {
      * @return Página de usuarios con cuenta desactivada
      */
     public Page<UserResponseDTO> getDeactivatedUsers(Pageable pageable, String searchTerm) {
-        Page<User> deactivatedUsers = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findDeactivatedUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findDeactivatedUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> deactivatedUsers = userRepository.findDeactivatedUsers(search, pageable);
 
         logger.info("Usuarios desactivados encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -826,9 +826,8 @@ public class UserService {
      * @return Página de usuarios con perfil incompleto
      */
     public Page<UserResponseDTO> getIncompleteUsers(Pageable pageable, String searchTerm) {
-        Page<User> users = (searchTerm != null && !searchTerm.trim().isEmpty())
-            ? userRepository.findIncompleteProfileUsersWithSearch(searchTerm.trim(), pageable)
-            : userRepository.findIncompleteProfileUsers(pageable);
+        String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        Page<User> users = userRepository.findIncompleteProfileUsers(search, pageable);
 
         logger.info("Usuarios con perfil incompleto encontrados", Map.of(
             "searchTerm", searchTerm != null ? searchTerm : "N/A",
@@ -1461,25 +1460,14 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> getUsersByStatus(String status, String search, Pageable pageable) {
+        String searchTerm = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
         Page<User> users = switch (status.toLowerCase()) {
-            case "active" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findActiveUsersWithSearch(search, pageable) :
-                userRepository.findActiveUsers(pageable);
-            case "pending-approval" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findPendingApprovalUsersWithSearch(search, pageable) :
-                userRepository.findPendingApprovalUsers(pageable);
-            case "unverified" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findUnverifiedUsersWithSearch(search, pageable) :
-                userRepository.findUnverifiedUsers(pageable);
-            case "non-approved" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findNonApprovedUsersWithSearch(search, pageable) :
-                userRepository.findNonApprovedUsers(pageable);
-            case "deactivated" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findDeactivatedUsersWithSearch(search, pageable) :
-                userRepository.findDeactivatedUsers(pageable);
-            case "incomplete-profiles" -> search != null && !search.trim().isEmpty() ?
-                userRepository.findIncompleteProfileUsersWithSearch(search, pageable) :
-                userRepository.findIncompleteProfileUsers(pageable);
+            case "active" -> userRepository.findActiveUsers(searchTerm, pageable);
+            case "pending-approval" -> userRepository.findPendingApprovalUsers(searchTerm, pageable);
+            case "unverified" -> userRepository.findUnverifiedUsers(searchTerm, pageable);
+            case "non-approved" -> userRepository.findNonApprovedUsers(searchTerm, pageable);
+            case "deactivated" -> userRepository.findDeactivatedUsers(searchTerm, pageable);
+            case "incomplete-profiles" -> userRepository.findIncompleteProfileUsers(searchTerm, pageable);
             default -> throw new BadRequestException("Estado de usuario no válido: " + status);
         };
 

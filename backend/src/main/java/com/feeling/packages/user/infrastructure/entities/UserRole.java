@@ -1,5 +1,6 @@
 package com.feeling.packages.user.infrastructure.entities;
 
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,10 +26,10 @@ import org.springframework.security.core.GrantedAuthority;
  *
  * @author J. Alexander Gavilán M.
  * @version 1.0
- * @since 1.0
  * @see User
  * @see UserRoleList
  * @see GrantedAuthority
+ * @since 1.0
  */
 @Data
 @AllArgsConstructor

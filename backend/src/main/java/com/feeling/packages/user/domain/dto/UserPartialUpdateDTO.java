@@ -41,7 +41,6 @@ public record UserPartialUpdateDTO(
         Optional<Long> religionId,
         Optional<Long> sexualRoleId,
         Optional<Long> relationshipTypeId,
-        Optional<Long> relationshipId,
         Optional<Long> educationLevelId,
         Optional<String> profession,
         Optional<Integer> height,
@@ -51,20 +50,11 @@ public record UserPartialUpdateDTO(
         Optional<String> department,
         Optional<String> city,
         Optional<String> locality,
-        Optional<Double> latitude,
-        Optional<Double> longitude,
-        Optional<String> address,
 
         // Preferencias
         Optional<Integer> agePreferenceMin,
         Optional<Integer> agePreferenceMax,
-        Optional<String> genderPreference,
-        Optional<Integer> maxDistance,
         Optional<Long> locationPreferenceRadius,
-        Optional<List<Long>> userAttributes,
-        Optional<List<Long>> partnerAttributes,
-        Optional<List<Long>> events,
-        Optional<List<Long>> sports,
 
         // Configuración de privacidad
         Optional<Boolean> publicAccount,
@@ -104,13 +94,10 @@ public record UserPartialUpdateDTO(
                 document.isPresent() || phone.isPresent() || phoneCode.isPresent() || dateOfBirth.isPresent() || description.isPresent() ||
                 categoryInterest.isPresent() || genderId.isPresent() || maritalStatusId.isPresent() ||
                 eyeColorId.isPresent() || hairColorId.isPresent() || bodyTypeId.isPresent() ||
-                religionId.isPresent() || sexualRoleId.isPresent() || relationshipTypeId.isPresent() || relationshipId.isPresent() ||
+                religionId.isPresent() || sexualRoleId.isPresent() || relationshipTypeId.isPresent() ||
                 educationLevelId.isPresent() || profession.isPresent() || height.isPresent() ||
                 country.isPresent() || department.isPresent() || city.isPresent() || locality.isPresent() ||
-                latitude.isPresent() || longitude.isPresent() || address.isPresent() ||
-                agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || genderPreference.isPresent() ||
-                maxDistance.isPresent() || locationPreferenceRadius.isPresent() || userAttributes.isPresent() || partnerAttributes.isPresent() ||
-                events.isPresent() || sports.isPresent() ||
+                agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || locationPreferenceRadius.isPresent() ||
                 publicAccount.isPresent() || searchVisibility.isPresent() || locationPublic.isPresent() ||
                 showAge.isPresent() || showLocation.isPresent() || showPhone.isPresent() || showMeInSearch.isPresent() ||
                 notificationsEmailEnabled.isPresent() || notificationsPhoneEnabled.isPresent() ||
@@ -131,9 +118,7 @@ public record UserPartialUpdateDTO(
      * Verifica si hay actualizaciones de configuración
      */
     public boolean hasConfigurationUpdates() {
-        return agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || genderPreference.isPresent() ||
-                maxDistance.isPresent() || userAttributes.isPresent() || partnerAttributes.isPresent() ||
-                events.isPresent() || sports.isPresent() ||
+        return agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || locationPreferenceRadius.isPresent() ||
                 publicAccount.isPresent() || searchVisibility.isPresent() || locationPublic.isPresent() ||
                 showAge.isPresent() || showLocation.isPresent() || showPhone.isPresent() || showMeInSearch.isPresent() ||
                 notificationsEmailEnabled.isPresent() || notificationsPhoneEnabled.isPresent() ||
@@ -145,14 +130,13 @@ public record UserPartialUpdateDTO(
      * Verifica si hay actualizaciones de perfil
      */
     public boolean hasProfileUpdates() {
-        return document.isPresent() || phone.isPresent() || dateOfBirth.isPresent() || description.isPresent() ||
+        return document.isPresent() || phone.isPresent() || phoneCode.isPresent() || dateOfBirth.isPresent() || description.isPresent() ||
                 categoryInterest.isPresent() || genderId.isPresent() || maritalStatusId.isPresent() ||
                 eyeColorId.isPresent() || hairColorId.isPresent() || bodyTypeId.isPresent() ||
                 religionId.isPresent() || sexualRoleId.isPresent() || relationshipTypeId.isPresent() ||
                 educationLevelId.isPresent() || profession.isPresent() || height.isPresent() ||
                 tags.isPresent() || imageUrls.isPresent() ||
-                country.isPresent() || department.isPresent() || city.isPresent() || locality.isPresent() ||
-                latitude.isPresent() || longitude.isPresent() || address.isPresent();
+                country.isPresent() || department.isPresent() || city.isPresent() || locality.isPresent();
     }
 
     /**
@@ -167,17 +151,14 @@ public record UserPartialUpdateDTO(
      * Verifica si hay actualizaciones de ubicación
      */
     public boolean hasLocationUpdates() {
-        return country.isPresent() || department.isPresent() || city.isPresent() || locality.isPresent() ||
-                latitude.isPresent() || longitude.isPresent() || address.isPresent();
+        return country.isPresent() || department.isPresent() || city.isPresent() || locality.isPresent();
     }
 
     /**
      * Verifica si hay actualizaciones de preferencias
      */
     public boolean hasPreferenceUpdates() {
-        return agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || genderPreference.isPresent() ||
-                maxDistance.isPresent() || userAttributes.isPresent() || partnerAttributes.isPresent() ||
-                events.isPresent() || sports.isPresent();
+        return agePreferenceMin.isPresent() || agePreferenceMax.isPresent() || locationPreferenceRadius.isPresent();
     }
 
     /**
@@ -274,7 +255,6 @@ public record UserPartialUpdateDTO(
         if (religionId.isPresent()) count++;
         if (sexualRoleId.isPresent()) count++;
         if (relationshipTypeId.isPresent()) count++;
-        if (relationshipId.isPresent()) count++;
         if (educationLevelId.isPresent()) count++;
         if (profession.isPresent()) count++;
         if (height.isPresent()) count++;
@@ -284,20 +264,11 @@ public record UserPartialUpdateDTO(
         if (department.isPresent()) count++;
         if (city.isPresent()) count++;
         if (locality.isPresent()) count++;
-        if (latitude.isPresent()) count++;
-        if (longitude.isPresent()) count++;
-        if (address.isPresent()) count++;
 
         // Preferencias
         if (agePreferenceMin.isPresent()) count++;
         if (agePreferenceMax.isPresent()) count++;
-        if (genderPreference.isPresent()) count++;
-        if (maxDistance.isPresent()) count++;
         if (locationPreferenceRadius.isPresent()) count++;
-        if (userAttributes.isPresent()) count++;
-        if (partnerAttributes.isPresent()) count++;
-        if (events.isPresent()) count++;
-        if (sports.isPresent()) count++;
 
         // Privacidad
         if (publicAccount.isPresent()) count++;

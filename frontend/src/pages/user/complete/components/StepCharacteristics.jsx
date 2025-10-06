@@ -357,9 +357,10 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
         <Controller
           name='description'
           control={control}
-          render={({ field }) => (
+          render={({ field: { ref, ...field } }) => (
             <Textarea
               {...field}
+              ref={ref}
               variant='bordered'
               isRequired
               label='Descripción personal'
@@ -624,9 +625,10 @@ const StepCharacteristics = ({ control, errors, watch, setValue, clearErrors, us
           <Controller
             name='profession'
             control={control}
-            render={({ field }) => (
+            render={({ field: { ref, ...field } }) => (
               <Input
                 {...field}
+                ref={ref}
                 variant='underlined'
                 label='Profesión'
                 placeholder='Tu profesión u ocupación'

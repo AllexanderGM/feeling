@@ -3,14 +3,14 @@ package com.feeling.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feeling.packages.auth.domain.dto.AuthLoginResponseDTO;
+import com.feeling.packages.user.domain.dto.UserDTOMapper;
+import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
-import com.feeling.packages.user.infrastructure.entities.UserRoleList;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests de estructura de DTOs para asegurar compatibilidad durante refactoring
  * Phase 1.2: Integration Tests Creation
+ *
  * @deprecated This test uses deprecated DTOs. Structure is now unified in UserResponseDTO
  */
 @Deprecated(since = "1.8", forRemoval = true)
@@ -41,44 +42,44 @@ public class UserDTOStructureIntegrationTest {
         userRole.setUserRoleList(UserRoleList.CLIENT);
 
         testUser = User.builder()
-                .id(1L)
-                .name("Test")
-                .lastName("User")
-                .email("test@example.com")
-                .phone("+123456789")
-                .phoneCode("+57")
-                .country("Colombia")
-                .city("Bogotá")
-                .department("Cundinamarca")
-                .description("Test user description")
-                .images(Arrays.asList("main.jpg", "image1.jpg", "image2.jpg"))
-                .verified(true)
-                .profileComplete(true)
-                .approvalStatus(ApprovalStatus.APPROVED)
-                .userRole(userRole)
-                .availableAttempts(10)
-                .createdAt(LocalDateTime.now())
-                .lastActive(LocalDateTime.now())
-                .publicAccount(false)
-                .searchVisibility(true)
-                .locationPublic(true)
-                .showAge(true)
-                .showLocation(true)
-                .showPhone(false)
-                .showMeInSearch(true)
-                .notificationsEmailEnabled(true)
-                .notificationsPhoneEnabled(false)
-                .notificationsMatchesEnabled(true)
-                .notificationsEventsEnabled(true)
-                .notificationsLoginEnabled(false)
-                .notificationsPaymentsEnabled(true)
-                .profileViews(100L)
-                .likesReceived(25L)
-                .matchesCount(5L)
-                .popularityScore(85.5)
-                // Note: profileCompletenessPercentage is calculated, not set directly
-                .accountDeactivated(false)
-                .build();
+            .id(1L)
+            .name("Test")
+            .lastName("User")
+            .email("test@example.com")
+            .phone("+123456789")
+            .phoneCode("+57")
+            .country("Colombia")
+            .city("Bogotá")
+            .department("Cundinamarca")
+            .description("Test user description")
+            .images(Arrays.asList("main.jpg", "image1.jpg", "image2.jpg"))
+            .verified(true)
+            .profileComplete(true)
+            .approvalStatus(ApprovalStatus.APPROVED)
+            .userRole(userRole)
+            .availableAttempts(10)
+            .createdAt(LocalDateTime.now())
+            .lastActive(LocalDateTime.now())
+            .publicAccount(false)
+            .searchVisibility(true)
+            .locationPublic(true)
+            .showAge(true)
+            .showLocation(true)
+            .showPhone(false)
+            .showMeInSearch(true)
+            .notificationsEmailEnabled(true)
+            .notificationsPhoneEnabled(false)
+            .notificationsMatchesEnabled(true)
+            .notificationsEventsEnabled(true)
+            .notificationsLoginEnabled(false)
+            .notificationsPaymentsEnabled(true)
+            .profileViews(100L)
+            .likesReceived(25L)
+            .matchesCount(5L)
+            .popularityScore(85.5)
+            // Note: profileCompletenessPercentage is calculated, not set directly
+            .accountDeactivated(false)
+            .build();
     }
 
     @Test
@@ -172,9 +173,9 @@ public class UserDTOStructureIntegrationTest {
 
         // Ambos deben tener campos básicos
         assertEquals(
-                publicNode.get("profile").get("name").asText(),
-                standardNode.get("profile").get("name").asText(),
-                "Both should have same name"
+            publicNode.get("profile").get("name").asText(),
+            standardNode.get("profile").get("name").asText(),
+            "Both should have same name"
         );
     }
 
@@ -188,8 +189,8 @@ public class UserDTOStructureIntegrationTest {
 
         // Verificar secciones principales (note: account is null in extended, only in admin operations)
         List<String> requiredSections = Arrays.asList(
-                "status", "profile", "privacy", "notifications",
-                "metrics", "auth"
+            "status", "profile", "privacy", "notifications",
+            "metrics", "auth"
         );
 
         for (String section : requiredSections) {
@@ -232,21 +233,21 @@ public class UserDTOStructureIntegrationTest {
 
         // Verificar que campos comunes tengan estructura consistente
         assertEquals(
-                standardNode.get("profile").get("name").asText(),
-                publicNode.get("profile").get("name").asText(),
-                "Name field must be consistent across DTOs"
+            standardNode.get("profile").get("name").asText(),
+            publicNode.get("profile").get("name").asText(),
+            "Name field must be consistent across DTOs"
         );
 
         assertEquals(
-                standardNode.get("profile").get("email").asText(),
-                extendedNode.get("profile").get("email").asText(),
-                "Email field must be consistent across DTOs"
+            standardNode.get("profile").get("email").asText(),
+            extendedNode.get("profile").get("email").asText(),
+            "Email field must be consistent across DTOs"
         );
 
         assertEquals(
-                standardNode.get("status").get("verified").asBoolean(),
-                extendedNode.get("status").get("verified").asBoolean(),
-                "Verified field must be consistent across DTOs"
+            standardNode.get("status").get("verified").asBoolean(),
+            extendedNode.get("status").get("verified").asBoolean(),
+            "Verified field must be consistent across DTOs"
         );
     }
 
@@ -274,7 +275,7 @@ public class UserDTOStructureIntegrationTest {
 
         // Assertion básica - Standard debe ser más pequeño que Extended
         assertTrue(standardJson.length() < extendedJson.length(),
-                "Standard DTO should be smaller than Extended DTO");
+            "Standard DTO should be smaller than Extended DTO");
     }
 
     /**
@@ -291,7 +292,7 @@ public class UserDTOStructureIntegrationTest {
         // Contar campos esperados en el nivel superior (note: account is null, matches is null in this version)
         int expectedTopLevelFields = 8; // status, profile, privacy, notifications, metrics, matches, auth, account
         assertEquals(expectedTopLevelFields, jsonNode.size(),
-                "Expected exactly " + expectedTopLevelFields + " top-level fields in UserResponseDTO");
+            "Expected exactly " + expectedTopLevelFields + " top-level fields in UserResponseDTO");
 
         // Verificar estructura específica que no debe cambiar sin planning
         assertTrue(jsonNode.get("status").has("role"), "Status must have role field");

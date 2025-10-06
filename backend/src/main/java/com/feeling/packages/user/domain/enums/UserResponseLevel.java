@@ -1,9 +1,12 @@
-package com.feeling.packages.user.domain.dto;
+package com.feeling.packages.user.domain.enums;
+
+import lombok.Getter;
 
 /**
  * Enum para definir niveles de inclusión de datos en UserResponseDTO
  * Phase 4.2: Query Parameters for Response Control - API Modernization
  */
+@Getter
 public enum UserResponseLevel {
     /**
      * Vista pública: solo datos básicos seguros
@@ -47,10 +50,6 @@ public enum UserResponseLevel {
         this.value = value;
     }
 
-    public String getValue() {
-        return value;
-    }
-
     /**
      * Convierte un string a UserResponseLevel, con valor por defecto
      */
@@ -73,7 +72,7 @@ public enum UserResponseLevel {
      */
     public static boolean isValidLevel(String value) {
         if (value == null || value.trim().isEmpty()) {
-            return false;
+            return true;
         }
 
         for (UserResponseLevel level : UserResponseLevel.values()) {

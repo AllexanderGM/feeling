@@ -77,7 +77,7 @@ public class UserComplaintService {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        Page<UserComplaint> complaints = complaintRepository.findByUserOptimized(user, pageable);
+        Page<UserComplaint> complaints = complaintRepository.findByUser(user, pageable);
 
         logger.info("Quejas de usuario obtenidas", Map.of(
             "userEmail", userEmail,
@@ -135,7 +135,7 @@ public class UserComplaintService {
      * Obtiene quejas pendientes de resolución
      */
     public Page<UserComplaintResponseDTO> getPendingComplaints(Pageable pageable) {
-        Page<UserComplaint> complaints = complaintRepository.findPendingComplaintsOptimized(pageable);
+        Page<UserComplaint> complaints = complaintRepository.findPendingComplaints(pageable);
 
         logger.info("Quejas pendientes obtenidas", Map.of(
             "total", complaints.getTotalElements(),
@@ -146,16 +146,20 @@ public class UserComplaintService {
     }
 
     /**
-     * Obtiene quejas urgentes sin resolver
+     * Obtiene quejas urgentes sin resolver con paginación.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de quejas urgentes
      */
-    public List<UserComplaintResponseDTO> getUrgentComplaints() {
-        List<UserComplaint> complaints = complaintRepository.findUrgentPendingComplaints();
+    public Page<UserComplaintResponseDTO> getUrgentComplaints(Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findUrgentComplaints(pageable);
 
-        logger.info("Quejas urgentes obtenidas", Map.of("count", complaints.size()));
+        logger.info("Quejas urgentes obtenidas", Map.of(
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
 
-        return complaints.stream()
-            .map(UserComplaintResponseDTO::new)
-            .collect(Collectors.toList());
+        return complaints.map(UserComplaintResponseDTO::new);
     }
 
     /**
@@ -255,8 +259,15 @@ public class UserComplaintService {
         LocalDateTime overdueThreshold = LocalDateTime.now().minusHours(24);
         long overdueComplaints = complaintRepository.countOverdueComplaints(overdueThreshold);
 
-        // Tiempo promedio de resolución
-        Double avgResolutionHours = complaintRepository.getAverageResolutionTimeInHours();
+        // Tiempo promedio de resolución (calculado en servicio para mantener consistencia JPQL)
+        List<UserComplaint> resolvedComplaints = complaintRepository.findResolvedComplaints();
+        Double avgResolutionHours = resolvedComplaints.isEmpty() ? null : resolvedComplaints.stream()
+            .mapToDouble(c -> {
+                long diffInMillis = java.time.Duration.between(c.getCreatedAt(), c.getResolvedAt()).toMillis();
+                return diffInMillis / (1000.0 * 60 * 60); // convertir a horas
+            })
+            .average()
+            .orElse(0.0);
 
         // Crear mapa de estadísticas expandido
         Map<String, Object> stats = new HashMap<>();
@@ -321,27 +332,134 @@ public class UserComplaintService {
     }
 
     /**
-     * Obtiene quejas atrasadas (más de 24 horas sin resolver)
+     * Obtiene quejas atrasadas (más de 24 horas sin resolver) con paginación.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de quejas atrasadas
      */
-    public List<UserComplaintResponseDTO> getOverdueComplaints() {
+    public Page<UserComplaintResponseDTO> getOverdueComplaints(Pageable pageable) {
         LocalDateTime overdueThreshold = LocalDateTime.now().minusHours(24);
-        List<UserComplaint> complaints = complaintRepository.findOverdueComplaints(overdueThreshold);
+        Page<UserComplaint> complaints = complaintRepository.findOverdueComplaints(overdueThreshold, pageable);
 
-        logger.info("Quejas atrasadas obtenidas", Map.of("count", complaints.size()));
+        logger.info("Quejas atrasadas obtenidas", Map.of(
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
 
-        return complaints.stream()
-            .map(UserComplaintResponseDTO::new)
-            .collect(Collectors.toList());
+        return complaints.map(UserComplaintResponseDTO::new);
     }
 
     /**
      * Obtiene quejas resueltas
      */
     public Page<UserComplaintResponseDTO> getResolvedComplaints(Pageable pageable) {
-        Page<UserComplaint> complaints = complaintRepository.findByStatus(
-            UserComplaint.Status.RESOLVED, pageable);
+        Page<UserComplaint> complaints = complaintRepository.findByStatusIn(
+            List.of(UserComplaint.Status.RESOLVED), pageable);
 
         logger.info("Quejas resueltas obtenidas", Map.of(
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
+
+        return complaints.map(UserComplaintResponseDTO::new);
+    }
+
+    /**
+     * Obtiene quejas por tipo para panel administrativo.
+     *
+     * @param complaintType Tipo de queja
+     * @param pageable Configuración de paginación
+     * @return Página de quejas del tipo especificado
+     */
+    public Page<UserComplaintResponseDTO> getComplaintsByType(UserComplaint.ComplaintType complaintType, Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findByComplaintType(complaintType, pageable);
+
+        logger.info("Quejas obtenidas por tipo", Map.of(
+            "type", complaintType,
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
+
+        return complaints.map(UserComplaintResponseDTO::new);
+    }
+
+    /**
+     * Obtiene quejas por prioridad para panel administrativo.
+     *
+     * @param priority Prioridad de la queja
+     * @param pageable Configuración de paginación
+     * @return Página de quejas con la prioridad especificada
+     */
+    public Page<UserComplaintResponseDTO> getComplaintsByPriority(UserComplaint.Priority priority, Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findByPriority(priority, pageable);
+
+        logger.info("Quejas obtenidas por prioridad", Map.of(
+            "priority", priority,
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
+
+        return complaints.map(UserComplaintResponseDTO::new);
+    }
+
+    /**
+     * Obtiene quejas creadas en un rango de fechas para reportes administrativos.
+     *
+     * @param start Fecha y hora de inicio
+     * @param end Fecha y hora de fin
+     * @param pageable Configuración de paginación
+     * @return Página de quejas en el rango de fechas especificado
+     */
+    public Page<UserComplaintResponseDTO> getComplaintsBetweenDates(LocalDateTime start, LocalDateTime end, Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findComplaintsBetweenDates(start, end, pageable);
+
+        logger.info("Quejas obtenidas por rango de fechas", Map.of(
+            "start", start,
+            "end", end,
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
+
+        return complaints.map(UserComplaintResponseDTO::new);
+    }
+
+    /**
+     * Obtiene quejas resueltas por un administrador específico.
+     * Útil para métricas de rendimiento por administrador.
+     *
+     * @param adminEmail Email del administrador
+     * @param pageable Configuración de paginación
+     * @return Página de quejas resueltas por el admin
+     */
+    public Page<UserComplaintResponseDTO> getComplaintsResolvedByAdmin(String adminEmail, Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findComplaintsResolvedBy(adminEmail, pageable);
+
+        logger.info("Quejas resueltas por admin obtenidas", Map.of(
+            "adminEmail", adminEmail,
+            "total", complaints.getTotalElements(),
+            "page", pageable.getPageNumber()
+        ));
+
+        return complaints.map(UserComplaintResponseDTO::new);
+    }
+
+    /**
+     * Obtiene quejas relacionadas con referencias específicas (usuario, evento o reserva) con paginación.
+     * Útil para investigar quejas relacionadas con un elemento específico.
+     *
+     * @param userId ID del usuario referenciado (puede ser null)
+     * @param eventId ID del evento referenciado (puede ser null)
+     * @param bookingId ID de la reserva referenciada (puede ser null)
+     * @param pageable Configuración de paginación
+     * @return Página de quejas relacionadas con las referencias
+     */
+    public Page<UserComplaintResponseDTO> getComplaintsByReference(Long userId, Long eventId, Long bookingId, Pageable pageable) {
+        Page<UserComplaint> complaints = complaintRepository.findComplaintsByReference(userId, eventId, bookingId, pageable);
+
+        logger.info("Quejas obtenidas por referencia", Map.of(
+            "userId", userId != null ? userId : "null",
+            "eventId", eventId != null ? eventId : "null",
+            "bookingId", bookingId != null ? bookingId : "null",
             "total", complaints.getTotalElements(),
             "page", pageable.getPageNumber()
         ));

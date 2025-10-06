@@ -1,5 +1,6 @@
 package com.feeling.packages.user.infrastructure.entities;
 
+import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -100,8 +101,8 @@ public class UserCategoryInterest {
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
-            name = "category_features",
-            joinColumns = @JoinColumn(name = "category_id")
+        name = "category_features",
+        joinColumns = @JoinColumn(name = "category_id")
     )
     @Column(name = "feature", length = 500)
     private List<String> features;
@@ -228,7 +229,7 @@ public class UserCategoryInterest {
      */
     public String getDisplayName() {
         return (this.name != null && !this.name.trim().isEmpty()) ?
-               this.name : this.categoryInterestEnum.name();
+            this.name : this.categoryInterestEnum.name();
     }
 
     /**
@@ -241,7 +242,7 @@ public class UserCategoryInterest {
             return this.description;
         }
         return (this.fullDescription != null && !this.fullDescription.trim().isEmpty()) ?
-               this.fullDescription : "Experiencia " + getDisplayName();
+            this.fullDescription : "Experiencia " + getDisplayName();
     }
 
     /**

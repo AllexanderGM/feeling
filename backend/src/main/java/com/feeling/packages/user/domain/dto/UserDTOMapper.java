@@ -1,8 +1,10 @@
 package com.feeling.packages.user.domain.dto;
 
 import com.feeling.packages.auth.domain.dto.*;
+import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.domain.services.UserAttributeService;
 import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -269,6 +271,7 @@ public class UserDTOMapper {
      */
     public static void applyPartialUpdate(User user, UserPartialUpdateDTO partialUpdate,
                                           UserAttributeService userAttributeService,
+                                          IUserCategoryInterestRepository categoryInterestRepository,
                                           PasswordEncoder passwordEncoder) {
         // Datos básicos
         partialUpdate.name().ifPresent(user::setName);
@@ -280,10 +283,23 @@ public class UserDTOMapper {
         // Datos personales
         partialUpdate.document().ifPresent(user::setDocument);
         partialUpdate.phone().ifPresent(user::setPhone);
+        partialUpdate.phoneCode().ifPresent(user::setPhoneCode);
         partialUpdate.dateOfBirth().ifPresent(user::setDateOfBirth);
         partialUpdate.description().ifPresent(user::setDescription);
         partialUpdate.profession().ifPresent(user::setProfession);
         partialUpdate.height().ifPresent(user::setHeight);
+
+        // Categoría de interés - Buscar registro existente en lugar de crear uno nuevo
+        partialUpdate.categoryInterest().ifPresent(categoryName -> {
+            try {
+                UserCategoryInterestList categoryEnum = UserCategoryInterestList.valueOf(categoryName.toUpperCase());
+                // Buscar la categoría existente en la base de datos y asignarla al usuario
+                categoryInterestRepository.findByCategoryInterestEnum(categoryEnum)
+                    .ifPresent(user::setCategoryInterest);
+            } catch (IllegalArgumentException e) {
+                // Categoría inválida, ignorar
+            }
+        });
 
         // Atributos dinámicos con validación (ahora usa el servicio)
         partialUpdate.genderId().ifPresent(id ->
@@ -292,6 +308,20 @@ public class UserDTOMapper {
             user.setMaritalStatus(userAttributeService.findAttributeById(id, "Estado civil")));
         partialUpdate.educationLevelId().ifPresent(id ->
             user.setEducation(userAttributeService.findAttributeById(id, "Nivel educativo")));
+        partialUpdate.eyeColorId().ifPresent(id ->
+            user.setEyeColor(userAttributeService.findAttributeById(id, "Color de ojos")));
+        partialUpdate.hairColorId().ifPresent(id ->
+            user.setHairColor(userAttributeService.findAttributeById(id, "Color de cabello")));
+        partialUpdate.bodyTypeId().ifPresent(id ->
+            user.setBodyType(userAttributeService.findAttributeById(id, "Tipo de cuerpo")));
+        partialUpdate.religionId().ifPresent(id ->
+            user.setReligion(userAttributeService.findAttributeById(id, "Religión")));
+        partialUpdate.sexualRoleId().ifPresent(id ->
+            user.setSexualRole(userAttributeService.findAttributeById(id, "Rol sexual")));
+        partialUpdate.relationshipTypeId().ifPresent(id ->
+            user.setRelationshipType(userAttributeService.findAttributeById(id, "Tipo de relación")));
+        partialUpdate.churchId().ifPresent(id ->
+            user.setChurch(userAttributeService.findAttributeById(id, "Iglesia")));
 
         // Ubicación
         if (partialUpdate.hasLocationUpdates()) {
