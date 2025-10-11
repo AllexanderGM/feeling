@@ -36,6 +36,27 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponseDTO.notFound(ex.getMessage()));
     }
 
+    @ExceptionHandler(AttributeNotFoundException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAttributeNotFoundException(AttributeNotFoundException ex) {
+        logger.warn("Atributo no encontrado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponseDTO.notFound(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateAttributeException.class)
+    public ResponseEntity<ErrorResponseDTO> handleDuplicateAttributeException(DuplicateAttributeException ex) {
+        logger.warn("Atributo duplicado: tipo={}, identificador={}", ex.getAttributeType(), ex.getIdentifier());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponseDTO.conflict(ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAttributeTypeException.class)
+    public ResponseEntity<ErrorResponseDTO> handleInvalidAttributeTypeException(InvalidAttributeTypeException ex) {
+        logger.warn("Tipo de atributo inválido: {}", ex.getProvidedType());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponseDTO.badRequest(ex.getMessage()));
+    }
+
     @ExceptionHandler(DuplicateNameException.class)
     public ResponseEntity<ErrorResponseDTO> handleDuplicateNameException(DuplicateNameException ex) {
         logger.warn("Nombre duplicado: {}", ex.getMessage());

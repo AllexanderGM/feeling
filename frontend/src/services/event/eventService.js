@@ -236,7 +236,7 @@ class EventService extends ServiceREST {
         category: category
       })
 
-      const result = await ServiceREST.get(`/events/stats/count-by-category?${params.toString()}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.COUNT_BY_CATEGORY}?${params.toString()}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -260,7 +260,7 @@ class EventService extends ServiceREST {
     const context = 'obtener estadísticas por categoría'
 
     try {
-      const result = await ServiceREST.get('/events/stats/category')
+      const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.CATEGORY_STATS)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

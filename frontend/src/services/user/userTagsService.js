@@ -150,28 +150,6 @@ class UserTagsService extends ServiceREST {
     }
   }
 
-  /**
-   * GET /user-tags/users - Lista de usuarios filtrados por tags (pageable)
-   */
-  async getUsersByTags(tags, page = 0, size = 20) {
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        size: size.toString()
-      })
-
-      if (tags && tags.length > 0) {
-        tags.forEach(tag => params.append('tags', tag))
-      }
-
-      const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.USERS_BY_TAGS}?${params}`)
-      return ServiceREST.handleServiceResponse(result, 'obtener usuarios por tags')
-    } catch (error) {
-      this.logError('obtener usuarios por tags', error)
-      throw error
-    }
-  }
-
   // ========================================
   // ADMIN ENDPOINTS
   // ========================================
@@ -341,7 +319,7 @@ class UserTagsService extends ServiceREST {
    * Manejo de errores específico del servicio
    */
   logError(operation, error) {
-    this.Logger.serviceError(operation, error, 'UserTagsService')
+    Logger.serviceError(operation, error, 'UserTagsService')
   }
 }
 
@@ -360,7 +338,6 @@ export const searchTags = (query, page, size) => userTagsService.searchTags(quer
 export const getPopularTags = (page, size) => userTagsService.getPopularTags(page, size)
 export const getTrendingTags = (page, size) => userTagsService.getTrendingTags(page, size)
 export const getTagSuggestions = (page, size) => userTagsService.getTagSuggestions(page, size)
-export const getUsersByTags = (tags, page, size) => userTagsService.getUsersByTags(tags, page, size)
 
 // Admin
 export const getPendingApprovalTags = (page, size) => userTagsService.getPendingApprovalTags(page, size)

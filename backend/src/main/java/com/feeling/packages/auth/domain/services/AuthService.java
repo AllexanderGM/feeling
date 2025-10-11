@@ -2,26 +2,35 @@ package com.feeling.packages.auth.domain.services;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.*;
-import com.feeling.packages.auth.application.PasswordController;
-import com.feeling.packages.auth.domain.dto.*;
+import com.feeling.packages.auth.domain.dto.external.GoogleUserInfoDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthLoginRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthRegisterRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
+import com.feeling.packages.auth.domain.dto.request.GoogleTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.RefreshTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.UnlinkOAuthRequestDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
+import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
+import com.feeling.packages.auth.domain.dto.response.RefreshTokenResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.SessionInfoDTO;
+import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
-import com.feeling.packages.auth.infrastructure.entities.AuthPasswordResetToken;
+import com.feeling.packages.auth.domain.enums.AuthTokenType;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.entities.AuthVerificationCode;
-import com.feeling.packages.auth.infrastructure.repositories.IAuthPasswordResetTokenRepository;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCodeRepository;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
-import com.feeling.packages.user.domain.enums.UserRoleList;
+import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
+import com.feeling.packages.user.domain.services.UserFactory;
 import com.feeling.packages.user.infrastructure.entities.User;
-import com.feeling.packages.user.infrastructure.entities.UserRole;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
-import com.feeling.packages.user.infrastructure.repositories.IUserRoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
-import org.springframework.beans.factory.annotation.Value;
+import org.hibernate.Hibernate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,8 +39,29 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
 
+/**
+ * Servicio principal de autenticación y autorización.
+ * <p>
+ * Responsabilidades:
+ * - Registro y login de usuarios (LOCAL, GOOGLE, FACEBOOK)
+ * - Verificación de email con códigos
+ * - Gestión de tokens JWT (access y refresh)
+ * - Validación y rate limiting de operaciones sensibles
+ * <p>
+ * Integra:
+ * - JwtService: Generación y validación de tokens JWT
+ * - EmailService: Envío de emails transaccionales
+ * - GoogleOAuthService: Autenticación con Google
+ * - Repositorios: Tokens, códigos de verificación, usuarios
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -40,19 +70,15 @@ public class AuthService {
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 30;
 
-    @Value("${cors.allowed.origins}")
-    private String frontendUrl;
-
     private final IAuthTokenRepository tokenRepository;
     private final JwtService jwtService;
-    private final IUserRoleRepository userRoleRepository;
     private final AuthenticationManager authenticationManager;
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final IAuthVerificationCodeRepository verificationCodeRepository;
     private final EmailService emailService;
     private final GoogleOAuthService googleOAuthService;
-    private final IAuthPasswordResetTokenRepository userPasswordResetTokenRepository;
+    private final UserFactory userFactory;
 
     // ==============================
     // REGISTRO
@@ -65,70 +91,14 @@ public class AuthService {
     @Transactional
     public MessageResponseDTO register(AuthRegisterRequestDTO newUser) {
         try {
-            Optional<User> existingUser = userRepository.findByEmail(newUser.email());
-            if (existingUser.isPresent()) {
-                User user = existingUser.get();
+            validateExistingUser(newUser.email(), AuthProvider.LOCAL);
 
-                // Si el usuario existe pero NO está verificado, dar mensaje específico
-                if (!user.isVerified()) {
-                    String unverifiedMessage = "Cuenta no verificada. Revisa tu email o solicita un nuevo código de verificación.";
-
-                    logger.logAuth("register", newUser.email(), "failed - email exists but not verified");
-                    throw new EmailNotVerifiedException(unverifiedMessage);
-                }
-
-                // Si el usuario existe Y está verificado, dar mensaje según el proveedor
-                String conflictMessage = switch (user.getUserAuthProvider()) {
-                    case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
-                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
-                    case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
-                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
-                    case LOCAL -> "El correo electrónico ya está registrado y verificado. " +
-                        "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
-                    default -> "El correo electrónico ya está registrado con otro método.";
-                };
-
-                logger.logAuth("register", newUser.email(), "failed - email already exists with provider: " + user.getUserAuthProvider());
-                throw new ExistEmailException(conflictMessage);
-            }
-
-            validateMinimumRegistrationData(newUser);
-
-            UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                .orElseGet(() -> {
-                    UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                    return userRoleRepository.save(newRole);
-                });
-
-            User userEntity = User.builder()
-                .name(newUser.name().trim())
-                .lastName(newUser.lastName().trim())
-                .email(newUser.email().toLowerCase().trim())
-                .password(passwordEncoder.encode(newUser.password()))
-                .userRole(clientRole)
-                .userAuthProvider(AuthProvider.LOCAL)
-                .verified(false)
-                .profileComplete(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .allowNotifications(true)
-                .showMeInSearch(true)
-                .showAge(true)
-                .showLocation(true)
-                .showPhone(false)
-                .availableAttempts(0)
-                .totalAttemptsPurchased(0)
-                .profileViews(0L)
-                .likesReceived(0L)
-                .matchesCount(0L)
-                .popularityScore(0.0)
-                .build();
-
+            User userEntity = userFactory.createLocalUser(newUser);
             User savedUser = userRepository.save(userEntity);
 
             createAndSendVerificationCode(savedUser);
+            logger.logAuth("register", newUser.email(), "éxito - registro local");
 
-            logger.logAuth("register", newUser.email(), "success - LOCAL registration");
             return new MessageResponseDTO("Usuario registrado exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.");
 
         } catch (ExistEmailException | EmailNotVerifiedException e) {
@@ -140,109 +110,39 @@ public class AuthService {
         }
     }
 
+
     /**
      * REGISTRO CON GOOGLE
-     * Registra un nuevo usuario específicamente usando Google OAuth
+     * Registra un nuevo usuario usando Google OAuth
      */
     @Transactional
     public AuthLoginResponseDTO registerWithGoogle(GoogleTokenRequestDTO request) {
         try {
             logger.info("Iniciando registro con Google");
 
-            // 1. Obtener información del usuario de Google
+            // 1. Obtener información del usuario desde Google
             GoogleUserInfoDTO googleUser = googleOAuthService.getUserInfo(request.accessToken());
+            String email = googleUser.email().toLowerCase().trim();
 
-            // 2. Verificar si el usuario YA EXISTE
-            Optional<User> existingUser = userRepository.findByEmail(googleUser.email().toLowerCase().trim());
-
-            if (existingUser.isPresent()) {
-                User user = existingUser.get();
-
-                // Si el usuario existe pero NO está verificado (solo para LOCAL), dar mensaje específico
-                if (!user.isVerified() && user.getUserAuthProvider() == AuthProvider.LOCAL) {
-                    String unverifiedMessage = "Cuenta no verificada. Revisa tu email o solicita un nuevo código de verificación.";
-
-                    logger.logAuth("google_register", googleUser.email(), "failed - email exists but not verified");
-                    throw new EmailNotVerifiedException(unverifiedMessage);
-                }
-
-                String conflictMessage = switch (user.getUserAuthProvider()) {
-                    case LOCAL -> "Esta cuenta ya está registrada con email y contraseña. " +
-                        "Ve a 'Iniciar Sesión' y usa tu email y contraseña, " +
-                        "o usa 'Iniciar Sesión con Google' para vincular tu cuenta.";
-                    case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
-                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
-                    case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
-                        "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
-                    default -> "Esta cuenta ya existe con otro método de autenticación.";
-                };
-                throw new ExistEmailException(conflictMessage);
-            }
+            // 2. Validar si ya existe un usuario con ese correo
+            validateExistingUser(googleUser.email(), AuthProvider.GOOGLE);
 
             // 3. Crear nuevo usuario desde Google
-            logger.logAuth("google_register", googleUser.email(), "creating new user");
-
-            UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                .orElseGet(() -> userRoleRepository.save(new UserRole(UserRoleList.CLIENT)));
-
-            User newUser = User.builder()
-                .name(googleUser.getFirstName())
-                .lastName(googleUser.getLastName())
-                .email(googleUser.email().toLowerCase().trim())
-                .password(passwordEncoder.encode(
-                    googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
-                ))
-                .userRole(clientRole)
-                .userAuthProvider(AuthProvider.GOOGLE)
-                .externalId(googleUser.sub())
-                .externalAvatarUrl(googleUser.picture())
-                .verified(true)
-                .profileComplete(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .lastExternalSync(LocalDateTime.now())
-                .allowNotifications(true)
-                .showMeInSearch(true)
-                .showAge(true)
-                .showLocation(true)
-                .showPhone(false)
-                .availableAttempts(0)
-                .totalAttemptsPurchased(0)
-                .profileViews(0L)
-                .likesReceived(0L)
-                .matchesCount(0L)
-                .popularityScore(0.0)
-                .build();
-
-            // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
-            // No necesitamos agregarla a la lista de images
+            User newUser = userFactory.createFromGoogleOAuth(googleUser);
 
             newUser = userRepository.save(newUser);
 
-            // Enviar email de bienvenida solo si el usuario está aprobado
-            if (newUser.isApproved()) {
-                try {
-                    emailService.sendWelcomeEmailForGoogleUser(
-                        newUser.getEmail(),
-                        newUser.getName() + " " + newUser.getLastName(),
-                        googleUser.picture()
-                    );
-                    logger.logUserOperation("welcome_email_sent", newUser.getEmail(), Map.of("provider", "GOOGLE"));
-                } catch (Exception emailError) {
-                    logger.warn("Error al enviar email de bienvenida", Map.of("userEmail", newUser.getEmail(), "provider", "GOOGLE", "error", emailError.getMessage()));
-                }
-            } else {
-                logger.logUserOperation("user_registered_pending_approval", newUser.getEmail(), Map.of("provider", "GOOGLE"));
-            }
+            // 4. Enviar correo de bienvenida si aplica
+            sendWelcomeEmailIfApproved(newUser, googleUser);
 
-            // 4. Generar tokens y crear respuesta
+            // 5. Generar tokens y devolver respuesta
             AuthLoginResponseDTO response = generateTokensAndCreateResponse(newUser);
 
-            logger.logAuth("google_register", googleUser.email(), "success");
+            logger.logAuth("google_register", email, "éxito - creando nuevo usuario");
             return response;
 
         } catch (ExistEmailException | EmailNotVerifiedException e) {
-            logger.logAuth("google_register", "unknown", "failed - email already exists: " + e.getMessage());
+            logger.logAuth("google_register", "unknown", "falló - registro: " + e.getMessage());
             throw e;
         } catch (UnauthorizedException e) {
             logger.error("Error de autorización con Google en registro: " + e.getMessage());
@@ -252,6 +152,7 @@ public class AuthService {
             throw new RuntimeException("Error durante el registro con Google. Inténtalo de nuevo.");
         }
     }
+
 
     // ==============================
     // AUTENTICACIÓN
@@ -314,66 +215,15 @@ public class AuthService {
                 // 3. Crear nuevo usuario desde Google
                 logger.logAuth("google_login", googleUser.email(), "creating new user");
 
-                // Obtener rol de cliente - usar transacción separada para evitar conflictos
-                UserRole clientRole = userRoleRepository.findByUserRoleList(UserRoleList.CLIENT)
-                    .orElseGet(() -> {
-                        UserRole newRole = new UserRole(UserRoleList.CLIENT);
-                        return userRoleRepository.save(newRole);
-                    });
-
-                // Crear usuario
-                user = User.builder()
-                    .name(googleUser.getFirstName())
-                    .lastName(googleUser.getLastName())
-                    .email(googleUser.email().toLowerCase().trim())
-                    .password(passwordEncoder.encode(
-                        googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
-                    ))
-                    .userRole(clientRole)
-                    .userAuthProvider(AuthProvider.GOOGLE)
-                    .externalId(googleUser.sub())
-                    .externalAvatarUrl(googleUser.picture())
-                    .verified(true) // Google ya verificó el email
-                    .profileComplete(false) // Necesita completar perfil en Feeling
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .lastExternalSync(LocalDateTime.now())
-                    // Configuración por defecto
-                    .allowNotifications(true)
-                    .showMeInSearch(true)
-                    .showAge(true)
-                    .showLocation(true)
-                    .showPhone(false)
-                    .availableAttempts(0)
-                    .totalAttemptsPurchased(0)
-                    .profileViews(0L)
-                    .likesReceived(0L)
-                    .matchesCount(0L)
-                    .popularityScore(0.0)
-                    .build();
-
-                // La imagen de Google ya se estableció en externalAvatarUrl durante el builder
-                // No necesitamos agregarla a la lista de images
+                user = userFactory.createFromGoogleOAuth(googleUser);
             }
 
             // 4. Guardar usuario
             user = userRepository.save(user);
 
-            // 5. Enviar email de bienvenida solo si el usuario está aprobado (fuera de la transacción crítica)
-            if (existingUser.isEmpty() && user.isApproved()) {
-                try {
-                    emailService.sendWelcomeEmailForGoogleUser(
-                        user.getEmail(),
-                        user.getName() + " " + user.getLastName(),
-                        googleUser.picture()
-                    );
-                    logger.logUserOperation("welcome_email_sent", user.getEmail(), Map.of("provider", "GOOGLE"));
-                } catch (Exception emailError) {
-                    logger.warn("Error al enviar email de bienvenida", Map.of("userEmail", user.getEmail(), "provider", "GOOGLE", "error", emailError.getMessage()));
-                    // No lanzar excepción - el usuario ya fue creado exitosamente
-                }
-            } else if (existingUser.isEmpty() && !user.isApproved()) {
-                logger.logUserOperation("user_created_pending_approval", user.getEmail(), Map.of("provider", "GOOGLE"));
+            // 5. Enviar email de bienvenida solo si es un usuario NUEVO y está aprobado
+            if (existingUser.isEmpty()) {
+                sendWelcomeEmailIfApproved(user, googleUser);
             }
 
             // 6. Generar tokens y crear respuesta
@@ -400,11 +250,6 @@ public class AuthService {
         try {
             // Buscar usuario ANTES de la autenticación para verificar el proveedor
             String normalizedEmail = auth.email().toLowerCase().trim();
-            logger.info("Debug login", Map.of(
-                "originalEmail", auth.email(),
-                "normalizedEmail", normalizedEmail,
-                "category", "LOGIN_DEBUG"
-            ));
 
             Optional<User> userOptional = userRepository.findByEmail(normalizedEmail);
             if (userOptional.isEmpty()) {
@@ -428,6 +273,21 @@ public class AuthService {
                 );
             }
 
+            // Validaciones previas a la autenticación (evitan DisabledException genérica)
+            if (!user.isVerified()) {
+                logger.logAuth("login", auth.email(), "failed - user not verified");
+                throw new UnauthorizedException(
+                    "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada."
+                );
+            }
+
+            if (user.isAccountDeactivated()) {
+                logger.logAuth("login", auth.email(), "failed - account deactivated");
+                throw new UnauthorizedException(
+                    "Tu cuenta está desactivada. Si crees que es un error, contacta al equipo de soporte."
+                );
+            }
+
             // Validar credenciales
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -435,14 +295,6 @@ public class AuthService {
                     auth.password()
                 )
             );
-
-            // Verificar que el usuario esté verificado
-            if (!user.isVerified()) {
-                logger.logAuth("login", auth.email(), "failed - user not verified");
-                throw new UnauthorizedException(
-                    "Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada."
-                );
-            }
 
             // Verificar estado de aprobación (informativo, no bloquea login)
             if (!user.isApproved()) {
@@ -453,10 +305,10 @@ public class AuthService {
             // Cargar usuario con todas las colecciones necesarias para evitar LazyInitializationException
             User userWithCollections = userRepository.findByEmail(normalizedEmail).orElseThrow();
 
-            // Inicializar collections necesarias para el DTO
-            userWithCollections.getImages().size(); // Force lazy loading
+            // Inicializar collections necesarias para el DTO (forzar carga lazy)
+            Hibernate.initialize(userWithCollections.getImages());
             if (userWithCollections.getTags() != null) {
-                userWithCollections.getTags().size(); // Force lazy loading
+                Hibernate.initialize(userWithCollections.getTags());
             }
 
             // Generar tokens y crear respuesta
@@ -497,17 +349,15 @@ public class AuthService {
 
     /**
      * CREACIÓN Y ENVÍO DE CÓDIGO
-     * Crea y envía un código de verificación para un usuario
+     * Crea y envía un código de verificación para un usuario.
+     * Elimina códigos anteriores usando operación optimizada.
      */
     @Transactional
     public void createAndSendVerificationCode(User user) {
         try {
-            // 1. ELIMINAR códigos anteriores si existen
-            Optional<AuthVerificationCode> existingCode = verificationCodeRepository.findByUserId(user.getId());
-            if (existingCode.isPresent()) {
-                verificationCodeRepository.delete(existingCode.get());
-                logger.logUserOperation("verification_code_cleanup", user.getEmail(), Map.of("action", "removed_old_code"));
-            }
+            // 1. ELIMINAR todos los códigos anteriores del usuario usando método optimizado @Modifying
+            verificationCodeRepository.deleteByUserId(user.getId());
+            logger.logUserOperation("verification_code_cleanup", user.getEmail(), Map.of("action", "removed_all_old_codes"));
 
             // 2. Crear nuevo código único
             String code;
@@ -550,7 +400,8 @@ public class AuthService {
 
     /**
      * VERIFICACIÓN DE CÓDIGO
-     * Verifica un código de verificación enviado por el usuario
+     * Verifica un código de verificación enviado por el usuario.
+     * Utiliza métodos de dominio de la entidad para validaciones.
      */
     @Transactional
     public MessageResponseDTO verifyCode(AuthVerifyCodeDTO authVerifyCodeDTO) {
@@ -574,14 +425,14 @@ public class AuthService {
             return new MessageResponseDTO("La cuenta ya está verificada");
         }
 
-        // Verificar expiración
-        if (verificationCode.getExpirationTime().isBefore(LocalDateTime.now())) {
+        // Verificar expiración usando método de dominio
+        if (verificationCode.isExpired()) {
             logger.logAuth("verify_email", authVerifyCodeDTO.email(), "failed - code expired");
             throw new UnauthorizedException("El código ha expirado. Solicita un nuevo código.");
         }
 
-        // Marcar código como verificado
-        verificationCode.setVerified(true);
+        // Marcar código como verificado usando método de dominio
+        verificationCode.markAsVerified();
         verificationCodeRepository.save(verificationCode);
 
         // Activar usuario
@@ -611,7 +462,8 @@ public class AuthService {
 
     /**
      * REENVÍO DE CÓDIGO
-     * Reenvía un código de verificación al correo del usuario
+     * Reenvía un código de verificación al correo del usuario.
+     * Implementa rate limiting para prevenir spam.
      */
     @Transactional
     public MessageResponseDTO resendCode(String email) {
@@ -624,11 +476,21 @@ public class AuthService {
                 return new MessageResponseDTO("La cuenta ya está verificada");
             }
 
-            // Verificar límite de tiempo para anti-spam
-            Optional<AuthVerificationCode> lastCode = verificationCodeRepository.findByUserId(user.getId());
-            if (lastCode.isPresent() && !lastCode.get().isVerified()) {
-                // Calcular tiempo transcurrido desde el último código
-                LocalDateTime lastCodeTime = lastCode.get().getExpirationTime().minusMinutes(EXPIRATION_MINUTES);
+            // Rate limiting: verificar cantidad de códigos creados en los últimos 15 minutos
+            LocalDateTime fifteenMinutesAgo = LocalDateTime.now().minusMinutes(15);
+            long recentCodesCount = verificationCodeRepository.countCodesCreatedSince(user.getId(), fifteenMinutesAgo);
+
+            if (recentCodesCount >= 3) {
+                throw new TooManyRequestsException(
+                    "Has alcanzado el límite de solicitudes. Espera 15 minutos antes de solicitar un nuevo código."
+                );
+            }
+
+            // Verificar límite de tiempo desde el último código (anti-spam adicional)
+            Optional<AuthVerificationCode> lastCodeOpt = verificationCodeRepository.findActiveCodeByUserId(user.getId(), LocalDateTime.now());
+            if (lastCodeOpt.isPresent()) {
+                AuthVerificationCode lastCode = lastCodeOpt.get();
+                LocalDateTime lastCodeTime = lastCode.getCreatedAt();
                 LocalDateTime now = LocalDateTime.now();
                 long minutesElapsed = java.time.Duration.between(lastCodeTime, now).toMinutes();
 
@@ -643,215 +505,16 @@ public class AuthService {
             // Generar y enviar nuevo código
             createAndSendVerificationCode(user);
 
-            logger.logUserOperation("verification_code_resent", email, null);
+            logger.logUserOperation("verification_code_resent", email, Map.of("recentAttempts", recentCodesCount + 1));
             return new MessageResponseDTO("Se ha enviado un nuevo código de verificación a tu correo electrónico");
 
         } catch (NotFoundException | TooManyRequestsException e) {
-            // Re-lanzar excepciones conocidas
             throw e;
         } catch (Exception e) {
             logger.error("Error inesperado al reenviar código", e);
             throw new RuntimeException("Error al reenviar código de verificación", e);
         }
     }
-
-    // ==============================
-// RECUPERACIÓN DE CONTRASEÑA
-// ==============================
-
-    /**
-     * SOLICITAR RECUPERACIÓN DE CONTRASEÑA
-     * Genera y envía un token de recuperación por email
-     */
-    @Transactional
-    public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request) {
-        try {
-            // Buscar usuario por email
-            User user = userRepository.findByEmail(request.email().toLowerCase().trim())
-                .orElseThrow(() -> new NotFoundException("No encontramos ninguna cuenta asociada a este email"));
-
-            // Verificar que el usuario esté verificado
-            if (!user.isVerified()) {
-                throw new UnauthorizedException("Debes verificar tu correo electrónico antes de recuperar tu contraseña");
-            }
-
-            // Verificar que sea usuario LOCAL (no OAuth)
-            if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
-                String message = switch (user.getUserAuthProvider()) {
-                    case GOOGLE ->
-                        "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
-                    case FACEBOOK ->
-                        "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
-                    default -> "Esta cuenta usa un método de autenticación externo.";
-                };
-                throw new UnauthorizedException(message);
-            }
-
-            // Generar token único
-            String resetToken = generatePasswordResetToken();
-            LocalDateTime expirationTime = LocalDateTime.now().plusHours(1); // 1 hora de validez
-
-            // Eliminar tokens anteriores si existen
-            userPasswordResetTokenRepository.deleteByUserId(user.getId());
-
-            // Crear nuevo token de recuperación
-            AuthPasswordResetToken passwordResetToken = AuthPasswordResetToken.builder()
-                .token(resetToken)
-                .user(user)
-                .expirationTime(expirationTime)
-                .used(false)
-                .build();
-
-            userPasswordResetTokenRepository.save(passwordResetToken);
-
-            // Enviar email con el enlace de recuperación
-            String resetLink = frontendUrl + "/reset-password/" + resetToken;
-            emailService.sendPasswordResetEmail(
-                user.getEmail(),
-                user.getName() + " " + user.getLastName(),
-                resetLink,
-                60 // minutos de validez
-            );
-
-            logger.logUserOperation("password_reset_token_sent", request.email(), null);
-            return new MessageResponseDTO(
-                "Hemos enviado un enlace de recuperación a tu correo electrónico. " +
-                    "Revisa tu bandeja de entrada y spam. El enlace expira en 1 hora."
-            );
-
-        } catch (NotFoundException | UnauthorizedException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error inesperado en recuperación de contraseña", e);
-            throw new RuntimeException("Error al procesar la solicitud de recuperación de contraseña");
-        }
-    }
-
-    /**
-     * RESTABLECER CONTRASEÑA
-     * Restablece la contraseña usando un token válido
-     */
-    @Transactional
-    public MessageResponseDTO resetPassword(ResetPasswordRequestDTO request) {
-        try {
-            // Validar que las contraseñas coincidan
-            if (!request.passwordsMatch()) {
-                throw new IllegalArgumentException("Las contraseñas no coinciden");
-            }
-
-            // Buscar y validar token
-            AuthPasswordResetToken resetToken = userPasswordResetTokenRepository.findByToken(request.token())
-                .orElseThrow(() -> new UnauthorizedException("Token de recuperación inválido"));
-
-            // Verificar expiración
-            if (resetToken.getExpirationTime().isBefore(LocalDateTime.now())) {
-                throw new UnauthorizedException("El token de recuperación ha expirado. Solicita uno nuevo.");
-            }
-
-            // Verificar que no se haya usado
-            if (resetToken.isUsed()) {
-                throw new UnauthorizedException("Este token de recuperación ya ha sido utilizado");
-            }
-
-            User user = resetToken.getUser();
-
-            // Verificar que el usuario siga siendo LOCAL
-            if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
-                throw new UnauthorizedException("No puedes cambiar la contraseña de una cuenta OAuth");
-            }
-
-            // Actualizar contraseña
-            user.setPassword(passwordEncoder.encode(request.password()));
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-
-            // Marcar token como usado
-            resetToken.setUsed(true);
-            userPasswordResetTokenRepository.save(resetToken);
-
-            // Revocar todas las sesiones activas por seguridad
-            revokeAllAuthTokens(user);
-
-            // Enviar email de confirmación
-            try {
-                emailService.sendPasswordChangeConfirmationEmail(
-                    user.getEmail(),
-                    user.getName() + " " + user.getLastName()
-                );
-            } catch (Exception emailError) {
-                logger.warn("Error al enviar email de confirmación", Map.of("error", emailError.getMessage()));
-            }
-
-            logger.logUserOperation("password_reset_complete", user.getEmail(), null);
-            return new MessageResponseDTO(
-                "Tu contraseña ha sido restablecida exitosamente. " +
-                    "Ya puedes iniciar sesión con tu nueva contraseña."
-            );
-
-        } catch (IllegalArgumentException | UnauthorizedException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error inesperado al restablecer contraseña", e);
-            throw new RuntimeException("Error al restablecer la contraseña");
-        }
-    }
-
-    /**
-     * VALIDAR TOKEN DE RECUPERACIÓN
-     * Verifica si un token de recuperación es válido
-     */
-    public TokenValidationDTO validateResetToken(String token) {
-        try {
-            Optional<AuthPasswordResetToken> resetTokenOpt = userPasswordResetTokenRepository.findByToken(token);
-
-            if (resetTokenOpt.isEmpty()) {
-                return new TokenValidationDTO(
-                    false,
-                    null,
-                    "Token de recuperación inválido",
-                    null
-                );
-            }
-
-            AuthPasswordResetToken resetToken = resetTokenOpt.get();
-
-            // Verificar si ya fue usado
-            if (resetToken.isUsed()) {
-                return new TokenValidationDTO(
-                    false,
-                    resetToken.getUser().getEmail(),
-                    "Este token ya ha sido utilizado",
-                    null
-                );
-            }
-
-            // Verificar expiración
-            LocalDateTime now = LocalDateTime.now();
-            if (resetToken.getExpirationTime().isBefore(now)) {
-                return new TokenValidationDTO(
-                    false,
-                    resetToken.getUser().getEmail(),
-                    "El token ha expirado",
-                    null
-                );
-            }
-
-            // Calcular tiempo restante
-            long minutesRemaining = java.time.Duration.between(now, resetToken.getExpirationTime()).toMinutes();
-
-            return new TokenValidationDTO(
-                true,
-                resetToken.getUser().getEmail(),
-                "Token válido",
-                minutesRemaining
-            );
-
-        } catch (Exception e) {
-            logger.error("Error validando token de recuperación", e);
-            throw new RuntimeException("Error al validar token de recuperación");
-        }
-    }
-
 
     // ==============================
     // GESTIÓN DE TOKENS JWT
@@ -865,29 +528,22 @@ public class AuthService {
         final String refreshToken = request.refreshToken();
 
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
-            logger.error("Intento de refresh con token vacío");
             throw new BadRequestException("Refresh token requerido");
         }
 
-        logger.info("Procesando refresh token", Map.of("tokenLength", refreshToken.length()));
-
         // Verificar que es un REFRESH token
         if (!jwtService.isRefreshToken(refreshToken)) {
-            logger.error("Token no es de tipo REFRESH");
             throw new BadRequestException("Token inválido - se requiere refresh token");
         }
 
         final String userEmail = jwtService.extractUsername(refreshToken);
         if (userEmail == null) {
-            logger.error("No se pudo extraer email del refresh token");
             throw new BadRequestException("Refresh token inválido");
         }
 
-        logger.info("Email extraído del refresh token", Map.of("email", userEmail));
-
         final Optional<User> userOptional = userRepository.findByEmail(userEmail);
         if (userOptional.isEmpty()) {
-            logger.error("Usuario no encontrado durante refresh: " + userEmail);
+            logger.warn("Usuario no encontrado durante refresh", Map.of("email", userEmail));
             throw new BadRequestException("Usuario no encontrado");
         }
 
@@ -895,34 +551,23 @@ public class AuthService {
 
         // Verificar que el refresh token es válido
         if (!jwtService.isTokenValid(refreshToken, user)) {
-            logger.error("Refresh token inválido para usuario: " + userEmail);
+            logger.warn("Refresh token inválido", Map.of("email", userEmail));
             throw new BadRequestException("Refresh token inválido");
         }
-
-        logger.info("Buscando refresh token en BD", Map.of("email", userEmail, "tokenPrefix", refreshToken.substring(0, Math.min(20, refreshToken.length()))));
 
         // Verificar que el refresh token existe en BD y no está revocado
         Optional<AuthToken> storedToken = tokenRepository.findByToken(refreshToken);
 
         if (storedToken.isEmpty()) {
-            logger.error("Refresh token NO encontrado en BD", Map.of("email", userEmail));
+            logger.warn("Refresh token no encontrado en BD", Map.of("email", userEmail));
             throw new BadRequestException("Refresh token inválido - no encontrado");
         }
 
         AuthToken token = storedToken.get();
-        logger.info("Refresh token encontrado en BD", Map.of(
-            "email", userEmail,
-            "revoked", token.isRevoked(),
-            "expired", token.isExpired(),
-            "type", token.getType().toString()
-        ));
 
-        if (token.isRevoked() || token.isExpired()) {
-            logger.error("Refresh token revocado o expirado en BD", Map.of(
-                "email", userEmail,
-                "revoked", token.isRevoked(),
-                "expired", token.isExpired()
-            ));
+        // Usar método de dominio para validación
+        if (!token.isValid()) {
+            logger.warn("Refresh token inválido", Map.of("email", userEmail, "revoked", token.isRevoked(), "expired", token.isExpired()));
             throw new BadRequestException("Refresh token inválido - revocado o expirado");
         }
 
@@ -940,20 +585,11 @@ public class AuthService {
         revokeAllAccessTokens(user);
 
         // Guardar los nuevos tokens
-        saveAuthToken(user, newAccessToken, AuthToken.TokenType.ACCESS);
-        saveAuthToken(user, newRefreshToken, AuthToken.TokenType.REFRESH);
+        saveAuthToken(user, newAccessToken, AuthTokenType.ACCESS);
+        saveAuthToken(user, newRefreshToken, AuthTokenType.REFRESH);
 
         logger.logAuth("refresh_token", userEmail, "success - tokens rotated");
         return new RefreshTokenResponseDTO(newAccessToken, newRefreshToken, "Tokens refrescados exitosamente");
-    }
-
-    /**
-     * GENERAR TOKEN DE RECUPERACIÓN
-     * Genera un token único para recuperación de contraseña
-     */
-    private String generatePasswordResetToken() {
-        return UUID.randomUUID().toString().replace("-", "") +
-            System.currentTimeMillis();
     }
 
     // ==============================
@@ -967,8 +603,6 @@ public class AuthService {
     @Transactional
     AuthLoginResponseDTO generateTokensAndCreateResponse(User user) {
         try {
-            logger.logUserOperation("token_generation", user.getEmail(), null);
-
             // Validar que el usuario tenga rol asignado
             if (user.getUserRole() == null) {
                 throw new IllegalStateException("Usuario no tiene rol asignado");
@@ -978,20 +612,22 @@ public class AuthService {
             String accessToken = jwtService.generateToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            logger.logUserOperation("token_revocation", user.getEmail(), Map.of("action", "revoking_previous_access_tokens"));
-
-            // Para login: solo revocar access tokens, permitir múltiples refresh tokens activos
-            // Esto permite sesiones simultáneas en múltiples dispositivos
+            // ESTRATEGIA DE TOKENS:
+            // 1. Revocar todos los access tokens antiguos (solo 1 access token activo por sesión)
             revokeAllAccessTokens(user);
 
-            logger.logUserOperation("token_save", user.getEmail(), null);
-            saveAuthToken(user, accessToken, AuthToken.TokenType.ACCESS);
-            saveAuthToken(user, refreshToken, AuthToken.TokenType.REFRESH);
+            // 2. Limitar refresh tokens a máximo 3 por usuario (permite 3 dispositivos simultáneos)
+            limitRefreshTokensPerUser(user);
+
+            // 3. Guardar nuevos tokens
+            saveAuthToken(user, accessToken, AuthTokenType.ACCESS);
+            saveAuthToken(user, refreshToken, AuthTokenType.REFRESH);
+
+            // 4. Limpiar tokens viejos revocados/expirados (más de 7 días)
+            cleanupOldTokens();
 
             // Actualizar última actividad
             updateUserLastActive(user);
-
-            logger.logUserOperation("tokens_saved_complete", user.getEmail(), null);
 
             // Usar el mapper básico para crear la respuesta (sin métricas de matches para evitar dependencia circular)
             var userExtended = UserDTOMapper.toUserExtendedResponseDTO(user);
@@ -1018,7 +654,7 @@ public class AuthService {
      * GUARDAR TOKEN ACTUALIZADO
      * Guarda un token con su tipo específico
      */
-    private void saveAuthToken(User user, String token, AuthToken.TokenType tokenType) {
+    private void saveAuthToken(User user, String token, AuthTokenType tokenType) {
         try {
             AuthToken userToken = AuthToken.builder()
                 .token(token)
@@ -1029,7 +665,6 @@ public class AuthService {
                 .build();
 
             tokenRepository.save(userToken);
-            logger.logUserOperation("token_saved", user.getEmail(), Map.of("tokenType", tokenType.toString()));
         } catch (Exception e) {
             logger.error("Error al guardar token", Map.of("tokenType", tokenType.toString(), "userEmail", user.getEmail()), e);
             throw new RuntimeException("Error al guardar token " + tokenType + ": " + e.getMessage(), e);
@@ -1054,6 +689,57 @@ public class AuthService {
     }
 
     /**
+     * LIMITAR REFRESH TOKENS POR USUARIO
+     * Mantiene solo los N refresh tokens más recientes, revocando los más antiguos
+     * Esto permite sesiones simultáneas en múltiples dispositivos con un límite razonable
+     */
+    private void limitRefreshTokensPerUser(User user) {
+        List<AuthToken> allRefreshTokens = tokenRepository
+            .findAllTokensByUserIdAndType(user.getId(), AuthTokenType.REFRESH);
+
+        // Filtrar solo tokens válidos (no expirados ni revocados)
+        List<AuthToken> validRefreshTokens = allRefreshTokens.stream()
+            .filter(t -> !t.isExpired() && !t.isRevoked())
+            .toList();
+
+        // Si hay más tokens válidos que el límite, revocar los más antiguos
+        if (validRefreshTokens.size() >= 3) {
+            int tokensToRevoke = validRefreshTokens.size() - 3 + 1; // +1 para dejar espacio al nuevo token
+            List<AuthToken> tokensToDelete = validRefreshTokens.stream()
+                .limit(tokensToRevoke)
+                .toList();
+
+            tokensToDelete.forEach(token -> {
+                token.setExpired(true);
+                token.setRevoked(true);
+            });
+            tokenRepository.saveAll(tokensToDelete);
+        }
+    }
+
+    /**
+     * Limpia tokens JWT expirados y revocados antiguos.
+     * <p>
+     * Elimina físicamente de la base de datos los tokens que están
+     * expirados o revocados y tienen más de 7 días de antigüedad.
+     * Esto previene acumulación infinita de tokens en la BD.
+     * <p>
+     * Este método no lanza excepciones para evitar afectar el flujo
+     * de autenticación si la limpieza falla. Los errores se registran
+     * como warnings.
+     */
+    @Transactional
+    public void cleanupOldTokens() {
+        try {
+            LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
+            tokenRepository.deleteExpiredAndRevokedTokensOlderThan(cutoffDate);
+        } catch (Exception e) {
+            // Log pero no fallar el login si la limpieza falla
+            logger.warn("Error al limpiar tokens antiguos", Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * REVOCAR TODOS LOS TOKENS
      * Revoca tanto access como refresh tokens (para logout completo)
      */
@@ -1063,15 +749,11 @@ public class AuthService {
                 .findAllValidTokensByUserId(user.getId());
 
             if (!validAuthTokens.isEmpty()) {
-                logger.logUserOperation("tokens_revoked", user.getEmail(), Map.of("count", validAuthTokens.size()));
                 validAuthTokens.forEach(token -> {
                     token.setExpired(true);
                     token.setRevoked(true);
                 });
                 tokenRepository.saveAll(validAuthTokens);
-                logger.logUserOperation("tokens_revoked_success", user.getEmail(), null);
-            } else {
-                logger.logUserOperation("no_tokens_to_revoke", user.getEmail(), null);
             }
         } catch (Exception e) {
             logger.error("Error al revocar tokens", Map.of("userEmail", user.getEmail()), e);
@@ -1084,36 +766,127 @@ public class AuthService {
     // ==============================
 
     /**
-     * VALIDACIÓN DE DATOS MÍNIMOS
-     * Valida que los datos mínimos de registro estén presentes
+     * Envía email de bienvenida para usuarios Google si están aprobados.
+     * Método privado reutilizable para evitar duplicación de código.
+     *
+     * @param user       Usuario al que enviar el email
+     * @param googleUser Información de Google del usuario
      */
-    private void validateMinimumRegistrationData(AuthRegisterRequestDTO userData) {
-        if (userData.name() == null || userData.name().trim().isEmpty()) {
-            throw new IllegalArgumentException("El nombre es obligatorio");
-        }
-        if (userData.email() == null || userData.email().trim().isEmpty()) {
-            throw new IllegalArgumentException("El correo electrónico es obligatorio");
-        }
-        if (userData.password() == null || userData.password().length() < 6) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
-        }
-        if (!isValidEmail(userData.email())) {
-            throw new IllegalArgumentException("El formato del correo electrónico no es válido");
+    private void sendWelcomeEmailIfApproved(User user, GoogleUserInfoDTO googleUser) {
+        if (user.isApproved()) {
+            try {
+                emailService.sendWelcomeEmailForGoogleUser(
+                    user.getEmail(),
+                    user.getName() + " " + user.getLastName(),
+                    googleUser.picture()
+                );
+                logger.logUserOperation("welcome_email_sent", user.getEmail(), Map.of("provider", "GOOGLE"));
+            } catch (Exception emailError) {
+                logger.warn("Error al enviar email de bienvenida", Map.of("userEmail", user.getEmail(), "provider", "GOOGLE", "error", emailError.getMessage()));
+            }
+        } else {
+            logger.logUserOperation("user_registered_pending_approval", user.getEmail(), Map.of("provider", "GOOGLE"));
         }
     }
 
     /**
-     * VALIDACIÓN DE EMAIL
-     * Validación básica de formato de email
+     * Valida que un email no esté ya registrado para un proveedor específico.
+     * <p>
+     * Lanza EmailNotVerifiedException si el usuario existe pero no está verificado (solo LOCAL).
+     * Lanza ExistEmailException si el usuario ya existe.
+     *
+     * @param email               Email a validar
+     * @param registeringProvider Proveedor con el que se intenta registrar (LOCAL, GOOGLE, etc.)
+     * @throws EmailNotVerifiedException si usuario existe pero no verificado
+     * @throws ExistEmailException       si email ya registrado
      */
-    private boolean isValidEmail(String email) {
-        return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private void validateExistingUser(String email, AuthProvider registeringProvider) {
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isEmpty()) return;
+
+        User user = existingUser.get();
+
+        // Caso especial: usuario LOCAL no verificado
+        if (!user.isVerified() && user.getUserAuthProvider() == AuthProvider.LOCAL) {
+            logger.logAuth(registeringProvider.name().toLowerCase() + "_register",
+                email, "falló - correo existe pero no verificado");
+            throw new EmailNotVerifiedException(
+                "Cuenta no verificada. Revisa tu email o solicita un nuevo código de verificación."
+            );
+        }
+
+        // Si ya existe, obtener mensaje de conflicto según el proveedor actual
+        String conflictMessage = getConflictMessage(user, registeringProvider);
+
+        logger.logAuth(registeringProvider.name().toLowerCase() + "_register",
+            email, "falló - correo ya existe con proveedor: " + user.getUserAuthProvider());
+        throw new ExistEmailException(conflictMessage);
     }
 
     /**
-     * VERIFICACIÓN DE USUARIO
-     * Verifica si un usuario está completamente registrado y verificado
+     * Genera mensaje de conflicto apropiado según el proveedor existente y el que intenta registrarse.
+     * <p>
+     * Diferencia entre intentar registrarse con el mismo proveedor vs otro diferente.
+     *
+     * @param existingUser        Usuario existente en la base de datos
+     * @param registeringProvider Proveedor con el que se intenta registrar
+     * @return Mensaje de error descriptivo para el usuario
      */
+    private String getConflictMessage(User existingUser, AuthProvider registeringProvider) {
+        AuthProvider existingProvider = existingUser.getUserAuthProvider();
+
+        // Si intenta registrarse con el mismo proveedor
+        if (existingProvider == registeringProvider) {
+            return switch (existingProvider) {
+                case LOCAL -> "El correo electrónico ya está registrado y verificado. " +
+                    "Ve a 'Iniciar Sesión' si ya tienes una cuenta.";
+                case GOOGLE -> "Esta cuenta ya está registrada con Google. " +
+                    "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
+                case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
+                    "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                default -> "Esta cuenta ya existe con otro método de autenticación.";
+            };
+        }
+
+        // Si intenta registrarse con otro método
+        return switch (registeringProvider) {
+            case GOOGLE -> "Esta cuenta ya está registrada con " + existingProvider +
+                ". Usa 'Iniciar Sesión' con ese método o vincula tu cuenta de Google.";
+            case FACEBOOK -> "Esta cuenta ya está registrada con " + existingProvider +
+                ". Usa 'Iniciar Sesión' con ese método o vincula tu cuenta de Facebook.";
+            case LOCAL -> "El correo ya está registrado con " + existingProvider +
+                ". Usa el método correspondiente para iniciar sesión.";
+            default -> "El correo ya está registrado con otro método.";
+        };
+    }
+
+    /**
+     * Busca un usuario por email.
+     * <p>
+     * Normaliza el email (lowercase y trim) antes de la búsqueda.
+     * Útil para operaciones que requieren verificar la existencia del usuario
+     * sin exponer directamente el repositorio a controladores.
+     *
+     * @param email Email del usuario
+     * @return Optional con el usuario si existe
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email.toLowerCase().trim());
+    }
+
+    /**
+     * Verifica si un usuario está completamente registrado y verificado.
+     * <p>
+     * Un usuario está completamente registrado si:
+     * - Existe en la base de datos
+     * - Ha verificado su email
+     * - Su cuenta está habilitada
+     *
+     * @param email Email del usuario a verificar
+     * @return true si el usuario está completamente registrado
+     */
+    @Transactional(readOnly = true)
     public boolean isUserFullyRegistered(String email) {
         Optional<User> userOptional = userRepository.findByEmail(email.toLowerCase().trim());
         if (userOptional.isEmpty()) {
@@ -1124,13 +897,6 @@ public class AuthService {
         return user.isVerified() && user.isEnabled();
     }
 
-    /**
-     * OBTENER USUARIO POR EMAIL
-     * Obtiene información básica del usuario por email
-     */
-    public Optional<User> getUserByEmail(String email) {
-        return userRepository.findByEmail(email.toLowerCase().trim());
-    }
 
     /**
      * ACTUALIZAR ÚLTIMA ACTIVIDAD
@@ -1157,73 +923,16 @@ public class AuthService {
     // ==============================
 
     /**
-     * Valida si un token de recuperación de contraseña es válido
+     * Verifica si un email está disponible para registro.
+     * <p>
+     * Indica si el email puede usarse para crear una cuenta nueva
+     * y con qué métodos de autenticación. Si el email ya existe,
+     * proporciona sugerencias sobre cómo iniciar sesión.
+     *
+     * @param email Email a verificar
+     * @return DTO con disponibilidad, proveedor existente (si aplica) y sugerencias
      */
-    public boolean isPasswordResetTokenValid(String token) {
-        try {
-            Optional<AuthPasswordResetToken> resetToken = userPasswordResetTokenRepository.findByToken(token);
-
-            if (resetToken.isEmpty()) {
-                return false;
-            }
-
-            AuthPasswordResetToken passwordResetToken = resetToken.get();
-            LocalDateTime now = LocalDateTime.now();
-
-            return passwordResetToken.getExpirationTime().isAfter(now);
-        } catch (Exception e) {
-            logger.error("Error validando token de recuperación", e);
-            return false;
-        }
-    }
-
-    /**
-     * Cambia la contraseña de un usuario autenticado
-     */
-    public MessageResponseDTO changePassword(PasswordController.ChangePasswordRequestDTO request, String authHeader) {
-        try {
-            String userEmail = jwtService.extractUsername(authHeader.replace("Bearer ", ""));
-            User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
-
-            // Verificar contraseña actual
-            if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-                logger.logAuth("change_password", userEmail, "failed - incorrect current password");
-                throw new UnauthorizedException("La contraseña actual es incorrecta");
-            }
-
-            // Cambiar contraseña
-            user.setPassword(passwordEncoder.encode(request.newPassword()));
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-
-            logger.logAuth("change_password", userEmail, "success");
-            return new MessageResponseDTO("Contraseña cambiada exitosamente");
-        } catch (NotFoundException | UnauthorizedException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error al cambiar contraseña", e);
-            throw new RuntimeException("Error inesperado al cambiar contraseña");
-        }
-    }
-
-    /**
-     * Verifica el email usando el código de verificación
-     */
-    public MessageResponseDTO verifyEmail(AuthVerifyCodeDTO verifyCodeDTO) {
-        return verifyCode(verifyCodeDTO);
-    }
-
-    /**
-     * Reenvía el código de verificación
-     */
-    public MessageResponseDTO resendVerificationCode(AuthResendCodeRequestDTO resendCodeDTO) {
-        return resendCode(resendCodeDTO.email());
-    }
-
-    /**
-     * Verifica la disponibilidad de un email
-     */
+    @Transactional(readOnly = true)
     public EmailAvailabilityDTO checkEmailAvailability(String email) {
         try {
             Optional<User> existingUser = userRepository.findByEmail(email.toLowerCase().trim());
@@ -1248,8 +957,15 @@ public class AuthService {
     }
 
     /**
-     * Obtiene el estado de verificación de un usuario
+     * Obtiene el estado de verificación de un usuario.
+     * <p>
+     * Retorna información sobre si el usuario existe, está verificado
+     * y tiene su perfil completo. Útil para validaciones en frontend.
+     *
+     * @param email Email del usuario
+     * @return DTO con estado de registro, verificación y perfil completo
      */
+    @Transactional(readOnly = true)
     public AuthUserStatusDTO getUserVerificationStatus(String email) {
         try {
             Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().trim());
@@ -1272,8 +988,17 @@ public class AuthService {
     }
 
     /**
-     * Valida si un código de verificación es válido para un email
+     * Valida si un código de verificación es válido sin consumirlo.
+     * <p>
+     * Verifica que el código exista, pertenezca al usuario, no esté
+     * ya verificado y no haya expirado. No marca el código como usado,
+     * permitiendo validaciones previas antes de la verificación final.
+     *
+     * @param email Email del usuario
+     * @param code  Código de verificación a validar
+     * @return true si el código es válido y no ha expirado
      */
+    @Transactional(readOnly = true)
     public boolean isVerificationCodeValid(String email, String code) {
         try {
             Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().trim());
@@ -1290,9 +1015,9 @@ public class AuthService {
             }
 
             AuthVerificationCode verificationCode = verificationCodeOpt.get();
-            LocalDateTime now = LocalDateTime.now();
 
-            return !verificationCode.isVerified() && verificationCode.getExpirationTime().isAfter(now);
+            // Usar método de dominio de la entidad para validación
+            return verificationCode.isValid();
         } catch (Exception e) {
             logger.error("Error validando código de verificación", e);
             return false;
@@ -1300,57 +1025,66 @@ public class AuthService {
     }
 
     /**
-     * Limpia códigos de verificación expirados
+     * Limpia códigos de verificación expirados de la base de datos.
+     * <p>
+     * Utiliza operación @Modifying optimizada para eliminar en batch
+     * todos los códigos cuya fecha de expiración ya pasó. Diseñado
+     * para ser llamado por tareas programadas (@Scheduled).
+     *
+     * @return Cantidad de códigos eliminados
      */
+    @Transactional
     public int cleanupExpiredVerificationCodes() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            List<AuthVerificationCode> expiredCodes = verificationCodeRepository.findByExpirationTimeBefore(now);
 
-            if (!expiredCodes.isEmpty()) {
-                verificationCodeRepository.deleteAll(expiredCodes);
-                logger.logUserOperation("cleanup_expired_codes", "system", Map.of("count", expiredCodes.size()));
+            // Primero obtener la cantidad para logging
+            List<AuthVerificationCode> expiredCodes = verificationCodeRepository.findByExpirationTimeBefore(now);
+            int count = expiredCodes.size();
+
+            if (count > 0) {
+                // Usar método optimizado @Modifying
+                verificationCodeRepository.deleteExpiredCodes(now);
+                logger.logUserOperation("cleanup_expired_codes", "system", Map.of("count", count));
             }
 
-            return expiredCodes.size();
+            return count;
         } catch (Exception e) {
             logger.error("Error limpiando códigos expirados", e);
             return 0;
         }
     }
 
-    /**
-     * Extrae el email de un token JWT
-     */
-    public String extractEmailFromToken(String authHeader) {
-        try {
-            String token = authHeader.replace("Bearer ", "");
-            return jwtService.extractUsername(token);
-        } catch (Exception e) {
-            logger.error("Error extrayendo email del token", e);
-            throw new UnauthorizedException("Token inválido");
-        }
-    }
 
     /**
-     * Realiza el logout revocando tokens
+     * Cierra la sesión del usuario revocando todos sus tokens.
+     * <p>
+     * Invalida tanto access tokens como refresh tokens para forzar
+     * cierre de sesión en todos los dispositivos del usuario.
+     *
+     * @param authHeader Header Authorization con el token JWT (formato: "Bearer {token}")
+     * @return Mensaje de confirmación del cierre de sesión
+     * @throws UnauthorizedException si el token es inválido
+     * @throws RuntimeException      si hay un error al revocar tokens
      */
     public MessageResponseDTO logout(String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
             String userEmail = jwtService.extractUsername(token);
 
-            // Buscar el token en la base de datos
-            Optional<AuthToken> userTokenOpt = tokenRepository.findByToken(token);
-            if (userTokenOpt.isPresent()) {
-                AuthToken userToken = userTokenOpt.get();
-                userToken.setRevoked(true);
-                userToken.setExpired(true);
-                tokenRepository.save(userToken);
+            // Buscar usuario
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            if (userOpt.isEmpty()) {
+                throw new RuntimeException("Usuario no encontrado");
             }
 
-            logger.logAuth("logout", userEmail, "success");
-            return new MessageResponseDTO("Logout exitoso");
+            User user = userOpt.get();
+
+            // Revocar TODOS los tokens del usuario (access + refresh)
+            revokeAllAuthTokens(user);
+
+            logger.logAuth("logout", userEmail, "success - all sessions closed");
+            return new MessageResponseDTO("Logout exitoso - todas las sesiones cerradas");
         } catch (Exception e) {
             logger.error("Error en logout", e);
             throw new RuntimeException("Error al realizar logout");
@@ -1360,6 +1094,7 @@ public class AuthService {
     /**
      * Valida un token JWT
      */
+    @Transactional(readOnly = true)
     public TokenValidationDTO validateToken(String token) {
         try {
             String userEmail = jwtService.extractUsername(token);
@@ -1386,6 +1121,7 @@ public class AuthService {
     /**
      * Obtiene información de la sesión actual
      */
+    @Transactional(readOnly = true)
     public SessionInfoDTO getSessionInfo(String authHeader) {
         try {
             String token = authHeader.replace("Bearer ", "");
@@ -1414,8 +1150,16 @@ public class AuthService {
     }
 
     /**
-     * Obtiene información del método de autenticación para un email
+     * Obtiene información del método de autenticación para un email.
+     * <p>
+     * Identifica con qué proveedor (LOCAL, GOOGLE, FACEBOOK) está registrado
+     * el email y qué métodos de autenticación puede usar para iniciar sesión.
+     * Si el email no está registrado, retorna que puede usar cualquier método.
+     *
+     * @param email Email a verificar
+     * @return DTO con proveedor actual, mensaje descriptivo y métodos disponibles
      */
+    @Transactional(readOnly = true)
     public AuthMethodInfoDTO getAuthMethodInfo(String email) {
         try {
             Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().trim());
@@ -1461,7 +1205,7 @@ public class AuthService {
     /**
      * Desvincula una cuenta OAuth (método temporal)
      */
-    public MessageResponseDTO unlinkOAuthAccount(String userEmail, String authHeader, Object unlinkRequest) {
+    public MessageResponseDTO unlinkOAuthAccount(String provider, String authHeader, UnlinkOAuthRequestDTO unlinkRequest) {
         // Por ahora, método placeholder
         throw new UnsupportedOperationException("Funcionalidad de desvincular OAuth aún no implementada");
     }

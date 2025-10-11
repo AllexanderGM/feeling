@@ -1,8 +1,21 @@
 package com.feeling.packages.auth.application;
 
 import com.feeling.exception.ExistEmailException;
-import com.feeling.packages.auth.domain.dto.*;
+import com.feeling.packages.auth.domain.dto.request.AuthLoginRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthRegisterRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthResendCodeRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
+import com.feeling.packages.auth.domain.dto.request.ForgotPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.RefreshTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.ResetPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
+import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
+import com.feeling.packages.auth.domain.dto.response.RefreshTokenResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
 import com.feeling.packages.auth.domain.services.AuthService;
+import com.feeling.packages.auth.domain.services.PasswordService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.infrastructure.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +44,7 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
+    private final PasswordService passwordService;
 
     // ==============================
     // REGISTRO
@@ -53,32 +67,6 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
             logger.error("Error en registro para {}: {}", newUser.email(), e.getMessage());
-            throw e;
-        }
-    }
-
-    @PostMapping("/google/register")
-    @Operation(
-        summary = "Registrarse con Google",
-        description = "Registra un nuevo usuario específicamente usando Google OAuth2. " +
-            "Si el email ya existe, devuelve error con instrucciones específicas."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "201", description = "Usuario registrado con Google exitosamente",
-            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-        @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
-        @ApiResponse(responseCode = "409", description = "Email ya registrado con otro método")
-    })
-    public ResponseEntity<AuthLoginResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
-        try {
-            logger.info("Intento de registro con Google");
-            AuthLoginResponseDTO response = authService.registerWithGoogle(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (ExistEmailException e) {
-            logger.error("Error en registro con Google - email existente: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error en registro con Google: {}", e.getMessage());
             throw e;
         }
     }
@@ -152,30 +140,6 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en login para {}: {}", authRequest.email(), e.getMessage());
-            throw e;
-        }
-    }
-
-    @PostMapping("/google/login")
-    @Operation(
-        summary = "Iniciar sesión con Google",
-        description = "Autentica un usuario usando Google OAuth2. Crea una cuenta automáticamente si no existe."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Login con Google exitoso (usuario existente)",
-            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-        @ApiResponse(responseCode = "201", description = "Usuario creado y autenticado con Google (usuario nuevo)",
-            content = @Content(schema = @Schema(implementation = AuthLoginResponseDTO.class))),
-        @ApiResponse(responseCode = "400", description = "Token de Google inválido"),
-        @ApiResponse(responseCode = "409", description = "Conflicto de método de autenticación")
-    })
-    public ResponseEntity<AuthLoginResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO request) {
-        try {
-            logger.info("Intento de autenticación con Google");
-            AuthLoginResponseDTO response = authService.loginWithGoogle(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Error en autenticación con Google: {}", e.getMessage());
             throw e;
         }
     }
@@ -302,7 +266,7 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(
         summary = "Cerrar sesión",
-        description = "Invalida el token JWT del usuario"
+        description = "Invalida todos los tokens JWT del usuario"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Sesión cerrada exitosamente"),
@@ -311,9 +275,8 @@ public class AuthController {
     public ResponseEntity<MessageResponseDTO> logout(@RequestHeader("Authorization") String authHeader) {
         try {
             logger.info("Solicitud de logout");
-            // Nota: La lógica de logout se manejará en el SecurityConfiguration
-            // Este endpoint es principalmente para completitud de la API
-            return ResponseEntity.ok(new MessageResponseDTO("Sesión cerrada exitosamente"));
+            MessageResponseDTO response = authService.logout(authHeader);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en logout: {}", e.getMessage());
             throw e;
@@ -337,7 +300,7 @@ public class AuthController {
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
         try {
             logger.info("Solicitud de recuperación de contraseña para: {}", request.email());
-            MessageResponseDTO response = authService.forgotPassword(request);
+            MessageResponseDTO response = passwordService.forgotPassword(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en recuperación de contraseña para {}: {}", request.email(), e.getMessage());
@@ -358,7 +321,7 @@ public class AuthController {
     public ResponseEntity<MessageResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
         try {
             logger.info("Intento de restablecimiento de contraseña con token");
-            MessageResponseDTO response = authService.resetPassword(request);
+            MessageResponseDTO response = passwordService.resetPassword(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error en restablecimiento de contraseña: {}", e.getMessage());
@@ -378,7 +341,7 @@ public class AuthController {
     public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
         try {
             logger.info("Validando token de recuperación de contraseña");
-            TokenValidationDTO response = authService.validateResetToken(token);
+            TokenValidationDTO response = passwordService.validateResetToken(token);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error validando token de recuperación: {}", e.getMessage());
@@ -404,11 +367,13 @@ public class AuthController {
             logger.info("Verificación de estado para usuario: {}", email);
             boolean isFullyRegistered = authService.isUserFullyRegistered(email);
 
+            Optional<User> userOptional = authService.getUserByEmail(email);
+
             AuthUserStatusDTO status = new AuthUserStatusDTO(
                 email,
                 isFullyRegistered,
-                authService.getUserByEmail(email).map(User::isVerified).orElse(false),
-                authService.getUserByEmail(email).map(User::getProfileComplete).orElse(false)
+                userOptional.map(User::isVerified).orElse(false),
+                userOptional.map(User::getProfileComplete).orElse(false)
             );
 
             return ResponseEntity.ok(status);

@@ -1,243 +1,411 @@
 package com.feeling.packages.user.application;
 
+import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserAttributeCreateDTO;
+import com.feeling.packages.common.domain.validation.ValidAttributeType;
 import com.feeling.packages.user.domain.dto.UserAttributeDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeStatisticsResponseDTO;
+import com.feeling.packages.user.domain.dto.request.UserAttributeCreateDTO;
 import com.feeling.packages.user.domain.services.UserAttributeService;
-import com.feeling.packages.user.domain.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-@Slf4j
+/**
+ * Controlador REST para gestión de atributos de usuario.
+ * <p>
+ * Este controlador maneja todas las operaciones relacionadas con atributos
+ * de usuario que son propiedades catalogadas como género, color de ojos,
+ * iglesia, nivel educativo, etc.
+ * <p>
+ * Funcionalidades:
+ * <ul>
+ *   <li>Consulta pública de atributos activos por tipo (usuarios autenticados)</li>
+ *   <li>Propuesta de nuevos atributos por usuarios (CHURCH, RELIGION) - requiere aprobación</li>
+ *   <li>CRUD completo de atributos (solo administradores)</li>
+ *   <li>Activación/desactivación de atributos (aprobación de propuestas)</li>
+ *   <li>Estadísticas de atributos</li>
+ * </ul>
+ * <p>
+ * Arquitectura:
+ * - Sigue principios DDD (Domain-Driven Design)
+ * - Validaciones en DTO con Bean Validation
+ * - Manejo de errores con GlobalExceptionHandler
+ * - Logging estructurado para auditoría
+ * - Documentación completa con Swagger/OpenAPI
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ * @see UserAttributeService
+ * @see UserAttributeDTO
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/user-attributes")
 @RequiredArgsConstructor
-@Tag(name = "User Attributes", description = "User attributes management endpoints")
+@Tag(name = "User Attributes", description = "Endpoints de gestión de atributos de usuario")
 public class UserAttributeController {
 
+    private static final StructuredLoggerFactory.StructuredLogger logger =
+        StructuredLoggerFactory.create(UserAttributeController.class);
+
     private final UserAttributeService userAttributeService;
-    private final UserService userService;
 
     // ========================================
-    // CLIENT ENDPOINTS (AUTHENTICATED)
+    // CONSULTAS PÚBLICAS (CLIENTES)
     // ========================================
 
+    /**
+     * Obtiene todos los atributos activos agrupados por tipo.
+     *
+     * @return Mapa con atributos agrupados por tipo
+     */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get all attributes grouped by type",
-        description = "Get all user attributes grouped by type (authenticated users)")
+    @Operation(summary = "Obtener todos los atributos agrupados por tipo",
+        description = "Retorna todos los atributos activos agrupados por tipo para formularios de usuario")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributos obtenidos exitosamente"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
     public ResponseEntity<Map<String, List<UserAttributeDTO>>> getAllAttributes() {
-        try {
-            Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAllAttributesGrouped();
-            return ResponseEntity.ok(attributes);
-        } catch (Exception e) {
-            log.error("Error obteniendo todos los atributos", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        logger.info("Consultando todos los atributos agrupados");
+        Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAllAttributesGrouped();
+        return ResponseEntity.ok(attributes);
     }
 
+    /**
+     * Obtiene atributos activos de un tipo específico.
+     *
+     * @param attributeType Tipo de atributo (GENDER, EYE_COLOR, etc.)
+     * @return Lista de atributos del tipo especificado
+     */
     @GetMapping("/{attributeType}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get attributes by type",
-        description = "Get attributes of a specific type (authenticated users)")
+    @Operation(summary = "Obtener atributos por tipo",
+        description = "Retorna lista de atributos activos de un tipo específico")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributos obtenidos exitosamente"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
     public ResponseEntity<List<UserAttributeDTO>> getAttributesByType(
-        @Parameter(description = "Attribute type") @PathVariable String attributeType) {
-        try {
-            List<UserAttributeDTO> attributes = userAttributeService.getAttributesByType(attributeType);
-            return ResponseEntity.ok(attributes);
-        } catch (Exception e) {
-            log.error("Error obteniendo atributos del tipo: {}", attributeType, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        @Parameter(description = "Tipo de atributo") @PathVariable String attributeType) {
+        logger.info("Consultando atributos por tipo", Map.of("attributeType", attributeType));
+        List<UserAttributeDTO> attributes = userAttributeService.getAttributesByType(attributeType);
+        return ResponseEntity.ok(attributes);
     }
 
-    @GetMapping("/{attributeId}/users")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get users filtered by attribute",
-        description = "Get users with matching profile format filtered by specific attribute")
-    public ResponseEntity<Page<UserResponseDTO>> getUsersByAttribute(
-        @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
-        @PageableDefault(size = 20) Pageable pageable) {
-        try {
-            Page<UserResponseDTO> users = userAttributeService.getUsersByAttributeWithResponseDTO(attributeId, pageable);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuarios por atributo: {}", attributeId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
+    /**
+     * Obtiene lista de tipos de atributos disponibles.
+     *
+     * @return Lista de tipos de atributos únicos
+     */
     @GetMapping("/types")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get available attribute types",
-        description = "Get list of available attribute types (authenticated users)")
+    @Operation(summary = "Obtener tipos de atributos disponibles",
+        description = "Retorna lista de tipos de atributos configurados en el sistema")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Tipos obtenidos exitosamente"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
     public ResponseEntity<List<String>> getAttributeTypes() {
-        try {
-            Map<String, List<UserAttributeDTO>> grouped = userAttributeService.getAllAttributesGrouped();
-            List<String> types = List.copyOf(grouped.keySet());
-            return ResponseEntity.ok(types);
-        } catch (Exception e) {
-            log.error("Error obteniendo tipos de atributos", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        logger.info("Consultando tipos de atributos disponibles");
+        Map<String, List<UserAttributeDTO>> grouped = userAttributeService.getAllAttributesGrouped();
+        List<String> types = List.copyOf(grouped.keySet());
+        return ResponseEntity.ok(types);
     }
 
-    @PostMapping("/church")
+    // ========================================
+    // CONSULTAS ADMINISTRATIVAS
+    // ========================================
+
+    /**
+     * Obtiene todos los atributos (activos e inactivos) paginados para administración.
+     *
+     * @param pageable Configuración de paginación y ordenamiento
+     * @return Página de atributos
+     */
+    @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Obtener todos los atributos paginados (admin)",
+        description = "Retorna lista paginada de todos los atributos (activos e inactivos) para panel de administración")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<Page<UserAttributeDTO>> getAllAttributesPaged(
+        @PageableDefault(size = 20, sort = {"attributeType", "displayOrder"}) Pageable pageable) {
+        logger.info("Admin consultando todos los atributos paginados", Map.of("page", pageable.getPageNumber()));
+        Page<UserAttributeDTO> attributes = userAttributeService.getAllAttributesPaged(pageable);
+        return ResponseEntity.ok(attributes);
+    }
+
+    /**
+     * Obtiene un atributo específico por ID.
+     *
+     * @param id ID del atributo
+     * @return Atributo encontrado
+     */
+    @GetMapping("/admin/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Obtener atributo por ID (admin)",
+        description = "Retorna un atributo específico por su ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributo encontrado"),
+        @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<UserAttributeDTO> getAttributeById(
+        @Parameter(description = "ID del atributo") @PathVariable Long id) {
+        logger.info("Admin consultando atributo por ID", Map.of("attributeId", id));
+        UserAttributeDTO attribute = userAttributeService.getAttributeById(id);
+        return ResponseEntity.ok(attribute);
+    }
+
+    /**
+     * Obtiene todos los atributos inactivos pendientes de aprobación.
+     *
+     * @return Lista de atributos inactivos
+     */
+    @GetMapping("/admin/inactive")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Obtener atributos inactivos (admin)",
+        description = "Retorna lista de atributos inactivos pendientes de aprobación")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<List<UserAttributeDTO>> getInactiveAttributes() {
+        logger.info("Admin consultando atributos inactivos");
+        List<UserAttributeDTO> inactiveAttributes = userAttributeService.getInactiveAttributes();
+        return ResponseEntity.ok(inactiveAttributes);
+    }
+
+    /**
+     * Obtiene estadísticas completas de los atributos del sistema.
+     *
+     * @return Estadísticas de atributos
+     */
+    @GetMapping("/admin/statistics")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Obtener estadísticas de atributos (admin)",
+        description = "Retorna estadísticas completas sobre atributos del sistema")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Estadísticas obtenidas exitosamente"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<UserAttributeStatisticsResponseDTO> getAttributeStatistics() {
+        logger.info("Admin consultando estadísticas de atributos");
+        UserAttributeStatisticsResponseDTO statistics = userAttributeService.getAttributeStatistics();
+        return ResponseEntity.ok(statistics);
+    }
+
+    // ========================================
+    // OPERACIONES DE USUARIOS
+    // ========================================
+
+    /**
+     * Permite a usuarios autenticados proponer nuevos atributos de ciertos tipos.
+     * Solo tipos permitidos: CHURCH, RELIGION.
+     * Los atributos creados quedan inactivos hasta aprobación administrativa.
+     *
+     * @param attributeType Tipo de atributo a crear (CHURCH, RELIGION)
+     * @param createDTO     Datos del nuevo atributo
+     * @return Atributo creado (inactivo, pendiente de aprobación)
+     */
+    @PostMapping("/user/{attributeType}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Create new church",
-        description = "Add a new church for authenticated users")
-    public ResponseEntity<?> createChurch(@Valid @RequestBody UserAttributeCreateDTO createDTO,
-                                          BindingResult bindingResult) {
+    @Operation(summary = "Proponer nuevo atributo (usuario)",
+        description = "Permite a usuarios proponer nuevos atributos de tipos específicos (CHURCH, RELIGION). " +
+            "Quedan pendientes de aprobación administrativa.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Atributo propuesto exitosamente (pendiente de aprobación)"),
+        @ApiResponse(responseCode = "400", description = "Tipo no permitido, datos inválidos o atributo duplicado"),
+        @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    public ResponseEntity<UserAttributeDTO> createAttributeByUser(
+        @Parameter(description = "Tipo de atributo (CHURCH, RELIGION)")
+        @PathVariable @ValidAttributeType String attributeType,
+        @Valid @RequestBody UserAttributeCreateDTO createDTO) {
 
-        log.info("Usuario creando nueva iglesia: {}", createDTO);
+        logger.info("Usuario proponiendo nuevo atributo", Map.of(
+            "attributeType", attributeType,
+            "name", createDTO.name()
+        ));
 
-        if (bindingResult.hasErrors()) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "VALIDATION_ERROR");
-            errorResponse.put("message", "Error de validación en los datos de la iglesia");
-            errorResponse.put("details", bindingResult.getFieldErrors().stream()
-                .collect(Collectors.toMap(
-                    error -> error.getField(),
-                    error -> error.getDefaultMessage()
-                )));
+        // createdByAdmin = false, se crea inactivo
+        UserAttributeDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, false);
 
-            log.warn("Error de validación creando iglesia: {}", errorResponse);
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
+        logger.info("Atributo propuesto exitosamente (pendiente de aprobación)", Map.of(
+            "id", createdAttribute.id(),
+            "type", createdAttribute.attributeType(),
+            "active", createdAttribute.active()
+        ));
 
-        try {
-            UserAttributeDTO createdChurch = userAttributeService.createAttribute("CHURCH", createDTO);
-            log.info("Iglesia creada exitosamente: {}", createdChurch);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdChurch);
-
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "INVALID_CHURCH_DATA");
-            errorResponse.put("message", e.getMessage());
-
-            log.error("Error creando iglesia: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(errorResponse);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "INTERNAL_SERVER_ERROR");
-            errorResponse.put("message", "Error interno creando la iglesia");
-
-            log.error("Error interno creando iglesia", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdAttribute);
     }
 
     // ========================================
-    // ADMIN ENDPOINTS
+    // OPERACIONES ADMINISTRATIVAS - CRUD
     // ========================================
 
-    @PostMapping("/{attributeType}")
+    /**
+     * Crea un nuevo atributo de un tipo específico.
+     * Solo administradores pueden crear atributos del sistema.
+     *
+     * @param attributeType Tipo de atributo a crear
+     * @param createDTO     Datos del nuevo atributo
+     * @return Atributo creado
+     */
+    @PostMapping("/admin/{attributeType}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Create new attribute",
-        description = "Add a new attribute by attribute type (admin only)")
-    public ResponseEntity<?> createAttribute(
-        @Parameter(description = "Attribute type") @PathVariable String attributeType,
-        @Valid @RequestBody UserAttributeCreateDTO createDTO,
-        BindingResult bindingResult) {
+    @Operation(summary = "Crear nuevo atributo (admin)",
+        description = "Crea un nuevo atributo de un tipo específico")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Atributo creado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Tipo inválido o atributo duplicado"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<UserAttributeDTO> createAttribute(
+        @Parameter(description = "Tipo de atributo")
+        @PathVariable @ValidAttributeType String attributeType,
+        @Valid @RequestBody UserAttributeCreateDTO createDTO) {
 
-        log.info("Creando nuevo atributo del tipo: {} con datos: {}", attributeType, createDTO);
+        logger.info("Admin creando atributo", Map.of(
+            "attributeType", attributeType,
+            "name", createDTO.name()
+        ));
 
-        if (bindingResult.hasErrors()) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "VALIDATION_ERROR");
-            errorResponse.put("message", "Error de validación en los datos enviados");
-            errorResponse.put("details", bindingResult.getFieldErrors().stream()
-                .collect(Collectors.toMap(
-                    error -> error.getField(),
-                    error -> error.getDefaultMessage()
-                )));
+        // createdByAdmin = true, se crea activo
+        UserAttributeDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, true);
 
-            log.warn("Error de validación creando atributo {}: {}", attributeType, errorResponse);
-            return ResponseEntity.badRequest().body(errorResponse);
-        }
-
-        try {
-            UserAttributeDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO);
-            log.info("Atributo creado exitosamente: {}", createdAttribute);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdAttribute);
-
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "INVALID_ATTRIBUTE_TYPE");
-            errorResponse.put("message", "Tipo de atributo no válido: " + attributeType);
-            errorResponse.put("details", e.getMessage());
-
-            log.warn("Tipo de atributo inválido: {}", attributeType, e);
-            return ResponseEntity.badRequest().body(errorResponse);
-
-        } catch (RuntimeException e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "DUPLICATE_ATTRIBUTE");
-            errorResponse.put("message", "Ya existe un atributo con ese código o nombre");
-            errorResponse.put("details", e.getMessage());
-
-            log.warn("Error de duplicado creando atributo {}: {}", attributeType, e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
-
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "INTERNAL_SERVER_ERROR");
-            errorResponse.put("message", "Error interno del servidor al crear el atributo");
-            errorResponse.put("details", "Contacta al administrador del sistema");
-
-            log.error("Error inesperado creando atributo {}: {}", attributeType, createDTO, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        logger.info("Atributo creado exitosamente por admin (activo)", Map.of(
+            "id", createdAttribute.id(),
+            "type", createdAttribute.attributeType(),
+            "active", createdAttribute.active()
+        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdAttribute);
     }
 
-    @PutMapping("/{attributeId}")
+    /**
+     * Actualiza un atributo existente.
+     *
+     * @param attributeId ID del atributo a actualizar
+     * @param updateDTO   Nuevos datos del atributo
+     * @return Atributo actualizado
+     */
+    @PutMapping("/admin/{attributeId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Update attribute",
-        description = "Modify an existing attribute (admin only)")
+    @Operation(summary = "Actualizar atributo (admin)",
+        description = "Modifica los datos de un atributo existente")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributo actualizado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
     public ResponseEntity<UserAttributeDTO> updateAttribute(
-        @Parameter(description = "Attribute ID") @PathVariable Long attributeId,
+        @Parameter(description = "ID del atributo") @PathVariable Long attributeId,
         @Valid @RequestBody UserAttributeCreateDTO updateDTO) {
-        try {
-            UserAttributeDTO updatedAttribute = userAttributeService.updateAttribute(attributeId, updateDTO);
-            return ResponseEntity.ok(updatedAttribute);
-        } catch (Exception e) {
-            log.error("Error actualizando atributo: {}", attributeId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+
+        logger.info("Admin actualizando atributo", Map.of(
+            "attributeId", attributeId,
+            "newName", updateDTO.name()
+        ));
+
+        UserAttributeDTO updatedAttribute = userAttributeService.updateAttribute(attributeId, updateDTO);
+
+        logger.info("Atributo actualizado exitosamente", Map.of("attributeId", attributeId));
+        return ResponseEntity.ok(updatedAttribute);
     }
 
-    @DeleteMapping("/{attributeId}")
+    /**
+     * Elimina un atributo del sistema.
+     *
+     * @param attributeId ID del atributo a eliminar
+     * @return Mensaje de confirmación
+     */
+    @DeleteMapping("/admin/{attributeId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Delete attribute",
-        description = "Delete an existing attribute (admin only)")
+    @Operation(summary = "Eliminar atributo (admin)",
+        description = "Elimina permanentemente un atributo del sistema")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributo eliminado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
     public ResponseEntity<MessageResponseDTO> deleteAttribute(
-        @Parameter(description = "Attribute ID") @PathVariable Long attributeId) {
-        try {
-            MessageResponseDTO response = userAttributeService.deleteAttribute(attributeId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error eliminando atributo: {}", attributeId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al eliminar atributo"));
-        }
+        @Parameter(description = "ID del atributo") @PathVariable Long attributeId) {
+
+        logger.info("Admin eliminando atributo", Map.of("attributeId", attributeId));
+        MessageResponseDTO response = userAttributeService.deleteAttribute(attributeId);
+        logger.info("Atributo eliminado exitosamente", Map.of("attributeId", attributeId));
+        return ResponseEntity.ok(response);
+    }
+
+    // ========================================
+    // OPERACIONES ADMINISTRATIVAS - ACTIVACIÓN
+    // ========================================
+
+    /**
+     * Activa un atributo inactivo (lo hace visible para usuarios).
+     *
+     * @param attributeId ID del atributo a activar
+     * @return Atributo activado
+     */
+    @PutMapping("/admin/{attributeId}/activate")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Activar atributo (admin)",
+        description = "Activa un atributo inactivo haciéndolo visible para los usuarios")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributo activado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<UserAttributeDTO> activateAttribute(
+        @Parameter(description = "ID del atributo") @PathVariable Long attributeId) {
+
+        logger.info("Admin activando atributo", Map.of("attributeId", attributeId));
+        UserAttributeDTO activatedAttribute = userAttributeService.activateAttribute(attributeId);
+        logger.info("Atributo activado exitosamente", Map.of("attributeId", attributeId));
+        return ResponseEntity.ok(activatedAttribute);
+    }
+
+    /**
+     * Desactiva un atributo (lo oculta de los usuarios sin eliminarlo).
+     *
+     * @param attributeId ID del atributo a desactivar
+     * @return Atributo desactivado
+     */
+    @PutMapping("/admin/{attributeId}/deactivate")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Operation(summary = "Desactivar atributo (admin)",
+        description = "Desactiva un atributo ocultándolo de los usuarios sin eliminarlo")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Atributo desactivado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
+    })
+    public ResponseEntity<UserAttributeDTO> deactivateAttribute(
+        @Parameter(description = "ID del atributo") @PathVariable Long attributeId) {
+
+        logger.info("Admin desactivando atributo", Map.of("attributeId", attributeId));
+        UserAttributeDTO deactivatedAttribute = userAttributeService.deactivateAttribute(attributeId);
+        logger.info("Atributo desactivado exitosamente", Map.of("attributeId", attributeId));
+        return ResponseEntity.ok(deactivatedAttribute);
     }
 }

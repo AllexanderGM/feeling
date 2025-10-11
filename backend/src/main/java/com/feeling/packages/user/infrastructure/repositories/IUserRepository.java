@@ -1,6 +1,7 @@
 package com.feeling.packages.user.infrastructure.repositories;
 
 import com.feeling.packages.user.infrastructure.entities.User;
+import com.feeling.packages.user.infrastructure.entities.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -95,7 +96,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     /**
      * Busca usuarios pendientes de aprobación administrativa con búsqueda opcional.
-     * Filtra por: verified = true, profileComplete = true, approvalStatus = PENDING, accountDeactivated = false.
+     * Filtra por: verified = true, profileComplete = true, userApprovalStatus = PENDING, accountDeactivated = false.
      * Solo incluye usuarios que completaron su perfil y esperan revisión del administrador.
      * Incluye FETCH JOIN para tags.
      *
@@ -104,7 +105,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      * @return Página de usuarios pendientes de aprobación, ordenados por fecha de creación (más antiguos primero = FIFO)
      */
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
-        "WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false " +
+        "WHERE u.verified = true AND u.profileComplete = true AND u.userApprovalStatus = 'PENDING' AND u.accountDeactivated = false " +
         "AND (:searchTerm IS NULL OR " +
         "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
         "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -134,7 +135,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     /**
      * Busca usuarios activos en la plataforma con búsqueda opcional.
-     * Filtra por: verified = true, approvalStatus = APPROVED, profileComplete = true, accountDeactivated = false.
+     * Filtra por: verified = true, userApprovalStatus = APPROVED, profileComplete = true, accountDeactivated = false.
      * Incluye FETCH JOIN para tags.
      * Busca en todos los campos relevantes: identificación, ubicación, categoría y rol.
      *
@@ -143,7 +144,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      * @return Página de usuarios activos, ordenados por fecha de creación (más recientes primero)
      */
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
-        "WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false " +
+        "WHERE u.verified = true AND u.userApprovalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false " +
         "AND (:searchTerm IS NULL OR " +
         "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
         "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -177,7 +178,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 
     /**
      * Busca usuarios rechazados con búsqueda opcional.
-     * Filtra por: verified = true, approvalStatus = REJECTED, accountDeactivated = false.
+     * Filtra por: verified = true, userApprovalStatus = REJECTED, accountDeactivated = false.
      * Útil para revisión administrativa de usuarios rechazados.
      * Incluye FETCH JOIN para tags.
      *
@@ -186,7 +187,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      * @return Página de usuarios rechazados, ordenados por fecha de creación (más recientes primero)
      */
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.tags " +
-        "WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false " +
+        "WHERE u.verified = true AND u.userApprovalStatus = 'REJECTED' AND u.accountDeactivated = false " +
         "AND (:searchTerm IS NULL OR " +
         "LOWER(u.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
         "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -256,17 +257,26 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      *
      * @return Número de usuarios en estado PENDING
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.profileComplete = true AND u.approvalStatus = 'PENDING' AND u.accountDeactivated = false")
+    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.profileComplete = true AND u.userApprovalStatus = 'PENDING' AND u.accountDeactivated = false")
     long countByPendingApproval();
 
     /**
      * Cuenta usuarios rechazados.
      * Solo incluye usuarios verificados no desactivados.
      *
-     * @return Número de usuarios con approvalStatus = 'REJECTED'
+     * @return Número de usuarios con userApprovalStatus = 'REJECTED'
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.approvalStatus = 'REJECTED' AND u.accountDeactivated = false")
+    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.userApprovalStatus = 'REJECTED' AND u.accountDeactivated = false")
     long countByRejected();
+
+    /**
+     * Cuenta usuarios no aprobados (ni aprobados, ni pendientes, ni rechazados).
+     * Incluye usuarios que aún no han alcanzado el estado de revisión.
+     *
+     * @return Número de usuarios sin userApprovalStatus = 'APPROVED'
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.userApprovalStatus != 'APPROVED' AND u.accountDeactivated = false")
+    long countNonApprovedUsers();
 
     /**
      * Cuenta usuarios con perfil completo.
@@ -285,6 +295,14 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     long countByProfileCompleteFalse();
 
     /**
+     * Encuentra usuarios verificados con perfil incompleto y cuenta activa.
+     * Útil para envío de recordatorios masivos de completar perfil.
+     *
+     * @return Lista de usuarios que cumplen los criterios
+     */
+    List<User> findByVerifiedTrueAndProfileCompleteFalseAndAccountDeactivatedFalse();
+
+    /**
      * Cuenta usuarios activos desde una fecha específica.
      *
      * @param since Fecha desde la cual contar actividad
@@ -299,7 +317,7 @@ public interface IUserRepository extends JpaRepository<User, Long> {
      *
      * @return Número de usuarios activos
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.approvalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false")
+    @Query("SELECT COUNT(u) FROM User u WHERE u.verified = true AND u.userApprovalStatus = 'APPROVED' AND u.profileComplete = true AND u.accountDeactivated = false")
     long countActiveUsers();
 
     /**
@@ -393,4 +411,25 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query("UPDATE User u SET u.lastActive = :lastActive, u.updatedAt = :updatedAt WHERE u.id = :userId")
     int updateLastActive(@Param("userId") Long userId, @Param("lastActive") LocalDateTime lastActive, @Param("updatedAt") LocalDateTime updatedAt);
+
+    // ========================================
+    // CONSULTAS POR ROL
+    // ========================================
+
+    /**
+     * Busca usuarios por rol específico con paginación.
+     *
+     * @param userRole Rol a buscar
+     * @param pageable Configuración de paginación
+     * @return Página de usuarios con ese rol
+     */
+    Page<User> findByUserRole(UserRole userRole, Pageable pageable);
+
+    /**
+     * Cuenta usuarios por rol específico.
+     *
+     * @param userRole Rol a contar
+     * @return Número de usuarios con ese rol
+     */
+    long countByUserRole(UserRole userRole);
 }

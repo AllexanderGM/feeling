@@ -1,11 +1,11 @@
 package com.feeling.packages.user.infrastructure.entities;
 
+import com.feeling.packages.user.domain.enums.UserTagApprovalStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.feeling.packages.user.domain.enums.TagApprovalStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Entidad que representa un tag o etiqueta que los usuarios pueden utilizar para describirse.
  * Los tags son dinámicos y pueden ser creados por los usuarios, pero requieren aprobación administrativa.
- *
+ * <p>
  * Características principales:
  * - Sistema de aprobación para evitar contenido inapropiado
  * - Contador de uso para estadísticas y trending
@@ -100,7 +100,7 @@ public class UserTag {
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false)
     @Builder.Default
-    private TagApprovalStatus approvalStatus = TagApprovalStatus.PENDING;
+    private UserTagApprovalStatus approvalStatus = UserTagApprovalStatus.PENDING;
 
     /**
      * Email del administrador que aprobó el tag.
@@ -140,11 +140,12 @@ public class UserTag {
     // ========================================
     // CONSTRUCTORES DE UTILIDAD
     // ========================================
+
     /**
      * Constructor de conveniencia para crear un nuevo tag.
      * Normaliza automáticamente el nombre a lowercase.
      *
-     * @param name Nombre del tag
+     * @param name      Nombre del tag
      * @param createdBy Email del usuario creador
      */
     public UserTag(String name, String createdBy) {
@@ -159,9 +160,9 @@ public class UserTag {
      * Constructor alternativo que acepta un parámetro description por compatibilidad.
      * El parámetro description ya no se usa pero se mantiene para compatibilidad con código legacy.
      *
-     * @param name Nombre del tag
+     * @param name        Nombre del tag
      * @param description Descripción (deprecado, se ignora)
-     * @param createdBy Email del usuario creador
+     * @param createdBy   Email del usuario creador
      * @deprecated Usar {@link #UserTag(String, String)} en su lugar
      */
     @Deprecated
@@ -226,8 +227,8 @@ public class UserTag {
         for (String word : words) {
             if (word.length() > 0) {
                 result.append(Character.toUpperCase(word.charAt(0)))
-                        .append(word.substring(1).toLowerCase())
-                        .append(" ");
+                    .append(word.substring(1).toLowerCase())
+                    .append(" ");
             }
         }
 
@@ -256,7 +257,7 @@ public class UserTag {
      * @return true si el estado de aprobación es APPROVED
      */
     public boolean isApproved() {
-        return this.approvalStatus == TagApprovalStatus.APPROVED;
+        return this.approvalStatus == UserTagApprovalStatus.APPROVED;
     }
 
     /**
@@ -266,7 +267,7 @@ public class UserTag {
      * @param approvedByEmail Email del administrador que aprobó el tag
      */
     public void approve(String approvedByEmail) {
-        this.approvalStatus = TagApprovalStatus.APPROVED;
+        this.approvalStatus = UserTagApprovalStatus.APPROVED;
         this.approvedBy = approvedByEmail;
         this.approvedAt = LocalDateTime.now();
         this.rejectionReason = null; // Limpiar razón de rechazo si existía
@@ -279,7 +280,7 @@ public class UserTag {
      * @param rejectionReason Razón por la cual se rechaza el tag
      */
     public void reject(String rejectionReason) {
-        this.approvalStatus = TagApprovalStatus.REJECTED;
+        this.approvalStatus = UserTagApprovalStatus.REJECTED;
         this.rejectionReason = rejectionReason;
         this.approvedBy = null;
         this.approvedAt = null;
@@ -291,7 +292,7 @@ public class UserTag {
      * @return true si el estado de aprobación es PENDING
      */
     public boolean isPendingApproval() {
-        return this.approvalStatus == TagApprovalStatus.PENDING;
+        return this.approvalStatus == UserTagApprovalStatus.PENDING;
     }
 
     /**
@@ -300,7 +301,7 @@ public class UserTag {
      * @return true si el estado de aprobación es REJECTED
      */
     public boolean isRejected() {
-        return this.approvalStatus == TagApprovalStatus.REJECTED;
+        return this.approvalStatus == UserTagApprovalStatus.REJECTED;
     }
 
     /**
@@ -337,10 +338,10 @@ public class UserTag {
     @Override
     public String toString() {
         return "UserTag{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", usageCount=" + usageCount +
-                ", trending=" + trending +
-                '}';
+            "id=" + id +
+            ", name='" + name + '\'' +
+            ", usageCount=" + usageCount +
+            ", trending=" + trending +
+            '}';
     }
 }

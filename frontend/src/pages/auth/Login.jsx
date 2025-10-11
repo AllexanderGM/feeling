@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import { Mail, Lock } from 'lucide-react'
-import { useAuth } from '@hooks'
+import { useAuth, useOAuth } from '@hooks/auth'
 import { loginSchema, extractLoginData } from '@schemas'
 import { Logger } from '@utils/logger.js'
 import LiteContainer from '@components/layout/LiteContainer'
@@ -16,7 +16,8 @@ import { APP_PATHS } from '@constants/paths.js'
 const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, loginWithGoogle, loading } = useAuth()
+  const { login, loading } = useAuth()
+  const { loginWithGoogle, loading: oauthLoading } = useOAuth()
 
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
@@ -26,6 +27,9 @@ const Login = () => {
 
   const fromPath = location.state?.from?.pathname || APP_PATHS.ROOT
   const successMessage = location.state?.message
+
+  // Combinar estados de loading
+  const isLoading = loading || oauthLoading
 
   const {
     control,
@@ -103,7 +107,7 @@ const Login = () => {
               autoComplete='email'
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
               startContent={<Mail className='text-gray-400 w-4 h-5' />}
             />
           )}
@@ -123,7 +127,7 @@ const Login = () => {
               autoComplete='current-password'
               isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
             />
           )}
@@ -135,7 +139,7 @@ const Login = () => {
               color='primary'
               isSelected={rememberMe}
               onValueChange={setRememberMe}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
             />
             <span className='text-xs text-gray-500 ml-2'>Recordar sesión</span>
           </label>
@@ -152,7 +156,7 @@ const Login = () => {
             color='default'
             className='w-full py-3 transition-colors'
             isLoading={loading}
-            isDisabled={loading || isGoogleAuthenticating || !isValid}>
+            isDisabled={isLoading || isGoogleAuthenticating || !isValid}>
             {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 
@@ -172,7 +176,7 @@ const Login = () => {
                 startContent={<img src={googleIcon} alt='Google' className='w-5 h-5' />}
                 className='w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors'
                 isLoading={isGoogleAuthenticating}
-                isDisabled={isGoogleAuthenticating || loading}
+                isDisabled={isGoogleAuthenticating || isLoading}
                 onPress={handleGoogleSignIn}>
                 {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
               </Button>

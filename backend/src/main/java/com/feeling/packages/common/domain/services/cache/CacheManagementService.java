@@ -27,7 +27,7 @@ public class CacheManagementService {
     public void evictUserCaches(String userEmail) {
         log.info("Evicting all caches for user: {}", userEmail);
 
-        // Evict user profiles with all include levels
+        // Evict user profile with all include levels
         evictCacheWithPattern("userProfiles", userEmail);
 
         // Evict user suggestions with all include levels and pagination

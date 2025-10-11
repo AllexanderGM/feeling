@@ -3,16 +3,12 @@ package com.feeling.config.security;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
  * Configuración centralizada de seguridad para todas las rutas de la aplicación.
- * Este componente define qué rutas son públicas, requieren autenticación, 
+ * Este componente define qué rutas son públicas, requieren autenticación,
  * necesitan roles específicos o requieren auto-modificación.
  */
 @Component
@@ -21,7 +17,7 @@ public class RouteSecurityConfig {
     // ========================================
     // RUTAS PÚBLICAS (sin autenticación)
     // ========================================
-    
+
     private static final Set<String> PUBLIC_ROUTES = Set.of(
         // Sistema y documentación
         "/",
@@ -39,25 +35,23 @@ public class RouteSecurityConfig {
             // Datos de configuración (públicos para registro)
             "/geographic/**",
             "/user-attributes",
-            "/user-attributes/**", 
+            "/user-attributes/**",
             "/user-interests",
             "/user-interests/**",
             "/user-tags/popular",
             "/user-tags/popular/**",
             "/user-tags/search",
-            "/user-tags/search/**", 
+            "/user-tags/search/**",
             "/user-tags/trending",
             "/user-tags/trending/**",
             // Eventos públicos
             "/events/**"
         ),
-        
+
         HttpMethod.POST, Set.of(
             // Autenticación y registro
             "/auth/register",
             "/auth/login",
-            "/auth/google/register", 
-            "/auth/google/login",
             "/auth/verify-email",
             "/auth/resend-verification",
             "/auth/forgot-password",
@@ -68,18 +62,18 @@ public class RouteSecurityConfig {
 
     private static final Set<String> PUBLIC_AUTH_CHECK_ROUTES = Set.of(
         "/auth/check-email/**",
-        "/auth/check-method/**", 
-        "/auth/status/**"
+        "/auth/check-auth-method/**",
+        "/auth/check-method/**",
+        "/auth/complaintStatus/**"
     );
 
     // ========================================
     // RUTAS DE AUTENTICACIÓN (rate limiting)
     // ========================================
-    
+
     private static final Set<String> AUTH_ENDPOINTS = Set.of(
         "/auth/login",
-        "/auth/register", 
-        "/auth/google/",
+        "/auth/register",
         "/auth/forgot-password",
         "/auth/reset-password"
     );
@@ -87,7 +81,7 @@ public class RouteSecurityConfig {
     // ========================================
     // RUTAS QUE REQUIEREN AUTO-MODIFICACIÓN
     // ========================================
-    
+
     private static final List<Pattern> SELF_MODIFICATION_PATTERNS = List.of(
         Pattern.compile("^/user/([^/]+)/?$"), // PUT /user/{email}
         Pattern.compile("^/user/([^/]+)/.*$"), // PUT /user/{email}/anything
@@ -99,23 +93,23 @@ public class RouteSecurityConfig {
 
     private static final Set<HttpMethod> SELF_MODIFICATION_METHODS = Set.of(
         HttpMethod.PUT,
-        HttpMethod.PATCH, 
+        HttpMethod.PATCH,
         HttpMethod.DELETE
     );
 
     // ========================================
     // RUTAS ADMINISTRATIVAS
     // ========================================
-    
+
     private static final Set<String> ADMIN_ROUTES = Set.of(
         // User admin endpoints
         "/user/pending-approval",
         "/user/all",
-        "/user/incomplete-profiles",
+        "/user/incomplete-profile",
         "/user-analytics/**",
         "/user-tags/cleanup",
         "/user-tags/update-metrics",
-        // Event admin endpoints  
+        // Event admin endpoints
         "/events/dashboard/stats",
         "/events/all-admin",
         "/events/user/**",
@@ -124,7 +118,7 @@ public class RouteSecurityConfig {
         // Match admin endpoints
         "/matches/plans/admin/**",
         // Support admin routes
-        "/support/admin/**"
+        "/complaint/admin/**"
     );
 
     private static final Map<String, Set<HttpMethod>> ADMIN_SPECIFIC_ROUTES = new HashMap<>() {{
@@ -159,13 +153,13 @@ public class RouteSecurityConfig {
      */
     public boolean isPublicRoute(String path, HttpMethod method) {
         // Rutas públicas generales
-        if (PUBLIC_ROUTES.stream().anyMatch(route -> 
+        if (PUBLIC_ROUTES.stream().anyMatch(route ->
             route.endsWith("/**") ? path.startsWith(route.replace("/**", "/")) : path.equals(route))) {
             return true;
         }
 
         // Rutas de verificación de auth
-        if (PUBLIC_AUTH_CHECK_ROUTES.stream().anyMatch(route -> 
+        if (PUBLIC_AUTH_CHECK_ROUTES.stream().anyMatch(route ->
             path.startsWith(route.replace("/**", "/")))) {
             return true;
         }
@@ -186,7 +180,7 @@ public class RouteSecurityConfig {
         if (method != HttpMethod.POST) {
             return false;
         }
-        
+
         return AUTH_ENDPOINTS.stream().anyMatch(endpoint ->
             endpoint.endsWith("/") ? path.startsWith(endpoint) : path.startsWith(endpoint + "/") || path.equals(endpoint));
     }
@@ -201,7 +195,7 @@ public class RouteSecurityConfig {
         }
 
         // Verificar si la ruta coincide con algún patrón
-        return SELF_MODIFICATION_PATTERNS.stream().anyMatch(pattern -> 
+        return SELF_MODIFICATION_PATTERNS.stream().anyMatch(pattern ->
             pattern.matcher(path).matches());
     }
 
@@ -222,7 +216,7 @@ public class RouteSecurityConfig {
      */
     public boolean requiresAdminRole(String path, HttpMethod method) {
         // Rutas administrativas generales
-        if (ADMIN_ROUTES.stream().anyMatch(route -> 
+        if (ADMIN_ROUTES.stream().anyMatch(route ->
             path.startsWith(route.replace("/**", "/")))) {
             return true;
         }
@@ -231,11 +225,11 @@ public class RouteSecurityConfig {
         return ADMIN_SPECIFIC_ROUTES.entrySet().stream().anyMatch(entry -> {
             String routePattern = entry.getKey();
             Set<HttpMethod> allowedMethods = entry.getValue();
-            
-            boolean pathMatches = routePattern.contains("*") ? 
-                path.matches(routePattern.replace("*", "[^/]+")) : 
+
+            boolean pathMatches = routePattern.contains("*") ?
+                path.matches(routePattern.replace("*", "[^/]+")) :
                 path.equals(routePattern);
-                
+
             return pathMatches && allowedMethods.contains(method);
         });
     }
@@ -247,7 +241,7 @@ public class RouteSecurityConfig {
         switch (filterType) {
             case JWT_AUTH:
                 return isPublicRoute(path, method);
-                
+
             case SELF_MODIFICATION:
                 // Excluir rutas administrativas (ya protegidas por roles)
                 if (requiresAdminRole(path, method)) {
@@ -259,10 +253,10 @@ public class RouteSecurityConfig {
                 }
                 // Excluir métodos de solo lectura
                 return method == HttpMethod.GET || method == HttpMethod.HEAD || method == HttpMethod.OPTIONS;
-                
+
             case RATE_LIMITING:
                 return false; // Rate limiting aplica a todas las rutas
-                
+
             default:
                 return false;
         }
@@ -273,7 +267,7 @@ public class RouteSecurityConfig {
      */
     public enum FilterType {
         JWT_AUTH,
-        SELF_MODIFICATION, 
+        SELF_MODIFICATION,
         RATE_LIMITING
     }
 
@@ -289,13 +283,13 @@ public class RouteSecurityConfig {
             // Rutas generales
             "/", "/system", "/health", "/favicon.ico", "/error",
             "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html",
-            
+
             // Autenticación
-            "/auth/register", "/auth/login", "/auth/google/**", 
+            "/auth/register", "/auth/login", "/auth/oauth/**",
             "/auth/verify-email", "/auth/resend-verification",
             "/auth/forgot-password", "/auth/reset-password", "/auth/refresh-token",
-            "/auth/check-email/**", "/auth/check-method/**", "/auth/status/**",
-            
+            "/auth/check-email/**", "/auth/check-method/**", "/auth/complaintStatus/**",
+
             // Datos públicos
             "/geographic/**", "/user-attributes/**", "/user-interests/**",
             "/user-tags/popular/**", "/user-tags/search/**", "/user-tags/trending/**"

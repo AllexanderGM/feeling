@@ -29,7 +29,21 @@ const useComplaints = () => {
   })
 
   const [urgentComplaints, setUrgentComplaints] = useState([])
+  const [urgentComplaintsPagination, setUrgentComplaintsPagination] = useState({
+    totalPages: 0,
+    totalElements: 0,
+    size: 20,
+    number: 0
+  })
+
   const [overdueComplaints, setOverdueComplaints] = useState([])
+  const [overdueComplaintsPagination, setOverdueComplaintsPagination] = useState({
+    totalPages: 0,
+    totalElements: 0,
+    size: 20,
+    number: 0
+  })
+
   const [resolvedComplaints, setResolvedComplaints] = useState([])
   const [resolvedComplaintsPagination, setResolvedComplaintsPagination] = useState({
     totalPages: 0,
@@ -265,42 +279,88 @@ const useComplaints = () => {
   /**
    * Obtener quejas urgentes
    */
-  const fetchUrgentComplaints = useCallback(async () => {
-    try {
-      clearError()
+  const fetchUrgentComplaints = useCallback(
+    async (page = 0, size = 20) => {
+      try {
+        setLoading(true)
+        clearError()
 
-      Logger.info(Logger.CATEGORIES.USER, 'cargar quejas urgentes', 'Iniciando carga de quejas urgentes')
-      const response = await complaintService.getUrgentComplaints()
-      setUrgentComplaints(response || [])
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas urgentes', 'Iniciando carga de quejas urgentes')
+        const response = await complaintService.getUrgentComplaints(page, size)
 
-      Logger.info(Logger.CATEGORIES.USER, 'cargar quejas urgentes', 'Quejas urgentes cargadas exitosamente', {
-        context: { totalCount: response?.length || 0 }
-      })
-      return { success: true, data: response }
-    } catch (error) {
-      return handleError(error, 'Error al cargar quejas urgentes')
-    }
-  }, [handleError, clearError])
+        setUrgentComplaints(response.content || [])
+        setUrgentComplaintsPagination({
+          totalPages: response.totalPages || 0,
+          totalElements: response.totalElements || 0,
+          size: response.size || size,
+          number: response.number || page
+        })
+
+        // También actualizar paginación unificada
+        setPagination(prev => ({
+          ...prev,
+          totalPages: response.totalPages || 0,
+          totalElements: response.totalElements || 0
+        }))
+
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas urgentes', 'Quejas urgentes cargadas exitosamente', {
+          context: {
+            totalElements: response.totalElements,
+            currentPage: page + 1
+          }
+        })
+        return { success: true, data: response }
+      } catch (error) {
+        return handleError(error, 'Error al cargar quejas urgentes')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError, clearError]
+  )
 
   /**
    * Obtener quejas vencidas
    */
-  const fetchOverdueComplaints = useCallback(async () => {
-    try {
-      clearError()
+  const fetchOverdueComplaints = useCallback(
+    async (page = 0, size = 20) => {
+      try {
+        setLoading(true)
+        clearError()
 
-      Logger.info(Logger.CATEGORIES.USER, 'cargar quejas vencidas', 'Iniciando carga de quejas vencidas')
-      const response = await complaintService.getOverdueComplaints()
-      setOverdueComplaints(response || [])
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas vencidas', 'Iniciando carga de quejas vencidas')
+        const response = await complaintService.getOverdueComplaints(page, size)
 
-      Logger.info(Logger.CATEGORIES.USER, 'cargar quejas vencidas', 'Quejas vencidas cargadas exitosamente', {
-        context: { totalCount: response?.length || 0 }
-      })
-      return { success: true, data: response }
-    } catch (error) {
-      return handleError(error, 'Error al cargar quejas vencidas')
-    }
-  }, [handleError, clearError])
+        setOverdueComplaints(response.content || [])
+        setOverdueComplaintsPagination({
+          totalPages: response.totalPages || 0,
+          totalElements: response.totalElements || 0,
+          size: response.size || size,
+          number: response.number || page
+        })
+
+        // También actualizar paginación unificada
+        setPagination(prev => ({
+          ...prev,
+          totalPages: response.totalPages || 0,
+          totalElements: response.totalElements || 0
+        }))
+
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas vencidas', 'Quejas vencidas cargadas exitosamente', {
+          context: {
+            totalElements: response.totalElements,
+            currentPage: page + 1
+          }
+        })
+        return { success: true, data: response }
+      } catch (error) {
+        return handleError(error, 'Error al cargar quejas vencidas')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError, clearError]
+  )
 
   /**
    * Obtener quejas resueltas
@@ -338,6 +398,70 @@ const useComplaints = () => {
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar quejas resueltas')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError, clearError]
+  )
+
+  /**
+   * Obtener quejas por tipo (admin)
+   */
+  const fetchComplaintsByType = useCallback(
+    async (complaintType, page = 0, size = 20) => {
+      try {
+        setLoading(true)
+        clearError()
+
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas por tipo', 'Iniciando carga de quejas por tipo', {
+          context: { complaintType }
+        })
+        const response = await complaintService.getComplaintsByType(complaintType, page, size)
+
+        // Para este caso no creamos un estado específico, devolvemos directamente
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas por tipo', 'Quejas cargadas exitosamente', {
+          context: {
+            complaintType,
+            totalElements: response.totalElements,
+            currentPage: page + 1
+          }
+        })
+        return { success: true, data: response }
+      } catch (error) {
+        return handleError(error, `Error al cargar quejas de tipo ${complaintType}`)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError, clearError]
+  )
+
+  /**
+   * Obtener quejas por prioridad (admin)
+   */
+  const fetchComplaintsByPriority = useCallback(
+    async (complaintPriority, page = 0, size = 20) => {
+      try {
+        setLoading(true)
+        clearError()
+
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas por prioridad', 'Iniciando carga de quejas por prioridad', {
+          context: { complaintPriority }
+        })
+        const response = await complaintService.getComplaintsByPriority(complaintPriority, page, size)
+
+        // Para este caso no creamos un estado específico, devolvemos directamente
+        Logger.info(Logger.CATEGORIES.USER, 'cargar quejas por prioridad', 'Quejas cargadas exitosamente', {
+          context: {
+            complaintPriority,
+            totalElements: response.totalElements,
+            currentPage: page + 1
+          }
+        })
+        return { success: true, data: response }
+      } catch (error) {
+        return handleError(error, `Error al cargar quejas de prioridad ${complaintPriority}`)
       } finally {
         setLoading(false)
       }
@@ -545,7 +669,9 @@ const useComplaints = () => {
     pendingComplaints,
     pendingComplaintsPagination,
     urgentComplaints,
+    urgentComplaintsPagination,
     overdueComplaints,
+    overdueComplaintsPagination,
     resolvedComplaints,
     resolvedComplaintsPagination,
 
@@ -579,12 +705,16 @@ const useComplaints = () => {
     getUrgentComplaints: fetchUrgentComplaints,
     getOverdueComplaints: fetchOverdueComplaints,
     getResolvedComplaints: fetchResolvedComplaints,
+    getComplaintsByType: fetchComplaintsByType,
+    getComplaintsByPriority: fetchComplaintsByPriority,
     getComplaintStats: fetchComplaintStats,
     fetchAllComplaints,
     fetchPendingComplaints,
     fetchUrgentComplaints,
     fetchOverdueComplaints,
     fetchResolvedComplaints,
+    fetchComplaintsByType,
+    fetchComplaintsByPriority,
     updateComplaintStatus,
     deleteComplaint,
     fetchComplaintStats,

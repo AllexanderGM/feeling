@@ -1,9 +1,11 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.AuthResendCodeRequestDTO;
-import com.feeling.packages.auth.domain.dto.AuthUserStatusDTO;
-import com.feeling.packages.auth.domain.dto.AuthVerifyCodeDTO;
-import com.feeling.packages.auth.domain.dto.EmailAvailabilityDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthResendCodeRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
+import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
+import com.feeling.packages.auth.domain.dto.response.CodeValidationDTO;
+import com.feeling.packages.auth.domain.dto.response.UserVerificationStatusDTO;
 import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,7 +61,7 @@ public class VerificationController {
     public ResponseEntity<MessageResponseDTO> verifyEmail(@Valid @RequestBody AuthVerifyCodeDTO verifyCodeDTO) {
         logger.info("Intento de verificación de email para: {}", verifyCodeDTO.email());
 
-        MessageResponseDTO response = authService.verifyEmail(verifyCodeDTO);
+        MessageResponseDTO response = authService.verifyCode(verifyCodeDTO);
 
         logger.info("Email verificado exitosamente para: {}", verifyCodeDTO.email());
         return ResponseEntity.ok(response);
@@ -92,7 +94,7 @@ public class VerificationController {
     public ResponseEntity<MessageResponseDTO> resendVerificationCode(@Valid @RequestBody AuthResendCodeRequestDTO resendCodeDTO) {
         logger.info("Solicitud de reenvío de código para: {}", resendCodeDTO.email());
 
-        MessageResponseDTO response = authService.resendVerificationCode(resendCodeDTO);
+        MessageResponseDTO response = authService.resendCode(resendCodeDTO.email());
 
         logger.info("Código de verificación reenviado para: {}", resendCodeDTO.email());
         return ResponseEntity.ok(response);
@@ -153,7 +155,7 @@ public class VerificationController {
             authStatus.verified(),
             authStatus.profileComplete(),
             "LOCAL", // Default, would need to be retrieved from user if needed
-            null // Code expiration not available from auth status
+            null // Code expiration not available from auth complaintStatus
         );
 
         logger.debug("Estado de verificación para {}: verified={}, profileComplete={}",
@@ -193,27 +195,6 @@ public class VerificationController {
 
         logger.debug("Validación de código para {}: {}", email, isValid ? "VÁLIDO" : "INVÁLIDO");
         return ResponseEntity.ok(validation);
-    }
-
-    // ==============================
-    // DTOs ESPECÍFICOS
-    // ==============================
-
-    public record UserVerificationStatusDTO(
-        String email,
-        boolean exists,
-        boolean verified,
-        boolean profileComplete,
-        String authProvider,
-        @Schema(description = "Tiempo restante para expiración del código en minutos")
-        Long codeExpirationMinutes
-    ) {
-    }
-
-    public record CodeValidationDTO(
-        boolean valid,
-        String message
-    ) {
     }
 
     // ==============================

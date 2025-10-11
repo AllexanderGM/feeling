@@ -55,6 +55,23 @@ class UserAttributesService extends ServiceREST {
   }
 
   /**
+   * GET /user-attributes/multiple - Atributos por múltiples tipos usando query params
+   */
+  async getAttributesByMultipleTypes(attributeTypes) {
+    try {
+      const params = new URLSearchParams({
+        types: attributeTypes.join(',')
+      })
+
+      const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ATTRIBUTES.MULTIPLE_TYPES}?${params}`)
+      return ServiceREST.handleServiceResponse(result, 'obtener atributos por múltiples tipos')
+    } catch (error) {
+      this.logError('obtener atributos por múltiples tipos', error)
+      throw error
+    }
+  }
+
+  /**
    * GET /user-attributes/{attributeId}/users - Lista de usuarios filtrados por atributo (pageable)
    */
   async getUsersByAttribute(attributeId, page = 0, size = 20) {
@@ -76,6 +93,50 @@ class UserAttributesService extends ServiceREST {
   // ========================================
   // ADMIN ENDPOINTS
   // ========================================
+
+  /**
+   * GET /user/attributes/admin - Listar atributos paginados (admin)
+   */
+  async getAllAttributesPaginated(page = 0, size = 20) {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ATTRIBUTES.ALL_PAGINATED}?${params}`)
+      return ServiceREST.handleServiceResponse(result, 'obtener atributos paginados')
+    } catch (error) {
+      this.logError('obtener atributos paginados', error)
+      throw error
+    }
+  }
+
+  /**
+   * GET /user/attributes/inactive - Obtener atributos inactivos
+   */
+  async getInactiveAttributes() {
+    try {
+      const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.INACTIVE)
+      return ServiceREST.handleServiceResponse(result, 'obtener atributos inactivos')
+    } catch (error) {
+      this.logError('obtener atributos inactivos', error)
+      throw error
+    }
+  }
+
+  /**
+   * GET /user/attributes/inactive/count - Contar atributos inactivos
+   */
+  async getInactiveAttributesCount() {
+    try {
+      const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.INACTIVE_COUNT)
+      return ServiceREST.handleServiceResponse(result, 'contar atributos inactivos')
+    } catch (error) {
+      this.logError('contar atributos inactivos', error)
+      throw error
+    }
+  }
 
   /**
    * POST /user-attributes/{attributeType} - Agregar nuevo atributo por tipo
@@ -165,7 +226,7 @@ class UserAttributesService extends ServiceREST {
    * Manejo de errores específico del servicio
    */
   logError(operation, error) {
-    this.Logger.serviceError(operation, error, 'UserAttributesService')
+    Logger.serviceError(operation, error, 'UserAttributesService')
   }
 }
 

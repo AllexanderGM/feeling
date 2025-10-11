@@ -46,7 +46,7 @@ public class Booking {
     private Double totalPrice;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "complaintStatus", nullable = false)
     @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
 
@@ -57,7 +57,7 @@ public class Booking {
     @JoinColumn(name = "payment_id")
     private Pay payment;
 
-    // Enum para status de la reserva
+    // Enum para complaintStatus de la reserva
     public enum BookingStatus {
         PENDING,
         CONFIRMED,

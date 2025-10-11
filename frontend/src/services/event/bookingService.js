@@ -277,7 +277,7 @@ class EventRegistrationService extends ServiceREST {
    * Manejo de errores específico del servicio
    */
   logError(operation, error) {
-    this.Logger.serviceError(operation, error, 'EventRegistrationService')
+    Logger.serviceError(operation, error, 'EventRegistrationService')
   }
 }
 

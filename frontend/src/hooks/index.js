@@ -7,7 +7,8 @@ export { default as useAuth } from './auth/useAuth.js'
 
 // Event Hooks
 export { default as useEvents } from './event/useEvents.js'
-export { default as useTour } from './event/useTour.js'
+export { default as useEvent } from './event/useEvent.js'
+export { default as useTour } from './event/useEvent.js' // Alias para compatibilidad
 
 // Location Hooks
 export { default as useLocation } from './location/useLocation.js'
@@ -56,7 +57,8 @@ export * as AuthHooks from './auth/useAuth.js'
 
 // Events
 export * as EventHooks from './event/useEvents.js'
-export * as TourHooks from './event/useTour.js'
+export * as EventManagementHooks from './event/useEvent.js'
+export * as TourHooks from './event/useEvent.js' // Alias para compatibilidad
 
 // Location
 export * as LocationHooks from './location/useLocation.js'

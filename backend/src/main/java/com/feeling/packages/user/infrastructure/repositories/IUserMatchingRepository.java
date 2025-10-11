@@ -30,26 +30,26 @@ public interface IUserMatchingRepository extends JpaRepository<User, Long> {
      * Encuentra usuarios con tags similares para matching.
      * Busca usuarios verificados y visibles en búsqueda que comparten tags.
      *
-     * @param tagNames      Lista de nombres de tags a buscar
-     * @param excludeEmail  Email del usuario a excluir de resultados
-     * @param limit         Número máximo de resultados
+     * @param tagNames     Lista de nombres de tags a buscar
+     * @param excludeEmail Email del usuario a excluir de resultados
+     * @param limit        Número máximo de resultados
      * @return Lista de emails de usuarios con tags similares, ordenados por popularidad
      */
     @Query(value = """
-            SELECT DISTINCT u.email FROM users u
-            JOIN user_tag_relations ut ON u.id = ut.user_id
-            JOIN user_tags t ON ut.tag_id = t.id
-            WHERE t.name IN :tagNames
-            AND u.email != :excludeEmail
-            AND u.show_me_in_search = true
-            AND u.verified = true
-            ORDER BY u.popularity_score DESC
-            LIMIT :limit
-            """, nativeQuery = true)
+        SELECT DISTINCT u.email FROM users u
+        JOIN user_tag_relations ut ON u.id = ut.user_id
+        JOIN user_tags t ON ut.tag_id = t.id
+        WHERE t.name IN :tagNames
+        AND u.email != :excludeEmail
+        AND u.show_me_in_search = true
+        AND u.verified = true
+        ORDER BY u.popularity_score DESC
+        LIMIT :limit
+        """, nativeQuery = true)
     List<String> findUsersWithSimilarTags(
-            @Param("tagNames") List<String> tagNames,
-            @Param("excludeEmail") String excludeEmail,
-            @Param("limit") int limit);
+        @Param("tagNames") List<String> tagNames,
+        @Param("excludeEmail") String excludeEmail,
+        @Param("limit") int limit);
 
     /**
      * Encuentra candidatos para matching basado en tags y categoría de interés.
@@ -62,23 +62,23 @@ public interface IUserMatchingRepository extends JpaRepository<User, Long> {
      * @return Lista de emails de usuarios candidatos, ordenados por popularidad
      */
     @Query(value = """
-            SELECT DISTINCT u.email FROM users u
-            JOIN user_tag_relations ut ON u.id = ut.user_id
-            JOIN user_tags t ON ut.tag_id = t.id
-            LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id
-            WHERE t.name IN :tagNames
-            AND u.email != :excludeEmail
-            AND u.show_me_in_search = true
-            AND u.verified = true
-            AND (:categoryFilter IS NULL OR uci.category_interest_enum = :categoryFilter)
-            ORDER BY u.popularity_score DESC
-            LIMIT :limit
-            """, nativeQuery = true)
+        SELECT DISTINCT u.email FROM users u
+        JOIN user_tag_relations ut ON u.id = ut.user_id
+        JOIN user_tags t ON ut.tag_id = t.id
+        LEFT JOIN user_category_interests uci ON u.category_interest_id = uci.id
+        WHERE t.name IN :tagNames
+        AND u.email != :excludeEmail
+        AND u.show_me_in_search = true
+        AND u.verified = true
+        AND (:categoryFilter IS NULL OR uci.category_interest_enum = :categoryFilter)
+        ORDER BY u.popularity_score DESC
+        LIMIT :limit
+        """, nativeQuery = true)
     List<String> findMatchCandidatesByTags(
-            @Param("tagNames") List<String> tagNames,
-            @Param("excludeEmail") String excludeEmail,
-            @Param("categoryFilter") String categoryFilter,
-            @Param("limit") int limit);
+        @Param("tagNames") List<String> tagNames,
+        @Param("excludeEmail") String excludeEmail,
+        @Param("categoryFilter") String categoryFilter,
+        @Param("limit") int limit);
 
     // ========================================
     // MATCHING AVANZADO CON MÚLTIPLES FILTROS
@@ -103,31 +103,31 @@ public interface IUserMatchingRepository extends JpaRepository<User, Long> {
      * @return Página de usuarios compatibles ordenados por proximidad y popularidad
      */
     @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.categoryInterest uci " +
-            "LEFT JOIN FETCH u.userRole ur " +
-            "WHERE u.verified = true " +
-            "AND u.approvalStatus = 'APPROVED' " +
-            "AND u.showMeInSearch = true " +
-            "AND u.profileComplete = true " +
-            "AND u.publicAccount = true " +
-            "AND u.searchVisibility = true " +
-            "AND u.accountDeactivated = false " +
-            "AND u.id != :excludeUserId " +
-            "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId) " +
-            "AND (:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) " +
-            "AND (:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) " +
-            "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
-            "ORDER BY " +
-            "CASE WHEN u.city = :city THEN 1 " +
-            "     WHEN u.department = :department THEN 2 " +
-            "     ELSE 3 END, " +
-            "u.popularityScore DESC")
+        "LEFT JOIN FETCH u.categoryInterest uci " +
+        "LEFT JOIN FETCH u.userRole ur " +
+        "WHERE u.verified = true " +
+        "AND u.userApprovalStatus = 'APPROVED' " +
+        "AND u.showMeInSearch = true " +
+        "AND u.profileComplete = true " +
+        "AND u.publicAccount = true " +
+        "AND u.searchVisibility = true " +
+        "AND u.accountDeactivated = false " +
+        "AND u.id != :excludeUserId " +
+        "AND (:categoryInterestId IS NULL OR uci.id = :categoryInterestId) " +
+        "AND (:minAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) >= :minAge) " +
+        "AND (:maxAge IS NULL OR YEAR(CURRENT_DATE) - YEAR(u.dateOfBirth) <= :maxAge) " +
+        "AND (:city IS NULL OR u.city = :city OR u.department = :department) " +
+        "ORDER BY " +
+        "CASE WHEN u.city = :city THEN 1 " +
+        "     WHEN u.department = :department THEN 2 " +
+        "     ELSE 3 END, " +
+        "u.popularityScore DESC")
     Page<User> findCompatibleUsers(
-            @Param("excludeUserId") Long excludeUserId,
-            @Param("categoryInterestId") Long categoryInterestId,
-            @Param("minAge") Integer minAge,
-            @Param("maxAge") Integer maxAge,
-            @Param("city") String city,
-            @Param("department") String department,
-            Pageable pageable);
+        @Param("excludeUserId") Long excludeUserId,
+        @Param("categoryInterestId") Long categoryInterestId,
+        @Param("minAge") Integer minAge,
+        @Param("maxAge") Integer maxAge,
+        @Param("city") String city,
+        @Param("department") String department,
+        Pageable pageable);
 }

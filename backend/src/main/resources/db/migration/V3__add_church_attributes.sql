@@ -1,18 +1,18 @@
--- Migration V3: Add church attributes support
+-- Migration V3: Add church attributes complaint
 -- Add church_id foreign key and custom_church field
 -- Migrate existing church string data to custom_church
 
--- Add new columns for church support
+-- Add new columns for church complaint
 ALTER TABLE users ADD COLUMN church_id BIGINT;
 ALTER TABLE users ADD COLUMN custom_church VARCHAR(255);
 
 -- Add foreign key constraint for church_id
-ALTER TABLE users ADD CONSTRAINT fk_user_church 
+ALTER TABLE users ADD CONSTRAINT fk_user_church
     FOREIGN KEY (church_id) REFERENCES user_attributes(id);
 
 -- Migrate existing church string data to custom_church
-UPDATE users 
-SET custom_church = church 
+UPDATE users
+SET custom_church = church
 WHERE church IS NOT NULL AND church != '';
 
 -- Drop the old church column

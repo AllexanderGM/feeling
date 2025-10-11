@@ -13,25 +13,43 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
 
+/**
+ * Servicio para generación y validación de tokens JWT.
+ * <p>
+ * Responsabilidades:
+ * - Generación de ACCESS tokens (corta duración)
+ * - Generación de REFRESH tokens (larga duración)
+ * - Extracción de claims (username, tipo de token)
+ * - Validación de tokens y expiración
+ * - Verificación de tipo de token (ACCESS vs REFRESH)
+ * <p>
+ * Configuración:
+ * - jwt.secret: Clave secreta (mínimo 32 caracteres)
+ * - jwt.expiration: Duración de access tokens
+ * - jwt.refresh.expiration: Duración de refresh tokens
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Service
 public class JwtService {
 
     @Value("${jwt.secret}")
     private String secret;
-    
+
     // Validar que la clave JWT esté configurada al inicializar el servicio
     @jakarta.annotation.PostConstruct
     private void validateJwtSecret() {
         if (secret == null || secret.trim().isEmpty()) {
             throw new IllegalStateException(
                 "JWT_SECRET environment variable must be set. " +
-                "Generate a secure 256-bit key: openssl rand -base64 32"
+                    "Generate a secure 256-bit key: openssl rand -base64 32"
             );
         }
         if (secret.length() < 32) {
             throw new IllegalStateException(
                 "JWT_SECRET must be at least 32 characters long for security. " +
-                "Current length: " + secret.length()
+                    "Current length: " + secret.length()
             );
         }
     }
@@ -48,20 +66,20 @@ public class JwtService {
 
     public String extractUsername(final String token) {
         final Claims jwtToken = Jwts.parser()
-                .verifyWith(getSecretKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+            .verifyWith(getSecretKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
 
         return jwtToken.getSubject();
     }
 
     public String extractTokenType(final String token) {
         final Claims jwtToken = Jwts.parser()
-                .verifyWith(getSecretKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+            .verifyWith(getSecretKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
 
         return jwtToken.get("type", String.class);
     }
@@ -71,13 +89,13 @@ public class JwtService {
      */
     public String extractUsernameFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader("Authorization");
-        
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return null;
         }
-        
+
         final String token = authHeader.substring(7);
-        
+
         try {
             return extractUsername(token);
         } catch (Exception e) {
@@ -108,14 +126,14 @@ public class JwtService {
      */
     private String generateToken(final User user, String expiration, String tokenType) {
         return Jwts.builder()
-                .id(user.getId().toString())
-                .claim("name", user.getName())
-                .claim("type", tokenType) // Importante: identificar el tipo
-                .subject(user.getEmail())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(Date.from(Instant.ofEpochMilli(System.currentTimeMillis() + Long.parseLong(expiration))))
-                .signWith(getSecretKey())
-                .compact();
+            .id(user.getId().toString())
+            .claim("name", user.getName())
+            .claim("type", tokenType) // Importante: identificar el tipo
+            .subject(user.getEmail())
+            .issuedAt(new Date(System.currentTimeMillis()))
+            .expiration(Date.from(Instant.ofEpochMilli(System.currentTimeMillis() + Long.parseLong(expiration))))
+            .signWith(getSecretKey())
+            .compact();
     }
 
     // ==============================
@@ -124,7 +142,7 @@ public class JwtService {
 
     public boolean isTokenValid(final String token, final User user) {
         final String username = extractUsername(token);
-        return (username.equals(user.getEmail()) && !isTokenExpired(token));
+        return username.equals(user.getEmail()) && !isTokenExpired(token);
     }
 
     public boolean isAccessToken(final String token) {
@@ -168,11 +186,11 @@ public class JwtService {
 
     private Date extractExpiration(final String token) {
         return Jwts.parser()
-                .verifyWith(getSecretKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getExpiration();
+            .verifyWith(getSecretKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload()
+            .getExpiration();
     }
 
     private SecretKey getSecretKey() {

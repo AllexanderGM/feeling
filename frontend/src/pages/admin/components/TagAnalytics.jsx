@@ -27,7 +27,7 @@ import {
 } from '@heroui/react'
 import { Tags, CheckCircle, Clock, Search, RefreshCw, Eye, ThumbsUp, ThumbsDown, Filter, TrendingUp, Hash } from 'lucide-react'
 import { useError } from '@hooks'
-import { tagService } from '@services'
+import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
 
 const TagAnalytics = () => {
@@ -68,17 +68,16 @@ const TagAnalytics = () => {
   const loadTagsData = useCallback(async () => {
     setLoading(true)
     try {
-      const [pendingTags, tagStatistics] = await Promise.all([tagService.getPendingTags(), tagService.getTagStatistics()])
+      const pendingTagsResponse = await userTagsService.getPendingApprovalTags(0, 100)
+      const pendingTags = pendingTagsResponse?.data?.content || pendingTagsResponse?.data || []
 
-      setTags(pendingTags || [])
-      setTagStats(
-        tagStatistics || {
-          totalTags: 0,
-          approvedTags: 0,
-          pendingTags: 0,
-          approvalRate: 0
-        }
-      )
+      setTags(pendingTags)
+      setTagStats({
+        totalTags: pendingTags.length,
+        approvedTags: 0,
+        pendingTags: pendingTags.length,
+        approvalRate: 0
+      })
     } catch (error) {
       Logger.error(Logger.CATEGORIES.SERVICE, 'load_tags_data', 'Error al cargar datos de tags admin', { error })
       handleError('Error al cargar datos de tags')
@@ -141,7 +140,7 @@ const TagAnalytics = () => {
   const handleApproveTag = useCallback(
     async tagId => {
       try {
-        await tagService.approveTag(tagId)
+        await userTagsService.approveTag(tagId)
         handleSuccess('Tag aprobado correctamente')
         loadTagsData()
       } catch (error) {
@@ -155,7 +154,7 @@ const TagAnalytics = () => {
     if (!selectedTag || !rejectionReason.trim()) return
 
     try {
-      await tagService.rejectTag(selectedTag.id, rejectionReason.trim())
+      await userTagsService.rejectTag(selectedTag.id)
       handleSuccess('Tag rechazado correctamente')
       setRejectionReason('')
       setSelectedTag(null)
@@ -171,7 +170,7 @@ const TagAnalytics = () => {
 
     try {
       const tagIds = Array.from(selectedTags).map(Number)
-      await tagService.approveBatchTags(tagIds)
+      await userTagsService.approveTagsBatch(tagIds)
       handleSuccess(`${tagIds.length} tags aprobados correctamente`)
       setSelectedTags(new Set())
       loadTagsData()

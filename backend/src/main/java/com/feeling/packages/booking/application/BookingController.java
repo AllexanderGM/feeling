@@ -30,8 +30,8 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Create booking", description = "Create a new booking for an event")
     public ResponseEntity<BookingResponseDTO> createBooking(
-            @Valid @RequestBody BookingRequestDTO bookingRequestDTO,
-            Authentication authentication) {
+        @Valid @RequestBody BookingRequestDTO bookingRequestDTO,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         BookingResponseDTO booking = bookingService.createBooking(bookingRequestDTO, userEmail);
@@ -42,8 +42,8 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get booking by ID", description = "Retrieve a specific booking by ID")
     public ResponseEntity<BookingResponseDTO> getBooking(
-            @PathVariable Long id,
-            Authentication authentication) {
+        @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         BookingResponseDTO booking = bookingService.getBookingById(id, userEmail);
@@ -62,8 +62,8 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get bookings by event", description = "Admin endpoint to retrieve bookings for a specific event")
     public ResponseEntity<Page<BookingResponseDTO>> getBookingsByEvent(
-            @PathVariable Long eventId,
-            Pageable pageable) {
+        @PathVariable Long eventId,
+        Pageable pageable) {
 
         Page<BookingResponseDTO> bookings = bookingService.getEventBookings(eventId, pageable);
         return ResponseEntity.ok(bookings);
@@ -73,8 +73,8 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Cancel booking", description = "Cancel a booking")
     public ResponseEntity<BookingResponseDTO> cancelBooking(
-            @PathVariable Long id,
-            Authentication authentication) {
+        @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         BookingResponseDTO booking = bookingService.cancelBooking(id, userEmail);
@@ -83,11 +83,11 @@ public class BookingController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Update booking status", description = "Update the status of a booking")
+    @Operation(summary = "Update booking complaintStatus", description = "Update the complaintStatus of a booking")
     public ResponseEntity<BookingResponseDTO> updateBookingStatus(
-            @PathVariable Long id,
-            @RequestParam Booking.BookingStatus status,
-            Authentication authentication) {
+        @PathVariable Long id,
+        @RequestParam Booking.BookingStatus status,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         BookingResponseDTO booking = bookingService.updateBookingStatus(id, status, userEmail);

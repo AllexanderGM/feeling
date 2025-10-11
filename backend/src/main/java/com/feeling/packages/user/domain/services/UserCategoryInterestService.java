@@ -2,6 +2,8 @@ package com.feeling.packages.user.domain.services;
 
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
+import com.feeling.packages.user.domain.dto.request.UserCategoryInterestRequestDTO;
+import com.feeling.packages.user.domain.dto.interests.UserInterestStatisticsResponseDTO;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterest;
 import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
@@ -10,12 +12,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio para gestión de categorías de interés de usuarios.
+ * <p>
+ * Responsabilidades:
+ * - CRUD de categorías de interés (deportes, música, arte, tecnología, etc.)
+ * - Gestión de estado activo/inactivo de categorías
+ * - Ordenamiento por displayOrder
+ * - Estadísticas de uso de categorías
+ * - Mapeo seguro de entidades a DTOs con manejo de lazy loading
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,18 +38,22 @@ public class UserCategoryInterestService {
     private final IUserCategoryInterestRepository repository;
 
     /**
-     * Obtiene todas las categorías activas
+     * Obtiene todas las categorías activas ordenadas por displayOrder.
+     *
+     * @return Lista de categorías activas
      */
     @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllActiveCategories() {
-        return repository.findByActiveTrueOrderByDisplayOrder()
+        return repository.findByIsActiveTrueOrderByDisplayOrder()
             .stream()
             .map(this::mapToDTO)
             .toList();
     }
 
     /**
-     * Obtiene todas las categorías (incluyendo inactivas)
+     * Obtiene todas las categorías (incluyendo inactivas) ordenadas por displayOrder.
+     *
+     * @return Lista de todas las categorías
      */
     @Transactional(readOnly = true)
     public List<UserCategoryInterestDTO> getAllCategories() {
@@ -46,7 +64,10 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Obtiene categoría por enum
+     * Obtiene categoría por su enum.
+     *
+     * @param categoryEnum Enum de la categoría
+     * @return Optional con la categoría si existe
      */
     @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryByEnum(UserCategoryInterestList categoryEnum) {
@@ -55,7 +76,10 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Obtiene categoría por ID
+     * Obtiene categoría por ID.
+     *
+     * @param id ID de la categoría
+     * @return Optional con la categoría si existe
      */
     @Transactional(readOnly = true)
     public Optional<UserCategoryInterestDTO> getCategoryById(Long id) {
@@ -64,29 +88,43 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Actualiza una categoría
+     * Actualiza una categoría existente.
+     *
+     * @param id          ID de la categoría a actualizar
+     * @param categoryDTO DTO con nuevos datos
+     * @return DTO de la categoría actualizada
+     * @throws RuntimeException Si la categoría no existe
      */
     @Transactional
-    public UserCategoryInterestDTO updateCategory(Long id, UserCategoryInterestDTO categoryDTO) {
+    public UserCategoryInterestDTO updateCategory(Long id, UserCategoryInterestRequestDTO categoryDTO) {
         UserCategoryInterest category = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
         // Actualización usando los métodos de acceso del record
+        if (categoryDTO.categoryInterestEnum() != null) {
+            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.categoryInterestEnum()));
+        }
         category.setName(categoryDTO.name());
         category.setDescription(categoryDTO.description());
         category.setIcon(categoryDTO.icon());
         category.setFullDescription(categoryDTO.fullDescription());
         category.setTargetAudience(categoryDTO.targetAudience());
-        category.setFeatures(categoryDTO.features());
-        category.setActive(categoryDTO.isActive());
-        category.setDisplayOrder(categoryDTO.displayOrder());
+        category.setFeatures(new java.util.ArrayList<>(categoryDTO.features()));
+        category.setActive(Boolean.TRUE.equals(categoryDTO.active()));
+        if (categoryDTO.displayOrder() != null) {
+            category.setDisplayOrder(categoryDTO.displayOrder());
+        }
 
         UserCategoryInterest saved = repository.save(category);
         return mapToDTO(saved);
     }
 
     /**
-     * Activar/Desactivar categoría
+     * Activa o desactiva una categoría (toggle del estado).
+     *
+     * @param id ID de la categoría
+     * @return DTO de la categoría con estado actualizado
+     * @throws RuntimeException Si la categoría no existe
      */
     @Transactional
     public UserCategoryInterestDTO toggleCategoryStatus(Long id) {
@@ -99,19 +137,28 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Crea una nueva categoría de interés
+     * Crea una nueva categoría de interés.
+     *
+     * @param categoryDTO DTO con datos de la nueva categoría
+     * @return DTO de la categoría creada
+     * @throws RuntimeException Si hay error al crear la categoría
      */
     @Transactional
-    public UserCategoryInterestDTO createCategory(UserCategoryInterestDTO categoryDTO) {
+    public UserCategoryInterestDTO createCategory(UserCategoryInterestRequestDTO categoryDTO) {
         try {
             UserCategoryInterest category = new UserCategoryInterest();
+            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.categoryInterestEnum()));
             category.setName(categoryDTO.name());
             category.setDescription(categoryDTO.description());
             category.setIcon(categoryDTO.icon());
             category.setFullDescription(categoryDTO.fullDescription());
             category.setTargetAudience(categoryDTO.targetAudience());
-            category.setActive(categoryDTO.isActive());
-            category.setDisplayOrder(getNextDisplayOrder());
+            category.setFeatures(new java.util.ArrayList<>(categoryDTO.features()));
+            category.setActive(Boolean.TRUE.equals(categoryDTO.active()));
+            Integer displayOrder = categoryDTO.displayOrder() != null
+                ? categoryDTO.displayOrder()
+                : getNextDisplayOrder();
+            category.setDisplayOrder(displayOrder);
 
             UserCategoryInterest saved = repository.save(category);
             return mapToDTO(saved);
@@ -122,7 +169,11 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Elimina una categoría de interés
+     * Elimina una categoría de interés del sistema.
+     *
+     * @param id ID de la categoría a eliminar
+     * @return Mensaje de confirmación
+     * @throws RuntimeException Si la categoría no existe o hay error al eliminar
      */
     @Transactional
     public MessageResponseDTO deleteCategory(Long id) {
@@ -139,20 +190,25 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Obtiene estadísticas completas de las categorías de interés
+     * Obtiene estadísticas completas de las categorías de interés.
+     * <p>
+     * Incluye:
+     * - Total de categorías (activas/inactivas)
+     * - Distribución por audiencia objetivo
+     * - Top 10 categorías más populares
+     *
+     * @return DTO con estadísticas detalladas
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> getInterestsStatistics() {
+    public UserInterestStatisticsResponseDTO getInterestsStatistics() {
         try {
-            Map<String, Object> statistics = new HashMap<>();
-
             // Obtener todas las categorías
             List<UserCategoryInterest> allCategories = repository.findAll();
 
             // Estadísticas generales
-            statistics.put("totalCategories", allCategories.size());
-            statistics.put("activeCategories", allCategories.stream().mapToInt(cat -> cat.isActive() ? 1 : 0).sum());
-            statistics.put("inactiveCategories", allCategories.stream().mapToInt(cat -> !cat.isActive() ? 1 : 0).sum());
+            int totalCategories = allCategories.size();
+            int activeCategories = (int) allCategories.stream().filter(UserCategoryInterest::isActive).count();
+            int inactiveCategories = totalCategories - activeCategories;
 
             // Distribución por audiencia objetivo
             Map<String, Long> distributionByAudience = allCategories.stream()
@@ -161,7 +217,6 @@ public class UserCategoryInterestService {
                     UserCategoryInterest::getTargetAudience,
                     Collectors.counting()
                 ));
-            statistics.put("distributionByTargetAudience", distributionByAudience);
 
             // Categorías activas por audiencia
             Map<String, Long> activeByAudience = allCategories.stream()
@@ -171,7 +226,6 @@ public class UserCategoryInterestService {
                     UserCategoryInterest::getTargetAudience,
                     Collectors.counting()
                 ));
-            statistics.put("activeByTargetAudience", activeByAudience);
 
             // Lista de categorías más populares (ordenadas por display order)
             List<String> popularCategories = allCategories.stream()
@@ -180,21 +234,26 @@ public class UserCategoryInterestService {
                 .limit(10)
                 .map(UserCategoryInterest::getName)
                 .collect(Collectors.toList());
-            statistics.put("topCategories", popularCategories);
 
-            return statistics;
+            return new UserInterestStatisticsResponseDTO(
+                totalCategories,
+                activeCategories,
+                inactiveCategories,
+                distributionByAudience,
+                activeByAudience,
+                popularCategories
+            );
 
         } catch (Exception e) {
             log.error("Error obteniendo estadísticas de intereses", e);
-            return Map.of(
-                "error", "Error al obtener estadísticas",
-                "message", e.getMessage()
-            );
+            return new UserInterestStatisticsResponseDTO(0, 0, 0, Map.of(), Map.of(), List.of());
         }
     }
 
     /**
-     * Obtiene el siguiente displayOrder disponible
+     * Obtiene el siguiente displayOrder disponible para una nueva categoría.
+     *
+     * @return Siguiente número de orden disponible
      */
     private Integer getNextDisplayOrder() {
         return repository.findAll()
@@ -205,7 +264,13 @@ public class UserCategoryInterestService {
     }
 
     /**
-     * Mapea entidad a DTO usando constructor del record
+     * Mapea entidad a DTO usando constructor del record.
+     * <p>
+     * Maneja el lazy loading de la colección features de forma segura,
+     * forzando su inicialización dentro de la sesión transaccional.
+     *
+     * @param entity Entidad a mapear
+     * @return DTO mapeado con todos los datos
      */
     private UserCategoryInterestDTO mapToDTO(UserCategoryInterest entity) {
         // Inicializar features dentro de la sesión transaccional
@@ -224,7 +289,7 @@ public class UserCategoryInterestService {
 
         return new UserCategoryInterestDTO(
             entity.getId(),
-            entity.getCategoryInterestEnum().name(),
+            entity.getCategoryInterestEnum() != null ? entity.getCategoryInterestEnum().name() : null,
             entity.getName(),
             entity.getDescription(),
             entity.getIcon(),
@@ -236,5 +301,21 @@ public class UserCategoryInterestService {
             entity.getCreatedAt(),
             entity.getUpdatedAt()
         );
+    }
+
+    private UserCategoryInterestList parseCategoryEnum(String enumValue) {
+        if (enumValue == null || enumValue.isBlank()) {
+            throw new IllegalArgumentException("El campo categoryInterestEnum es obligatorio");
+        }
+
+        try {
+            return UserCategoryInterestList.valueOf(enumValue.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(
+                "Valor inválido para categoryInterestEnum: " + enumValue +
+                    ". Valores permitidos: " + java.util.Arrays.toString(UserCategoryInterestList.values()),
+                ex
+            );
+        }
     }
 }

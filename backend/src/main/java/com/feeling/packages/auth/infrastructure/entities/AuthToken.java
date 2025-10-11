@@ -1,13 +1,11 @@
 package com.feeling.packages.auth.infrastructure.entities;
 
+import com.feeling.packages.auth.domain.enums.AuthTokenType;
+import com.feeling.packages.user.infrastructure.entities.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
-import com.feeling.packages.user.infrastructure.entities.User;
 
 /**
  * Entidad que representa tokens JWT asociados a usuarios para autenticación y autorización.
@@ -30,12 +28,13 @@ import com.feeling.packages.user.infrastructure.entities.User;
  * @version 1.0
  * @since 1.0
  */
-@Data
+@Entity
+@Table(name = "auth_tokens")
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "auth_tokens")
 public class AuthToken {
 
     /**
@@ -60,7 +59,7 @@ public class AuthToken {
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
-    private TokenType type;
+    private AuthTokenType type;
 
     /**
      * Indica si el token ha sido revocado manualmente.
@@ -108,27 +107,6 @@ public class AuthToken {
     private LocalDateTime lastUsedAt;
 
     // ========================================
-    // ENUMERACIÓN DE TIPOS DE TOKEN
-    // ========================================
-
-    /**
-     * Tipos de token disponibles en el sistema.
-     */
-    public enum TokenType {
-        /**
-         * Token de acceso para autenticación en peticiones.
-         * Vida corta (típicamente 15-30 minutos).
-         */
-        ACCESS,
-
-        /**
-         * Token de renovación para obtener nuevos tokens de acceso.
-         * Vida larga (típicamente 7-30 días).
-         */
-        REFRESH
-    }
-
-    // ========================================
     // MÉTODOS DE UTILIDAD PARA NEGOCIO
     // ========================================
 
@@ -172,7 +150,7 @@ public class AuthToken {
      * @return true si es un token ACCESS
      */
     public boolean isAccessToken() {
-        return TokenType.ACCESS.equals(this.type);
+        return AuthTokenType.ACCESS.equals(this.type);
     }
 
     /**
@@ -181,7 +159,7 @@ public class AuthToken {
      * @return true si es un token REFRESH
      */
     public boolean isRefreshToken() {
-        return TokenType.REFRESH.equals(this.type);
+        return AuthTokenType.REFRESH.equals(this.type);
     }
 
     /**

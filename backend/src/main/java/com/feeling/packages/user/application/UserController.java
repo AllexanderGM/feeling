@@ -1,24 +1,33 @@
 package com.feeling.packages.user.application;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.feeling.config.logging.StructuredLoggerFactory;
+import com.feeling.domain.dto.views.UserViews;
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.packages.auth.domain.services.JwtService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserCompatibilityDTO;
-import com.feeling.packages.user.domain.dto.UserPartialUpdateDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
+import com.feeling.packages.match.domain.services.MatchDiscoveryService;
+import com.feeling.packages.user.domain.dto.AttributeTypesResponseDTO;
+import com.feeling.packages.user.domain.dto.AttributesByTypeResponseDTO;
+import com.feeling.packages.user.domain.dto.UserAttributeDTO;
+import com.feeling.packages.user.domain.dto.request.UserPartialUpdateDTO;
+import com.feeling.packages.user.domain.dto.response.UserCompatibilityDTO;
+import com.feeling.packages.user.domain.dto.response.UserCountResponseDTO;
+import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.domain.services.UserAttributeService;
+import com.feeling.packages.user.domain.services.UserMediaService;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.domain.services.UserTagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -31,256 +40,177 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+/**
+ * Controlador principal para gestión de usuarios.
+ * <p>
+ * Responsabilidades:
+ * - Consultas de perfil (actual, público, completo)
+ * - Cálculo de compatibilidad entre usuarios
+ * - Sugerencias de usuarios para matching
+ * - Actualización de perfil (PUT, PATCH)
+ * - Desactivación/reactivación de cuentas
+ * - Gestión administrativa de usuarios (listar, filtrar, actualizar)
+ * - Eliminación de usuarios (individual y batch)
+ * - Consultas de atributos de usuario
+ * <p>
+ * NOTA IMPORTANTE: Varios endpoints han sido movidos a controladores especializados
+ * siguiendo principios DDD:
+ * - Aprobación de usuarios → UserApprovalController (/user-approval)
+ * - Gestión de roles → UserRoleController (/user-roles)
+ * - Gestión de imágenes → UserMediaController (/user-media)
+ * - Notificaciones → UserNotificationController (/user-notifications)
+ * - Denuncias → ComplaintController (/user-complaints)
+ * <p>
+ * Ver documentación de cada controlador especializado para endpoints específicos.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 2.0
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
-@Slf4j
-@Tag(name = "User Management", description = "User management endpoints for clients and administrators")
+@Tag(name = "User Management", description = "Endpoints de gestión de usuarios para clientes y administradores")
 public class UserController {
+
+    private static final StructuredLoggerFactory.StructuredLogger logger =
+        StructuredLoggerFactory.create(UserController.class);
 
     private final UserService userService;
     private final UserTagService userTagService;
     private final UserAttributeService userAttributeService;
+    private final MatchDiscoveryService matchDiscoveryService;
     private final Validator validator;
-    private final JwtService jwtService;
     private final ObjectMapper objectMapper;
+
+    // Servicios especializados para operaciones específicas
+    private final UserMediaService userMediaService;
 
     // ========================================
     // CLIENT ENDPOINTS (AUTHENTICATED)
     // ========================================
 
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get current user profile",
-        description = "Get the current authenticated user's complete profile")
-    @Deprecated(since = "1.8", forRemoval = true)
-    public ResponseEntity<UserResponseDTO> getCurrentUser(Authentication authentication) {
-        try {
-            String email = authentication.getName();
-            UserResponseDTO user = userService.get(email, email, "extended");
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuario actual", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
+    @JsonView(UserViews.Internal.class)
     @Operation(
-        summary = "Get user profile with configurable data inclusion",
-        description = "Retrieve user profile with granular control over included data sections. " +
-            "If no email is provided, returns current user's profile. " +
-            "If email is provided, returns other user's profile with appropriate security restrictions. " +
-            "Use include parameter to specify data level needed to optimize payload size.",
+        summary = "Obtener mi perfil (usuario actual)",
+        description = "Recupera el perfil completo del usuario autenticado actual con todos sus datos incluyendo información privada.",
         tags = {"User Profile Management"}
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Profile retrieved successfully",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserResponseDTO.class),
-                examples = {
-                    @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        name = "Extended Profile",
-                        summary = "Profile with extended information",
-                        description = "Includes basic profile, privacy settings, metrics, and notifications"
-                    )
-                }
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400",
-            description = "Invalid include level specified"
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401",
-            description = "User not authenticated"
-        )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Perfil recuperado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Nivel de inclusión inválido"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
     public ResponseEntity<UserResponseDTO> getCurrentUserProfile(
-        @Parameter(
-            description = "Data inclusion level - controls which data sections are included in response",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(
-                type = "string",
-                allowableValues = {"basic", "standard", "extended", "full", "admin"},
-                defaultValue = "extended"
-            ),
-            examples = {
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "basic", description = "Status + Profile only"),
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "standard", description = "Basic + Metrics"),
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "extended", description = "Standard + Privacy + Matches + Notifications"),
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "full", description = "All data including auth and account status"),
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "admin", description = "Full data + admin-only fields (admin only)")
-            }
-        )
+        @Parameter(description = "Nivel de inclusión: basic, standard, extended, full")
         @RequestParam(name = "include", defaultValue = "extended") String includeLevel,
-        @Parameter(
-            description = "Target user email - if not provided, returns current user's profile",
-            required = false
-        )
-        @RequestParam(name = "email", required = false) String targetEmail,
         Authentication authentication) {
         try {
             // Validar nivel de inclusión
-            if (UserResponseLevel.isValidLevel(includeLevel)) {
+            if (!UserResponseLevel.isValidLevel(includeLevel)) {
                 return ResponseEntity.badRequest().build();
             }
 
             String currentUserEmail = authentication.getName();
-            String requestedUserEmail = targetEmail != null ? targetEmail : currentUserEmail;
 
-            // Usar el servicio unificado que maneja la lógica de seguridad y niveles apropiados
-            UserResponseDTO user = userService.get(requestedUserEmail, currentUserEmail, includeLevel);
+            // Obtener perfil del usuario actual (con vista Internal - incluye datos sensibles)
+            UserResponseDTO user = userService.get(currentUserEmail, currentUserEmail, includeLevel);
             return ResponseEntity.ok(user);
         } catch (Exception e) {
-            log.error("Error obteniendo perfil del usuario con email: {} y nivel: {}",
-                targetEmail != null ? targetEmail : "current", includeLevel, e);
+            logger.error("Error obteniendo perfil del usuario actual", Map.of(
+                "includeLevel", includeLevel
+            ), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @GetMapping("/{email}/public")
+    @GetMapping("/profile/public")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get user public profile",
-        description = "Get user public profile for matching (without phone number)")
-    @Deprecated(since = "1.8", forRemoval = true)
-    public ResponseEntity<UserResponseDTO> getUserPublicProfile(
-        @Parameter(description = "User email") @PathVariable String email) {
-        try {
-            UserResponseDTO user = userService.get(null, email, "public");
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            log.error("Error obteniendo perfil público del usuario: {}", email, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/{email}/complete")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get user complete profile",
-        description = "Get user complete profile for matched users (with phone number)")
-    @Deprecated(since = "1.8", forRemoval = true)
-    public ResponseEntity<UserResponseDTO> getUserCompleteProfile(
-        @Parameter(description = "User email") @PathVariable String email,
+    @JsonView(UserViews.Public.class)
+    @Operation(
+        summary = "Obtener perfil público de otro usuario",
+        description = "Recupera el perfil público de otro usuario sin información sensible (sin email, teléfono).",
+        tags = {"User Profile Management"}
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Perfil público recuperado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+    })
+    public ResponseEntity<UserResponseDTO> getPublicUserProfile(
+        @Parameter(description = "Email del usuario a consultar", required = true)
+        @RequestParam(name = "email") String targetEmail,
         Authentication authentication) {
-        try {
-            String currentUserEmail = authentication.getName();
-            UserResponseDTO user = userService.get(currentUserEmail, email, "standard");
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            log.error("Error obteniendo perfil completo del usuario: {}", email, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        String currentUserEmail = authentication.getName();
+
+        // Obtener perfil público de otro usuario (con vista Public - sin datos sensibles)
+        // Si el usuario no existe, NotFoundException se propagará automáticamente (404)
+        UserResponseDTO user = userService.get(targetEmail, currentUserEmail, "public");
+        return ResponseEntity.ok(user);
     }
 
     @GetMapping("/compatibility/{otherUserEmail}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Calculate user compatibility",
-        description = "Calculate detailed compatibility score with breakdown by factors (category, age, location, tags)")
+    @Operation(summary = "Calcular compatibilidad de usuario",
+        description = "Calcula el puntaje de compatibilidad detallado con desglose por factores (categoría, edad, ubicación, tags)")
     public ResponseEntity<UserCompatibilityDTO> calculateCompatibility(
-        @Parameter(description = "Other user email") @PathVariable String otherUserEmail,
+        @Parameter(description = "Email del otro usuario") @PathVariable String otherUserEmail,
         Authentication authentication) {
         try {
             String currentUserEmail = authentication.getName();
-            UserCompatibilityDTO compatibility = userService.calculateUserCompatibility(currentUserEmail, otherUserEmail);
+            UserCompatibilityDTO compatibility = matchDiscoveryService.calculateUserCompatibility(currentUserEmail, otherUserEmail);
             return ResponseEntity.ok(compatibility);
         } catch (Exception e) {
-            log.error("Error calculando compatibilidad entre {} y {}", authentication.getName(), otherUserEmail, e);
+            logger.error("Error calculando compatibilidad", Map.of(
+                "currentUser", authentication.getName(),
+                "otherUser", otherUserEmail
+            ), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/suggestions")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get user suggestions",
-        description = "Get user suggestions for matching")
-    @com.fasterxml.jackson.annotation.JsonView(com.feeling.domain.dto.views.UserViews.Suggestions.class)
-    public ResponseEntity<Page<UserResponseDTO>> getUserSuggestions(
-        @PageableDefault(size = 10) Pageable pageable,
-        Authentication authentication) {
-        try {
-            String currentUserEmail = authentication.getName();
-            Page<UserResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, "public", pageable);
-            return ResponseEntity.ok(suggestions);
-        } catch (Exception e) {
-            log.error("Error obteniendo sugerencias para el usuario: {}", authentication.getName(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/suggestions/v2")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(
-        summary = "Get user suggestions with optimized response control",
-        description = "Retrieve paginated user suggestions with configurable data inclusion levels. " +
-            "Optimized endpoint that replaces /suggestions with better performance and flexible data control. " +
-            "Results are cached automatically for improved performance.",
-        tags = {"User Matching"}
-    )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Suggestions retrieved successfully",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = org.springframework.data.domain.Page.class),
-                examples = {
-                    @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        name = "Paginated Suggestions",
-                        summary = "Page of user suggestions",
-                        description = "Paginated response with suggested users based on preferences and compatibility"
-                    )
-                }
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400",
-            description = "Invalid include level or pagination parameters"
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401",
-            description = "User not authenticated"
-        )
+    @JsonView(UserViews.Suggestions.class)
+    @Operation(summary = "Obtener sugerencias de usuarios",
+        description = "Sugerencias paginadas basadas en compatibilidad con nivel de detalle configurable")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sugerencias recuperadas exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Parámetros inválidos"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
-    public ResponseEntity<Page<UserResponseDTO>> getUserSuggestionsV2(
-        @Parameter(
-            description = "Data inclusion level for suggestions - controls privacy and payload size",
-            schema = @io.swagger.v3.oas.annotations.media.Schema(
-                type = "string",
-                allowableValues = {"public", "basic"},
-                defaultValue = "public"
-            ),
-            examples = {
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "public", description = "Public profile data only (recommended for suggestions)"),
-                @io.swagger.v3.oas.annotations.media.ExampleObject(name = "basic", description = "Basic profile data without sensitive information")
-            }
-        )
+    public ResponseEntity<Page<UserResponseDTO>> getUserSuggestions(
+        @Parameter(description = "Nivel de inclusión: public, basic, standard")
         @RequestParam(name = "include", defaultValue = "public") String includeLevel,
         @PageableDefault(size = 10) Pageable pageable,
         Authentication authentication) {
         try {
             // Validar nivel de inclusión
-            if (UserResponseLevel.isValidLevel(includeLevel)) {
+            if (!UserResponseLevel.isValidLevel(includeLevel)) {
                 return ResponseEntity.badRequest().build();
             }
 
             String currentUserEmail = authentication.getName();
-            Page<UserResponseDTO> suggestions = userService.getUserSuggestions(currentUserEmail, includeLevel, pageable);
+            Page<UserResponseDTO> suggestions = matchDiscoveryService.getUserSuggestions(currentUserEmail, includeLevel, pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
-            log.error("Error obteniendo sugerencias v2 para el usuario: {} con nivel: {}",
-                authentication.getName(), includeLevel, e);
+            logger.error("Error obteniendo sugerencias para el usuario", Map.of(
+                "userEmail", authentication.getName(),
+                "includeLevel", includeLevel
+            ), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PutMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Update current user profile",
-        description = "Update current user profile with images")
+    @Operation(summary = "Actualizar perfil del usuario actual",
+        description = "Actualiza el perfil del usuario actual con imágenes")
     public ResponseEntity<?> updateCurrentUser(
         @RequestParam("profileData") String profileDataJson,
         @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages,
@@ -304,7 +234,7 @@ public class UserController {
             }
 
             // Procesar tags si se proporcionan
-            if (profileRequest.tags().isPresent() && profileRequest.tags().get() != null) {
+            if (profileRequest.tags().isPresent()) {
                 List<String> tagNames = profileRequest.tags().get();
                 if (!tagNames.isEmpty()) {
                     userTagService.addTagsToUser(userEmail, tagNames);
@@ -315,7 +245,7 @@ public class UserController {
 
             // Subir imágenes si se proporcionan
             if (profileImages != null && !profileImages.isEmpty()) {
-                updatedUser = userService.uploadImages(userEmail, profileImages);
+                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
             }
 
             // Si no se actualizó nada, retornar error
@@ -326,7 +256,7 @@ public class UserController {
             return ResponseEntity.ok(updatedUser);
 
         } catch (Exception e) {
-            log.error("Error actualizando perfil del usuario", e);
+            logger.error("Error actualizando perfil del usuario", e);
             return ResponseEntity.badRequest().body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
         }
     }
@@ -334,60 +264,18 @@ public class UserController {
     @PatchMapping("/profile")
     @PreAuthorize("isAuthenticated()")
     @Operation(
-        summary = "Partially update user profile",
-        description = "Update specific fields of user profile using PATCH operation. " +
-            "Only provided fields will be updated. Use Optional fields to distinguish between " +
-            "null values and fields not sent. Supports nested updates for location, preferences, privacy, etc.",
+        summary = "Actualización parcial del perfil de usuario",
+        description = "Actualiza campos específicos del perfil de usuario usando operación PATCH. " +
+            "Solo los campos proporcionados serán actualizados. Usa campos Optional para distinguir entre " +
+            "valores nulos y campos no enviados. Soporta actualizaciones anidadas para ubicación, preferencias, privacidad, etc.",
         tags = {"User Profile Management"}
     )
-    @io.swagger.v3.oas.annotations.responses.ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Profile updated successfully",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserResponseDTO.class)
-            )
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "400",
-            description = "Invalid input data or no fields provided for update"
-        ),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "401",
-            description = "User not authenticated"
-        )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Perfil actualizado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
     public ResponseEntity<?> partialUpdateProfile(
-        @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Partial update data with Optional fields. Only include fields you want to update.",
-            content = @io.swagger.v3.oas.annotations.media.Content(
-                schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = UserPartialUpdateDTO.class),
-                examples = {
-                    @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        name = "Basic Info Update",
-                        summary = "Update basic user information",
-                        value = """
-                            {
-                              "name": "New Name",
-                              "description": "Updated description"
-                            }
-                            """
-                    ),
-                    @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        name = "Location Update",
-                        summary = "Update user location",
-                        value = """
-                            {
-                              "location": {
-                                "country": "Colombia",
-                                "city": "Bogotá"
-                              }
-                            }
-                            """
-                    )
-                }
-            )
-        )
         @Valid @RequestBody UserPartialUpdateDTO partialUpdate,
         Authentication authentication) {
         try {
@@ -395,11 +283,15 @@ public class UserController {
             UserResponseDTO updatedUser = userService.update(userEmail, partialUpdate);
             return ResponseEntity.ok(updatedUser);
         } catch (UnauthorizedException e) {
-            log.error("Usuario no autorizado para actualización parcial: {}", authentication.getName(), e);
+            logger.error("Usuario no autorizado para actualización parcial", Map.of(
+                "userEmail", authentication.getName()
+            ), e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new MessageResponseDTO("No autorizado para actualizar perfil"));
         } catch (Exception e) {
-            log.error("Error en actualización parcial del perfil del usuario: {}", authentication.getName(), e);
+            logger.error("Error en actualización parcial del perfil del usuario", Map.of(
+                "userEmail", authentication.getName()
+            ), e);
             return ResponseEntity.badRequest()
                 .body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
         }
@@ -407,8 +299,8 @@ public class UserController {
 
     @PutMapping("/deactivate")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Deactivate current user account",
-        description = "Deactivate the current user's account")
+    @Operation(summary = "Desactivar cuenta del usuario actual",
+        description = "Desactiva la cuenta del usuario actual")
     public ResponseEntity<MessageResponseDTO> deactivateCurrentAccount(
         @RequestParam(required = false) String reason,
         Authentication authentication) {
@@ -417,7 +309,9 @@ public class UserController {
             MessageResponseDTO response = userService.deactivateOwnAccount(userEmail, reason);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error desactivando cuenta del usuario: {}", authentication.getName(), e);
+            logger.error("Error desactivando cuenta del usuario", Map.of(
+                "userEmail", authentication.getName()
+            ), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al desactivar cuenta"));
         }
@@ -429,8 +323,9 @@ public class UserController {
 
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get all users",
-        description = "Get all users with pagination and search")
+    @JsonView(UserViews.Admin.class)
+    @Operation(summary = "Obtener todos los usuarios",
+        description = "Obtiene todos los usuarios con paginación y búsqueda")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(
         @RequestParam(required = false) String search,
         @PageableDefault(size = 20) Pageable pageable) {
@@ -443,52 +338,35 @@ public class UserController {
             }
             return ResponseEntity.ok(users);
         } catch (Exception e) {
-            log.error("Error obteniendo todos los usuarios", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/{email}")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get user by email (admin)",
-        description = "Get complete user information by email (admin only)")
-    @Deprecated(since = "1.8", forRemoval = true)
-    public ResponseEntity<UserResponseDTO> getUserByEmail(
-        @Parameter(description = "User email") @PathVariable String email,
-        Authentication authentication) {
-        try {
-            String currentUserEmail = authentication.getName();
-            UserResponseDTO user = userService.get(email, currentUserEmail, "complete");
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuario por email: {}", email, e);
+            logger.error("Error obteniendo todos los usuarios", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get users by status",
-        description = "Get users filtered by status (active, pending-approval, unverified, non-approved, deactivated, incomplete-profiles)")
+    @JsonView(UserViews.Admin.class)
+    @Operation(summary = "Obtener usuarios por estado",
+        description = "Obtiene usuarios filtrados por estado (active, pending-approval, unverified, non-approved, deactivated, incomplete-profile)")
     public ResponseEntity<Page<UserResponseDTO>> getUsersByStatus(
-        @Parameter(description = "User status") @PathVariable String status,
+        @Parameter(description = "Estado del usuario") @PathVariable String status,
         @RequestParam(required = false) String search,
         @PageableDefault(size = 20) Pageable pageable) {
         try {
             Page<UserResponseDTO> users = userService.getUsersByStatus(status, search, pageable);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
-            log.error("Error obteniendo usuarios por estado: {}", status, e);
+            logger.error("Error obteniendo usuarios por estado", Map.of("complaintStatus", status), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PutMapping("/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Update user profile (admin)",
-        description = "Update user profile with images (admin only)")
+    @Operation(summary = "Actualizar perfil de usuario (admin)",
+        description = "Actualiza el perfil de usuario con imágenes (solo admin)")
     public ResponseEntity<?> updateUserProfile(
-        @Parameter(description = "User ID") @PathVariable String userId,
+        @Parameter(description = "ID del usuario") @PathVariable String userId,
         @RequestParam("profileData") String profileDataJson,
         @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages) throws IOException {
         try {
@@ -512,7 +390,7 @@ public class UserController {
 
             // Subir imágenes si se proporcionan
             if (profileImages != null && !profileImages.isEmpty()) {
-                updatedUser = userService.uploadImages(userEmail, profileImages);
+                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
             }
 
             // Si no se actualizó nada, retornar error
@@ -523,175 +401,23 @@ public class UserController {
             return ResponseEntity.ok(updatedUser);
 
         } catch (Exception e) {
-            log.error("Error actualizando perfil del usuario {}", userId, e);
+            logger.error("Error actualizando perfil del usuario", Map.of("userId", userId), e);
             return ResponseEntity.badRequest().body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
-        }
-    }
-
-    @PutMapping("/{userId}/approve")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Approve user",
-        description = "Approve a user to allow them to use the platform")
-    public ResponseEntity<MessageResponseDTO> approveUser(
-        @Parameter(description = "User ID") @PathVariable String userId) {
-        try {
-            MessageResponseDTO response = userService.approveUser(userId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error aprobando usuario: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al aprobar usuario"));
-        }
-    }
-
-    @PostMapping("/approve-batch")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Approve users in batch",
-        description = "Approve multiple users at once")
-    public ResponseEntity<MessageResponseDTO> approveUsersBatch(
-        @RequestBody List<String> userIds) {
-        try {
-            MessageResponseDTO response = userService.approveUsersBatch(userIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error aprobando usuarios en lote", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al aprobar usuarios en lote"));
-        }
-    }
-
-    @PutMapping("/{userId}/reject")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reject user",
-        description = "Reject a user, preventing them from using the platform")
-    public ResponseEntity<MessageResponseDTO> rejectUser(
-        @Parameter(description = "User ID") @PathVariable String userId) {
-        try {
-            MessageResponseDTO response = userService.revokeUserApproval(userId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error rechazando usuario: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al rechazar usuario"));
-        }
-    }
-
-    @PostMapping("/reject-batch")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reject users in batch",
-        description = "Reject multiple users at once")
-    public ResponseEntity<MessageResponseDTO> rejectUsersBatch(
-        @RequestBody List<String> userIds) {
-        try {
-            MessageResponseDTO response = userService.rejectUsersBatch(userIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error rechazando usuarios en lote", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al rechazar usuarios en lote"));
-        }
-    }
-
-    @PutMapping("/{userId}/pending")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reset user to pending status",
-        description = "Reset user approval status to pending")
-    public ResponseEntity<MessageResponseDTO> resetUserToPending(
-        @Parameter(description = "User ID") @PathVariable String userId) {
-        try {
-            MessageResponseDTO response = userService.resetUserApprovalToPending(userId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error reseteando usuario a pendiente: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al resetear usuario"));
-        }
-    }
-
-    @PutMapping("/{userId}/assign-admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Assign admin role",
-        description = "Grant admin role to a user")
-    public ResponseEntity<MessageResponseDTO> assignAdminRole(
-        @Parameter(description = "User ID") @PathVariable String userId,
-        Authentication authentication) {
-        try {
-            String adminEmail = authentication.getName();
-            MessageResponseDTO response = userService.grantAdminRole(adminEmail, userId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error asignando rol admin al usuario: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al asignar rol admin"));
-        }
-    }
-
-    @PostMapping("/assign-admin-batch")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Assign admin role in batch",
-        description = "Grant admin role to multiple users at once")
-    public ResponseEntity<MessageResponseDTO> assignAdminRoleBatch(
-        @RequestBody List<String> userIds,
-        Authentication authentication) {
-        try {
-            String adminEmail = authentication.getName();
-            MessageResponseDTO response = userService.grantAdminRoleBatch(adminEmail, userIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error asignando rol admin en lote", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al asignar rol admin en lote"));
-        }
-    }
-
-    @PutMapping("/{userId}/revoke-admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Revoke admin role",
-        description = "Revoke admin role from a user")
-    public ResponseEntity<MessageResponseDTO> revokeAdminRole(
-        @Parameter(description = "User ID") @PathVariable String userId,
-        Authentication authentication) {
-        try {
-            String adminEmail = authentication.getName();
-            MessageResponseDTO response = userService.revokeAdminRole(adminEmail, userId);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error revocando rol admin del usuario: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al revocar rol admin"));
-        }
-    }
-
-    @PostMapping("/revoke-admin-batch")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Revoke admin role in batch",
-        description = "Revoke admin role from multiple users at once")
-    public ResponseEntity<MessageResponseDTO> revokeAdminRoleBatch(
-        @RequestBody List<String> userIds,
-        Authentication authentication) {
-        try {
-            String adminEmail = authentication.getName();
-            MessageResponseDTO response = userService.revokeAdminRoleBatch(adminEmail, userIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error revocando rol admin en lote", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al revocar rol admin en lote"));
         }
     }
 
     @PutMapping("/{userId}/deactivate")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Deactivate user account",
-        description = "Deactivate a user account (admin only)")
+    @Operation(summary = "Desactivar cuenta de usuario",
+        description = "Desactiva una cuenta de usuario (solo admin)")
     public ResponseEntity<MessageResponseDTO> deactivateAccount(
-        @Parameter(description = "User ID") @PathVariable String userId,
+        @Parameter(description = "ID del usuario") @PathVariable String userId,
         @RequestParam(required = false) String reason) {
         try {
             MessageResponseDTO response = userService.deactivateAccount(userId, reason);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error desactivando cuenta del usuario: {}", userId, e);
+            logger.error("Error desactivando cuenta del usuario", Map.of("userId", userId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al desactivar cuenta"));
         }
@@ -699,15 +425,15 @@ public class UserController {
 
     @PutMapping("/{userId}/reactivate")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reactivate user account",
-        description = "Reactivate a deactivated user account")
+    @Operation(summary = "Reactivar cuenta de usuario",
+        description = "Reactiva una cuenta de usuario desactivada")
     public ResponseEntity<MessageResponseDTO> reactivateAccount(
-        @Parameter(description = "User ID") @PathVariable String userId) {
+        @Parameter(description = "ID del usuario") @PathVariable String userId) {
         try {
             MessageResponseDTO response = userService.reactivateAccount(userId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error reactivando cuenta del usuario: {}", userId, e);
+            logger.error("Error reactivando cuenta del usuario", Map.of("userId", userId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al reactivar cuenta"));
         }
@@ -715,8 +441,8 @@ public class UserController {
 
     @PostMapping("/deactivate-batch")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Deactivate accounts in batch",
-        description = "Deactivate multiple user accounts at once")
+    @Operation(summary = "Desactivar cuentas en lote",
+        description = "Desactiva múltiples cuentas de usuarios a la vez")
     public ResponseEntity<MessageResponseDTO> deactivateAccountsBatch(
         @RequestBody List<String> userIds,
         @RequestParam(required = false) String reason) {
@@ -724,7 +450,7 @@ public class UserController {
             MessageResponseDTO response = userService.deactivateAccountsBatch(userIds, reason);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error desactivando cuentas en lote", e);
+            logger.error("Error desactivando cuentas en lote", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al desactivar cuentas en lote"));
         }
@@ -732,64 +458,32 @@ public class UserController {
 
     @PostMapping("/reactivate-batch")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reactivate accounts in batch",
-        description = "Reactivate multiple deactivated user accounts at once")
+    @Operation(summary = "Reactivar cuentas en lote",
+        description = "Reactiva múltiples cuentas de usuarios desactivadas a la vez")
     public ResponseEntity<MessageResponseDTO> reactivateAccountsBatch(
         @RequestBody List<String> userIds) {
         try {
             MessageResponseDTO response = userService.reactivateAccountsBatch(userIds);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error reactivando cuentas en lote", e);
+            logger.error("Error reactivando cuentas en lote", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al reactivar cuentas en lote"));
         }
     }
 
-    @PostMapping("/{userId}/send-email")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Send email to user",
-        description = "Send profile completion reminder or other emails to user")
-    public ResponseEntity<MessageResponseDTO> sendEmailToUser(
-        @Parameter(description = "User ID") @PathVariable Long userId) {
-        try {
-            boolean emailSent = userService.sendProfileCompletionReminder(userId);
-            String message = emailSent ? "Correo enviado correctamente" : "Error al enviar correo";
-            return ResponseEntity.ok(new MessageResponseDTO(message));
-        } catch (Exception e) {
-            log.error("Error enviando correo al usuario: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error interno del servidor"));
-        }
-    }
-
-    @PostMapping("/send-email-batch")
-    @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Send emails in batch",
-        description = "Send emails to multiple users at once")
-    public ResponseEntity<MessageResponseDTO> sendEmailsBatch(
-        @RequestBody List<Long> userIds) {
-        try {
-            MessageResponseDTO response = userService.sendEmailsBatch(userIds);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error enviando correos en lote", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new MessageResponseDTO("Error al enviar correos en lote"));
-        }
-    }
 
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Delete user",
-        description = "Permanently delete a user account")
+    @Operation(summary = "Eliminar usuario",
+        description = "Elimina permanentemente una cuenta de usuario")
     public ResponseEntity<MessageResponseDTO> deleteUser(
-        @Parameter(description = "User ID or email") @PathVariable String userId) {
+        @Parameter(description = "ID o email del usuario") @PathVariable String userId) {
         try {
             MessageResponseDTO response = userService.deleteUser(userId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error eliminando usuario: {}", userId, e);
+            logger.error("Error eliminando usuario", Map.of("userId", userId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al eliminar usuario"));
         }
@@ -797,15 +491,15 @@ public class UserController {
 
     @DeleteMapping("/delete-batch")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Delete users in batch",
-        description = "Permanently delete multiple user accounts at once")
+    @Operation(summary = "Eliminar usuarios en lote",
+        description = "Elimina permanentemente múltiples cuentas de usuarios a la vez")
     public ResponseEntity<MessageResponseDTO> deleteUsersBatch(
         @RequestBody List<String> userIds) {
         try {
             MessageResponseDTO response = userService.deleteUsersBatch(userIds);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error eliminando usuarios en lote", e);
+            logger.error("Error eliminando usuarios en lote", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al eliminar usuarios en lote"));
         }
@@ -850,15 +544,14 @@ public class UserController {
      */
     @GetMapping("/attributes/admin")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get all attributes paginated", description = "Get all active attributes with pagination for admin panel")
-    public ResponseEntity<Page<com.feeling.packages.user.domain.dto.UserAttributeDTO>> getAllAttributesPaged(
+    @Operation(summary = "Obtener todos los atributos paginados", description = "Obtiene todos los atributos activos con paginación para panel de administración")
+    public ResponseEntity<Page<UserAttributeDTO>> getAllAttributesPaged(
         @PageableDefault(size = 20, sort = {"attributeType", "displayOrder"}) Pageable pageable) {
         try {
-            Page<com.feeling.packages.user.domain.dto.UserAttributeDTO> attributes =
-                userAttributeService.getActiveAttributesPaged(pageable);
+            Page<UserAttributeDTO> attributes = userAttributeService.getActiveAttributesPaged(pageable);
             return ResponseEntity.ok(attributes);
         } catch (Exception e) {
-            log.error("Error obteniendo atributos paginados", e);
+            logger.error("Error obteniendo atributos paginados", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -868,20 +561,19 @@ public class UserController {
      * Útil para formularios que necesitan varios tipos de atributos a la vez.
      *
      * @param types Lista de tipos separados por coma (ej: GENDER,EYE_COLOR,HAIR_COLOR)
-     * @return Map con atributos agrupados por tipo
+     * @return DTO con atributos agrupados por tipo
      */
     @GetMapping("/attributes/multiple")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get attributes by multiple types", description = "Get active attributes of multiple types in a single query")
-    public ResponseEntity<java.util.Map<String, List<com.feeling.packages.user.domain.dto.UserAttributeDTO>>> getAttributesByTypes(
-        @Parameter(description = "Attribute types separated by comma") @RequestParam String types) {
+    @Operation(summary = "Obtener atributos por múltiples tipos", description = "Obtiene atributos activos de múltiples tipos en una sola consulta")
+    public ResponseEntity<AttributesByTypeResponseDTO> getAttributesByTypes(
+        @Parameter(description = "Tipos de atributos separados por coma") @RequestParam String types) {
         try {
             List<String> typeList = List.of(types.split(","));
-            java.util.Map<String, List<com.feeling.packages.user.domain.dto.UserAttributeDTO>> attributes =
-                userAttributeService.getAttributesByTypes(typeList);
-            return ResponseEntity.ok(attributes);
+            Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAttributesByTypes(typeList);
+            return ResponseEntity.ok(new AttributesByTypeResponseDTO(attributes));
         } catch (Exception e) {
-            log.error("Error obteniendo atributos por tipos: {}", types, e);
+            logger.error("Error obteniendo atributos por tipos", Map.of("types", types), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -889,17 +581,17 @@ public class UserController {
     /**
      * Obtiene lista de tipos de atributos activos disponibles.
      *
-     * @return Lista de tipos de atributos únicos
+     * @return DTO con lista de tipos de atributos únicos
      */
     @GetMapping("/attributes/types")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get active attribute types", description = "Get list of active attribute types available")
-    public ResponseEntity<List<String>> getActiveAttributeTypes() {
+    @Operation(summary = "Obtener tipos de atributos activos", description = "Obtiene lista de tipos de atributos activos disponibles")
+    public ResponseEntity<AttributeTypesResponseDTO> getActiveAttributeTypes() {
         try {
             List<String> types = userAttributeService.getActiveAttributeTypes();
-            return ResponseEntity.ok(types);
+            return ResponseEntity.ok(new AttributeTypesResponseDTO(types));
         } catch (Exception e) {
-            log.error("Error obteniendo tipos de atributos activos", e);
+            logger.error("Error obteniendo tipos de atributos activos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -907,17 +599,17 @@ public class UserController {
     /**
      * Obtiene cantidad de atributos inactivos pendientes de aprobación.
      *
-     * @return Cantidad de atributos inactivos
+     * @return DTO con cantidad de atributos inactivos
      */
     @GetMapping("/attributes/inactive/count")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Count inactive attributes", description = "Get count of inactive attributes pending approval")
-    public ResponseEntity<java.util.Map<String, Long>> countInactiveAttributes() {
+    @Operation(summary = "Contar atributos inactivos", description = "Obtiene la cantidad de atributos inactivos pendientes de aprobación")
+    public ResponseEntity<UserCountResponseDTO> countInactiveAttributes() {
         try {
             long count = userAttributeService.countInactiveAttributes();
-            return ResponseEntity.ok(java.util.Map.of("count", count));
+            return ResponseEntity.ok(new UserCountResponseDTO(count));
         } catch (Exception e) {
-            log.error("Error contando atributos inactivos", e);
+            logger.error("Error contando atributos inactivos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -929,14 +621,13 @@ public class UserController {
      */
     @GetMapping("/attributes/inactive")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get inactive attributes", description = "Get all inactive attributes for admin review")
-    public ResponseEntity<List<com.feeling.packages.user.domain.dto.UserAttributeDTO>> getInactiveAttributes() {
+    @Operation(summary = "Obtener atributos inactivos", description = "Obtiene todos los atributos inactivos para revisión administrativa")
+    public ResponseEntity<List<UserAttributeDTO>> getInactiveAttributes() {
         try {
-            List<com.feeling.packages.user.domain.dto.UserAttributeDTO> attributes =
-                userAttributeService.getInactiveAttributes();
+            List<UserAttributeDTO> attributes = userAttributeService.getInactiveAttributes();
             return ResponseEntity.ok(attributes);
         } catch (Exception e) {
-            log.error("Error obteniendo atributos inactivos", e);
+            logger.error("Error obteniendo atributos inactivos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

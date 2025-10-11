@@ -46,7 +46,7 @@ const Home = () => {
 
   // Modal de filtros avanzados
   const { isOpen: isFiltersOpen, onOpen: onFiltersOpen, onOpenChange: onFiltersOpenChange } = useDisclosure()
-  
+
   // Estado para vista detallada del usuario
   const [selectedUser, setSelectedUser] = useState(null)
   const { isOpen: isProfileDetailOpen, onOpen: onProfileDetailOpen, onOpenChange: onProfileDetailOpenChange } = useDisclosure()
@@ -260,7 +260,8 @@ const Home = () => {
       {/* Área principal */}
       <div className='flex-1 flex relative pt-20 md:pt-0'>
         {/* Vista principal (cards) - Desktop: izquierda, Mobile: completo */}
-        <div className={`${selectedUser && isProfileDetailOpen ? 'md:w-1/2 md:pr-4' : 'w-full'} flex items-center justify-center transition-all duration-300`}>
+        <div
+          className={`${selectedUser && isProfileDetailOpen ? 'md:w-1/2 md:pr-4' : 'w-full'} flex items-center justify-center transition-all duration-300`}>
           {!currentCard ? (
             <EmptyState
               removedCards={removedCards}

@@ -1,7 +1,5 @@
 package com.feeling.config.security;
 
-import org.springframework.http.HttpMethod;
-
 import com.feeling.packages.auth.domain.services.JwtService;
 import com.feeling.packages.user.domain.services.UserAuthorizationService;
 import jakarta.servlet.FilterChain;
@@ -11,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,7 +28,7 @@ import java.io.IOException;
 public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(SelfModificationAuthorizationFilter.class);
-    
+
     private final JwtService jwtService;
     private final UserAuthorizationService userAuthorizationService;
     private final RouteSecurityConfig routeSecurityConfig;
@@ -37,22 +36,22 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         try {
             String requestURI = request.getRequestURI();
             String method = request.getMethod();
 
             HttpMethod httpMethod = HttpMethod.valueOf(method);
-            
+
             // Solo aplicar el filtro a rutas que requieren auto-autorización
             if (!routeSecurityConfig.requiresSelfModificationCheck(requestURI, httpMethod)) {
                 filterChain.doFilter(request, response);
                 return;
             }
-            
+
             String targetIdentifier = routeSecurityConfig.extractTargetIdentifier(requestURI);
             if (targetIdentifier == null) {
                 filterChain.doFilter(request, response);
@@ -61,9 +60,9 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
 
             // Verificar autorización
             if (!isAuthorizedForModification(targetIdentifier, request)) {
-                logger.warn("❌ Intento de modificación no autorizada: {} {} por usuario: {}", 
+                logger.warn("❌ Intento de modificación no autorizada: {} {} por usuario: {}",
                     method, requestURI, getCurrentUserEmail());
-                
+
                 setErrorResponse(response, "No tienes permisos para modificar este recurso");
                 return;
             }
@@ -83,7 +82,7 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
      */
     private boolean isAuthorizedForModification(String targetIdentifier, HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
+
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
@@ -101,11 +100,11 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
         }
 
         // Verificar si está intentando modificar sus propios datos
-        boolean isSelfModification = targetIdentifier.equals(currentUserEmail) || 
-                                   isUserIdMatch(targetIdentifier, currentUserEmail, request);
-        
-        logger.debug("Verificando autorización: targetIdentifier={}, currentUserEmail={}, isSelfModification={}", 
-                    targetIdentifier, currentUserEmail, isSelfModification);
+        boolean isSelfModification = targetIdentifier.equals(currentUserEmail) ||
+            isUserIdMatch(targetIdentifier, currentUserEmail, request);
+
+        logger.debug("Verificando autorización: targetIdentifier={}, currentUserEmail={}, isSelfModification={}",
+            targetIdentifier, currentUserEmail, isSelfModification);
 
         if (!isSelfModification) {
             logger.warn("❌ Usuario {} intentó modificar recurso de {}", currentUserEmail, targetIdentifier);
@@ -119,8 +118,8 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
      */
     private boolean hasAdminRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
-                .anyMatch(grantedAuthority -> 
-                    grantedAuthority.getAuthority().equals("ADMIN"));
+            .anyMatch(grantedAuthority ->
+                grantedAuthority.getAuthority().equals("ADMIN"));
     }
 
     /**
@@ -128,12 +127,12 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
      */
     private String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
+
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             return userDetails.getUsername(); // En nuestro caso, username es el email
         }
-        
+
         return null;
     }
 
@@ -151,11 +150,11 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
                 return false;
             }
         }
-        
+
         // Si no es numérico, comparar como email
         return targetIdentifier.equals(currentUserEmail);
     }
-    
+
     /**
      * Verifica si una cadena es completamente numérica
      */
@@ -175,9 +174,9 @@ public class SelfModificationAuthorizationFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
 
         String jsonResponse = String.format(
-                "{\"error\": \"%s\", \"status\": 403, \"timestamp\": \"%s\"}",
-                message,
-                java.time.Instant.now().toString()
+            "{\"error\": \"%s\", \"complaintStatus\": 403, \"timestamp\": \"%s\"}",
+            message,
+            java.time.Instant.now().toString()
         );
 
         response.getWriter().write(jsonResponse);

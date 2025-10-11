@@ -7,6 +7,15 @@ import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 
+/**
+ * Hook de autenticación - AuthController
+ * Gestiona registro, login, tokens y verificaciones de estado
+ *
+ * Para otras funcionalidades usar:
+ * - useVerification() → Verificación de emails y códigos
+ * - usePassword() → Gestión y recuperación de contraseñas
+ * - useOAuth() → Autenticación con Google, Facebook, Apple
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext)
   const navigate = useNavigate()
@@ -65,7 +74,7 @@ export const useAuth = () => {
   } = context
 
   // ========================================
-  // MÉTODOS DE AUTENTICACIÓN
+  // REGISTRO Y LOGIN
   // ========================================
 
   const register = useCallback(
@@ -94,80 +103,9 @@ export const useAuth = () => {
     [withLoading, handleApiResponse, updateTokens, updateUser]
   )
 
-  const registerWithGoogle = useCallback(
-    async (tokenResponse, showNotifications = true) => {
-      const result = await withLoading(async () => {
-        const data = await authService.registerWithGoogle(tokenResponse)
-        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
-        return data
-      }, 'Registro con Google')
-
-      if (result?.status === 409) return result
-      if (result?.status === 422) return result
-
-      return handleApiResponse(result, '¡Registro exitoso con Google! Ya puedes usar todas las funcionalidades.', { showNotifications })
-    },
-    [withLoading, handleApiResponse, updateTokens, updateUser]
-  )
-
-  const loginWithGoogle = useCallback(
-    async (tokenResponse, showNotifications = true) => {
-      const result = await withLoading(async () => {
-        const data = await authService.loginWithGoogle(tokenResponse)
-        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
-        return data
-      }, 'Inicio de sesión con Google')
-
-      return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
-    },
-    [withLoading, handleApiResponse, updateTokens, updateUser]
-  )
-
-  const verifyEmailCode = useCallback(
-    async (email, code, showNotifications = true) => {
-      const result = await withLoading(async () => await authService.verifyEmailCode(email, code), 'Verificación de email')
-      return handleApiResponse(result, '¡Email verificado exitosamente! Ya puedes iniciar sesión.', { showNotifications })
-    },
-    [withLoading, handleApiResponse]
-  )
-
-  const resendVerificationCode = useCallback(
-    async (email, showNotifications = true) => {
-      const result = await withLoading(() => authService.resendVerificationCode(email), 'Reenvío de código')
-      return handleApiResponse(result, 'Código de verificación reenviado. Revisa tu email.', { showNotifications })
-    },
-    [withLoading, handleApiResponse]
-  )
-
-  const forgotPassword = useCallback(
-    async (email, showNotifications = true) => {
-      const result = await withLoading(() => authService.forgotPassword(email), 'Recuperación de contraseña')
-      return handleApiResponse(result, 'Enlace de recuperación enviado. Revisa tu email.', { showNotifications })
-    },
-    [withLoading, handleApiResponse]
-  )
-
-  const resetPassword = useCallback(
-    async (token, newPassword, confirmPassword, showNotifications = true) => {
-      const result = await withLoading(
-        () => authService.resetPassword(token, newPassword, confirmPassword),
-        'Restablecimiento de contraseña'
-      )
-      if (result.success) clearAllAuth()
-      return handleApiResponse(result, '¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.', showNotifications)
-    },
-    [withLoading, handleApiResponse, clearAllAuth]
-  )
-
-  const validateResetToken = useCallback(
-    async (token, showNotifications = false) => {
-      const result = await withLoading(() => authService.validateResetToken(token), 'Validación de token de acceso')
-      return handleApiResponse(result, 'Token válido', showNotifications)
-    },
-    [withLoading, handleApiResponse]
-  )
+  // ========================================
+  // GESTIÓN DE TOKENS
+  // ========================================
 
   const refreshTokens = useCallback(
     async (showNotifications = false) => {
@@ -232,6 +170,34 @@ export const useAuth = () => {
     [withLoading, clearAllAuth, handleApiResponse, accessToken, navigate]
   )
 
+  // ========================================
+  // VERIFICACIONES Y UTILIDADES
+  // ========================================
+
+  const checkEmailAvailability = useCallback(
+    async (email, showNotifications = false) => {
+      const result = await withLoading(() => authService.checkEmailAvailability(email), 'Verificación de email')
+      return handleApiResponse(result, 'Email verificado', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const checkAuthMethod = useCallback(
+    async (email, showNotifications = false) => {
+      const result = await withLoading(() => authService.checkAuthMethod(email), 'Verificación de método')
+      return handleApiResponse(result, 'Método verificado', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
+  const getUserStatus = useCallback(
+    async (email, showNotifications = false) => {
+      const result = await withLoading(() => authService.getUserStatus(email), 'Estado del usuario')
+      return handleApiResponse(result, 'Estado obtenido', { showNotifications })
+    },
+    [withLoading, handleApiResponse]
+  )
+
   const isTokenExpiringSoon = useCallback(() => {
     if (!accessToken) return true
 
@@ -262,27 +228,23 @@ export const useAuth = () => {
     accessToken,
     refreshToken,
 
-    // Métodos con notificaciones automáticas
+    // Registro y Login
     register,
     login,
-    loginWithGoogle,
-    registerWithGoogle,
     logout,
-    verifyEmailCode,
-    resendVerificationCode,
-    forgotPassword,
-    resetPassword,
-    validateResetToken,
 
-    // Métodos de gestión de tokens
+    // Gestión de tokens
     refreshTokens,
     isTokenExpiringSoon,
-
-    // Métodos de actualización de tokens
     updateAccessToken,
     updateRefreshToken,
     updateTokens,
     clearTokens,
+
+    // Verificaciones y estado
+    checkEmailAvailability,
+    checkAuthMethod,
+    getUserStatus,
 
     // Métodos de usuario
     updateUser,

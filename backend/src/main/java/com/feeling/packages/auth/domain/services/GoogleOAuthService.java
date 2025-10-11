@@ -1,8 +1,7 @@
 package com.feeling.packages.auth.domain.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.packages.auth.domain.dto.GoogleUserInfoDTO;
 import com.feeling.exception.UnauthorizedException;
+import com.feeling.packages.auth.domain.dto.external.GoogleUserInfoDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * Servicio para autenticación con Google OAuth 2.0.
+ * <p>
+ * Responsabilidades:
+ * - Validación de access tokens de Google
+ * - Obtención de información de usuario desde Google
+ * - Generación de contraseñas seguras para usuarios OAuth
+ * - Validación de tokens con Google TokenInfo API
+ * <p>
+ * Integración:
+ * - Google OAuth 2.0 UserInfo API
+ * - Google OAuth 2.0 TokenInfo API
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 public class GoogleOAuthService {
@@ -23,7 +38,6 @@ public class GoogleOAuthService {
     private static final String GOOGLE_TOKEN_INFO_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo";
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper;
 
     @Value("${GOOGLE_CLIENT_ID:}")
     private String googleClientId;
@@ -45,10 +59,10 @@ public class GoogleOAuthService {
 
             // Hacer petición a Google
             ResponseEntity<GoogleUserInfoDTO> response = restTemplate.exchange(
-                    GOOGLE_USER_INFO_URL,
-                    HttpMethod.GET,
-                    entity,
-                    GoogleUserInfoDTO.class
+                GOOGLE_USER_INFO_URL,
+                HttpMethod.GET,
+                entity,
+                GoogleUserInfoDTO.class
             );
 
             GoogleUserInfoDTO userInfo = response.getBody();
@@ -103,8 +117,8 @@ public class GoogleOAuthService {
      */
     public String generateOAuthPassword(String provider, String externalId) {
         return String.format("OAUTH_%s_%s_%d",
-                provider.toUpperCase(),
-                externalId,
-                System.currentTimeMillis());
+            provider.toUpperCase(),
+            externalId,
+            System.currentTimeMillis());
     }
 }

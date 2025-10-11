@@ -2,7 +2,8 @@ package com.feeling.packages.user.infrastructure.entities;
 
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.complaint.infrastructure.entities.Complaint;
+import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -110,7 +111,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false)
     @Builder.Default
-    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+    private UserApprovalStatus userApprovalStatus = UserApprovalStatus.PENDING;
 
     /**
      * Fecha y hora de creación del usuario.
@@ -156,7 +157,7 @@ public class User implements UserDetails {
      */
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<UserComplaint> complaints = new ArrayList<>();
+    private List<Complaint> complaints = new ArrayList<>();
 
     // ========================================
     // DATOS PERSONALES BÁSICOS
@@ -1125,28 +1126,28 @@ public class User implements UserDetails {
      * Verifica si el usuario está aprobado
      */
     public boolean isApproved() {
-        return approvalStatus != null && approvalStatus.isApproved();
+        return userApprovalStatus != null && userApprovalStatus.isApproved();
     }
 
     /**
      * Verifica si el usuario está pendiente de aprobación
      */
     public boolean isPendingApproval() {
-        return approvalStatus != null && approvalStatus.isPending();
+        return userApprovalStatus != null && userApprovalStatus.isPending();
     }
 
     /**
      * Verifica si el usuario está rechazado
      */
     public boolean isRejected() {
-        return approvalStatus != null && approvalStatus.isRejected();
+        return userApprovalStatus != null && userApprovalStatus.isRejected();
     }
 
     /**
      * Aprueba al usuario
      */
     public void approve() {
-        this.approvalStatus = ApprovalStatus.APPROVED;
+        this.userApprovalStatus = UserApprovalStatus.APPROVED;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -1154,7 +1155,7 @@ public class User implements UserDetails {
      * Rechaza al usuario
      */
     public void reject() {
-        this.approvalStatus = ApprovalStatus.REJECTED;
+        this.userApprovalStatus = UserApprovalStatus.REJECTED;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -1162,7 +1163,7 @@ public class User implements UserDetails {
      * Pone al usuario en estado pendiente
      */
     public void setPending() {
-        this.approvalStatus = ApprovalStatus.PENDING;
+        this.userApprovalStatus = UserApprovalStatus.PENDING;
         this.updatedAt = LocalDateTime.now();
     }
 

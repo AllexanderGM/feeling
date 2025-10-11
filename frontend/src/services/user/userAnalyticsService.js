@@ -189,7 +189,7 @@ class UserAnalyticsService extends ServiceREST {
    */
   logError(operation, error) {
     error.operation = operation
-    this.Logger.serviceError(operation, error, 'userAnalyticsService')
+    Logger.serviceError(operation, error, 'userAnalyticsService')
   }
 }
 

@@ -1,8 +1,18 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.ForgotPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.ResetPasswordRequestDTO;
-import com.feeling.packages.auth.domain.services.AuthService;
+import com.feeling.packages.auth.domain.dto.internal.PasswordValidationResultDTO;
+import com.feeling.packages.auth.domain.dto.request.ChangePasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.CompromisedCheckRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.PasswordValidationRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.ForgotPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.ResetPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.response.CompromisedCheckResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.PasswordPolicyResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.PasswordStrengthInfoDTO;
+import com.feeling.packages.auth.domain.dto.response.PasswordSuggestionsResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.PasswordValidationResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
+import com.feeling.packages.auth.domain.services.PasswordService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,14 +27,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/auth/password")
 @RequiredArgsConstructor
-@Tag(name = "Gestión de Contraseñas", description = "Endpoints para recuperación y cambio de contraseñas")
+@Tag(name = "Gestión de Contraseñas", description = "Endpoints para recuperación, cambio y validación de contraseñas")
 public class PasswordController {
 
     private static final Logger logger = LoggerFactory.getLogger(PasswordController.class);
-    private final AuthService authService;
+    private final PasswordService passwordService;
 
     // ==============================
     // RECUPERACIÓN DE CONTRASEÑA
@@ -53,7 +65,7 @@ public class PasswordController {
     public ResponseEntity<MessageResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
         logger.info("Solicitud de recuperación de contraseña para email: {}", request.email());
 
-        MessageResponseDTO response = authService.forgotPassword(request);
+        MessageResponseDTO response = passwordService.forgotPassword(request);
 
         logger.info("Token de recuperación procesado para email: {}", request.email());
         return ResponseEntity.ok(response);
@@ -83,7 +95,7 @@ public class PasswordController {
         logger.info("Intento de restablecimiento de contraseña con token: {}",
             request.token().substring(0, Math.min(10, request.token().length())) + "...");
 
-        MessageResponseDTO response = authService.resetPassword(request);
+        MessageResponseDTO response = passwordService.resetPassword(request);
 
         logger.info("Contraseña restablecida exitosamente para token: {}",
             request.token().substring(0, Math.min(10, request.token().length())) + "...");
@@ -114,20 +126,19 @@ public class PasswordController {
             description = "Token no encontrado"
         )
     })
-    public ResponseEntity<MessageResponseDTO> validateResetToken(@PathVariable String token) {
+    public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
         logger.debug("Validando token de recuperación: {}...",
             token.substring(0, Math.min(10, token.length())));
 
-        boolean isValid = authService.isPasswordResetTokenValid(token);
+        TokenValidationDTO validation = passwordService.validateResetToken(token);
 
-        if (isValid) {
+        if (validation.valid()) {
             logger.debug("Token de recuperación válido");
-            return ResponseEntity.ok(new MessageResponseDTO("Token válido"));
         } else {
-            logger.warn("Token de recuperación inválido o expirado");
-            return ResponseEntity.badRequest()
-                .body(new MessageResponseDTO("Token inválido o expirado"));
+            logger.warn("Token de recuperación inválido o expirado: {}", validation.message());
         }
+
+        return ResponseEntity.ok(validation);
     }
 
     // ==============================
@@ -160,35 +171,161 @@ public class PasswordController {
 
         logger.info("Solicitud de cambio de contraseña para usuario autenticado");
 
-        MessageResponseDTO response = authService.changePassword(request, authHeader);
+        MessageResponseDTO response = passwordService.changePassword(request, authHeader);
 
         logger.info("Contraseña cambiada exitosamente");
         return ResponseEntity.ok(response);
     }
 
     // ==============================
-    // DTO PARA CAMBIO DE CONTRASEÑA
+    // VALIDACIÓN DE CONTRASEÑAS
     // ==============================
 
-    public record ChangePasswordRequestDTO(
-        @jakarta.validation.constraints.NotBlank(message = "La contraseña actual es obligatoria")
-        String currentPassword,
-
-        @jakarta.validation.constraints.NotBlank(message = "La nueva contraseña es obligatoria")
-        @jakarta.validation.constraints.Size(min = 8, message = "La nueva contraseña debe tener al menos 8 caracteres")
-        @jakarta.validation.constraints.Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
-            message = "La nueva contraseña debe contener al menos: 1 minúscula, 1 mayúscula, 1 número y 1 símbolo"
+    @PostMapping("/validate")
+    @Operation(
+        summary = "Validar fortaleza de contraseña",
+        description = "Valida una contraseña según políticas de seguridad y devuelve recomendaciones"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Validación completada",
+            content = @Content(schema = @Schema(implementation = PasswordValidationResponseDTO.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Datos de validación inválidos"
         )
-        String newPassword,
-
-        @jakarta.validation.constraints.NotBlank(message = "La confirmación de contraseña es obligatoria")
-        String confirmPassword
+    })
+    public ResponseEntity<PasswordValidationResponseDTO> validatePassword(
+        @Valid @RequestBody PasswordValidationRequestDTO request
     ) {
-        public ChangePasswordRequestDTO {
-            if (!newPassword.equals(confirmPassword)) {
-                throw new IllegalArgumentException("Las contraseñas no coinciden");
-            }
-        }
+        logger.debug("Validando fortaleza de contraseña para email: {}",
+            request.email() != null ? request.email() : "no especificado");
+
+        PasswordValidationResultDTO result =
+            passwordService.validatePassword(request.password(), request.email());
+
+        boolean isCompromised = passwordService.isPasswordCompromised(request.password());
+
+        PasswordValidationResponseDTO response = new PasswordValidationResponseDTO(
+            result.isValid(),
+            result.errors(),
+            result.suggestions(),
+            new PasswordStrengthInfoDTO(
+                result.strength().name(),
+                result.strength().getDescription(),
+                result.strength().getColor(),
+                result.strength().getLevel(),
+                result.strengthPercentage()
+            ),
+            isCompromised,
+            isCompromised
+                ? List.of("Esta contraseña ha sido comprometida en brechas de seguridad")
+                : List.of()
+        );
+
+        logger.debug("Validación completada - Válida: {}, Fuerza: {}, Comprometida: {}",
+            result.isValid(), result.strength(), isCompromised);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/suggestions")
+    @Operation(
+        summary = "Obtener sugerencias de contraseñas",
+        description = "Genera ejemplos de contraseñas seguras para ayudar al usuario"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Sugerencias generadas",
+            content = @Content(schema = @Schema(implementation = PasswordSuggestionsResponseDTO.class))
+        )
+    })
+    public ResponseEntity<PasswordSuggestionsResponseDTO> getPasswordSuggestions() {
+        logger.debug("Generando sugerencias de contraseñas seguras");
+
+        List<String> suggestions = passwordService.generatePasswordSuggestions();
+
+        PasswordSuggestionsResponseDTO response = new PasswordSuggestionsResponseDTO(
+            suggestions,
+            List.of(
+                "Usa al menos 8 caracteres",
+                "Combina letras mayúsculas y minúsculas",
+                "Incluye números y símbolos",
+                "Evita información personal",
+                "No uses contraseñas comunes",
+                "Considera usar frases con símbolos"
+            )
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/check-compromised")
+    @Operation(
+        summary = "Verificar si contraseña está comprometida",
+        description = "Verifica si una contraseña ha sido expuesta en brechas de seguridad conocidas"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Verificación completada",
+            content = @Content(schema = @Schema(implementation = CompromisedCheckResponseDTO.class))
+        )
+    })
+    public ResponseEntity<CompromisedCheckResponseDTO> checkCompromisedPassword(
+        @Valid @RequestBody CompromisedCheckRequestDTO request
+    ) {
+        logger.debug("Verificando si contraseña está comprometida");
+
+        boolean isCompromised = passwordService.isPasswordCompromised(request.password());
+
+        CompromisedCheckResponseDTO response = new CompromisedCheckResponseDTO(
+            isCompromised,
+            isCompromised
+                ? "Esta contraseña ha sido encontrada en brechas de seguridad"
+                : "Contraseña no encontrada en brechas conocidas",
+            isCompromised
+                ? List.of(
+                    "Cambia esta contraseña inmediatamente",
+                    "Nunca reutilices contraseñas comprometidas",
+                    "Considera usar un gestor de contraseñas"
+                )
+                : List.of("Continúa usando buenas prácticas de seguridad")
+        );
+
+        logger.debug("Verificación completada - Comprometida: {}", isCompromised);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/policy")
+    @Operation(
+        summary = "Obtener política de contraseñas",
+        description = "Devuelve los requisitos y políticas actuales para contraseñas"
+    )
+    public ResponseEntity<PasswordPolicyResponseDTO> getPasswordPolicy() {
+        PasswordPolicyResponseDTO policy = new PasswordPolicyResponseDTO(
+            8,
+            128,
+            true,
+            true,
+            true,
+            true,
+            List.of("@", "$", "!", "%", "*", "?", "&"),
+            List.of(
+                "La contraseña debe tener al menos 8 caracteres",
+                "Debe contener al menos una letra minúscula",
+                "Debe contener al menos una letra mayúscula",
+                "Debe contener al menos un número",
+                "Debe contener al menos un símbolo (@$!%*?&)",
+                "No debe contener información personal",
+                "No debe ser una contraseña común"
+            )
+        );
+
+        return ResponseEntity.ok(policy);
     }
 }

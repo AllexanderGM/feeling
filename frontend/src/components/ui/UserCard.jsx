@@ -228,7 +228,8 @@ const UserCard = ({
                     <div className='flex items-center gap-1 text-white/80 text-xs drop-shadow-sm'>
                       <MapPin className='w-3 h-3' />
                       <span>
-                        {userData.city}{user.distance && ` • ${user.distance} km`}
+                        {userData.city}
+                        {user.distance && ` • ${user.distance} km`}
                       </span>
                     </div>
                   )}
@@ -261,12 +262,7 @@ const UserCard = ({
                 <h4 className='text-gray-200 text-sm font-medium mb-2'>Intereses</h4>
                 <div className='flex flex-wrap gap-2'>
                   {userData.tags.slice(0, 4).map((tag, index) => (
-                    <Chip 
-                      key={index} 
-                      size='sm' 
-                      variant='bordered' 
-                      className='text-gray-300 border-gray-600 bg-gray-800/30'
-                    >
+                    <Chip key={index} size='sm' variant='bordered' className='text-gray-300 border-gray-600 bg-gray-800/30'>
                       {tag}
                     </Chip>
                   ))}
@@ -287,14 +283,14 @@ const UserCard = ({
                   <span>Perfil verificado</span>
                 </div>
               )}
-              
+
               {userData.church && (
                 <div className='flex items-center gap-2 text-gray-400'>
                   <div className='w-2 h-2 bg-gray-500 rounded-full'></div>
                   <span>{userData.church}</span>
                 </div>
               )}
-              
+
               {userData.phone && (
                 <div className='flex items-center gap-2 text-gray-400'>
                   <div className='w-2 h-2 bg-gray-500 rounded-full'></div>

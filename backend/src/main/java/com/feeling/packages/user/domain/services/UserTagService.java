@@ -3,15 +3,13 @@ package com.feeling.packages.user.domain.services;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.UserTagDTO;
-import com.feeling.packages.user.domain.dto.UserTagStatisticsDTO;
-import com.feeling.packages.user.domain.enums.TagApprovalStatus;
+import com.feeling.packages.user.domain.dto.tags.UserTagStatisticsResponseDTO;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.domain.enums.UserRoleList;
+import com.feeling.packages.user.domain.enums.UserTagApprovalStatus;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
-import com.feeling.packages.user.infrastructure.repositories.IUserMatchingRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserTagRepository;
 import lombok.RequiredArgsConstructor;
@@ -68,7 +66,6 @@ public class UserTagService {
 
     private final IUserTagRepository userTagRepository;
     private final IUserRepository userRepository;
-    private final IUserMatchingRepository userMatchingRepository;
 
     // ========================================
     // GESTIÓN DE TAGS POR USUARIOS
@@ -141,7 +138,16 @@ public class UserTagService {
     }
 
     /**
-     * Remueve un tag del perfil de un usuario
+     * Remueve un tag del perfil de un usuario por nombre.
+     * <p>
+     * Decrementa el contador de uso del tag y lo elimina automáticamente
+     * si ya no tiene usuarios asociados.
+     *
+     * @param userEmail Email del usuario
+     * @param tagName   Nombre del tag a remover
+     * @return Mensaje de confirmación
+     * @throws NotFoundException        Si el usuario o tag no existen
+     * @throws IllegalArgumentException Si el usuario no tiene ese tag
      */
     @Transactional
     public MessageResponseDTO removeTagFromUser(String userEmail, String tagName) {
@@ -172,7 +178,11 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene todos los tags de un usuario
+     * Obtiene todos los tags de un usuario.
+     *
+     * @param userEmail Email del usuario
+     * @return Lista de tags del usuario (vacía si no tiene tags)
+     * @throws NotFoundException Si el usuario no existe
      */
     public List<UserTagDTO> getUserTags(String userEmail) {
         User user = findUserByEmail(userEmail);
@@ -256,7 +266,13 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Busca tags por nombre
+     * Busca tags por nombre (parcial o completo).
+     * <p>
+     * Si no se proporciona término de búsqueda, retorna los tags más populares.
+     *
+     * @param searchTerm Término de búsqueda (puede ser null o vacío)
+     * @param limit      Número máximo de resultados
+     * @return Lista de tags que coinciden con la búsqueda
      */
     public List<UserTagDTO> searchTags(String searchTerm, int limit) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
@@ -275,7 +291,10 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene los tags más populares
+     * Obtiene los tags más populares ordenados por usageCount.
+     *
+     * @param limit Número máximo de tags a retornar
+     * @return Lista de tags más populares
      */
     public List<UserTagDTO> getPopularTags(int limit) {
         return userTagRepository.findTopPopularTags(limit)
@@ -285,7 +304,10 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene los tags en tendencia (usados recientemente)
+     * Obtiene los tags en tendencia (usados en la última semana).
+     *
+     * @param limit Número máximo de tags a retornar
+     * @return Lista de tags en tendencia
      */
     public List<UserTagDTO> getTrendingTags(int limit) {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
@@ -325,36 +347,26 @@ public class UserTagService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * Encuentra usuarios que comparten tags similares para matching
-     */
-    public List<String> findUsersWithSimilarTags(String userEmail, int limit) {
-        User user = findUserByEmail(userEmail);
-
-        if (user.getTags() == null || user.getTags().isEmpty()) {
-            return List.of();
-        }
-
-        List<String> userTagNames = user.getTagNames();
-
-        return userMatchingRepository.findUsersWithSimilarTags(userTagNames, userEmail, limit);
-    }
-
     // ========================================
     // ESTADÍSTICAS Y ANÁLISIS
     // ========================================
 
     /**
-     * Obtiene estadísticas generales de los tags del sistema
+     * Obtiene estadísticas generales de los tags del sistema.
+     * <p>
+     * Incluye: total de tags, tags activos, tags sin uso, usuarios con tags,
+     * promedio de tags por usuario y promedio de uso de tags.
+     *
+     * @return DTO con estadísticas completas del sistema de tags
      */
-    public UserTagStatisticsDTO getTagStatistics() {
+    public UserTagStatisticsResponseDTO getTagStatistics() {
         long totalTags = userTagRepository.count();
         long activeTags = userTagRepository.countActiveTags();
         long uniqueUsersWithTags = userRepository.countUniqueUsersWithTags();
         Double averageTagsPerUser = userRepository.getAverageTagsPerUser();
         Double averageUsageCount = userTagRepository.getAverageUsageCount();
 
-        return UserTagStatisticsDTO.builder()
+        return UserTagStatisticsResponseDTO.builder()
             .totalTags(totalTags)
             .activeTags(activeTags)
             .unusedTags(totalTags - activeTags)
@@ -365,8 +377,14 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene tags populares por categoría de interés
-     * Útil para SINGLES, ROUSE, SPIRIT
+     * Obtiene tags populares filtrados por categoría de interés.
+     * <p>
+     * Útil para SINGLES, ROUSE, SPIRIT.
+     * Si la categoría es inválida, retorna tags populares generales como fallback.
+     *
+     * @param category Categoría de interés (SINGLES, ROUSE, SPIRIT)
+     * @param limit    Número máximo de tags a retornar
+     * @return Lista de tags populares en esa categoría
      */
     public List<UserTagDTO> getPopularTagsByCategory(String category, int limit) {
         // Validar que la categoría existe
@@ -388,7 +406,10 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Limpia tags sin uso automáticamente (ejecutado por scheduler)
+     * Limpia tags sin uso automáticamente (ejecutado por scheduler).
+     * <p>
+     * Elimina tags que no han sido usados en las últimas 2 semanas.
+     * Ejecutado diariamente a las 2 AM.
      */
     @Scheduled(cron = "0 0 2 * * *") // Todos los días a las 2 AM
     @Transactional
@@ -403,7 +424,10 @@ public class UserTagService {
     }
 
     /**
-     * Actualiza las métricas de popularidad de los tags
+     * Actualiza las métricas de popularidad de los tags.
+     * <p>
+     * Actualiza contadores de uso y marca tags como activos/inactivos.
+     * Ejecutado diariamente a las 1:30 AM.
      */
     @Scheduled(cron = "0 30 1 * * *") // Todos los días a la 1:30 AM
     @Transactional
@@ -418,7 +442,14 @@ public class UserTagService {
     }
 
     /**
-     * Limpieza manual de tags (solo para administradores)
+     * Limpieza manual de tags (solo para administradores).
+     * <p>
+     * Elimina todos los tags que no están siendo usados por ningún usuario.
+     *
+     * @param adminEmail Email del administrador que ejecuta la limpieza
+     * @return Mensaje con cantidad de tags eliminados
+     * @throws UnauthorizedException Si el usuario no es administrador
+     * @throws NotFoundException     Si el usuario no existe
      */
     @Transactional
     public MessageResponseDTO cleanupUnusedTagsManually(String adminEmail) {
@@ -439,7 +470,15 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Normaliza el nombre de un tag
+     * Normaliza el nombre de un tag.
+     * <p>
+     * - Convierte a minúsculas
+     * - Elimina espacios extras
+     * - Remueve caracteres especiales (mantiene solo letras, números y espacios)
+     *
+     * @param tagName Nombre del tag a normalizar
+     * @return Nombre normalizado
+     * @throws IllegalArgumentException Si el nombre es null
      */
     private String normalizeTagName(String tagName) {
         if (tagName == null) {
@@ -453,7 +492,16 @@ public class UserTagService {
     }
 
     /**
-     * Válida que el nombre del tag cumple con las reglas
+     * Valida que el nombre del tag cumple con las reglas del sistema.
+     * <p>
+     * Reglas:
+     * - Mínimo 2 caracteres
+     * - Máximo 30 caracteres
+     * - No puede ser solo números
+     * - No puede ser una palabra prohibida
+     *
+     * @param tagName Nombre normalizado del tag a validar
+     * @throws IllegalArgumentException Si el tag no cumple con las reglas
      */
     private void validateTagName(String tagName) {
         if (tagName.isEmpty()) {
@@ -481,7 +529,11 @@ public class UserTagService {
     }
 
     /**
-     * Busca un usuario por email
+     * Busca un usuario por email con manejo de error.
+     *
+     * @param email Email del usuario
+     * @return Usuario encontrado
+     * @throws NotFoundException Si el usuario no existe
      */
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -489,7 +541,10 @@ public class UserTagService {
     }
 
     /**
-     * Verifica si un usuario NO es administrador
+     * Verifica si un usuario NO es administrador.
+     *
+     * @param user Usuario a verificar
+     * @return true si el usuario NO es administrador
      */
     private boolean isNotAdmin(User user) {
         return !(user.getUserRole() != null && "ADMIN".equals(user.getUserRole().getUserRoleList().name()));
@@ -500,8 +555,14 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Obtiene tags sugeridos basados en la categoría de interés del usuario
-     * Útil para SINGLES, ROUSE, SPIRIT
+     * Obtiene tags sugeridos basados en la categoría de interés del usuario.
+     * <p>
+     * Útil para SINGLES, ROUSE, SPIRIT.
+     * Si el usuario no tiene categoría, retorna tags populares generales.
+     *
+     * @param userEmail Email del usuario
+     * @return Lista de tags sugeridos según su categoría de interés
+     * @throws NotFoundException Si el usuario no existe
      */
     public List<UserTagDTO> getTagsSuggestedByCategory(String userEmail) {
         User user = findUserByEmail(userEmail);
@@ -555,31 +616,6 @@ public class UserTagService {
     }
 
     /**
-     * Obtiene recomendaciones de usuarios para matching basadas en tags
-     * Específico para el sistema de matching de Feeling
-     */
-    public List<String> getMatchRecommendationsByTags(String userEmail, int limit) {
-        User user = findUserByEmail(userEmail);
-
-        if (user.getTags() == null || user.getTags().isEmpty()) {
-            return List.of();
-        }
-
-        // Filtrar por categoría de interés si existe
-        String categoryFilter = null;
-        if (user.getCategoryInterest() != null) {
-            categoryFilter = user.getCategoryInterest().getCategoryInterestEnum().name();
-        }
-
-        return userMatchingRepository.findMatchCandidatesByTags(
-            user.getTagNames(),
-            userEmail,
-            categoryFilter,
-            limit
-        );
-    }
-
-    /**
      * Método de utilidad para verificar que las tablas de relación existen
      * Solo usar durante la migración inicial
      */
@@ -610,7 +646,7 @@ public class UserTagService {
                     .createdAt(LocalDateTime.now())
                     .usageCount(0L)
                     .lastUsed(LocalDateTime.now())
-                    .approvalStatus(TagApprovalStatus.PENDING) // Los tags nuevos requieren aprobación (sistema general)
+                    .approvalStatus(UserTagApprovalStatus.PENDING) // Los tags nuevos requieren aprobación (sistema general)
                     .build();
                 logger.info("Nuevo tag creado pendiente de aprobación: '{}'", tagName);
                 return userTagRepository.save(newTag);
@@ -632,7 +668,7 @@ public class UserTagService {
                     .createdAt(LocalDateTime.now())
                     .usageCount(1L) // Empieza con 1 porque el usuario lo está usando
                     .lastUsed(LocalDateTime.now())
-                    .approvalStatus(isAdmin ? TagApprovalStatus.APPROVED : TagApprovalStatus.PENDING) // Los admins auto-aprueban, otros necesitan aprobación
+                    .approvalStatus(isAdmin ? UserTagApprovalStatus.APPROVED : UserTagApprovalStatus.PENDING) // Los admins auto-aprueban, otros necesitan aprobación
                     .build();
 
                 // Si es admin, agregar información de aprobación
@@ -653,7 +689,9 @@ public class UserTagService {
     // ========================================
 
     /**
-     * Obtiene tags pendientes de aprobación para administradores
+     * Obtiene tags pendientes de aprobación para administradores.
+     *
+     * @return Lista de tags con estado PENDING
      */
     public List<UserTagDTO> getPendingApprovalTags() {
         return userTagRepository.findPendingApprovalTags()
@@ -663,7 +701,13 @@ public class UserTagService {
     }
 
     /**
-     * Aprueba un tag específico
+     * Aprueba un tag específico.
+     *
+     * @param tagId      ID del tag a aprobar
+     * @param adminEmail Email del administrador que aprueba
+     * @return Mensaje de confirmación
+     * @throws UnauthorizedException Si el usuario no es administrador
+     * @throws NotFoundException     Si el tag no existe
      */
     @Transactional
     public MessageResponseDTO approveTag(Long tagId, String adminEmail) {
@@ -683,7 +727,14 @@ public class UserTagService {
     }
 
     /**
-     * Rechaza un tag con razón
+     * Rechaza un tag con razón.
+     *
+     * @param tagId           ID del tag a rechazar
+     * @param rejectionReason Razón del rechazo
+     * @param adminEmail      Email del administrador que rechaza
+     * @return Mensaje de confirmación
+     * @throws UnauthorizedException Si el usuario no es administrador
+     * @throws NotFoundException     Si el tag no existe
      */
     @Transactional
     public MessageResponseDTO rejectTag(Long tagId, String rejectionReason, String adminEmail) {
@@ -737,7 +788,7 @@ public class UserTagService {
         Map<String, Object> stats = new HashMap<>();
 
         long totalTags = userTagRepository.count();
-        long pendingTags = userTagRepository.countByApprovalStatus(TagApprovalStatus.PENDING);
+        long pendingTags = userTagRepository.countByApprovalStatus(UserTagApprovalStatus.PENDING);
         long approvedTags = totalTags - pendingTags;
 
         stats.put("totalTags", totalTags);
@@ -932,16 +983,27 @@ public class UserTagService {
         return new MessageResponseDTO("Tag removido exitosamente");
     }
 
+    // ========================================
+    // BÚSQUEDA CON PAGINACIÓN
+    // ========================================
+
     /**
-     * Buscar tags con paginación
+     * Busca tags con paginación.
+     *
+     * @param query    Término de búsqueda
+     * @param pageable Configuración de paginación
+     * @return Página de tags que coinciden con la búsqueda
      */
     public Page<UserTagDTO> searchTagsPaginated(String query, Pageable pageable) {
-        List<UserTagDTO> allTags = searchTags(query, 1000); // Get a large number
+        List<UserTagDTO> allTags = searchTags(query, 1000);
         return createPageFromList(allTags, pageable);
     }
 
     /**
-     * Obtener tags populares con paginación
+     * Obtiene tags populares con paginación.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de tags más populares
      */
     public Page<UserTagDTO> getPopularTagsPaginated(Pageable pageable) {
         List<UserTagDTO> allTags = getPopularTags(1000);
@@ -949,7 +1011,10 @@ public class UserTagService {
     }
 
     /**
-     * Obtener tags en tendencia con paginación
+     * Obtiene tags en tendencia con paginación.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de tags en tendencia
      */
     public Page<UserTagDTO> getTrendingTagsPaginated(Pageable pageable) {
         List<UserTagDTO> allTags = getTrendingTags(1000);
@@ -957,7 +1022,12 @@ public class UserTagService {
     }
 
     /**
-     * Obtener sugerencias de tags para usuario con paginación
+     * Obtiene sugerencias de tags para usuario con paginación.
+     *
+     * @param userEmail Email del usuario
+     * @param pageable  Configuración de paginación
+     * @return Página de tags sugeridos
+     * @throws NotFoundException Si el usuario no existe
      */
     public Page<UserTagDTO> getSuggestedTagsForUserPaginated(String userEmail, Pageable pageable) {
         List<UserTagDTO> allTags = getSuggestedTagsForUser(userEmail, 1000);
@@ -965,28 +1035,10 @@ public class UserTagService {
     }
 
     /**
-     * Obtener usuarios por tags con paginación
+     * Obtiene tags pendientes de aprobación con paginación.
      *
-     * @deprecated Use {@link #getUsersByTagsWithResponseDTO(List, Pageable)} instead
-     */
-    @Deprecated(since = "1.8", forRemoval = true)
-    public Page<UserResponseDTO> getUsersByTags(List<String> tags, Pageable pageable) {
-        // For now, return empty page since we need UserService integration
-        logger.warn("getUsersByTags not fully implemented - returning empty page");
-        return Page.empty(pageable);
-    }
-
-    /**
-     * Obtener usuarios por tags con paginación (with UserResponseDTO)
-     */
-    public Page<UserResponseDTO> getUsersByTagsWithResponseDTO(List<String> tags, Pageable pageable) {
-        // For now, return empty page since we need UserService integration
-        logger.warn("getUsersByTagsWithResponseDTO not fully implemented - returning empty page");
-        return Page.empty(pageable);
-    }
-
-    /**
-     * Obtener tags pendientes de aprobación con paginación
+     * @param pageable Configuración de paginación
+     * @return Página de tags pendientes de aprobación
      */
     public Page<UserTagDTO> getPendingApprovalTagsPaginated(Pageable pageable) {
         List<UserTagDTO> allTags = getPendingApprovalTags();

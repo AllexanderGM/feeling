@@ -36,7 +36,8 @@ public interface IUserCategoryInterestRepository extends JpaRepository<UserCateg
      *
      * @return Lista de categorías activas ordenadas
      */
-    List<UserCategoryInterest> findByActiveTrueOrderByDisplayOrder();
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM UserCategoryInterest c WHERE c.isActive = true ORDER BY c.displayOrder")
+    List<UserCategoryInterest> findByIsActiveTrueOrderByDisplayOrder();
 
     /**
      * Busca todas las categorías ordenadas por displayOrder.

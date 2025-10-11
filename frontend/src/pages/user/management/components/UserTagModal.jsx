@@ -15,7 +15,7 @@ import {
 } from '@heroui/react'
 import { Tags, CheckCircle, XCircle, Clock, ThumbsUp, ThumbsDown, Eye, Hash } from 'lucide-react'
 import { useError } from '@hooks'
-import { tagService } from '@services'
+import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
 
 const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
@@ -53,7 +53,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
   const handleApproveTag = useCallback(
     async (tagId, tagName) => {
       try {
-        await tagService.approveTag(tagId)
+        await userTagsService.approveTag(tagId)
         handleSuccess(`Tag "${tagName}" aprobado correctamente`)
 
         // Actualizar el estado local
@@ -73,11 +73,11 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
   const handleRejectTag = useCallback(
     async (tagId, tagName) => {
       try {
-        const reason = 'Tag no apropiado para la plataforma'
-        await tagService.rejectTag(tagId, reason)
+        await userTagsService.rejectTag(tagId)
         handleSuccess(`Tag "${tagName}" rechazado correctamente`)
 
         // Actualizar el estado local
+        const reason = 'Tag no apropiado para la plataforma'
         setUserTags(prev => prev.map(tag => (tag.id === tagId ? { ...tag, approved: false, rejectionReason: reason } : tag)))
 
         // Notificar al componente padre si existe la función

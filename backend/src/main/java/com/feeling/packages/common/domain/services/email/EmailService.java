@@ -1,6 +1,5 @@
 package com.feeling.packages.common.domain.services.email;
 
-import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
 import com.feeling.packages.event.domain.dto.EventRegistrationResponseDTO;
 import com.feeling.packages.event.domain.dto.EventResponseDTO;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -19,6 +18,16 @@ import org.thymeleaf.context.Context;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Servicio centralizado para gestión de envío de correos electrónicos.
+ * <p>
+ * Proporciona métodos para enviar diferentes tipos de notificaciones por email
+ * incluyendo verificación, bienvenida, recuperación de contraseña, eventos y gestión de usuarios.
+ * Utiliza Thymeleaf para renderizar plantillas HTML y JavaMailSender para el envío asíncrono.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Service
 public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
@@ -31,7 +40,7 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Value("${support.email:soporte@feeling.com}")
+    @Value("${complaint.email:soporte@feeling.com}")
     private String supportEmail;
 
     public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
@@ -42,6 +51,15 @@ public class EmailService {
     // ==============================
     // EMAIL DE VERIFICACIÓN
     // ==============================
+
+    /**
+     * Envía email de verificación de cuenta con código de verificación.
+     *
+     * @param to               Email del destinatario
+     * @param name             Nombre del usuario
+     * @param verificationCode Código de 6 dígitos para verificación
+     * @throws MessagingException si ocurre un error al enviar el email
+     */
     @Async
     public void sendVerificationEmail(String to, String name, String verificationCode) throws MessagingException {
         try {
@@ -205,9 +223,9 @@ public class EmailService {
      */
     @Async
     public void sendEventRegistrationConfirmation(
-            String email,
-            String userName,
-            EventRegistrationResponseDTO registration
+        String email,
+        String userName,
+        EventRegistrationResponseDTO registration
     ) throws MessagingException {
         try {
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -289,6 +307,34 @@ public class EmailService {
     // ==============================
     // MÉTODOS DE UTILIDAD
     // ==============================
+
+    /**
+     * Método genérico para enviar emails con contenido personalizado.
+     * Útil para notificaciones y comunicaciones que no tienen plantilla específica.
+     *
+     * @param to      Email del destinatario
+     * @param subject Asunto del email
+     * @param body    Contenido del email (puede ser HTML o texto plano)
+     * @throws MessagingException si ocurre un error al enviar el email
+     */
+    @Async
+    public void sendEmail(String to, String subject, String body) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, true); // true = is HTML
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+            logger.info("Email genérico enviado a: {} con asunto: {}", to, subject);
+        } catch (Exception e) {
+            logger.error("Error al enviar email genérico a {}: {}", to, e.getMessage(), e);
+            throw new MessagingException("Error al enviar email", e);
+        }
+    }
 
     /**
      * Método genérico para enviar email de bienvenida
@@ -405,6 +451,119 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Error al enviar correo recordatorio a: " + user.getEmail(), e);
             throw new RuntimeException("Error al enviar correo recordatorio", e);
+        }
+    }
+
+    // ==============================
+    // EMAILS DE GESTIÓN DE USUARIOS
+    // ==============================
+
+    /**
+     * Envía email de aprobación cuando un usuario es aprobado por el administrador
+     */
+    @Async
+    public void sendUserApprovalEmail(String to, String name) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+
+            String htmlContent = templateEngine.process("email-user-approval.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("¡Tu cuenta ha sido aprobada! - Feeling");
+            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+            logger.info("Email de aprobación de usuario enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de aprobación a {}: {}", to, e.getMessage(), e);
+            throw new MessagingException("Error al enviar email de aprobación", e);
+        }
+    }
+
+    /**
+     * Envía email de rechazo cuando un usuario no es aprobado por el administrador
+     */
+    @Async
+    public void sendUserRejectionEmail(String to, String name, String reason) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("reason", reason != null ? reason : "No se proporcionó un motivo específico.");
+
+            String htmlContent = templateEngine.process("email-user-rejection.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("Actualización sobre tu solicitud - Feeling");
+            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+            logger.info("Email de rechazo de usuario enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de rechazo a {}: {}", to, e.getMessage(), e);
+            throw new MessagingException("Error al enviar email de rechazo", e);
+        }
+    }
+
+    /**
+     * Envía email de notificación de desactivación de cuenta
+     */
+    @Async
+    public void sendAccountDeactivationEmail(String to, String name) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+
+            String htmlContent = templateEngine.process("email-account-deactivation.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("Tu cuenta ha sido desactivada - Feeling");
+            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+            logger.info("Email de desactivación de cuenta enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de desactivación a {}: {}", to, e.getMessage(), e);
+            throw new MessagingException("Error al enviar email de desactivación", e);
+        }
+    }
+
+    /**
+     * Envía email de notificación de reactivación de cuenta
+     */
+    @Async
+    public void sendAccountReactivationEmail(String to, String name) throws MessagingException {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            Context context = new Context();
+            context.setVariable("name", name);
+
+            String htmlContent = templateEngine.process("email-account-reactivation.html", context);
+
+            helper.setTo(to);
+            helper.setSubject("¡Bienvenido de vuelta! - Feeling");
+            helper.setText(htmlContent, true);
+            helper.setFrom(fromEmail);
+
+            mailSender.send(message);
+            logger.info("Email de reactivación de cuenta enviado a: {}", to);
+        } catch (Exception e) {
+            logger.error("Error al enviar email de reactivación a {}: {}", to, e.getMessage(), e);
+            throw new MessagingException("Error al enviar email de reactivación", e);
         }
     }
 }

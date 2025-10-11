@@ -18,18 +18,39 @@ export const PUBLIC_ROUTES = [
   '/user-tags/search',
   '/user-tags/trending',
 
-  // Autenticación
+  // AuthController - Rutas principales
   '/auth/register',
   '/auth/login',
-  '/auth/google',
-  '/auth/verify-email',
-  '/auth/resend-verification',
-  '/auth/forgot-password',
-  '/auth/reset-password',
   '/auth/refresh-token',
   '/auth/check-email',
-  '/auth/check-method',
+  '/auth/check-auth-method',
   '/auth/status',
+
+  // PasswordController - Gestión de contraseñas
+  '/auth/password/forgot',
+  '/auth/password/reset',
+  '/auth/password/validate-reset-token',
+  '/auth/password/validate',
+  '/auth/password/suggestions',
+  '/auth/password/policy',
+  '/auth/password/check-compromised',
+
+  // VerificationController - Verificación de emails
+  '/auth/verification/verify-email',
+  '/auth/verification/resend-code',
+  '/auth/verification/check-email',
+  '/auth/verification/status',
+  '/auth/verification/validate-code',
+
+  // OAuthController - OAuth providers
+  '/auth/oauth/google/register',
+  '/auth/oauth/google/login',
+  '/auth/oauth/facebook/register',
+  '/auth/oauth/facebook/login',
+  '/auth/oauth/apple/register',
+  '/auth/oauth/apple/login',
+  '/auth/oauth/methods',
+  '/auth/oauth/providers',
 
   // Sistema
   '/health',
@@ -47,22 +68,78 @@ export const isPublicRoute = url => {
 
 // URLs base para diferentes tipos de endpoints
 export const API_ENDPOINTS = {
-  // Autenticación
+  // ========================================
+  // AUTENTICACIÓN
+  // ========================================
+
+  // AuthController - Autenticación principal (/auth)
+  // Nota: Contiene rutas cortas para verificación y password que son aliases.
+  // Los servicios especializados usan las rutas completas para mayor claridad.
   AUTH: {
+    // Registro y Login
     REGISTER: '/auth/register',
     LOGIN: '/auth/login',
-    GOOGLE_LOGIN: '/auth/google/login',
-    GOOGLE_REGISTER: '/auth/google/register',
-    VERIFY_EMAIL: '/auth/verify-email',
-    RESEND_VERIFICATION: '/auth/resend-verification',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
+
+    // Gestión de tokens
     REFRESH_TOKEN: '/auth/refresh-token',
-    VALIDATE_RESET_TOKEN: '/auth/validate-reset-token',
     LOGOUT: '/auth/logout',
+
+    // Verificaciones y estado
     CHECK_EMAIL: '/auth/check-email',
-    CHECK_METHOD: '/auth/check-method',
+    CHECK_METHOD: '/auth/check-auth-method',
     STATUS: '/auth/status'
+  },
+
+  // PasswordController - Gestión de contraseñas (/auth/password)
+  PASSWORD: {
+    // Recuperación de contraseña
+    FORGOT: '/auth/password/forgot',
+    RESET: '/auth/password/reset',
+    VALIDATE_RESET_TOKEN: '/auth/password/validate-reset-token',
+
+    // Cambio de contraseña (requiere autenticación)
+    CHANGE: '/auth/password/change',
+
+    // Validación de contraseñas
+    VALIDATE: '/auth/password/validate',
+    SUGGESTIONS: '/auth/password/suggestions',
+    POLICY: '/auth/password/policy',
+    CHECK_COMPROMISED: '/auth/password/check-compromised'
+  },
+
+  // VerificationController - Verificación de emails (/auth/verification)
+  VERIFICATION: {
+    // Verificación de email
+    VERIFY_EMAIL: '/auth/verification/verify-email',
+    RESEND_CODE: '/auth/verification/resend-code',
+
+    // Validaciones
+    CHECK_EMAIL: '/auth/verification/check-email',
+    STATUS: '/auth/verification/status',
+    VALIDATE_CODE: '/auth/verification/validate-code',
+
+    // Limpieza (admin)
+    CLEANUP_EXPIRED: '/auth/verification/cleanup-expired'
+  },
+
+  // OAuthController - Autenticación OAuth (/auth/oauth)
+  OAUTH: {
+    // Google OAuth
+    GOOGLE_REGISTER: '/auth/oauth/google/register',
+    GOOGLE_LOGIN: '/auth/oauth/google/login',
+
+    // Facebook OAuth (preparado para futuro - backend devuelve 501 NOT_IMPLEMENTED)
+    FACEBOOK_REGISTER: '/auth/oauth/facebook/register',
+    FACEBOOK_LOGIN: '/auth/oauth/facebook/login',
+
+    // Apple OAuth (preparado para futuro - backend devuelve 501 NOT_IMPLEMENTED)
+    APPLE_REGISTER: '/auth/oauth/apple/register',
+    APPLE_LOGIN: '/auth/oauth/apple/login',
+
+    // Información y gestión
+    METHODS: '/auth/oauth/methods',
+    PROVIDERS: '/auth/oauth/providers',
+    UNLINK: '/auth/oauth/unlink'
   },
 
   // Datos públicos
@@ -78,7 +155,7 @@ export const API_ENDPOINTS = {
   // Usuario - UserController (/user)
   USER: {
     // Cliente endpoints
-    CURRENT: '/user',
+    CURRENT: '/user/profile',
     PUBLIC_PROFILE: '/user/{email}/public',
     COMPLETE_PROFILE: '/user/{email}/complete',
     COMPATIBILITY: '/user/compatibility/{otherUserEmail}',
@@ -127,9 +204,13 @@ export const API_ENDPOINTS = {
     ALL_GROUPED: '/user-attributes',
     TYPES: '/user-attributes/types',
     BY_TYPE: '/user-attributes/{attributeType}',
+    MULTIPLE_TYPES: '/user-attributes/multiple',
     USERS_BY_ATTRIBUTE: '/user-attributes/{attributeId}/users',
 
     // Admin endpoints
+    ALL_PAGINATED: '/user/attributes/admin',
+    INACTIVE: '/user/attributes/inactive',
+    INACTIVE_COUNT: '/user/attributes/inactive/count',
     CREATE: '/user-attributes/{attributeType}',
     UPDATE: '/user-attributes/{attributeId}',
     DELETE: '/user-attributes/{attributeId}'
@@ -142,9 +223,11 @@ export const API_ENDPOINTS = {
     BY_ID: '/user-interests/{id}',
 
     // Admin endpoints
+    ALL_ADMIN: '/user-interests/admin/all',
     CREATE: '/user-interests',
     UPDATE: '/user-interests/{interestId}',
-    DELETE: '/user-interests/{interestId}'
+    DELETE: '/user-interests/{interestId}',
+    TOGGLE_STATUS: '/user-interests/{interestId}/toggle-status'
   },
 
   // Tags de Usuario - UserTagController (/user-tags)
@@ -160,7 +243,6 @@ export const API_ENDPOINTS = {
     POPULAR: '/user-tags/popular',
     TRENDING: '/user-tags/trending',
     SUGGESTIONS: '/user-tags/suggestions',
-    USERS_BY_TAGS: '/user-tags/users',
 
     // Admin endpoints
     PENDING_APPROVAL: '/user-tags/pending-approval',
@@ -170,6 +252,68 @@ export const API_ENDPOINTS = {
     APPROVE: '/user-tags/{tagId}/approve',
     REJECT: '/user-tags/{tagId}/reject',
     APPROVE_BATCH: '/user-tags/approve-batch'
+  },
+
+  // Roles de Usuario - UserRoleController (/user-roles)
+  USER_ROLES: {
+    // Consultas
+    ADMINS: '/user-roles/admins',
+    CLIENTS: '/user-roles/clients',
+    COUNT: '/user-roles/count',
+
+    // Gestión de roles admin
+    GRANT_ADMIN: '/user-roles/{userId}/grant-admin',
+    GRANT_ADMIN_BATCH: '/user-roles/grant-admin-batch',
+    REVOKE_ADMIN: '/user-roles/{userId}/revoke-admin',
+    REVOKE_ADMIN_BATCH: '/user-roles/revoke-admin-batch'
+  },
+
+  // Aprobación de Usuarios - UserApprovalController (/user-approval)
+  USER_APPROVAL: {
+    // Consultas
+    PENDING: '/user-approval/pending',
+    REJECTED: '/user-approval/rejected',
+
+    // Gestión individual
+    APPROVE: '/user-approval/{userId}/approve',
+    REJECT: '/user-approval/{userId}/reject',
+    RESET_PENDING: '/user-approval/{userId}/pending',
+
+    // Operaciones en lote
+    APPROVE_BATCH: '/user-approval/approve-batch',
+    REJECT_BATCH: '/user-approval/reject-batch'
+  },
+
+  // Notificaciones de Usuario - UserNotificationController (/user-notifications)
+  USER_NOTIFICATIONS: {
+    // Onboarding & Profile
+    WELCOME: '/user-notifications/{userId}/welcome',
+    PROFILE_REMINDER: '/user-notifications/{userId}/profile-reminder',
+
+    // Approval & Moderation
+    APPROVAL: '/user-notifications/{userId}/approval',
+    REJECTION: '/user-notifications/{userId}/rejection',
+
+    // Account Management
+    DEACTIVATION: '/user-notifications/{userId}/deactivation',
+    REACTIVATION: '/user-notifications/{userId}/reactivation',
+
+    // Bulk Operations
+    PROFILE_REMINDERS_BATCH: '/user-notifications/profile-reminders-batch',
+    BULK_EMAIL: '/user-notifications/bulk-email'
+  },
+
+  // Media de Usuario - UserMediaController (/user-media)
+  USER_MEDIA: {
+    // Cliente - Personal media
+    MY_MEDIA: '/user-media/me',
+    UPLOAD: '/user-media/me',
+    SET_MAIN: '/user-media/me/main',
+    DELETE_MY_IMAGE: '/user-media/me',
+
+    // Admin - Media moderation
+    USER_MEDIA: '/user-media/{userId}',
+    DELETE_USER_IMAGE: '/user-media/{userId}'
   },
 
   // Eventos
@@ -184,7 +328,9 @@ export const API_ENDPOINTS = {
     CATEGORIES: '/events/categories',
     STATS: '/events/dashboard/stats',
     COUNT: '/events/stats/count',
+    COUNT_BY_CATEGORY: '/events/stats/count-by-category',
     REVENUE: '/events/stats/revenue',
+    CATEGORY_STATS: '/events/stats/category',
     TOGGLE_STATUS: '/events/{id}/admin-toggle-status',
     FORCE_DELETE: '/events/{id}/force-delete',
     REGISTRATION: '/events/registration',
@@ -215,18 +361,26 @@ export const API_ENDPOINTS = {
     ADMIN_DELETE_PLAN: '/matches/plans/admin/{planId}'
   },
 
-  // Soporte
-  SUPPORT: {
-    COMPLAINTS: '/support/complaints',
-    MY_COMPLAINTS: '/support/my-complaints',
-    COMPLAINT_BY_ID: '/support/my-complaints/{complaintId}',
-    PENDING_COMPLAINTS: '/support/complaints/pending',
-    URGENT_COMPLAINTS: '/support/complaints/urgent',
-    OVERDUE_COMPLAINTS: '/support/complaints/overdue',
-    RESOLVED_COMPLAINTS: '/support/complaints/resolved',
-    UPDATE_COMPLAINT: '/support/complaints/{complaintId}',
-    DELETE_COMPLAINT: '/support/complaints/{complaintId}',
-    COMPLAINT_STATS: '/support/complaints/stats'
+  // ComplaintController - Gestión de quejas y reclamos (/complaints)
+  COMPLAINTS: {
+    // Cliente endpoints
+    CREATE: '/complaints',
+    MY_COMPLAINTS: '/complaints/me',
+    MY_COMPLAINT_BY_ID: '/complaints/me/{complaintId}',
+
+    // Admin endpoints - Listado y filtrado
+    ALL: '/complaints',
+    PENDING: '/complaints/pending',
+    URGENT: '/complaints/urgent',
+    OVERDUE: '/complaints/overdue',
+    RESOLVED: '/complaints/resolved',
+    BY_TYPE: '/complaints/type/{complaintType}',
+    BY_PRIORITY: '/complaints/priority/{complaintPriority}',
+
+    // Admin endpoints - Gestión
+    UPDATE: '/complaints/{complaintId}',
+    DELETE: '/complaints/{complaintId}',
+    STATS: '/complaints/stats'
   },
 
   // Tours

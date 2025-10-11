@@ -36,15 +36,15 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
     Page<Event> findUpcomingEvents(@Param("fromDate") LocalDateTime fromDate, Pageable pageable);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND " +
-            "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY e.eventDate ASC")
+        "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY e.eventDate ASC")
     List<Event> searchEvents(@Param("searchTerm") String searchTerm);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND " +
-            "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
-            "ORDER BY e.eventDate ASC")
+        "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+        "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
+        "ORDER BY e.eventDate ASC")
     Page<Event> searchEvents(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.createdBy.id = :userId ORDER BY e.createdAt DESC")
@@ -59,25 +59,25 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT COUNT(e) FROM Event e WHERE e.isActive = true AND e.category = :category")
     Long countActiveEventsByCategory(@Param("category") EventCategory category);
 
-    // Event status queries with fetch joins
+    // Event complaintStatus queries with fetch joins
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status ORDER BY e.eventDate ASC")
-    List<Event> findByStatus(@Param("status") EventStatus status);
+    List<Event> findByStatus(@Param("complaintStatus") EventStatus status);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status ORDER BY e.eventDate ASC")
-    List<Event> findByStatusOrderByEventDateAsc(@Param("status") EventStatus status);
+    List<Event> findByStatusOrderByEventDateAsc(@Param("complaintStatus") EventStatus status);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status")
-    Page<Event> findByStatus(@Param("status") EventStatus status, Pageable pageable);
+    Page<Event> findByStatus(@Param("complaintStatus") EventStatus status, Pageable pageable);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status ORDER BY e.eventDate ASC")
-    Page<Event> findByStatusOrderByEventDateAsc(@Param("status") EventStatus status, Pageable pageable);
+    Page<Event> findByStatusOrderByEventDateAsc(@Param("complaintStatus") EventStatus status, Pageable pageable);
 
-    // Event status with search queries
+    // Event complaintStatus with search queries
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%'))")
-    List<Event> findByStatusAndTitleContainingIgnoreCase(@Param("status") EventStatus status, @Param("title") String title);
+    List<Event> findByStatusAndTitleContainingIgnoreCase(@Param("complaintStatus") EventStatus status, @Param("title") String title);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%'))")
-    Page<Event> findByStatusAndTitleContainingIgnoreCase(@Param("status") EventStatus status, @Param("title") String title, Pageable pageable);
+    Page<Event> findByStatusAndTitleContainingIgnoreCase(@Param("complaintStatus") EventStatus status, @Param("title") String title, Pageable pageable);
 
     // Event registrations queries
     @Query("SELECT DISTINCT e FROM Event e JOIN FETCH e.createdBy JOIN e.registrations r WHERE r.user.id = :userId ORDER BY e.eventDate ASC")

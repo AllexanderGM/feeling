@@ -30,10 +30,10 @@ public interface IEventRegistrationRepository extends JpaRepository<EventRegistr
     List<EventRegistration> findByPaymentStatus(PaymentStatus paymentStatus);
 
     @Query("SELECT er FROM EventRegistration er WHERE er.user.id = :userId AND er.paymentStatus = :status ORDER BY er.registrationDate DESC")
-    List<EventRegistration> findByUserIdAndPaymentStatus(@Param("userId") Long userId, @Param("status") PaymentStatus status);
+    List<EventRegistration> findByUserIdAndPaymentStatus(@Param("userId") Long userId, @Param("complaintStatus") PaymentStatus status);
 
     @Query("SELECT er FROM EventRegistration er WHERE er.event.id = :eventId AND er.paymentStatus = :status ORDER BY er.registrationDate ASC")
-    List<EventRegistration> findByEventIdAndPaymentStatus(@Param("eventId") Long eventId, @Param("status") PaymentStatus status);
+    List<EventRegistration> findByEventIdAndPaymentStatus(@Param("eventId") Long eventId, @Param("complaintStatus") PaymentStatus status);
 
     @Query("SELECT COUNT(er) FROM EventRegistration er WHERE er.event.id = :eventId AND er.paymentStatus = 'COMPLETED'")
     Long countConfirmedAttendeesByEventId(@Param("eventId") Long eventId);

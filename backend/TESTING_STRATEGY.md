@@ -1,6 +1,7 @@
 # Estrategia de Testing para Feeling Backend
 
 ## 📋 Índice
+
 1. [Estructura de Testing Recomendada](#estructura)
 2. [Tipos de Tests](#tipos-de-tests)
 3. [Herramientas y Dependencias](#herramientas)
@@ -99,9 +100,11 @@ src/test/java/com/feeling/
 ## 🧪 Tipos de Tests {#tipos-de-tests}
 
 ### 1. **Tests Unitarios** (70% de cobertura)
+
 **Objetivo**: Probar componentes individuales de manera aislada.
 
 **Qué testear**:
+
 - ✅ Servicios de dominio (lógica de negocio)
 - ✅ DTOs y mappers
 - ✅ Validaciones
@@ -109,6 +112,7 @@ src/test/java/com/feeling/
 - ✅ Utilidades y helpers
 
 **Características**:
+
 - Rápidos (< 1 segundo por test)
 - No requieren BD ni contexto de Spring
 - Usan mocks para dependencias
@@ -119,9 +123,11 @@ src/test/java/com/feeling/
 ---
 
 ### 2. **Tests de Integración** (25% de cobertura)
+
 **Objetivo**: Probar la integración entre componentes.
 
 **Qué testear**:
+
 - ✅ Controllers + Services + Repositories
 - ✅ Queries de base de datos
 - ✅ Transacciones
@@ -129,6 +135,7 @@ src/test/java/com/feeling/
 - ✅ Serialización JSON
 
 **Características**:
+
 - Más lentos (1-5 segundos por test)
 - Requieren contexto de Spring
 - Usan BD en memoria o TestContainers
@@ -139,15 +146,18 @@ src/test/java/com/feeling/
 ---
 
 ### 3. **Tests End-to-End** (5% de cobertura)
+
 **Objetivo**: Probar flujos completos de usuario.
 
 **Qué testear**:
+
 - ✅ Registro + Verificación + Login
 - ✅ Crear evento + Reservar + Pagar
 - ✅ Match + Chat + Favoritos
 - ✅ Flujos críticos de negocio
 
 **Características**:
+
 - Muy lentos (5-30 segundos por test)
 - BD real o TestContainers
 - Simula comportamiento de usuario real
@@ -162,6 +172,7 @@ src/test/java/com/feeling/
 ### Agregar a `pom.xml`:
 
 ```xml
+
 <dependencies>
     <!-- Ya tienes estas -->
     <dependency>
@@ -230,28 +241,28 @@ src/test/java/com/feeling/
 </dependencies>
 
 <build>
-    <plugins>
-        <!-- Plugin para cobertura de código -->
-        <plugin>
-            <groupId>org.jacoco</groupId>
-            <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.8.11</version>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>prepare-agent</goal>
-                    </goals>
-                </execution>
-                <execution>
-                    <id>report</id>
-                    <phase>test</phase>
-                    <goals>
-                        <goal>report</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
+<plugins>
+    <!-- Plugin para cobertura de código -->
+    <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.11</version>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>prepare-agent</goal>
+                </goals>
+            </execution>
+            <execution>
+                <id>report</id>
+                <phase>test</phase>
+                <goals>
+                    <goal>report</goal>
+                </goals>
+            </execution>
+        </executions>
+    </plugin>
+</plugins>
 </build>
 ```
 
@@ -283,22 +294,23 @@ void testCreateUser()
 ### Estructura AAA (Arrange-Act-Assert)
 
 ```java
+
 @Test
 void createEvent_withValidData_shouldReturnCreatedEvent() {
     // ARRANGE - Preparar datos y mocks
     EventCreateRequestDTO request = EventCreateRequestDTO.builder()
-        .title("Test Event")
-        .description("Test Description")
-        .eventDate(LocalDateTime.now().plusDays(7))
-        .price(new BigDecimal("50.00"))
-        .maxCapacity(100)
-        .category(EventCategory.CULTURAL)
-        .build();
+            .title("Test Event")
+            .description("Test Description")
+            .eventDate(LocalDateTime.now().plusDays(7))
+            .price(new BigDecimal("50.00"))
+            .maxCapacity(100)
+            .category(EventCategory.CULTURAL)
+            .build();
 
     when(userRepository.findByEmail("test@example.com"))
-        .thenReturn(Optional.of(testUser));
+            .thenReturn(Optional.of(testUser));
     when(eventRepository.save(any(Event.class)))
-        .thenAnswer(invocation -> invocation.getArgument(0));
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
     // ACT - Ejecutar el método a probar
     EventResponseDTO result = eventService.createEvent(request, "test@example.com");
@@ -321,7 +333,7 @@ public class UserBuilder {
     private String lastName = "User";
     private String email = "test@example.com";
     private boolean verified = true;
-    private ApprovalStatus approvalStatus = ApprovalStatus.APPROVED;
+    private ApprovalStatus userApprovalStatus = ApprovalStatus.APPROVED;
 
     public UserBuilder withId(Long id) {
         this.id = id;
@@ -340,21 +352,21 @@ public class UserBuilder {
 
     public User build() {
         return User.builder()
-            .id(id)
-            .name(name)
-            .lastName(lastName)
-            .email(email)
-            .verified(verified)
-            .approvalStatus(approvalStatus)
-            .build();
+                .id(id)
+                .name(name)
+                .lastName(lastName)
+                .email(email)
+                .verified(verified)
+                .userApprovalStatus(userApprovalStatus)
+                .build();
     }
 }
 
 // Uso
 User testUser = new UserBuilder()
-    .withEmail("custom@example.com")
-    .notVerified()
-    .build();
+        .withEmail("custom@example.com")
+        .notVerified()
+        .build();
 ```
 
 ---
@@ -377,14 +389,14 @@ User testUser = new UserBuilder()
 
 ### Objetivos de Cobertura
 
-| Tipo de Componente | Cobertura Objetivo |
-|--------------------|-------------------|
-| Servicios de Dominio | 90%+ |
-| DTOs y Mappers | 85%+ |
-| Controllers | 80%+ |
-| Repositorios | 70%+ |
-| Entidades | 60%+ |
-| Configuraciones | 40%+ |
+| Tipo de Componente   | Cobertura Objetivo |
+|----------------------|--------------------|
+| Servicios de Dominio | 90%+               |
+| DTOs y Mappers       | 85%+               |
+| Controllers          | 80%+               |
+| Repositorios         | 70%+               |
+| Entidades            | 60%+               |
+| Configuraciones      | 40%+               |
 
 ---
 
@@ -445,26 +457,26 @@ class BookingServiceTest {
     @BeforeEach
     void setUp() {
         testUser = User.builder()
-            .id(1L)
-            .email("test@example.com")
-            .name("Test")
-            .lastName("User")
-            .build();
+                .id(1L)
+                .email("test@example.com")
+                .name("Test")
+                .lastName("User")
+                .build();
 
         testEvent = Event.builder()
-            .id(1L)
-            .title("Test Event")
-            .isActive(true)
-            .maxCapacity(100)
-            .currentAttendees(0)
-            .eventDate(LocalDateTime.now().plusDays(7))
-            .build();
+                .id(1L)
+                .title("Test Event")
+                .isActive(true)
+                .maxCapacity(100)
+                .currentAttendees(0)
+                .eventDate(LocalDateTime.now().plusDays(7))
+                .build();
 
         validRequest = BookingRequestDTO.builder()
-            .eventId(1L)
-            .bookingDate(LocalDateTime.now().plusDays(7))
-            .attendees(2)
-            .build();
+                .eventId(1L)
+                .bookingDate(LocalDateTime.now().plusDays(7))
+                .attendees(2)
+                .build();
     }
 
     @Test
@@ -472,15 +484,15 @@ class BookingServiceTest {
     void createBooking_withValidData_shouldCreateBookingSuccessfully() {
         // Arrange
         when(userRepository.findByEmail("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
         when(eventRepository.findById(1L))
-            .thenReturn(Optional.of(testEvent));
+                .thenReturn(Optional.of(testEvent));
         when(bookingRepository.save(any(Booking.class)))
-            .thenAnswer(invocation -> {
-                Booking booking = invocation.getArgument(0);
-                booking.setId(1L);
-                return booking;
-            });
+                .thenAnswer(invocation -> {
+                    Booking booking = invocation.getArgument(0);
+                    booking.setId(1L);
+                    return booking;
+                });
 
         // Act
         BookingResponseDTO result = bookingService.createBooking(validRequest, "test@example.com");
@@ -501,14 +513,14 @@ class BookingServiceTest {
     void createBooking_whenUserNotFound_shouldThrowUnauthorizedException() {
         // Arrange
         when(userRepository.findByEmail("test@example.com"))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() ->
-            bookingService.createBooking(validRequest, "test@example.com")
+                bookingService.createBooking(validRequest, "test@example.com")
         )
-            .isInstanceOf(UnauthorizedException.class)
-            .hasMessage("Usuario no encontrado");
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Usuario no encontrado");
 
         verify(userRepository).findByEmail("test@example.com");
         verify(eventRepository, never()).findById(any());
@@ -520,16 +532,16 @@ class BookingServiceTest {
     void createBooking_whenEventNotFound_shouldThrowNotFoundException() {
         // Arrange
         when(userRepository.findByEmail("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
         when(eventRepository.findById(1L))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // Act & Assert
         assertThatThrownBy(() ->
-            bookingService.createBooking(validRequest, "test@example.com")
+                bookingService.createBooking(validRequest, "test@example.com")
         )
-            .isInstanceOf(NotFoundException.class)
-            .hasMessage("Evento no encontrado");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Evento no encontrado");
 
         verify(bookingRepository, never()).save(any());
     }
@@ -541,16 +553,16 @@ class BookingServiceTest {
         testEvent.setIsActive(false);
 
         when(userRepository.findByEmail("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
         when(eventRepository.findById(1L))
-            .thenReturn(Optional.of(testEvent));
+                .thenReturn(Optional.of(testEvent));
 
         // Act & Assert
         assertThatThrownBy(() ->
-            bookingService.createBooking(validRequest, "test@example.com")
+                bookingService.createBooking(validRequest, "test@example.com")
         )
-            .isInstanceOf(BadRequestException.class)
-            .hasMessage("El evento no está activo");
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("El evento no está activo");
 
         verify(bookingRepository, never()).save(any());
     }
@@ -562,18 +574,18 @@ class BookingServiceTest {
         testEvent.setCurrentAttendees(100);
 
         when(userRepository.findByEmail("test@example.com"))
-            .thenReturn(Optional.of(testUser));
+                .thenReturn(Optional.of(testUser));
         when(eventRepository.findById(1L))
-            .thenReturn(Optional.of(testEvent));
+                .thenReturn(Optional.of(testEvent));
         when(bookingRepository.sumAttendeesByEventId(1L))
-            .thenReturn(100);
+                .thenReturn(100);
 
         // Act & Assert
         assertThatThrownBy(() ->
-            bookingService.createBooking(validRequest, "test@example.com")
+                bookingService.createBooking(validRequest, "test@example.com")
         )
-            .isInstanceOf(BadRequestException.class)
-            .hasMessageContaining("capacidad");
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("capacidad");
 
         verify(bookingRepository, never()).save(any());
     }
@@ -634,23 +646,23 @@ class BookingControllerIntegrationTest {
     void setUp() {
         // Crear usuario de prueba
         testUser = User.builder()
-            .email("test@example.com")
-            .name("Test")
-            .lastName("User")
-            .verified(true)
-            .build();
+                .email("test@example.com")
+                .name("Test")
+                .lastName("User")
+                .verified(true)
+                .build();
         testUser = userRepository.save(testUser);
 
         // Crear evento de prueba
         testEvent = Event.builder()
-            .title("Test Event")
-            .description("Test Description")
-            .isActive(true)
-            .maxCapacity(100)
-            .currentAttendees(0)
-            .eventDate(LocalDateTime.now().plusDays(7))
-            .createdBy(testUser)
-            .build();
+                .title("Test Event")
+                .description("Test Description")
+                .isActive(true)
+                .maxCapacity(100)
+                .currentAttendees(0)
+                .eventDate(LocalDateTime.now().plusDays(7))
+                .createdBy(testUser)
+                .build();
         testEvent = eventRepository.save(testEvent);
     }
 
@@ -660,20 +672,20 @@ class BookingControllerIntegrationTest {
     void createBooking_withValidData_shouldReturn201() throws Exception {
         // Arrange
         BookingRequestDTO request = BookingRequestDTO.builder()
-            .eventId(testEvent.getId())
-            .bookingDate(LocalDateTime.now().plusDays(7))
-            .attendees(2)
-            .specialRequests("Window seat please")
-            .build();
+                .eventId(testEvent.getId())
+                .bookingDate(LocalDateTime.now().plusDays(7))
+                .attendees(2)
+                .specialRequests("Window seat please")
+                .build();
 
         // Act & Assert
         mockMvc.perform(post("/bookings")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.eventId").value(testEvent.getId()))
-            .andExpect(jsonPath("$.attendees").value(2))
-            .andExpect(jsonPath("$.status").value("PENDING"));
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(complaintStatus().isCreated())
+                .andExpect(jsonPath("$.eventId").value(testEvent.getId()))
+                .andExpect(jsonPath("$.attendees").value(2))
+                .andExpect(jsonPath("$.complaintStatus").value("PENDING"));
     }
 
     @Test
@@ -682,15 +694,15 @@ class BookingControllerIntegrationTest {
     void getMyBookings_shouldReturnUserBookings() throws Exception {
         // Act & Assert
         mockMvc.perform(get("/bookings/my-bookings"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+                .andExpect(complaintStatus().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     @Test
     @DisplayName("GET /bookings without authentication should return 401")
     void getMyBookings_withoutAuth_shouldReturn401() throws Exception {
         mockMvc.perform(get("/bookings/my-bookings"))
-            .andExpect(status().isUnauthorized());
+                .andExpect(complaintStatus().isUnauthorized());
     }
 }
 ```
@@ -728,9 +740,9 @@ class EventBookingFlowTest {
 
     @Container
     static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-        .withDatabaseName("feeling_test")
-        .withUsername("test")
-        .withPassword("test");
+            .withDatabaseName("feeling_test")
+            .withUsername("test")
+            .withPassword("test");
 
     @BeforeEach
     void setUp() {
@@ -743,56 +755,56 @@ class EventBookingFlowTest {
     void completeEventBookingFlow() {
         // 1. Registrar usuario
         String accessToken = given()
-            .contentType(ContentType.JSON)
-            .body(new AuthRegisterRequestDTO(
-                "test@example.com",
-                "Password123!",
-                "Test",
-                "User"
-            ))
-        .when()
-            .post("/auth/register")
-        .then()
-            .statusCode(201)
-            .extract()
-            .path("accessToken");
+                .contentType(ContentType.JSON)
+                .body(new AuthRegisterRequestDTO(
+                        "test@example.com",
+                        "Password123!",
+                        "Test",
+                        "User"
+                ))
+                .when()
+                .post("/auth/register")
+                .then()
+                .statusCode(201)
+                .extract()
+                .path("accessToken");
 
         // 2. Crear evento
         Long eventId = given()
-            .header("Authorization", "Bearer " + accessToken)
-            .contentType(ContentType.JSON)
-            .body(new EventCreateRequestDTO(
-                "Test Event",
-                "Description",
-                LocalDateTime.now().plusDays(7),
-                new BigDecimal("50.00"),
-                100,
-                EventCategory.CULTURAL,
-                null
-            ))
-        .when()
-            .post("/events")
-        .then()
-            .statusCode(201)
-            .body("title", equalTo("Test Event"))
-            .extract()
-            .path("id");
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(ContentType.JSON)
+                .body(new EventCreateRequestDTO(
+                        "Test Event",
+                        "Description",
+                        LocalDateTime.now().plusDays(7),
+                        new BigDecimal("50.00"),
+                        100,
+                        EventCategory.CULTURAL,
+                        null
+                ))
+                .when()
+                .post("/events")
+                .then()
+                .statusCode(201)
+                .body("title", equalTo("Test Event"))
+                .extract()
+                .path("id");
 
         // 3. Reservar evento
         given()
-            .header("Authorization", "Bearer " + accessToken)
-            .contentType(ContentType.JSON)
-            .body(Map.of(
-                "eventId", eventId,
-                "bookingDate", LocalDateTime.now().plusDays(7).toString(),
-                "attendees", 2
-            ))
-        .when()
-            .post("/bookings")
-        .then()
-            .statusCode(201)
-            .body("eventId", equalTo(eventId.intValue()))
-            .body("status", equalTo("PENDING"));
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(ContentType.JSON)
+                .body(Map.of(
+                        "eventId", eventId,
+                        "bookingDate", LocalDateTime.now().plusDays(7).toString(),
+                        "attendees", 2
+                ))
+                .when()
+                .post("/bookings")
+                .then()
+                .statusCode(201)
+                .body("eventId", equalTo(eventId.intValue()))
+                .body("complaintStatus", equalTo("PENDING"));
     }
 }
 ```
@@ -802,6 +814,7 @@ class EventBookingFlowTest {
 ## 🗺️ Roadmap de Testing {#roadmap}
 
 ### Fase 1: Fundación (Semana 1-2)
+
 - [ ] Configurar dependencias de testing en `pom.xml`
 - [ ] Crear estructura de carpetas
 - [ ] Configurar `application-test.properties`
@@ -810,6 +823,7 @@ class EventBookingFlowTest {
 - [ ] Configurar JaCoCo para cobertura
 
 ### Fase 2: Tests Unitarios Críticos (Semana 3-4)
+
 - [ ] Tests de `AuthService`
 - [ ] Tests de `UserService`
 - [ ] Tests de `EventService`
@@ -819,6 +833,7 @@ class EventBookingFlowTest {
 - [ ] Meta: 70% cobertura en servicios
 
 ### Fase 3: Tests de Integración (Semana 5-6)
+
 - [ ] Tests de `AuthController`
 - [ ] Tests de `UserController`
 - [ ] Tests de `EventController`
@@ -827,6 +842,7 @@ class EventBookingFlowTest {
 - [ ] Meta: 60% cobertura en controllers
 
 ### Fase 4: Tests E2E (Semana 7)
+
 - [ ] Flujo de registro y verificación
 - [ ] Flujo de creación y reserva de eventos
 - [ ] Flujo de matching
@@ -834,6 +850,7 @@ class EventBookingFlowTest {
 - [ ] Meta: 5 escenarios críticos cubiertos
 
 ### Fase 5: Optimización (Semana 8)
+
 - [ ] Revisión de tests lentos
 - [ ] Optimización de fixtures
 - [ ] Documentación de convenciones
@@ -871,13 +888,13 @@ mvn clean install -DskipTests
 
 ## 🎯 KPIs de Calidad
 
-| Métrica | Objetivo | Actual |
-|---------|----------|--------|
-| Cobertura Total | > 75% | _TBD_ |
-| Cobertura Servicios | > 85% | _TBD_ |
-| Tests que fallan | 0 | _TBD_ |
-| Tiempo de ejecución | < 5 min | _TBD_ |
-| Tests por clase | > 5 | _TBD_ |
+| Métrica             | Objetivo | Actual |
+|---------------------|----------|--------|
+| Cobertura Total     | > 75%    | _TBD_  |
+| Cobertura Servicios | > 85%    | _TBD_  |
+| Tests que fallan    | 0        | _TBD_  |
+| Tiempo de ejecución | < 5 min  | _TBD_  |
+| Tests por clase     | > 5      | _TBD_  |
 
 ---
 

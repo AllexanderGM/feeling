@@ -5,7 +5,6 @@ import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialFi
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
-// Ya no necesitamos mapear usuarios, usamos la estructura estándar
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
 const useUser = () => {
@@ -53,8 +52,7 @@ const useUser = () => {
   const getUserPublicProfile = useCallback(
     async (email, showNotifications = true) => {
       const result = await withLoading(async () => {
-        const userData = await userService.getUserPublicProfile(email)
-        return mapBackendUserToFrontend(userData)
+        return await userService.getUserPublicProfile(email)
       }, 'obtener perfil público')
 
       return handleApiResponse(result, 'Perfil público obtenido.', { showNotifications })
@@ -68,8 +66,7 @@ const useUser = () => {
   const getUserCompleteProfile = useCallback(
     async (email, showNotifications = true) => {
       const result = await withLoading(async () => {
-        const userData = await userService.getUserCompleteProfile(email)
-        return mapBackendUserToFrontend(userData)
+        return await userService.getUserCompleteProfile(email)
       }, 'obtener perfil completo')
 
       return handleApiResponse(result, 'Perfil completo obtenido.', { showNotifications })
@@ -107,7 +104,7 @@ const useUser = () => {
           // Usar directamente la estructura estándar del proyecto
           const suggestions = response.content
           console.log('📋 Final suggestions to set:', suggestions)
-          
+
           setSuggestions(suggestions)
           setSuggestionsPagination({
             page: response.number || page,

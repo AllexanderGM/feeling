@@ -3,14 +3,14 @@ import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { CheckCircle } from 'lucide-react'
-import { useAuth } from '@hooks'
+import { usePassword } from '@hooks/auth'
 import { forgotPasswordSchema, extractForgotPasswordData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
 
 const ForgotPassword = () => {
-  const { forgotPassword, loading } = useAuth()
+  const { forgotPassword, loading } = usePassword()
   const [status, setStatus] = useState('idle')
 
   const {

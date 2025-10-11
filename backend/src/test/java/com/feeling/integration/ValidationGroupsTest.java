@@ -1,19 +1,10 @@
 package com.feeling.integration;
 
-import com.feeling.packages.user.domain.dto.UserPartialUpdateDTO;
-import com.feeling.utils.ValidationGroups;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
-
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests para validar que los grupos de validación funcionan correctamente

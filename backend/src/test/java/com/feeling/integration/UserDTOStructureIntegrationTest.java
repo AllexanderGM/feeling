@@ -2,9 +2,10 @@ package com.feeling.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.packages.auth.domain.dto.AuthLoginResponseDTO;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
+import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
+import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
@@ -55,7 +56,7 @@ public class UserDTOStructureIntegrationTest {
             .images(Arrays.asList("main.jpg", "image1.jpg", "image2.jpg"))
             .verified(true)
             .profileComplete(true)
-            .approvalStatus(ApprovalStatus.APPROVED)
+            .userApprovalStatus(UserApprovalStatus.APPROVED)
             .userRole(userRole)
             .availableAttempts(10)
             .createdAt(LocalDateTime.now())
@@ -94,7 +95,7 @@ public class UserDTOStructureIntegrationTest {
 
         // Verificar estructura principal
         assertTrue(jsonNode.has("tokens"), "Must have tokens object");
-        assertTrue(jsonNode.has("status"), "Must have status object");
+        assertTrue(jsonNode.has("complaintStatus"), "Must have complaintStatus object");
         assertTrue(jsonNode.has("profile"), "Must have profile object");
         assertTrue(jsonNode.has("privacy"), "Must have privacy object");
         assertTrue(jsonNode.has("notifications"), "Must have notifications object");
@@ -108,12 +109,12 @@ public class UserDTOStructureIntegrationTest {
         assertTrue(tokens.has("accessToken"), "Tokens must have accessToken");
         assertTrue(tokens.has("refreshToken"), "Tokens must have refreshToken");
 
-        // Verificar campos críticos de status
-        JsonNode status = jsonNode.get("status");
-        assertTrue(status.has("verified"), "Status must have verified");
-        assertTrue(status.has("profileComplete"), "Status must have profileComplete");
-        assertTrue(status.has("approved"), "Status must have approved");
-        assertTrue(status.has("role"), "Status must have role");
+        // Verificar campos críticos de complaintStatus
+        JsonNode status = jsonNode.get("complaintStatus");
+        assertTrue(status.has("verified"), "ComplaintStatus must have verified");
+        assertTrue(status.has("profileComplete"), "ComplaintStatus must have profileComplete");
+        assertTrue(status.has("approved"), "ComplaintStatus must have approved");
+        assertTrue(status.has("role"), "ComplaintStatus must have role");
 
         // Verificar campos críticos de profile
         JsonNode profile = jsonNode.get("profile");
@@ -132,13 +133,13 @@ public class UserDTOStructureIntegrationTest {
     @Test
     @DisplayName("Test UserPublicResponseDTO Structure - Critical for Matching")
     void testUserPublicResponseDTOStructure() throws Exception {
-        com.feeling.packages.user.domain.dto.UserResponseDTO publicResponse = UserDTOMapper.toUserPublicResponseDTO(testUser);
+        UserResponseDTO publicResponse = UserDTOMapper.toUserPublicResponseDTO(testUser);
 
         String json = objectMapper.writeValueAsString(publicResponse);
         JsonNode jsonNode = objectMapper.readTree(json);
 
         // Verificar estructura principal
-        assertTrue(jsonNode.has("status"), "Must have status object");
+        assertTrue(jsonNode.has("complaintStatus"), "Must have complaintStatus object");
         assertTrue(jsonNode.has("profile"), "Must have profile object");
 
         // Verificar que tiene campos necesarios
@@ -149,7 +150,7 @@ public class UserDTOStructureIntegrationTest {
         assertTrue(profile.has("description"), "Profile must have description");
 
         // Validar deserialización
-        com.feeling.packages.user.domain.dto.UserResponseDTO deserialized = objectMapper.readValue(json, com.feeling.packages.user.domain.dto.UserResponseDTO.class);
+        UserResponseDTO deserialized = objectMapper.readValue(json, UserResponseDTO.class);
         assertNotNull(deserialized);
         assertNotNull(deserialized.profile());
         assertEquals("Test", deserialized.profile().name());
@@ -158,8 +159,8 @@ public class UserDTOStructureIntegrationTest {
     @Test
     @DisplayName("Test UserPublicResponseDTO vs UserStandardResponseDTO Differences")
     void testPublicVsStandardDifferences() throws Exception {
-        com.feeling.packages.user.domain.dto.UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
-        com.feeling.packages.user.domain.dto.UserResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
+        UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
+        UserResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
 
         String publicJson = objectMapper.writeValueAsString(publicDTO);
         String standardJson = objectMapper.writeValueAsString(standardDTO);
@@ -182,14 +183,14 @@ public class UserDTOStructureIntegrationTest {
     @Test
     @DisplayName("Test UserExtendedResponseDTO Complete Structure")
     void testUserExtendedResponseDTOStructure() throws Exception {
-        com.feeling.packages.user.domain.dto.UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
 
         String json = objectMapper.writeValueAsString(extended);
         JsonNode jsonNode = objectMapper.readTree(json);
 
         // Verificar secciones principales (note: account is null in extended, only in admin operations)
         List<String> requiredSections = Arrays.asList(
-            "status", "profile", "privacy", "notifications",
+            "complaintStatus", "profile", "privacy", "notifications",
             "metrics", "auth"
         );
 
@@ -210,7 +211,7 @@ public class UserDTOStructureIntegrationTest {
         assertTrue(metrics.has("likesReceived"), "Metrics must have likesReceived");
 
         // Validar deserialización
-        com.feeling.packages.user.domain.dto.UserResponseDTO deserialized = objectMapper.readValue(json, com.feeling.packages.user.domain.dto.UserResponseDTO.class);
+        UserResponseDTO deserialized = objectMapper.readValue(json, UserResponseDTO.class);
         assertNotNull(deserialized);
         assertEquals(testUser.getProfileViews(), deserialized.metrics().profileViews());
     }
@@ -219,9 +220,9 @@ public class UserDTOStructureIntegrationTest {
     @DisplayName("Test JSON Field Consistency Across DTOs")
     void testFieldConsistencyAcrossDTOs() throws Exception {
         // Test que campos comunes tengan el mismo nombre en JSON
-        com.feeling.packages.user.domain.dto.UserResponseDTO standard = UserDTOMapper.toUserStandardResponseDTO(testUser);
-        com.feeling.packages.user.domain.dto.UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
-        com.feeling.packages.user.domain.dto.UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        UserResponseDTO standard = UserDTOMapper.toUserStandardResponseDTO(testUser);
+        UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
+        UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
 
         String standardJson = objectMapper.writeValueAsString(standard);
         String publicJson = objectMapper.writeValueAsString(publicDTO);
@@ -245,8 +246,8 @@ public class UserDTOStructureIntegrationTest {
         );
 
         assertEquals(
-            standardNode.get("status").get("verified").asBoolean(),
-            extendedNode.get("status").get("verified").asBoolean(),
+            standardNode.get("complaintStatus").get("verified").asBoolean(),
+            extendedNode.get("complaintStatus").get("verified").asBoolean(),
             "Verified field must be consistent across DTOs"
         );
     }
@@ -257,13 +258,13 @@ public class UserDTOStructureIntegrationTest {
         // Test para medir el impacto de performance de cada DTO
         long startTime = System.nanoTime();
 
-        com.feeling.packages.user.domain.dto.UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
         String extendedJson = objectMapper.writeValueAsString(extended);
 
         long extendedTime = System.nanoTime() - startTime;
 
         startTime = System.nanoTime();
-        com.feeling.packages.user.domain.dto.UserResponseDTO standard = UserDTOMapper.toUserStandardResponseDTO(testUser);
+        UserResponseDTO standard = UserDTOMapper.toUserStandardResponseDTO(testUser);
         String standardJson = objectMapper.writeValueAsString(standard);
         long standardTime = System.nanoTime() - startTime;
 
@@ -285,17 +286,17 @@ public class UserDTOStructureIntegrationTest {
     @DisplayName("Test Current Structure Baseline - Regression Detection")
     void testCurrentStructureBaseline() throws Exception {
         // Este test falla si cambiamos estructura sin actualizar el test
-        com.feeling.packages.user.domain.dto.UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        UserResponseDTO extended = UserDTOMapper.toUserExtendedResponseDTO(testUser);
         String json = objectMapper.writeValueAsString(extended);
         JsonNode jsonNode = objectMapper.readTree(json);
 
         // Contar campos esperados en el nivel superior (note: account is null, matches is null in this version)
-        int expectedTopLevelFields = 8; // status, profile, privacy, notifications, metrics, matches, auth, account
+        int expectedTopLevelFields = 8; // complaintStatus, profile, privacy, notifications, metrics, matches, auth, account
         assertEquals(expectedTopLevelFields, jsonNode.size(),
             "Expected exactly " + expectedTopLevelFields + " top-level fields in UserResponseDTO");
 
         // Verificar estructura específica que no debe cambiar sin planning
-        assertTrue(jsonNode.get("status").has("role"), "Status must have role field");
+        assertTrue(jsonNode.get("complaintStatus").has("role"), "ComplaintStatus must have role field");
         assertTrue(jsonNode.get("profile").has("phone"), "Profile must have phone field");
         assertTrue(jsonNode.get("privacy").has("publicAccount"), "Privacy must have publicAccount field");
     }

@@ -1,16 +1,5 @@
 import { useState } from 'react'
-import {
-  Card,
-  CardBody,
-  Button,
-  Chip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure
-} from '@heroui/react'
+import { Card, CardBody, Button, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
 import {
   Heart,
   MapPin,
@@ -30,15 +19,7 @@ import {
   Shield
 } from 'lucide-react'
 
-const UserProfileDetail = ({ 
-  user, 
-  isOpen, 
-  onOpenChange, 
-  onLike, 
-  onPass, 
-  onSuperLike,
-  isMobile = false 
-}) => {
+const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuperLike, isMobile = false }) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
 
   // Early return si no hay usuario
@@ -146,9 +127,7 @@ const UserProfileDetail = ({
               {images.map((_, index) => (
                 <div
                   key={index}
-                  className={`flex-1 h-1 rounded-full transition-all ${
-                    index === currentPhotoIndex ? 'bg-white' : 'bg-white/30'
-                  }`}
+                  className={`flex-1 h-1 rounded-full transition-all ${index === currentPhotoIndex ? 'bg-white' : 'bg-white/30'}`}
                 />
               ))}
             </div>
@@ -232,12 +211,7 @@ const UserProfileDetail = ({
             <h3 className='text-lg font-semibold text-gray-200 mb-3'>Intereses</h3>
             <div className='flex flex-wrap gap-2'>
               {userData.tags.map((tag, index) => (
-                <Chip 
-                  key={index} 
-                  size='md' 
-                  variant='bordered' 
-                  className='text-gray-300 border-gray-600 bg-gray-800/30'
-                >
+                <Chip key={index} size='md' variant='bordered' className='text-gray-300 border-gray-600 bg-gray-800/30'>
                   {tag}
                 </Chip>
               ))}
@@ -333,7 +307,7 @@ const UserProfileDetail = ({
           closeButton: 'hover:bg-gray-800/50 top-4 right-4 z-50'
         }}>
         <ModalContent>
-          {(onClose) => (
+          {onClose => (
             <>
               <ModalHeader className='flex justify-between items-center'>
                 <span className='text-gray-200'>Perfil de {userData.name}</span>

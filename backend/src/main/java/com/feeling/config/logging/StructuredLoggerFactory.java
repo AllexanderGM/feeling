@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -183,7 +182,7 @@ public class StructuredLoggerFactory {
             if (metrics != null) {
                 context.putAll(metrics);
             }
-            
+
             if (durationMs > 5000) { // Más de 5 segundos es preocupante
                 warn("Slow operation detected", context);
             } else {
@@ -198,7 +197,7 @@ public class StructuredLoggerFactory {
         private void log(LogLevel level, String message, Map<String, Object> context, Throwable throwable) {
             // Crear mensaje legible para terminal
             String readableMessage = formatReadableMessage(level, message, context, throwable);
-            
+
             switch (level) {
                 case DEBUG -> logger.debug(readableMessage);
                 case INFO -> logger.info(readableMessage);
@@ -218,17 +217,17 @@ public class StructuredLoggerFactory {
          */
         private String formatReadableMessage(LogLevel level, String message, Map<String, Object> context, Throwable throwable) {
             StringBuilder sb = new StringBuilder();
-            
+
             // Mensaje principal con emoji según nivel
-            String emoji = switch(level) {
+            String emoji = switch (level) {
                 case DEBUG -> "🔍";
                 case INFO -> "ℹ️";
                 case WARN -> "⚠️";
                 case ERROR -> "❌";
             };
-            
+
             sb.append(emoji).append(" ").append(message);
-            
+
             // Agregar contexto importante de forma legible
             if (context != null) {
                 // Contexto HTTP
@@ -247,17 +246,17 @@ public class StructuredLoggerFactory {
                     }
                 }
             }
-            
+
             return sb.toString();
         }
-        
+
         private void formatHttpContext(StringBuilder sb, Map<String, Object> context) {
             String method = (String) context.get("method");
             String uri = (String) context.get("uri");
             String phase = (String) context.get("phase");
-            Object status = context.get("status");
+            Object status = context.get("complaintStatus");
             Object duration = context.get("duration");
-            
+
             if ("START".equals(phase)) {
                 sb.append(" 🌐 ").append(method).append(" ").append(uri);
             } else if ("END".equals(phase)) {
@@ -270,47 +269,47 @@ public class StructuredLoggerFactory {
                 }
             }
         }
-        
+
         private void formatMethodContext(StringBuilder sb, Map<String, Object> context) {
             String className = (String) context.get("class");
             String methodName = (String) context.get("method");
             String category = (String) context.get("category");
             Object duration = context.get("duration");
-            
-            String icon = switch(category) {
+
+            String icon = switch (category) {
                 case "CONTROLLER" -> "🎯";
                 case "SERVICE" -> "⚙️";
                 case "AUTHENTICATION" -> "🔐";
                 default -> "📋";
             };
-            
+
             sb.append(" ").append(icon).append(" ").append(className).append(".").append(methodName).append("()");
-            
+
             if (duration != null) {
                 sb.append(" (").append(duration).append("ms)");
             }
         }
-        
+
         private void formatPerformanceContext(StringBuilder sb, Map<String, Object> context) {
             String operation = (String) context.get("operation");
             Object duration = context.get("durationMs");
-            
+
             sb.append(" ⏱️ ").append(operation);
             if (duration != null) {
                 sb.append(" took ").append(duration).append("ms");
             }
         }
-        
+
         private void formatSecurityContext(StringBuilder sb, Map<String, Object> context) {
             String event = (String) context.get("event");
             String source = (String) context.get("source");
-            
+
             sb.append(" 🛡️ ").append(event);
             if (source != null) {
                 sb.append(" from ").append(source);
             }
         }
-        
+
         private void formatGenericContext(StringBuilder sb, Map<String, Object> context) {
             // Para otros contextos, mostrar solo los campos más importantes
             if (context.containsKey("userEmail")) {
@@ -332,15 +331,15 @@ public class StructuredLoggerFactory {
             if (email == null || email.isEmpty()) {
                 return "unknown";
             }
-            
+
             int atIndex = email.indexOf('@');
             if (atIndex <= 0) {
                 return "invalid-email";
             }
-            
+
             String prefix = email.substring(0, atIndex);
             String domain = email.substring(atIndex);
-            
+
             if (prefix.length() <= 2) {
                 return "*".repeat(prefix.length()) + domain;
             } else {
@@ -353,18 +352,18 @@ public class StructuredLoggerFactory {
          */
         private String getStackTraceAsString(Throwable throwable) {
             if (throwable == null) return null;
-            
+
             StringBuilder sb = new StringBuilder();
             sb.append(throwable.toString()).append("\n");
-            
+
             for (StackTraceElement element : throwable.getStackTrace()) {
                 sb.append("\tat ").append(element.toString()).append("\n");
             }
-            
+
             if (throwable.getCause() != null) {
                 sb.append("Caused by: ").append(getStackTraceAsString(throwable.getCause()));
             }
-            
+
             return sb.toString();
         }
     }

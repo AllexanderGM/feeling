@@ -4,7 +4,12 @@ import { API_ENDPOINTS } from '@constants/apiRoutes'
 import { HTTP_STATUS } from '@schemas'
 
 /**
- * Servicio de autenticación simplificado - Solo comunicación con API
+ * Servicio de autenticación - AuthController
+ * Gestiona registro, login, tokens y verificaciones de estado
+ *
+ * Nota: Verificación de emails → verificationService
+ *       Gestión de contraseñas → passwordService
+ *       OAuth (Google, Facebook, Apple) → oauthService
  */
 class AuthService extends ServiceREST {
   constructor() {
@@ -12,7 +17,7 @@ class AuthService extends ServiceREST {
   }
 
   // ========================================
-  // MÉTODOS DE AUTENTICACIÓN
+  // REGISTRO Y LOGIN
   // ========================================
 
   async register(userData) {
@@ -40,41 +45,15 @@ class AuthService extends ServiceREST {
     }
   }
 
-  async loginWithGoogle(tokenResponse) {
-    const context = 'Login con Google'
+  // ========================================
+  // GESTIÓN DE TOKENS
+  // ========================================
+
+  async refreshToken(refreshToken) {
+    const context = 'Renovación de token'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.GOOGLE_LOGIN, {
-        accessToken: tokenResponse.access_token
-      })
-
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error.response?.data || error)
-      throw error
-    }
-  }
-
-  async registerWithGoogle(tokenResponse) {
-    const context = 'Registro con Google'
-
-    try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.GOOGLE_REGISTER, {
-        accessToken: tokenResponse.access_token
-      })
-
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error.response?.data || error)
-      throw error
-    }
-  }
-
-  async verifyEmailCode(email, code) {
-    const context = 'Verificación de email'
-
-    try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.VERIFY_EMAIL, { email, code })
+      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken })
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -82,53 +61,21 @@ class AuthService extends ServiceREST {
     }
   }
 
-  async resendVerificationCode(email) {
-    const context = 'Reenvío de código de verificación'
+  async logout(token) {
+    const context = 'Cierre de sesión'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.RESEND_VERIFICATION, { email })
-      return ServiceREST.handleServiceResponse(result, context)
+      await ServiceREST.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { headers: { Authorization: `Bearer ${token}` } })
+      return { success: true, message: 'Sesión cerrada exitosamente' }
     } catch (error) {
       this.logError(context, error)
       throw error
     }
   }
 
-  async validateResetToken(token) {
-    const context = 'Validación de token de recuperación'
-
-    try {
-      const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.VALIDATE_RESET_TOKEN}/${encodeURIComponent(token)}`)
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error)
-      throw error
-    }
-  }
-
-  async forgotPassword(email) {
-    const context = 'Recuperación de contraseña'
-
-    try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email })
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error)
-      throw error
-    }
-  }
-
-  async resetPassword(token, password, confirmPassword) {
-    const context = 'Restablecimiento de contraseña'
-
-    try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, password, confirmPassword })
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error)
-      throw error
-    }
-  }
+  // ========================================
+  // VERIFICACIONES Y ESTADO
+  // ========================================
 
   async checkEmailAvailability(email) {
     const context = 'Verificación de disponibilidad de email'
@@ -154,24 +101,12 @@ class AuthService extends ServiceREST {
     }
   }
 
-  async refreshToken(refreshToken) {
-    const context = 'Renovación de token'
+  async getUserStatus(email) {
+    const context = 'Estado del usuario'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken })
+      const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.STATUS}/${encodeURIComponent(email)}`)
       return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error)
-      throw error
-    }
-  }
-
-  async logout(token) {
-    const context = 'Cierre de sesión'
-
-    try {
-      await ServiceREST.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { headers: { Authorization: `Bearer ${token}` } })
-      return { success: true, message: 'Sesión cerrada exitosamente' }
     } catch (error) {
       this.logError(context, error)
       throw error

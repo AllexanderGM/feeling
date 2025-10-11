@@ -3,7 +3,8 @@ import { Logger } from '@utils/logger.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
 
 /**
- * Servicio de soporte - Solo comunicación con API
+ * Servicio de quejas y reclamos - ComplaintController
+ * Gestiona quejas, denuncias y reportes de usuarios
  */
 class ComplaintService extends ServiceREST {
   constructor() {
@@ -11,7 +12,7 @@ class ComplaintService extends ServiceREST {
   }
 
   // ========================================
-  // ENDPOINTS PARA USUARIOS (CLIENT)
+  // CLIENTE - OPERACIONES
   // ========================================
 
   /**
@@ -21,7 +22,7 @@ class ComplaintService extends ServiceREST {
     const context = 'crear queja'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.SUPPORT.COMPLAINTS, complaintData)
+      const result = await ServiceREST.post(API_ENDPOINTS.COMPLAINTS.CREATE, complaintData)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -32,7 +33,7 @@ class ComplaintService extends ServiceREST {
   /**
    * Obtener mis quejas/reclamos
    */
-  async getMyComplaints(page = 0, size = 10) {
+  async getMyComplaints(page = 0, size = 20) {
     const context = 'obtener mis quejas'
 
     try {
@@ -41,7 +42,7 @@ class ComplaintService extends ServiceREST {
         size: size.toString()
       })
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.SUPPORT.MY_COMPLAINTS}?${params}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.MY_COMPLAINTS}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -56,7 +57,7 @@ class ComplaintService extends ServiceREST {
     const context = 'obtener queja específica'
 
     try {
-      const url = API_ENDPOINTS.SUPPORT.COMPLAINT_BY_ID.replace('{complaintId}', encodeURIComponent(complaintId))
+      const url = API_ENDPOINTS.COMPLAINTS.MY_COMPLAINT_BY_ID.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.get(url)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -66,8 +67,23 @@ class ComplaintService extends ServiceREST {
   }
 
   // ========================================
-  // ENDPOINTS ADMINISTRATIVOS (ADMIN)
+  // ADMIN - LISTADO Y FILTRADO
   // ========================================
+
+  /**
+   * Obtener estadísticas de quejas (admin)
+   */
+  async getComplaintStats() {
+    const context = 'obtener estadísticas de quejas'
+
+    try {
+      const result = await ServiceREST.get(API_ENDPOINTS.COMPLAINTS.STATS)
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
 
   /**
    * Obtener todas las quejas (admin)
@@ -85,7 +101,7 @@ class ComplaintService extends ServiceREST {
         params.append('search', search.trim())
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.SUPPORT.COMPLAINTS}?${params}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.ALL}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -94,7 +110,7 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Obtener quejas pendientes
+   * Obtener quejas pendientes (admin)
    */
   async getPendingComplaints(page = 0, size = 20) {
     const context = 'obtener quejas pendientes'
@@ -105,7 +121,7 @@ class ComplaintService extends ServiceREST {
         size: size.toString()
       })
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.SUPPORT.PENDING_COMPLAINTS}?${params}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.PENDING}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -114,13 +130,18 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Obtener quejas urgentes
+   * Obtener quejas urgentes (admin)
    */
-  async getUrgentComplaints() {
+  async getUrgentComplaints(page = 0, size = 20) {
     const context = 'obtener quejas urgentes'
 
     try {
-      const result = await ServiceREST.get(API_ENDPOINTS.SUPPORT.URGENT_COMPLAINTS)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.URGENT}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -129,13 +150,18 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Obtener quejas vencidas (+24h)
+   * Obtener quejas atrasadas (+24h) (admin)
    */
-  async getOverdueComplaints() {
-    const context = 'obtener quejas vencidas'
+  async getOverdueComplaints(page = 0, size = 20) {
+    const context = 'obtener quejas atrasadas'
 
     try {
-      const result = await ServiceREST.get(API_ENDPOINTS.SUPPORT.OVERDUE_COMPLAINTS)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.OVERDUE}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -144,7 +170,7 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Obtener quejas resueltas (administradores)
+   * Obtener quejas resueltas (admin)
    */
   async getResolvedComplaints(page = 0, size = 20) {
     const context = 'obtener quejas resueltas'
@@ -155,7 +181,7 @@ class ComplaintService extends ServiceREST {
         size: size.toString()
       })
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.SUPPORT.RESOLVED_COMPLAINTS}?${params}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.RESOLVED}?${params}`)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -164,13 +190,59 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Actualizar estado de una queja
+   * Obtener quejas por tipo (admin)
+   */
+  async getComplaintsByType(complaintType, page = 0, size = 20) {
+    const context = 'obtener quejas por tipo'
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const url = API_ENDPOINTS.COMPLAINTS.BY_TYPE.replace('{complaintType}', encodeURIComponent(complaintType))
+      const result = await ServiceREST.get(`${url}?${params}`)
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Obtener quejas por prioridad (admin)
+   */
+  async getComplaintsByPriority(complaintPriority, page = 0, size = 20) {
+    const context = 'obtener quejas por prioridad'
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const url = API_ENDPOINTS.COMPLAINTS.BY_PRIORITY.replace('{complaintPriority}', encodeURIComponent(complaintPriority))
+      const result = await ServiceREST.get(`${url}?${params}`)
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  // ========================================
+  // ADMIN - GESTIÓN
+  // ========================================
+
+  /**
+   * Actualizar estado de una queja (admin)
    */
   async updateComplaintStatus(complaintId, actionData) {
     const context = 'actualizar estado de queja'
 
     try {
-      const url = API_ENDPOINTS.SUPPORT.UPDATE_COMPLAINT.replace('{complaintId}', encodeURIComponent(complaintId))
+      const url = API_ENDPOINTS.COMPLAINTS.UPDATE.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.put(url, actionData)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -180,29 +252,14 @@ class ComplaintService extends ServiceREST {
   }
 
   /**
-   * Eliminar una queja
+   * Eliminar una queja (admin)
    */
   async deleteComplaint(complaintId) {
     const context = 'eliminar queja'
 
     try {
-      const url = API_ENDPOINTS.SUPPORT.DELETE_COMPLAINT.replace('{complaintId}', encodeURIComponent(complaintId))
+      const url = API_ENDPOINTS.COMPLAINTS.DELETE.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.delete(url)
-      return ServiceREST.handleServiceResponse(result, context)
-    } catch (error) {
-      this.logError(context, error)
-      throw error
-    }
-  }
-
-  /**
-   * Obtener estadísticas de quejas
-   */
-  async getComplaintStats() {
-    const context = 'obtener estadísticas de quejas'
-
-    try {
-      const result = await ServiceREST.get(API_ENDPOINTS.SUPPORT.COMPLAINT_STATS)
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

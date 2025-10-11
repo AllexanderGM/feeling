@@ -87,6 +87,33 @@ class UserInterestsService extends ServiceREST {
     }
   }
 
+  /**
+   * GET /user-interests/admin/all - Obtener todas las categorías (incluyendo inactivas) (admin)
+   */
+  async getAllInterestsAdmin() {
+    try {
+      const result = await ServiceREST.get(API_ENDPOINTS.USER_INTERESTS.ALL_ADMIN)
+      return ServiceREST.handleServiceResponse(result, 'obtener todas las categorías (admin)')
+    } catch (error) {
+      this.logError('obtener todas las categorías (admin)', error)
+      throw error
+    }
+  }
+
+  /**
+   * PATCH /user-interests/{interestId}/toggle-status - Activar/desactivar categoría (admin)
+   */
+  async toggleInterestStatus(interestId) {
+    try {
+      const url = API_ENDPOINTS.USER_INTERESTS.TOGGLE_STATUS.replace('{interestId}', interestId)
+      const result = await ServiceREST.patch(url)
+      return ServiceREST.handleServiceResponse(result, `cambiar estado de interés ${interestId}`)
+    } catch (error) {
+      this.logError(`cambiar estado de interés ${interestId}`, error)
+      throw error
+    }
+  }
+
   // ========================================
   // MÉTODOS DE UTILIDAD
   // ========================================
@@ -126,7 +153,7 @@ class UserInterestsService extends ServiceREST {
    * Manejo de errores específico del servicio
    */
   logError(operation, error) {
-    this.Logger.serviceError(operation, error, 'UserInterestsService')
+    Logger.serviceError(operation, error, 'UserInterestsService')
   }
 }
 

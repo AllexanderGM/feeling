@@ -1,10 +1,11 @@
 package com.feeling.config.security;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
+import com.feeling.packages.auth.domain.enums.AuthTokenType;
 import com.feeling.packages.auth.domain.services.JwtService;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
-import com.feeling.packages.user.domain.services.CachedUserService;
+import com.feeling.packages.user.domain.services.UserCachedService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -34,7 +35,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final IAuthTokenRepository tokenRepository;
-    private final CachedUserService cachedUserService;
+    private final UserCachedService userCachedService;
     private final RouteSecurityConfig routeSecurityConfig;
 
     @Override
@@ -122,7 +123,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // Verificar que es un ACCESS token en la BD también
-            if (storedToken.getType() != AuthToken.TokenType.ACCESS) {
+            if (storedToken.getType() != AuthTokenType.ACCESS) {
                 logger.warn("❌ Token en BD no es de tipo ACCESS para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido - tipo incorrecto");
                 return;
@@ -132,8 +133,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // Para rutas de completar perfil, permitir usuarios verificados pero no aprobados
             boolean isProfileCompletionRoute = requestPath.equals("/user/complete-profile");
             Boolean isUserValid = isProfileCompletionRoute ?
-                cachedUserService.isUserValidForProfileCompletion(userEmail) :
-                cachedUserService.isUserValidForAuth(userEmail);
+                userCachedService.isUserValidForProfileCompletion(userEmail) :
+                userCachedService.isUserValidForAuth(userEmail);
 
             if (!isUserValid) {
                 logger.warn("❌ Usuario no encontrado o deshabilitado: " + userEmail);
@@ -142,7 +143,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // Solo cargar el usuario completo si es necesario para validación del token
-            Optional<User> userOptional = cachedUserService.findByEmailCached(userEmail);
+            Optional<User> userOptional = userCachedService.findByEmailCached(userEmail);
             if (userOptional.isEmpty()) {
                 logger.warn("❌ Usuario no encontrado en cache: " + userEmail);
                 setErrorResponse(response, "Usuario no encontrado");
@@ -230,7 +231,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
 
         String jsonResponse = String.format(
-            "{\"error\": \"%s\", \"status\": 401, \"timestamp\": \"%s\"}",
+            "{\"error\": \"%s\", \"complaintStatus\": 401, \"timestamp\": \"%s\"}",
             message,
             java.time.Instant.now().toString()
         );

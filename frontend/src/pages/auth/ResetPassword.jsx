@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { Form, Input, Button } from '@heroui/react'
-import { useAuth } from '@hooks'
+import { usePassword } from '@hooks/auth'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { resetPasswordSchema, extractResetPasswordData } from '@schemas'
@@ -13,7 +13,7 @@ import { CheckCircle, Eye, EyeOff } from 'lucide-react'
 const ResetPassword = () => {
   const { token } = useParams()
   const navigate = useNavigate()
-  const { resetPassword, loading } = useAuth()
+  const { resetPassword, loading } = usePassword()
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)

@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema, extractRegisterData } from '@schemas'
 import { useGoogleLogin } from '@react-oauth/google'
-import { useAuth } from '@hooks'
+import { useAuth, useOAuth } from '@hooks/auth'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
@@ -14,11 +14,15 @@ import { User, Mail, Lock } from 'lucide-react'
 
 const Register = () => {
   const navigate = useNavigate()
-  const { register, registerWithGoogle, loading } = useAuth()
+  const { register, loading } = useAuth()
+  const { registerWithGoogle, loading: oauthLoading } = useOAuth()
 
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [termsError, setTermsError] = useState('')
+
+  // Combinar estados de loading
+  const isLoading = loading || oauthLoading
 
   const {
     control,
@@ -115,7 +119,7 @@ const Register = () => {
             startContent={<img src={googleIcon} alt='Google' className='w-5 h-5' />}
             className='w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors'
             isLoading={isGoogleAuthenticating}
-            isDisabled={isGoogleAuthenticating || loading}
+            isDisabled={isGoogleAuthenticating || isLoading}
             onPress={handleGoogleSignIn}>
             {isGoogleAuthenticating ? 'Registrando con Google...' : 'Registrarse con Google'}
           </Button>
@@ -157,7 +161,7 @@ const Register = () => {
                 type='text'
                 isInvalid={!!errors.name}
                 errorMessage={errors.name?.message}
-                isDisabled={loading || isGoogleAuthenticating}
+                isDisabled={isLoading || isGoogleAuthenticating}
                 startContent={<User className='text-gray-400 w-4 h-5' />}
               />
             )}
@@ -176,7 +180,7 @@ const Register = () => {
                 type='text'
                 isInvalid={!!errors.lastName}
                 errorMessage={errors.lastName?.message}
-                isDisabled={loading || isGoogleAuthenticating}
+                isDisabled={isLoading || isGoogleAuthenticating}
                 startContent={<User className='text-gray-400 w-4 h-5' />}
               />
             )}
@@ -197,7 +201,7 @@ const Register = () => {
               autoComplete='email'
               isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
               startContent={<Mail className='text-gray-400 w-4 h-5' />}
             />
           )}
@@ -217,7 +221,7 @@ const Register = () => {
               autoComplete='new-password'
               isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
             />
           )}
@@ -237,7 +241,7 @@ const Register = () => {
               autoComplete='new-password'
               isInvalid={!!errors.confirmPassword}
               errorMessage={errors.confirmPassword?.message}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
             />
           )}
@@ -250,7 +254,7 @@ const Register = () => {
               isSelected={termsAccepted}
               onValueChange={handleTermsChange}
               isInvalid={!!termsError}
-              isDisabled={loading || isGoogleAuthenticating}
+              isDisabled={isLoading || isGoogleAuthenticating}
             />
             <span className='text-xs text-gray-500 ml-2'>
               Acepto los{' '}
@@ -273,7 +277,7 @@ const Register = () => {
             color='default'
             className='w-full py-3 font-semibold shadow-md transition-all hover:shadow-lg'
             isLoading={loading}
-            isDisabled={loading || !termsAccepted || isGoogleAuthenticating || !isValid}>
+            isDisabled={isLoading || !termsAccepted || isGoogleAuthenticating || !isValid}>
             {loading ? 'Registrando...' : 'Registrarse'}
           </Button>
 

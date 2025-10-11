@@ -1,8 +1,10 @@
 # Feeling Backend API
 
-## 🚀 Información del Proyecto
+## 📖 Descripción
 
-Backend API para la plataforma Feeling desarrollado con arquitectura modular basada en packages.
+**Feeling** es una plataforma social de matching y eventos que conecta personas con intereses compartidos a través de experiencias en común. El backend proporciona un sistema completo de gestión de usuarios, sistema de compatibilidad basado en algoritmos, gestión de eventos/tours, y un sistema de reservas.
+
+La plataforma permite a los usuarios crear perfiles detallados con atributos, intereses y tags personalizados, recibir sugerencias de conexiones basadas en compatibilidad, explorar y reservar eventos, y gestionar sus interacciones sociales en un entorno moderado y seguro.
 
 **Autor:** J. Alexander Gavilán M.
 

@@ -18,11 +18,15 @@ class UserService extends ServiceREST {
   // ========================================
 
   /**
-   * GET /user - Obtener el usuario actual completo
+   * GET /user/profile - Obtener mi perfil con nivel de detalle
+   * @param {string} include - Nivel de detalle: basic, standard, extended, full, admin
    */
-  async getCurrentUser() {
+  async getCurrentUser(include = 'extended') {
     try {
-      const result = await ServiceREST.get(API_ENDPOINTS.USER.CURRENT)
+      const params = new URLSearchParams({
+        include: include
+      })
+      const result = await ServiceREST.get(`${API_ENDPOINTS.USER.CURRENT}?${params}`)
       return ServiceREST.handleServiceResponse(result, 'obtener usuario actual')
     } catch (error) {
       this.logError('obtener usuario actual', error)
@@ -31,7 +35,27 @@ class UserService extends ServiceREST {
   }
 
   /**
+   * GET /user/profile - Obtener perfil de otro usuario con nivel de detalle
+   * @param {string} email - Email del usuario
+   * @param {string} include - Nivel de detalle: public, basic, etc.
+   */
+  async getUserProfile(email, include = 'public') {
+    try {
+      const params = new URLSearchParams({
+        email: email,
+        include: include
+      })
+      const result = await ServiceREST.get(`${API_ENDPOINTS.USER.CURRENT}?${params}`)
+      return ServiceREST.handleServiceResponse(result, 'obtener perfil de usuario')
+    } catch (error) {
+      this.logError('obtener perfil de usuario', error)
+      throw error
+    }
+  }
+
+  /**
    * GET /user/{email}/public - Obtener usuario público para match (sin teléfono)
+   * @deprecated Usar getUserProfile(email, 'public') en su lugar
    */
   async getUserPublicProfile(email) {
     try {
@@ -46,6 +70,7 @@ class UserService extends ServiceREST {
 
   /**
    * GET /user/{email}/complete - Obtener usuario completo para match (con teléfono)
+   * @deprecated Usar getUserProfile(email, 'complete') en su lugar
    */
   async getUserCompleteProfile(email) {
     try {
@@ -73,11 +98,15 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * GET /user/suggestions - Obtener sugerencias de usuarios (pageable)
+   * GET /user/suggestions - Obtener sugerencias de usuarios con nivel de detalle configurable
+   * @param {string} include - Nivel de detalle: public, basic, standard
+   * @param {number} page - Número de página
+   * @param {number} size - Tamaño de página
    */
-  async getUserSuggestions(page = 0, size = 10) {
+  async getUserSuggestions(include = 'public', page = 0, size = 10) {
     try {
       const params = new URLSearchParams({
+        include: include,
         page: page.toString(),
         size: size.toString()
       })
@@ -90,7 +119,7 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * PUT /user - Modificar perfil actual con imágenes
+   * PATCH /user - Modificar perfil actual con imágenes
    */
   async updateCurrentProfile(profileData, profileImages = null) {
     try {
@@ -103,7 +132,7 @@ class UserService extends ServiceREST {
         })
       }
 
-      const result = await ServiceREST.put(API_ENDPOINTS.USER.UPDATE_PROFILE, formData)
+      const result = await ServiceREST.patch(API_ENDPOINTS.USER.UPDATE_PROFILE, formData)
       return ServiceREST.handleServiceResponse(result, 'actualizar perfil')
     } catch (error) {
       this.logError('actualizar perfil', error)
@@ -455,7 +484,7 @@ class UserService extends ServiceREST {
    */
   logError(operation, error) {
     error.operation = operation
-    this.Logger.serviceError(operation, error, 'userService')
+    Logger.serviceError(operation, error, 'userService')
   }
 }
 

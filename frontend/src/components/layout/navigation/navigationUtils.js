@@ -5,19 +5,8 @@
 // Verificar si alguna ruta relacionada con el perfil/usuario está activa
 export const isProfileActive = (location, isAdmin, APP_PATHS) => {
   const userRelatedPaths = isAdmin
-    ? [
-        APP_PATHS.ADMIN.PROFILE, 
-        APP_PATHS.ADMIN.SETTINGS_PROFILE, 
-        APP_PATHS.ADMIN.HELP,
-        APP_PATHS.GENERAL.HELP
-      ]
-    : [
-        APP_PATHS.USER.PROFILE, 
-        APP_PATHS.USER.SETTINGS, 
-        APP_PATHS.USER.NOTIFICATIONS,
-        APP_PATHS.USER.SUPPORT,
-        APP_PATHS.GENERAL.HELP
-      ]
+    ? [APP_PATHS.ADMIN.PROFILE, APP_PATHS.ADMIN.SETTINGS_PROFILE, APP_PATHS.ADMIN.HELP, APP_PATHS.GENERAL.HELP]
+    : [APP_PATHS.USER.PROFILE, APP_PATHS.USER.SETTINGS, APP_PATHS.USER.NOTIFICATIONS, APP_PATHS.USER.SUPPORT, APP_PATHS.GENERAL.HELP]
 
   return userRelatedPaths.some(path => location.pathname === path || location.pathname.startsWith(path))
 }

@@ -1,6 +1,6 @@
 package com.feeling.packages.user.infrastructure.repositories;
 
-import com.feeling.packages.user.domain.enums.TagApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserTagApprovalStatus;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +25,7 @@ import java.util.Optional;
  * - Facilitar descubrimiento de usuarios con intereses similares
  * <p>
  * Características del sistema de tags:
- * - Sistema de aprobación: PENDING, APPROVED, REJECTED (ver {@link TagApprovalStatus})
+ * - Sistema de aprobación: PENDING, APPROVED, REJECTED (ver {@link UserTagApprovalStatus})
  * - Contador de uso (usageCount) para medir popularidad
  * - Timestamp de último uso (lastUsed) para identificar tendencias
  * - Limpieza automática de tags sin uso
@@ -42,7 +42,7 @@ import java.util.Optional;
  *
  * @author J. Alexander Gavilán M.
  * @see UserTag
- * @see TagApprovalStatus
+ * @see UserTagApprovalStatus
  */
 @Repository
 public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
@@ -106,7 +106,7 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      * Un tag está en tendencia si ha sido usado recientemente y tiene uso significativo.
      *
      * @param minUsage Número mínimo de usos para considerar el tag
-     * @param since Fecha desde la cual el tag debe haber sido usado
+     * @param since    Fecha desde la cual el tag debe haber sido usado
      * @return Lista de tags en tendencia ordenados por popularidad (descendente)
      */
     @Query("SELECT t FROM UserTag t WHERE t.usageCount >= :minUsage AND t.lastUsed >= :since ORDER BY t.usageCount DESC")
@@ -158,8 +158,8 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      * @return Lista de tags que coinciden con el término, ordenados por popularidad (descendente)
      */
     @Query("SELECT t FROM UserTag t WHERE " +
-            "LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-            "ORDER BY t.usageCount DESC")
+        "LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+        "ORDER BY t.usageCount DESC")
     List<UserTag> searchByNameOrDescription(@Param("searchTerm") String searchTerm);
 
     /**
@@ -256,20 +256,20 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      * Ordena por número de usuarios que usan cada tag dentro de esa categoría.
      *
      * @param category Nombre de la categoría de interés (ej: "ESSENCE", "SPIRIT", "ADVENTURE")
-     * @param limit Número máximo de tags a retornar
+     * @param limit    Número máximo de tags a retornar
      * @return Lista de tags más populares en la categoría, ordenados por cantidad de usuarios que los usan
      */
     @Query(value = """
-            SELECT t.* FROM user_tags t
-            JOIN user_tag_relations utr ON t.id = utr.tag_id
-            JOIN users u ON utr.user_id = u.id
-            JOIN user_category_interest uci ON u.category_interest_id = uci.id
-            WHERE uci.category_interest = :category
-            AND t.usage_count > 0
-            GROUP BY t.id
-            ORDER BY COUNT(u.id) DESC
-            LIMIT :limit
-            """, nativeQuery = true)
+        SELECT t.* FROM user_tags t
+        JOIN user_tag_relations utr ON t.id = utr.tag_id
+        JOIN users u ON utr.user_id = u.id
+        JOIN user_category_interest uci ON u.category_interest_id = uci.id
+        WHERE uci.category_interest = :category
+        AND t.usage_count > 0
+        GROUP BY t.id
+        ORDER BY COUNT(u.id) DESC
+        LIMIT :limit
+        """, nativeQuery = true)
     List<UserTag> findPopularTagsByCategory(@Param("category") String category, @Param("limit") int limit);
 
     // ========================================
@@ -293,10 +293,10 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Modifying
     @Query("""
-            UPDATE UserTag t SET t.usageCount = (
-                SELECT COUNT(u) FROM User u JOIN u.tags ut WHERE ut.id = t.id
-            )
-            """)
+        UPDATE UserTag t SET t.usageCount = (
+            SELECT COUNT(u) FROM User u JOIN u.tags ut WHERE ut.id = t.id
+        )
+        """)
     void updateUsageCounts();
 
     /**
@@ -323,17 +323,17 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      * Útil para panel administrativo de gestión de tags.
      *
      * @param approvalStatus Estado de aprobación (PENDING, APPROVED, REJECTED)
-     * @param pageable Configuración de paginación
+     * @param pageable       Configuración de paginación
      * @return Página de tags con el estado especificado
      */
-    Page<UserTag> findByApprovalStatus(TagApprovalStatus approvalStatus, Pageable pageable);
+    Page<UserTag> findByApprovalStatus(UserTagApprovalStatus approvalStatus, Pageable pageable);
 
     /**
      * Encuentra tags pendientes de aprobación.
      * Ordenados por fecha de creación (más antiguos primero = FIFO).
      * Útil para que administradores procesen tags en orden de llegada.
      *
-     * @return Lista de tags con approvalStatus = PENDING ordenados por antigüedad
+     * @return Lista de tags con userApprovalStatus = PENDING ordenados por antigüedad
      */
     @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'PENDING' ORDER BY t.createdAt ASC")
     List<UserTag> findPendingApprovalTags();
@@ -345,11 +345,11 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      * @param approvalStatus Estado de aprobación a contar
      * @return Número de tags con el estado especificado
      */
-    long countByApprovalStatus(TagApprovalStatus approvalStatus);
+    long countByApprovalStatus(UserTagApprovalStatus approvalStatus);
 
     /**
      * Busca tags aprobados por término de búsqueda (case-insensitive).
-     * Solo retorna tags con approvalStatus = APPROVED.
+     * Solo retorna tags con userApprovalStatus = APPROVED.
      * Los resultados se ordenan por popularidad.
      *
      * @param searchTerm Término de búsqueda (se aplica LIKE con comodines)
@@ -368,10 +368,4 @@ public interface IUserTagRepository extends JpaRepository<UserTag, Long> {
      */
     @Query("SELECT t FROM UserTag t WHERE t.approvalStatus = 'APPROVED' ORDER BY t.usageCount DESC")
     List<UserTag> findTopApprovedPopularTags(Pageable pageable);
-
-    // ========================================
-    // ADMINISTRACIÓN Y APROBACIÓN DE TAGS (SISTEMA ANTERIOR - MANTENER COMPATIBILIDAD)
-    // ========================================
-
-
 }

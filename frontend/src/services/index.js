@@ -11,6 +11,9 @@ export { default as api, registerAuthCallbacks } from '@services/utils/api.js'
 
 // Módulo de autenticación
 export { default as authService } from '@services/auth/authService.js'
+export { default as passwordService } from '@services/auth/passwordService.js'
+export { default as verificationService } from '@services/auth/verificationService.js'
+export { default as oauthService } from '@services/auth/oauthService.js'
 
 // Módulo de usuario
 export { default as userService } from '@services/user/userService.js'
@@ -30,12 +33,14 @@ export {
   deleteUserInterest
 } from '@services/user/userInterestsService.js'
 export { default as userAnalyticsService } from '@services/user/userAnalyticsService.js'
-export { default as tagService } from '@services/user/tagService.js'
+export { default as userRoleService } from '@services/user/userRoleService.js'
+export { default as userApprovalService } from '@services/user/userApprovalService.js'
+export { default as userNotificationService } from '@services/user/userNotificationService.js'
+export { default as userMediaService } from '@services/user/userMediaService.js'
 
-// Módulo de eventos y tours
+// Módulo de eventos
 export { default as eventService } from '@services/event/eventService.js'
 export { default as bookingService } from '@services/event/bookingService.js'
-export * from '@services/event/tourService.js'
 
 // Módulo de matches
 export { default as matchService } from '@services/match/matchService.js'
@@ -57,7 +62,10 @@ export { default as cookieService } from '@services/system/cookieService.js'
 // Permite importar servicios relacionados juntos
 
 export const authServices = {
-  authService: () => import('./auth/authService.js')
+  authService: () => import('./auth/authService.js'),
+  passwordService: () => import('./auth/passwordService.js'),
+  verificationService: () => import('./auth/verificationService.js'),
+  oauthService: () => import('./auth/oauthService.js')
 }
 
 export const userServices = {
@@ -66,7 +74,10 @@ export const userServices = {
   userTagsService: () => import('./user/userTagsService.js'),
   userInterestsService: () => import('./user/userInterestsService.js'),
   userAnalyticsService: () => import('./user/userAnalyticsService.js'),
-  tagService: () => import('./user/tagService.js')
+  userRoleService: () => import('./user/userRoleService.js'),
+  userApprovalService: () => import('./user/userApprovalService.js'),
+  userNotificationService: () => import('./user/userNotificationService.js'),
+  userMediaService: () => import('./user/userMediaService.js')
 }
 
 export const eventServices = {
@@ -105,6 +116,9 @@ const services = {
 
   // Autenticación
   authService: () => import('./auth/authService.js'),
+  passwordService: () => import('./auth/passwordService.js'),
+  verificationService: () => import('./auth/verificationService.js'),
+  oauthService: () => import('./auth/oauthService.js'),
 
   // Usuario
   userService: () => import('./user/userService.js'),
@@ -112,12 +126,14 @@ const services = {
   userTagsService: () => import('./user/userTagsService.js'),
   userInterestsService: () => import('./user/userInterestsService.js'),
   userAnalyticsService: () => import('./user/userAnalyticsService.js'),
-  tagService: () => import('./user/tagService.js'),
+  userRoleService: () => import('./user/userRoleService.js'),
+  userApprovalService: () => import('./user/userApprovalService.js'),
+  userNotificationService: () => import('./user/userNotificationService.js'),
+  userMediaService: () => import('./user/userMediaService.js'),
 
   // Eventos
   eventService: () => import('./event/eventService.js'),
   bookingService: () => import('./event/bookingService.js'),
-  tourService: () => import('./event/tourService.js'),
 
   // Matches
   matchService: () => import('./match/matchService.js'),

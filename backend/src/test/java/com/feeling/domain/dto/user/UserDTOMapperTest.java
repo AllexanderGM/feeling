@@ -1,9 +1,10 @@
 package com.feeling.domain.dto.user;
 
-import com.feeling.packages.auth.domain.dto.UserProfileDataDTO;
-import com.feeling.packages.auth.domain.dto.UserStatusDTO;
-import com.feeling.packages.user.domain.dto.UserDTOMapper;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
+import com.feeling.packages.auth.domain.dto.response.UserProfileDataDTO;
+import com.feeling.packages.auth.domain.dto.response.UserStatusDTO;
+import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
+import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
@@ -35,7 +36,7 @@ public class UserDTOMapperTest {
             .email("test@example.com")
             .verified(true)
             .profileComplete(false)
-            .approvalStatus(ApprovalStatus.PENDING)
+            .userApprovalStatus(UserApprovalStatus.PENDING)
             .userRole(userRole)
             .availableAttempts(0)
             .createdAt(LocalDateTime.now())
@@ -51,7 +52,7 @@ public class UserDTOMapperTest {
         assertEquals(testUser.isVerified(), statusDTO.verified());
         assertEquals(testUser.getProfileComplete(), statusDTO.profileComplete());
         assertEquals(testUser.isApproved(), statusDTO.approved());
-        assertEquals(testUser.getApprovalStatus().name(), statusDTO.approvalStatus());
+        assertEquals(testUser.getUserApprovalStatus().name(), statusDTO.approvalStatus());
         assertEquals("CLIENT", statusDTO.role());
         assertEquals(testUser.getAvailableAttempts(), statusDTO.availableAttempts());
         assertEquals(testUser.getCreatedAt(), statusDTO.createdAt());
@@ -81,7 +82,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserStandardResponseDTO() {
-        com.feeling.packages.user.domain.dto.UserResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
+        UserResponseDTO standardDTO = UserDTOMapper.toUserStandardResponseDTO(testUser);
 
         assertNotNull(standardDTO);
         assertNotNull(standardDTO.status());
@@ -96,17 +97,17 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserPublicResponseDTO() {
-        com.feeling.packages.user.domain.dto.UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
+        UserResponseDTO publicDTO = UserDTOMapper.toUserPublicResponseDTO(testUser);
 
         assertNotNull(publicDTO);
         assertNotNull(publicDTO.status());
         assertNotNull(publicDTO.profile());
 
-        // Verificar que solo incluye datos públicos en status
+        // Verificar que solo incluye datos públicos en complaintStatus
         assertEquals(testUser.isVerified(), publicDTO.status().verified());
         assertEquals(testUser.getProfileComplete(), publicDTO.status().profileComplete());
         assertEquals(testUser.isApproved(), publicDTO.status().approved());
-        assertEquals(testUser.getApprovalStatus().name(), publicDTO.status().approvalStatus());
+        assertEquals(testUser.getUserApprovalStatus().name(), publicDTO.status().approvalStatus());
 
         // Verificar perfil completo
         assertEquals(testUser.getName(), publicDTO.profile().name());
@@ -115,7 +116,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserExtendedResponseDTO() {
-        com.feeling.packages.user.domain.dto.UserResponseDTO extendedDTO = UserDTOMapper.toUserExtendedResponseDTO(testUser);
+        UserResponseDTO extendedDTO = UserDTOMapper.toUserExtendedResponseDTO(testUser);
 
         assertNotNull(extendedDTO);
         assertNotNull(extendedDTO.status());

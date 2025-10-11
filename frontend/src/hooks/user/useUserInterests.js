@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getUserInterests, getUserInterestById, createUserInterest, updateUserInterest, deleteUserInterest } from '@services'
+import { userInterestsService } from '@services'
 import { Logger } from '@utils/logger.js'
 
 export const useUserInterests = () => {
@@ -13,7 +13,7 @@ export const useUserInterests = () => {
         setLoading(true)
         setError(null)
 
-        const result = await getUserInterests()
+        const result = await userInterestsService.getAllInterests()
         if (result.success && result.data) {
           setInterests(result.data)
         } else {
@@ -95,8 +95,8 @@ export const useUserInterests = () => {
     return interests.find(interest => interest.categoryInterestEnum === interestEnum)
   }
 
-  // Buscar interés por ID
-  const getInterestById = interestId => {
+  // Buscar interés por ID (renombrado para evitar colisión)
+  const findInterestById = interestId => {
     return interests.find(interest => interest.id === interestId)
   }
 
@@ -106,7 +106,7 @@ export const useUserInterests = () => {
     loading,
     error,
     getInterestByEnum,
-    getInterestById
+    getInterestById: findInterestById
   }
 }
 
@@ -121,7 +121,7 @@ export const useUserInterestsAdmin = () => {
       setLoading(true)
       setError(null)
 
-      const result = await getUserInterests()
+      const result = await userInterestsService.getAllInterests()
 
       if (result.success && result.data) {
         setInterests(result.data)
@@ -139,7 +139,7 @@ export const useUserInterestsAdmin = () => {
   const createInterest = async interestData => {
     try {
       setLoading(true)
-      const result = await createUserInterest(interestData)
+      const result = await userInterestsService.createInterest(interestData)
 
       if (result.success && result.data) {
         setInterests(prev => [...prev, result.data])
@@ -159,7 +159,7 @@ export const useUserInterestsAdmin = () => {
   const updateInterest = async (id, interestData) => {
     try {
       setLoading(true)
-      const result = await updateUserInterest(id, interestData)
+      const result = await userInterestsService.updateInterest(id, interestData)
 
       if (result.success && result.data) {
         setInterests(prev => prev.map(interest => (interest.id === id ? result.data : interest)))
@@ -179,7 +179,7 @@ export const useUserInterestsAdmin = () => {
   const deleteInterest = async id => {
     try {
       setLoading(true)
-      const result = await deleteUserInterest(id)
+      const result = await userInterestsService.deleteInterest(id)
 
       if (result.success) {
         setInterests(prev => prev.filter(interest => interest.id !== id))

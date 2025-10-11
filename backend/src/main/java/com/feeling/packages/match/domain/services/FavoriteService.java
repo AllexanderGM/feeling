@@ -4,7 +4,7 @@ import com.feeling.packages.match.domain.dto.FavoriteRequestDTO;
 import com.feeling.packages.match.domain.dto.FavoriteResponseDTO;
 import com.feeling.packages.match.infrastructure.entities.UserFavorite;
 import com.feeling.packages.match.infrastructure.repositories.IUserFavoriteRepository;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -33,7 +33,7 @@ public class FavoriteService {
         }
 
         User favoriteUser = userRepository.findById(request.getFavoriteUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getFavoriteUserId()));
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getFavoriteUserId()));
 
         if (userFavoriteRepository.existsByUserAndFavoriteUser(user, favoriteUser)) {
             throw new RuntimeException("User is already in favorites");
@@ -52,10 +52,10 @@ public class FavoriteService {
         log.info("User {} removing user {} from favorites", user.getId(), favoriteUserId);
 
         User favoriteUser = userRepository.findById(favoriteUserId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + favoriteUserId));
+            .orElseThrow(() -> new RuntimeException("User not found with id: " + favoriteUserId));
 
         UserFavorite userFavorite = userFavoriteRepository.findByUserAndFavoriteUser(user, favoriteUser)
-                .orElseThrow(() -> new RuntimeException("Favorite not found"));
+            .orElseThrow(() -> new RuntimeException("Favorite not found"));
 
         userFavoriteRepository.delete(userFavorite);
 
@@ -65,7 +65,7 @@ public class FavoriteService {
     public Page<FavoriteResponseDTO> getUserFavorites(User user, Pageable pageable) {
         log.debug("Getting favorites for user: {}", user.getId());
         return userFavoriteRepository.findUserFavorites(user, pageable)
-                .map(this::convertToResponseDTO);
+            .map(this::convertToResponseDTO);
     }
 
     public boolean isFavorite(User user, Long favoriteUserId) {
@@ -73,7 +73,7 @@ public class FavoriteService {
 
         try {
             User favoriteUser = userRepository.findById(favoriteUserId)
-                    .orElse(null);
+                .orElse(null);
 
             if (favoriteUser == null) {
                 return false;
@@ -95,9 +95,9 @@ public class FavoriteService {
         UserResponseDTO favoriteUserDTO = userService.get(userFavorite.getFavoriteUser().getEmail(), null, "public");
 
         return new FavoriteResponseDTO(
-                userFavorite.getId(),
-                favoriteUserDTO,
-                userFavorite.getCreatedAt()
+            userFavorite.getId(),
+            favoriteUserDTO,
+            userFavorite.getCreatedAt()
         );
     }
 }

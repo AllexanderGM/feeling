@@ -1,25 +1,42 @@
 package com.feeling.packages.user.domain.services;
 
+import com.feeling.exception.AttributeNotFoundException;
+import com.feeling.exception.DuplicateAttributeException;
+import com.feeling.exception.InvalidAttributeTypeException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserAttributeCreateDTO;
 import com.feeling.packages.user.domain.dto.UserAttributeDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeStatisticsResponseDTO;
+import com.feeling.packages.user.domain.dto.request.UserAttributeCreateDTO;
 import com.feeling.packages.user.infrastructure.entities.UserAttribute;
 import com.feeling.packages.user.infrastructure.repositories.IUserAttributeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio para gestión de atributos de usuario del sistema.
+ * <p>
+ * Responsabilidades:
+ * - CRUD de atributos (género, color de ojos, cabello, tipo de cuerpo, etc.)
+ * - Validación de tipos de atributos permitidos
+ * - Generación automática de códigos únicos
+ * - Agrupación y ordenamiento de atributos por tipo
+ * - Estadísticas de uso de atributos
+ * - Gestión de atributos activos/inactivos para aprobación
+ * <p>
+ * Los atributos se crean inactivos por defecto hasta aprobación administrativa.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,10 +44,15 @@ public class UserAttributeService {
 
     private final IUserAttributeRepository userAttributeRepository;
 
-    // Tipos de atributos válidos
+    // Tipos de atributos válidos en el sistema
     private static final Set<String> VALID_ATTRIBUTE_TYPES = Set.of(
         "GENDER", "EYE_COLOR", "HAIR_COLOR", "BODY_TYPE", "RELIGION",
-        "MARITAL_STATUS", "EDUCATION_LEVEL", "RELATIONSHIP_TYPE", "SEXUAL_ROLE"
+        "MARITAL_STATUS", "EDUCATION_LEVEL", "RELATIONSHIP_TYPE", "SEXUAL_ROLE", "CHURCH"
+    );
+
+    // Tipos de atributos que los usuarios pueden crear (requieren aprobación)
+    private static final Set<String> USER_CREATABLE_TYPES = Set.of(
+        "CHURCH", "RELIGION" // Los usuarios pueden proponer nuevas iglesias o religiones
     );
 
     /**
@@ -47,7 +69,10 @@ public class UserAttributeService {
     }
 
     /**
-     * Obtiene atributos de un tipo específico
+     * Obtiene atributos activos de un tipo específico ordenados por displayOrder.
+     *
+     * @param attributeType Tipo de atributo (GENDER, EYE_COLOR, etc.)
+     * @return Lista de atributos activos del tipo especificado
      */
     public List<UserAttributeDTO> getAttributesByType(String attributeType) {
         return userAttributeRepository.findByAttributeTypeAndActiveTrueOrderByDisplayOrderAsc(attributeType.toUpperCase())
@@ -57,7 +82,10 @@ public class UserAttributeService {
     }
 
     /**
-     * Obtiene un atributo por ID
+     * Obtiene un atributo por ID.
+     *
+     * @param id ID del atributo
+     * @return DTO del atributo o null si no existe
      */
     public UserAttributeDTO getAttributeById(Long id) {
         return userAttributeRepository.findById(id)
@@ -66,87 +94,109 @@ public class UserAttributeService {
     }
 
     /**
-     * Crea un nuevo atributo de usuario con validaciones
-     * Por defecto se crea como inactivo (active=false) para aprobación
+     * Crea un nuevo atributo de usuario con validaciones de negocio.
+     * <p>
+     * Los atributos creados por usuarios (createdByAdmin=false) se crean como inactivos
+     * y requieren aprobación administrativa. Los creados por admin se crean activos.
+     * Las validaciones de formato son manejadas por el DTO (@Valid).
+     *
+     * @param attributeType  Tipo de atributo (GENDER, EYE_COLOR, etc.)
+     * @param createDTO      DTO con datos del nuevo atributo (ya validado)
+     * @param createdByAdmin true si es creado por admin, false si es creado por usuario
+     * @return DTO del atributo creado
+     * @throws InvalidAttributeTypeException Si el tipo de atributo no es válido
+     * @throws DuplicateAttributeException   Si ya existe un atributo duplicado
+     * @throws IllegalArgumentException      Si un usuario intenta crear un tipo no permitido
      */
-    public UserAttributeDTO createAttribute(String attributeType, UserAttributeCreateDTO createDTO) {
-        log.info("Iniciando creación de atributo tipo: {}, datos: {}", attributeType, createDTO);
+    public UserAttributeDTO createAttribute(String attributeType, UserAttributeCreateDTO createDTO, boolean createdByAdmin) {
+        log.info("Iniciando creación de atributo tipo: {}, datos: {}, createdByAdmin: {}",
+            attributeType, createDTO, createdByAdmin);
 
-        // Validar tipo de atributo
+        // Validar tipo de atributo (validación de negocio)
         validateAttributeType(attributeType);
 
-        // Validar datos del DTO
-        validateAttributeData(createDTO);
+        // Si es creado por usuario, validar que el tipo sea permitido para usuarios
+        if (!createdByAdmin) {
+            validateUserCanCreateType(attributeType);
+        }
 
-        // Generar código único
+        // Generar código único basado en el nombre
         String code = generateCodeFromName(createDTO.name());
 
-        // Validar duplicados
+        // Validar que no existan duplicados (validación de negocio)
         validateNoDuplicates(attributeType, code, createDTO.name());
 
-        try {
-            UserAttribute newAttribute = UserAttribute.builder()
-                .code(code)
-                .name(createDTO.name().trim())
-                .attributeType(attributeType.toUpperCase())
-                .detail(createDTO.detail() != null ? createDTO.detail().trim() : null)
-                .displayOrder(getNextDisplayOrder(attributeType))
-                .active(false) // Por defecto inactivo hasta aprobación
-                .build();
+        // Construir y guardar el nuevo atributo
+        // Admin crea activos, usuarios crean inactivos (pendientes de aprobación)
+        UserAttribute newAttribute = buildNewAttribute(attributeType, createDTO, code, createdByAdmin);
+        UserAttribute saved = userAttributeRepository.save(newAttribute);
 
-            UserAttribute saved = userAttributeRepository.save(newAttribute);
-            log.info("Atributo creado exitosamente: {}", saved);
-
-            return new UserAttributeDTO(saved);
-
-        } catch (DataIntegrityViolationException e) {
-            log.error("Error de integridad de datos al crear atributo: {}", e.getMessage());
-            throw new RuntimeException("Ya existe un atributo con ese código o nombre");
-        } catch (Exception e) {
-            log.error("Error inesperado al crear atributo", e);
-            throw new RuntimeException("Error al guardar el atributo en la base de datos");
-        }
+        log.info("Atributo creado exitosamente: {} (activo: {})", saved, saved.isActive());
+        return new UserAttributeDTO(saved);
     }
 
     /**
-     * Valida que el tipo de atributo sea válido
+     * Construye una nueva entidad UserAttribute a partir del DTO.
+     *
+     * @param attributeType  Tipo de atributo
+     * @param createDTO      DTO con datos
+     * @param code           Código generado
+     * @param createdByAdmin Si fue creado por admin (activo) o usuario (inactivo)
+     * @return Nueva instancia de UserAttribute
+     */
+    private UserAttribute buildNewAttribute(String attributeType, UserAttributeCreateDTO createDTO, String code, boolean createdByAdmin) {
+        return UserAttribute.builder()
+            .code(code)
+            .name(createDTO.name()) // Ya viene trimmed del DTO
+            .attributeType(attributeType.toUpperCase())
+            .detail(createDTO.detail()) // Ya viene trimmed del DTO
+            .displayOrder(getNextDisplayOrder(attributeType))
+            .active(createdByAdmin) // Admin: activo inmediatamente, Usuario: inactivo hasta aprobación
+            .build();
+    }
+
+    /**
+     * Valida que el tipo de atributo sea válido en el sistema.
+     *
+     * @param attributeType Tipo de atributo a validar
+     * @throws InvalidAttributeTypeException Si el tipo no es válido
      */
     private void validateAttributeType(String attributeType) {
         if (!StringUtils.hasText(attributeType)) {
-            throw new IllegalArgumentException("El tipo de atributo es requerido");
+            throw new InvalidAttributeTypeException(
+                "El tipo de atributo es requerido",
+                attributeType,
+                VALID_ATTRIBUTE_TYPES
+            );
         }
 
         if (!VALID_ATTRIBUTE_TYPES.contains(attributeType.toUpperCase())) {
-            throw new IllegalArgumentException(
-                String.format("Tipo de atributo no válido: %s. Tipos válidos: %s",
-                    attributeType, String.join(", ", VALID_ATTRIBUTE_TYPES))
+            throw new InvalidAttributeTypeException(
+                String.format("Tipo de atributo no válido: '%s'. Tipos válidos: %s",
+                    attributeType, String.join(", ", VALID_ATTRIBUTE_TYPES)),
+                attributeType,
+                VALID_ATTRIBUTE_TYPES
             );
         }
     }
 
     /**
-     * Valida los datos del DTO
+     * Valida que un usuario normal pueda crear un atributo del tipo especificado.
+     * Solo ciertos tipos de atributos pueden ser propuestos por usuarios.
+     *
+     * @param attributeType Tipo de atributo a validar
+     * @throws IllegalArgumentException Si el tipo no está permitido para usuarios
      */
-    private void validateAttributeData(UserAttributeCreateDTO createDTO) {
-        if (!StringUtils.hasText(createDTO.name())) {
-            throw new IllegalArgumentException("El nombre del atributo es requerido");
-        }
-
-        if (createDTO.name().trim().length() < 2) {
-            throw new IllegalArgumentException("El nombre debe tener al menos 2 caracteres");
-        }
-
-        if (createDTO.name().trim().length() > 100) {
-            throw new IllegalArgumentException("El nombre no puede superar los 100 caracteres");
-        }
-
-        // Validar detail si es un color
-        if (StringUtils.hasText(createDTO.detail()) && createDTO.detail().startsWith("#")) {
-            if (!isValidHexColor(createDTO.detail())) {
-                throw new IllegalArgumentException("El código de color no es válido");
-            }
+    private void validateUserCanCreateType(String attributeType) {
+        if (!USER_CREATABLE_TYPES.contains(attributeType.toUpperCase())) {
+            throw new IllegalArgumentException(
+                String.format("Los usuarios no pueden crear atributos del tipo '%s'. " +
+                        "Tipos permitidos para usuarios: %s",
+                    attributeType, String.join(", ", USER_CREATABLE_TYPES))
+            );
         }
     }
+
 
     /**
      * Valida que no existan duplicados de código o nombre para un tipo de atributo.
@@ -155,35 +205,44 @@ public class UserAttributeService {
      * @param attributeType Tipo de atributo
      * @param code          Código del atributo
      * @param name          Nombre del atributo
-     * @throws RuntimeException si existe un duplicado
+     * @throws DuplicateAttributeException si existe un duplicado
      */
     private void validateNoDuplicates(String attributeType, String code, String name) {
         // Verificar código duplicado (activos e inactivos)
         if (userAttributeRepository.existsByCodeAndAttributeType(code, attributeType.toUpperCase())) {
-            throw new RuntimeException(String.format("Ya existe un atributo con el código '%s' para el tipo '%s'", code, attributeType));
+            throw new DuplicateAttributeException(
+                String.format("Ya existe un atributo con el código '%s' para el tipo '%s'", code, attributeType),
+                attributeType,
+                code
+            );
         }
 
         // Verificar nombre duplicado (case-insensitive)
         List<UserAttribute> existingWithSameName = userAttributeRepository
             .findActiveByAttributeType(attributeType.toUpperCase())
             .stream()
-            .filter(attr -> attr.getName().trim().equalsIgnoreCase(name.trim()))
+            .filter(attr -> attr.getName().equalsIgnoreCase(name))
             .toList();
 
         if (!existingWithSameName.isEmpty()) {
-            throw new RuntimeException(String.format("Ya existe un atributo con el nombre '%s' para el tipo '%s'", name, attributeType));
+            throw new DuplicateAttributeException(
+                String.format("Ya existe un atributo con el nombre '%s' para el tipo '%s'", name, attributeType),
+                attributeType,
+                name
+            );
         }
     }
 
-    /**
-     * Valida si un string es un color hexadecimal válido
-     */
-    private boolean isValidHexColor(String color) {
-        return color.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
-    }
 
     /**
-     * Genera un código basado en el nombre del atributo
+     * Genera un código único basado en el nombre del atributo.
+     * <p>
+     * Normaliza el nombre: convierte a mayúsculas, reemplaza espacios/guiones por guiones bajos,
+     * elimina caracteres especiales.
+     *
+     * @param name Nombre del atributo
+     * @return Código normalizado (ej: "Ojos Azules" → "OJOS_AZULES")
+     * @throws IllegalArgumentException Si el nombre está vacío
      */
     private String generateCodeFromName(String name) {
         if (!StringUtils.hasText(name)) {
@@ -213,81 +272,48 @@ public class UserAttributeService {
     }
 
     /**
-     * Obtiene usuarios filtrados por atributo específico
+     * Actualiza un atributo existente.
      *
-     * @deprecated Use {@link #getUsersByAttributeWithResponseDTO(Long, Pageable)} instead
-     */
-    @Deprecated(since = "1.8", forRemoval = true)
-    public Page<UserResponseDTO> getUsersByAttribute(Long attributeId, Pageable pageable) {
-        try {
-            // For now, return empty page since we don't have the user filtering logic here
-            // This should be implemented by injecting UserRepository and filtering users
-            log.warn("getUsersByAttribute not fully implemented - returning empty page");
-            return Page.empty(pageable);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuarios por atributo: {}", attributeId, e);
-            return Page.empty(pageable);
-        }
-    }
-
-    /**
-     * Obtiene usuarios filtrados por atributo específico (with UserResponseDTO)
-     */
-    public Page<UserResponseDTO> getUsersByAttributeWithResponseDTO(Long attributeId, Pageable pageable) {
-        try {
-            // For now, return empty page since we don't have the user filtering logic here
-            // This should be implemented by injecting UserRepository and filtering users
-            log.warn("getUsersByAttributeWithResponseDTO not fully implemented - returning empty page");
-            return Page.empty(pageable);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuarios por atributo: {}", attributeId, e);
-            return Page.empty(pageable);
-        }
-    }
-
-    /**
-     * Actualiza un atributo existente
+     * @param attributeId ID del atributo a actualizar
+     * @param updateDTO   DTO con nuevos datos (ya validado)
+     * @return DTO del atributo actualizado
+     * @throws AttributeNotFoundException Si el atributo no existe
      */
     public UserAttributeDTO updateAttribute(Long attributeId, UserAttributeCreateDTO updateDTO) {
-        try {
-            UserAttribute attribute = userAttributeRepository.findById(attributeId)
-                .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+        UserAttribute attribute = userAttributeRepository.findById(attributeId)
+            .orElseThrow(() -> new AttributeNotFoundException(
+                "Atributo no encontrado con ID: " + attributeId,
+                attributeId
+            ));
 
-            // Validar datos del DTO
-            validateAttributeData(updateDTO);
+        // Actualizar campos (valores ya vienen trimmed del DTO)
+        attribute.setName(updateDTO.name());
+        attribute.setDetail(updateDTO.detail());
 
-            // Actualizar campos
-            attribute.setName(updateDTO.name().trim());
-            if (updateDTO.detail() != null) {
-                attribute.setDetail(updateDTO.detail().trim());
-            }
+        UserAttribute saved = userAttributeRepository.save(attribute);
+        log.info("Atributo actualizado exitosamente: {}", saved);
 
-            UserAttribute saved = userAttributeRepository.save(attribute);
-            log.info("Atributo actualizado exitosamente: {}", saved);
-
-            return new UserAttributeDTO(saved);
-        } catch (Exception e) {
-            log.error("Error actualizando atributo: {}", attributeId, e);
-            throw new RuntimeException("Error al actualizar atributo");
-        }
+        return new UserAttributeDTO(saved);
     }
 
     /**
-     * Elimina un atributo
+     * Elimina un atributo del sistema.
+     *
+     * @param attributeId ID del atributo a eliminar
+     * @return Mensaje de confirmación
+     * @throws AttributeNotFoundException Si el atributo no existe
      */
     public MessageResponseDTO deleteAttribute(Long attributeId) {
-        try {
-            UserAttribute attribute = userAttributeRepository.findById(attributeId)
-                .orElseThrow(() -> new RuntimeException("Atributo no encontrado: " + attributeId));
+        UserAttribute attribute = userAttributeRepository.findById(attributeId)
+            .orElseThrow(() -> new AttributeNotFoundException(
+                "Atributo no encontrado con ID: " + attributeId,
+                attributeId
+            ));
 
-            userAttributeRepository.delete(attribute);
-            log.info("Atributo eliminado exitosamente: {}", attributeId);
+        userAttributeRepository.delete(attribute);
+        log.info("Atributo eliminado exitosamente: {}", attributeId);
 
-            return new MessageResponseDTO("Atributo eliminado exitosamente");
-        } catch (Exception e) {
-            log.error("Error eliminando atributo: {}", attributeId, e);
-            throw new RuntimeException("Error al eliminar atributo");
-        }
+        return new MessageResponseDTO("Atributo eliminado exitosamente");
     }
 
     /**
@@ -298,6 +324,17 @@ public class UserAttributeService {
      */
     public Page<UserAttributeDTO> getActiveAttributesPaged(Pageable pageable) {
         return userAttributeRepository.findActiveAttributesPaged(pageable)
+            .map(UserAttributeDTO::new);
+    }
+
+    /**
+     * Obtiene todos los atributos (activos e inactivos) con paginación.
+     *
+     * @param pageable Configuración de paginación
+     * @return Página de UserAttributeDTO
+     */
+    public Page<UserAttributeDTO> getAllAttributesPaged(Pageable pageable) {
+        return userAttributeRepository.findAll(pageable)
             .map(UserAttributeDTO::new);
     }
 
@@ -321,19 +358,17 @@ public class UserAttributeService {
     /**
      * Obtiene estadísticas completas de los atributos de usuario.
      *
-     * @return Map con estadísticas de atributos
+     * @return DTO con estadísticas de atributos
      */
-    public Map<String, Object> getAttributeStatistics() {
+    public UserAttributeStatisticsResponseDTO getAttributeStatistics() {
         try {
-            Map<String, Object> statistics = new HashMap<>();
-
             // Obtener todos los atributos
             List<UserAttribute> allAttributes = userAttributeRepository.findAll();
 
             // Estadísticas generales
-            statistics.put("totalAttributes", allAttributes.size());
-            statistics.put("activeAttributes", allAttributes.stream().mapToInt(attr -> attr.isActive() ? 1 : 0).sum());
-            statistics.put("inactiveAttributes", allAttributes.stream().mapToInt(attr -> !attr.isActive() ? 1 : 0).sum());
+            int totalAttributes = allAttributes.size();
+            int activeAttributes = (int) allAttributes.stream().filter(UserAttribute::isActive).count();
+            int inactiveAttributes = totalAttributes - activeAttributes;
 
             // Distribución por tipo
             Map<String, Long> distributionByType = allAttributes.stream()
@@ -341,7 +376,6 @@ public class UserAttributeService {
                     UserAttribute::getAttributeType,
                     Collectors.counting()
                 ));
-            statistics.put("distributionByType", distributionByType);
 
             // Atributos activos por tipo
             Map<String, Long> activeByType = allAttributes.stream()
@@ -350,19 +384,19 @@ public class UserAttributeService {
                     UserAttribute::getAttributeType,
                     Collectors.counting()
                 ));
-            statistics.put("activeByType", activeByType);
 
-            // Tipos de atributos disponibles
-            statistics.put("availableTypes", VALID_ATTRIBUTE_TYPES);
-
-            return statistics;
+            return new UserAttributeStatisticsResponseDTO(
+                totalAttributes,
+                activeAttributes,
+                inactiveAttributes,
+                distributionByType,
+                activeByType,
+                List.copyOf(VALID_ATTRIBUTE_TYPES)
+            );
 
         } catch (Exception e) {
             log.error("Error obteniendo estadísticas de atributos", e);
-            return Map.of(
-                "error", "Error al obtener estadísticas",
-                "message", e.getMessage()
-            );
+            return new UserAttributeStatisticsResponseDTO(0, 0, 0, Map.of(), Map.of(), List.of());
         }
     }
 
@@ -373,11 +407,14 @@ public class UserAttributeService {
      * @param id            ID del atributo a buscar
      * @param attributeName Nombre descriptivo del atributo para mensajes de error
      * @return UserAttribute encontrado
-     * @throws RuntimeException si el atributo no se encuentra
+     * @throws AttributeNotFoundException si el atributo no se encuentra
      */
     public UserAttribute findAttributeById(Long id, String attributeName) {
         return userAttributeRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException(attributeName + " no encontrado"));
+            .orElseThrow(() -> new AttributeNotFoundException(
+                attributeName + " no encontrado con ID: " + id,
+                attributeName
+            ));
     }
 
     /**
@@ -440,5 +477,57 @@ public class UserAttributeService {
             .stream()
             .map(UserAttributeDTO::new)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Activa un atributo haciéndolo visible para los usuarios.
+     *
+     * @param attributeId ID del atributo a activar
+     * @return DTO del atributo activado
+     * @throws AttributeNotFoundException Si el atributo no existe
+     */
+    public UserAttributeDTO activateAttribute(Long attributeId) {
+        UserAttribute attribute = userAttributeRepository.findById(attributeId)
+            .orElseThrow(() -> new AttributeNotFoundException(
+                "Atributo no encontrado con ID: " + attributeId,
+                attributeId
+            ));
+
+        if (attribute.isActive()) {
+            log.info("Atributo ya estaba activo: {}", attributeId);
+            return new UserAttributeDTO(attribute);
+        }
+
+        attribute.setActive(true);
+        UserAttribute saved = userAttributeRepository.save(attribute);
+        log.info("Atributo activado exitosamente: {}", attributeId);
+
+        return new UserAttributeDTO(saved);
+    }
+
+    /**
+     * Desactiva un atributo ocultándolo de los usuarios sin eliminarlo.
+     *
+     * @param attributeId ID del atributo a desactivar
+     * @return DTO del atributo desactivado
+     * @throws AttributeNotFoundException Si el atributo no existe
+     */
+    public UserAttributeDTO deactivateAttribute(Long attributeId) {
+        UserAttribute attribute = userAttributeRepository.findById(attributeId)
+            .orElseThrow(() -> new AttributeNotFoundException(
+                "Atributo no encontrado con ID: " + attributeId,
+                attributeId
+            ));
+
+        if (!attribute.isActive()) {
+            log.info("Atributo ya estaba inactivo: {}", attributeId);
+            return new UserAttributeDTO(attribute);
+        }
+
+        attribute.setActive(false);
+        UserAttribute saved = userAttributeRepository.save(attribute);
+        log.info("Atributo desactivado exitosamente: {}", attributeId);
+
+        return new UserAttributeDTO(saved);
     }
 }

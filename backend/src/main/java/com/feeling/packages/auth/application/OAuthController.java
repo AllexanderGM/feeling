@@ -1,8 +1,12 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.AuthLoginResponseDTO;
-import com.feeling.packages.auth.domain.dto.AuthMethodInfoDTO;
-import com.feeling.packages.auth.domain.dto.GoogleTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.AppleTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.FacebookTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.UnlinkOAuthRequestDTO;
+import com.feeling.packages.auth.domain.dto.request.GoogleTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
+import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
+import com.feeling.packages.auth.domain.dto.response.OAuthProvidersDTO;
 import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,26 +60,13 @@ public class OAuthController {
             description = "Demasiados intentos de registro"
         )
     })
-    public ResponseEntity<?> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
+    public ResponseEntity<AuthLoginResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
         logger.info("Intento de registro con Google - Token recibido");
 
-        try {
-            AuthLoginResponseDTO response = authService.registerWithGoogle(googleRequest);
+        AuthLoginResponseDTO response = authService.registerWithGoogle(googleRequest);
 
-            logger.info("Registro con Google exitoso para usuario: {}", response.profile().email());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (Exception e) {
-            logger.warn("Error en registro con Google: {}", e.getMessage());
-
-            if (e.getMessage().contains("ya registrado")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new MessageResponseDTO("Email ya registrado con otro método"));
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new MessageResponseDTO("Error en autenticación con Google: " + e.getMessage()));
-            }
-        }
+        logger.info("Registro con Google exitoso para usuario: {}", response.profile().email());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/google/login")
@@ -102,29 +93,13 @@ public class OAuthController {
             description = "Demasiados intentos de login"
         )
     })
-    public ResponseEntity<?> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
+    public ResponseEntity<AuthLoginResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
         logger.info("Intento de login con Google - Token recibido");
 
-        try {
-            AuthLoginResponseDTO response = authService.loginWithGoogle(googleRequest);
+        AuthLoginResponseDTO response = authService.loginWithGoogle(googleRequest);
 
-            logger.info("Login con Google exitoso para usuario: {}", response.profile().email());
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            logger.warn("Error en login con Google: {}", e.getMessage());
-
-            if (e.getMessage().contains("no encontrado")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new MessageResponseDTO("Usuario no registrado. Use el endpoint de registro."));
-            } else if (e.getMessage().contains("método")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new MessageResponseDTO("Este email está registrado con otro método de autenticación"));
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new MessageResponseDTO("Error en autenticación con Google: " + e.getMessage()));
-            }
-        }
+        logger.info("Login con Google exitoso para usuario: {}", response.profile().email());
+        return ResponseEntity.ok(response);
     }
 
     // ==============================
@@ -136,7 +111,7 @@ public class OAuthController {
         summary = "Registro con Facebook (Próximamente)",
         description = "Endpoint preparado para futuro registro con Facebook"
     )
-    public ResponseEntity<MessageResponseDTO> registerWithFacebook(@RequestBody FacebookTokenRequestDTO facebookRequest) {
+    public ResponseEntity<MessageResponseDTO> registerWithFacebook(@Valid @RequestBody FacebookTokenRequestDTO facebookRequest) {
         logger.info("Intento de registro con Facebook - Funcionalidad no implementada");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
             .body(new MessageResponseDTO("Autenticación con Facebook próximamente disponible"));
@@ -147,7 +122,7 @@ public class OAuthController {
         summary = "Login con Facebook (Próximamente)",
         description = "Endpoint preparado para futuro login con Facebook"
     )
-    public ResponseEntity<MessageResponseDTO> loginWithFacebook(@RequestBody FacebookTokenRequestDTO facebookRequest) {
+    public ResponseEntity<MessageResponseDTO> loginWithFacebook(@Valid @RequestBody FacebookTokenRequestDTO facebookRequest) {
         logger.info("Intento de login con Facebook - Funcionalidad no implementada");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
             .body(new MessageResponseDTO("Autenticación con Facebook próximamente disponible"));
@@ -162,7 +137,7 @@ public class OAuthController {
         summary = "Registro con Apple (Próximamente)",
         description = "Endpoint preparado para futuro registro con Apple ID"
     )
-    public ResponseEntity<MessageResponseDTO> registerWithApple(@RequestBody AppleTokenRequestDTO appleRequest) {
+    public ResponseEntity<MessageResponseDTO> registerWithApple(@Valid @RequestBody AppleTokenRequestDTO appleRequest) {
         logger.info("Intento de registro con Apple - Funcionalidad no implementada");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
             .body(new MessageResponseDTO("Autenticación con Apple próximamente disponible"));
@@ -173,7 +148,7 @@ public class OAuthController {
         summary = "Login con Apple (Próximamente)",
         description = "Endpoint preparado para futuro login con Apple ID"
     )
-    public ResponseEntity<MessageResponseDTO> loginWithApple(@RequestBody AppleTokenRequestDTO appleRequest) {
+    public ResponseEntity<MessageResponseDTO> loginWithApple(@Valid @RequestBody AppleTokenRequestDTO appleRequest) {
         logger.info("Intento de login con Apple - Funcionalidad no implementada");
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
             .body(new MessageResponseDTO("Autenticación con Apple próximamente disponible"));
@@ -236,59 +211,13 @@ public class OAuthController {
     public ResponseEntity<MessageResponseDTO> unlinkOAuthAccount(
         @PathVariable String provider,
         @RequestHeader("Authorization") String authHeader,
-        @RequestBody UnlinkOAuthRequestDTO unlinkRequest) {
+        @Valid @RequestBody UnlinkOAuthRequestDTO unlinkRequest) {
 
         logger.info("Solicitud de desvinculación de cuenta {} para usuario autenticado", provider);
 
-        try {
-            MessageResponseDTO response = authService.unlinkOAuthAccount(provider, authHeader, unlinkRequest);
+        MessageResponseDTO response = authService.unlinkOAuthAccount(provider, authHeader, unlinkRequest);
 
-            logger.info("Cuenta {} desvinculada exitosamente", provider);
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            logger.warn("Error al desvincular cuenta {}: {}", provider, e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new MessageResponseDTO("Error al desvincular cuenta: " + e.getMessage()));
-        }
-    }
-
-    // ==============================
-    // DTOs ESPECÍFICOS
-    // ==============================
-
-    public record FacebookTokenRequestDTO(
-        @jakarta.validation.constraints.NotBlank(message = "Token de Facebook es obligatorio")
-        String accessToken
-    ) {
-    }
-
-    public record AppleTokenRequestDTO(
-        @jakarta.validation.constraints.NotBlank(message = "Token de Apple es obligatorio")
-        String identityToken,
-        String authorizationCode
-    ) {
-    }
-
-    public record OAuthProvidersDTO(
-        boolean googleEnabled,
-        boolean facebookEnabled,
-        boolean appleEnabled,
-        boolean microsoftEnabled
-    ) {
-    }
-
-    public record UnlinkOAuthRequestDTO(
-        @jakarta.validation.constraints.NotBlank(message = "Contraseña local es obligatoria")
-        String localPassword,
-
-        @jakarta.validation.constraints.NotBlank(message = "Confirmación es obligatoria")
-        String confirmationText // Usuario debe escribir "CONFIRMAR" para desvincular
-    ) {
-        public UnlinkOAuthRequestDTO {
-            if (!"CONFIRMAR".equals(confirmationText)) {
-                throw new IllegalArgumentException("Debe escribir 'CONFIRMAR' para desvincular la cuenta");
-            }
-        }
+        logger.info("Cuenta {} desvinculada exitosamente", provider);
+        return ResponseEntity.ok(response);
     }
 }

@@ -5,7 +5,7 @@ import com.feeling.packages.match.domain.dto.MatchRequestDTO;
 import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.infrastructure.entities.Match;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -35,7 +35,7 @@ public class MatchService {
         }
 
         User targetUser = userRepository.findById(request.getTargetUserId())
-                .orElseThrow(() -> new RuntimeException("Target user not found with id: " + request.getTargetUserId()));
+            .orElseThrow(() -> new RuntimeException("Target user not found with id: " + request.getTargetUserId()));
 
         if (initiatorUser.getId().equals(targetUser.getId())) {
             throw new RuntimeException("Cannot send match to yourself");
@@ -60,7 +60,7 @@ public class MatchService {
         log.info("User {} accepting match {}", targetUser.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(targetUser.getId())) {
             throw new RuntimeException("You are not authorized to accept this match");
@@ -89,7 +89,7 @@ public class MatchService {
         log.info("User {} rejecting match {}", targetUser.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(targetUser.getId())) {
             throw new RuntimeException("You are not authorized to reject this match");
@@ -112,10 +112,10 @@ public class MatchService {
         log.debug("User {} viewing match {}", user.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(user.getId()) &&
-                !match.getInitiatorUser().getId().equals(user.getId())) {
+            !match.getInitiatorUser().getId().equals(user.getId())) {
             throw new RuntimeException("You are not authorized to view this match");
         }
 
@@ -128,50 +128,50 @@ public class MatchService {
     public Page<MatchResponseDTO> getSentMatches(User user, Pageable pageable) {
         log.debug("Getting sent matches for user: {}", user.getId());
         return matchRepository.findSentMatches(user, pageable)
-                .map(this::convertToResponseDTO);
+            .map(this::convertToResponseDTO);
     }
 
     public Page<MatchResponseDTO> getReceivedMatches(User user, Pageable pageable) {
         log.debug("Getting received matches for user: {}", user.getId());
         return matchRepository.findReceivedMatches(user, pageable)
-                .map(this::convertToResponseDTO);
+            .map(this::convertToResponseDTO);
     }
 
     public Page<MatchResponseDTO> getPendingReceivedMatches(User user, Pageable pageable) {
         log.debug("Getting pending received matches for user: {}", user.getId());
         return matchRepository.findPendingReceivedMatches(user, pageable)
-                .map(this::convertToResponseDTO);
+            .map(this::convertToResponseDTO);
     }
 
     public Page<MatchResponseDTO> getAcceptedMatches(User user, Pageable pageable) {
         log.debug("Getting accepted matches for user: {}", user.getId());
         return matchRepository.findAcceptedMatches(user, pageable)
-                .map(this::convertToResponseDTO);
+            .map(this::convertToResponseDTO);
     }
 
     public MatchContactDTO getMatchContact(User user, Long matchId) {
         log.debug("User {} getting contact info for match {}", user.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
 
         if (!match.getContactUnlocked()) {
             throw new RuntimeException("Contact information is not unlocked for this match");
         }
 
         if (!match.getTargetUser().getId().equals(user.getId()) &&
-                !match.getInitiatorUser().getId().equals(user.getId())) {
+            !match.getInitiatorUser().getId().equals(user.getId())) {
             throw new RuntimeException("You are not authorized to view contact info for this match");
         }
 
         User otherUser = match.getInitiatorUser().getId().equals(user.getId())
-                ? match.getTargetUser()
-                : match.getInitiatorUser();
+            ? match.getTargetUser()
+            : match.getInitiatorUser();
 
         return new MatchContactDTO(
-                otherUser.getEmail(),
-                otherUser.getPhone(), // Campo phone de la entidad User
-                otherUser.getPhone()  // Usar el mismo campo phone para ambos
+            otherUser.getEmail(),
+            otherUser.getPhone(), // Campo phone de la entidad User
+            otherUser.getPhone()  // Usar el mismo campo phone para ambos
         );
     }
 
@@ -192,14 +192,14 @@ public class MatchService {
         UserResponseDTO targetUserDTO = userService.get(match.getTargetUser().getEmail(), null, "public");
 
         return new MatchResponseDTO(
-                match.getId(),
-                initiatorUserDTO,
-                targetUserDTO,
-                match.getStatus(),
-                match.getRespondedAt(),
-                match.getViewedAt(),
-                match.getContactUnlocked(),
-                match.getCreatedAt()
+            match.getId(),
+            initiatorUserDTO,
+            targetUserDTO,
+            match.getStatus(),
+            match.getRespondedAt(),
+            match.getViewedAt(),
+            match.getContactUnlocked(),
+            match.getCreatedAt()
         );
     }
 }

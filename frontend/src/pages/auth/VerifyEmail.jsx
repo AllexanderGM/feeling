@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { useAuth, useNotification } from '@hooks'
+import { useVerification } from '@hooks/auth'
+import { useNotification } from '@hooks'
 import { verifyEmailSchema, extractVerifyEmailData } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
@@ -14,7 +15,7 @@ const VerifyEmail = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { showInfo } = useNotification()
-  const { verifyEmailCode, resendVerificationCode, loading } = useAuth()
+  const { verifyEmail, resendCode, loading } = useVerification()
 
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState('')
@@ -74,7 +75,7 @@ const VerifyEmail = () => {
       if (autoResend) {
         const autoResendCode = async () => {
           setMessage('Enviando nuevo código de verificación...')
-          const result = await resendVerificationCode(stateEmail)
+          const result = await resendCode(stateEmail)
           if (result.success) {
             setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
             startResendCountdown()
@@ -105,7 +106,7 @@ const VerifyEmail = () => {
         setTimeout(autoResendCode, 1500)
       }
     }
-  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, setValue, resendVerificationCode, autoResend])
+  }, [stateEmail, fromRegister, fromGoogle, autoVerified, stateMessage, navigate, setValue, resendCode, autoResend])
 
   const startResendCountdown = () => {
     setCanResend(false)
@@ -133,7 +134,7 @@ const VerifyEmail = () => {
 
   const onSubmit = async formData => {
     const { email, code } = extractVerifyEmailData(formData)
-    const result = await verifyEmailCode(email, code)
+    const result = await verifyEmail(email, code)
 
     if (result.success) {
       setStatus('success')
@@ -180,7 +181,7 @@ const VerifyEmail = () => {
     if (!email) return
 
     setResendLoading(true)
-    const result = await resendVerificationCode(email)
+    const result = await resendCode(email)
 
     if (result.success) {
       setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')

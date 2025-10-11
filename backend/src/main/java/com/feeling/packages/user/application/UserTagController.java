@@ -1,9 +1,9 @@
 package com.feeling.packages.user.application;
 
+import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.UserTagDTO;
-import com.feeling.packages.user.domain.dto.UserTagRequestDTO;
+import com.feeling.packages.user.domain.dto.request.UserTagRequestDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.domain.services.UserTagService;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -23,13 +22,39 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Controlador para gestión de tags de usuario.
+ * <p>
+ * Responsabilidades del cliente:
+ * - Gestión personal de tags (obtener, añadir, reemplazar, eliminar)
+ * - Búsqueda de tags por query
+ * - Consulta de tags populares y trending
+ * - Sugerencias personalizadas de tags
+ * <p>
+ * Responsabilidades de admin:
+ * - Consulta de tags pendientes de aprobación
+ * - Creación de tags
+ * - Actualización de tags
+ * - Aprobación/rechazo de tags (individual y batch)
+ * - Limpieza de tags sin uso
+ * <p>
+ * Los tags son etiquetas personalizadas que los usuarios pueden agregar
+ * a sus perfiles para mejor matching y descubrimiento.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/user-tags")
 @RequiredArgsConstructor
-@Slf4j
-@Tag(name = "User Tags", description = "User tags management endpoints")
+@Tag(name = "User Tags", description = "Endpoints de gestión de tags de usuario")
 public class UserTagController {
+
+    private static final StructuredLoggerFactory.StructuredLogger logger =
+        StructuredLoggerFactory.create(UserTagController.class);
 
     private final UserTagService userTagService;
     private final UserService userService;
@@ -40,23 +65,23 @@ public class UserTagController {
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get current user tags",
-        description = "Get all tags of the current authenticated user")
+    @Operation(summary = "Obtener tags del usuario actual",
+        description = "Obtiene todos los tags del usuario autenticado actual")
     public ResponseEntity<List<UserTagDTO>> getMyTags(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             List<UserTagDTO> tags = userTagService.getUserTags(userEmail);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
-            log.error("Error obteniendo tags del usuario", e);
+            logger.error("Error obteniendo tags del usuario", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Add tags to current user",
-        description = "Add new tags to the current user's profile")
+    @Operation(summary = "Agregar tags al usuario actual",
+        description = "Agrega nuevos tags al perfil del usuario actual")
     public ResponseEntity<List<UserTagDTO>> addTagsToMe(
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
@@ -65,17 +90,17 @@ public class UserTagController {
             List<UserTagDTO> updatedTags = userTagService.addTagsToUser(userEmail, request.tags());
             return ResponseEntity.ok(updatedTags);
         } catch (Exception e) {
-            log.error("Error añadiendo tags al usuario", e);
+            logger.error("Error añadiendo tags al usuario", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PutMapping("/me/{tagId}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Replace user tags",
-        description = "Replace all current user tags with new ones")
+    @Operation(summary = "Reemplazar tags de usuario",
+        description = "Reemplaza todos los tags actuales del usuario con nuevos")
     public ResponseEntity<List<UserTagDTO>> replaceMyTags(
-        @Parameter(description = "Tag ID (not used, kept for URL structure)") @PathVariable Long tagId,
+        @Parameter(description = "ID del tag (no usado, mantenido por estructura de URL)") @PathVariable Long tagId,
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
         try {
@@ -83,24 +108,24 @@ public class UserTagController {
             List<UserTagDTO> updatedTags = userTagService.replaceUserTags(userEmail, request.tags());
             return ResponseEntity.ok(updatedTags);
         } catch (Exception e) {
-            log.error("Error reemplazando tags del usuario", e);
+            logger.error("Error reemplazando tags del usuario", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @DeleteMapping("/me/{tagId}")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Remove tag from current user",
-        description = "Remove a specific tag from current user's profile")
+    @Operation(summary = "Eliminar tag del usuario actual",
+        description = "Elimina un tag específico del perfil del usuario actual")
     public ResponseEntity<MessageResponseDTO> removeTagFromMe(
-        @Parameter(description = "Tag ID") @PathVariable Long tagId,
+        @Parameter(description = "ID del tag") @PathVariable Long tagId,
         Authentication authentication) {
         try {
             String userEmail = authentication.getName();
             MessageResponseDTO response = userTagService.removeTagFromUser(userEmail, tagId);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error removiendo tag del usuario", e);
+            logger.error("Error removiendo tag del usuario", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al remover tag"));
         }
@@ -112,8 +137,8 @@ public class UserTagController {
 
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Search tags",
-        description = "Search for tags by name or query")
+    @Operation(summary = "Buscar tags",
+        description = "Busca tags por nombre o query")
     public ResponseEntity<Page<UserTagDTO>> searchTags(
         @RequestParam(required = false) String query,
         @PageableDefault(size = 20) Pageable pageable) {
@@ -121,45 +146,45 @@ public class UserTagController {
             Page<UserTagDTO> tags = userTagService.searchTagsPaginated(query, pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
-            log.error("Error buscando tags", e);
+            logger.error("Error buscando tags", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/popular")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get popular tags",
-        description = "Get most popular tags in the system")
+    @Operation(summary = "Obtener tags populares",
+        description = "Obtiene los tags más populares del sistema")
     public ResponseEntity<Page<UserTagDTO>> getPopularTags(
         @PageableDefault(size = 20) Pageable pageable) {
         try {
             Page<UserTagDTO> tags = userTagService.getPopularTagsPaginated(pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
-            log.error("Error obteniendo tags populares", e);
+            logger.error("Error obteniendo tags populares", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/trending")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get trending tags",
-        description = "Get trending tags in the system")
+    @Operation(summary = "Obtener tags en tendencia",
+        description = "Obtiene los tags en tendencia del sistema")
     public ResponseEntity<Page<UserTagDTO>> getTrendingTags(
         @PageableDefault(size = 15) Pageable pageable) {
         try {
             Page<UserTagDTO> tags = userTagService.getTrendingTagsPaginated(pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
-            log.error("Error obteniendo tags en tendencia", e);
+            logger.error("Error obteniendo tags en tendencia", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/suggestions")
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get personalized tag suggestions",
-        description = "Get personalized tag suggestions for the current user")
+    @Operation(summary = "Obtener sugerencias de tags personalizadas",
+        description = "Obtiene sugerencias de tags personalizadas para el usuario actual")
     public ResponseEntity<Page<UserTagDTO>> getTagSuggestions(
         @PageableDefault(size = 10) Pageable pageable,
         Authentication authentication) {
@@ -168,23 +193,7 @@ public class UserTagController {
             Page<UserTagDTO> suggestions = userTagService.getSuggestedTagsForUserPaginated(userEmail, pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
-            log.error("Error obteniendo sugerencias de tags", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GetMapping("/users")
-    @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Get users filtered by tags",
-        description = "Get users with matching profile format filtered by list of tags")
-    public ResponseEntity<Page<UserResponseDTO>> getUsersByTags(
-        @RequestParam List<String> tags,
-        @PageableDefault(size = 20) Pageable pageable) {
-        try {
-            Page<UserResponseDTO> users = userTagService.getUsersByTagsWithResponseDTO(tags, pageable);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            log.error("Error obteniendo usuarios por tags", e);
+            logger.error("Error obteniendo sugerencias de tags", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -195,23 +204,23 @@ public class UserTagController {
 
     @GetMapping("/pending-approval")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Get pending approval tags",
-        description = "Get tags pending approval (admin only)")
+    @Operation(summary = "Obtener tags pendientes de aprobación",
+        description = "Obtiene tags pendientes de aprobación (solo admin)")
     public ResponseEntity<Page<UserTagDTO>> getPendingApprovalTags(
         @PageableDefault(size = 20) Pageable pageable) {
         try {
             Page<UserTagDTO> pendingTags = userTagService.getPendingApprovalTagsPaginated(pageable);
             return ResponseEntity.ok(pendingTags);
         } catch (Exception e) {
-            log.error("Error obteniendo tags pendientes de aprobación", e);
+            logger.error("Error obteniendo tags pendientes de aprobación", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Create new tag",
-        description = "Create a new tag (admin only)")
+    @Operation(summary = "Crear nuevo tag",
+        description = "Crea un nuevo tag (solo admin)")
     public ResponseEntity<UserTagDTO> createTag(
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
@@ -220,38 +229,38 @@ public class UserTagController {
             UserTag tag = userTagService.createTag(request.name(), adminEmail);
             return ResponseEntity.status(HttpStatus.CREATED).body(new UserTagDTO(tag));
         } catch (Exception e) {
-            log.error("Error creando tag", e);
+            logger.error("Error creando tag", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PutMapping("/{tagId}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Update tag",
-        description = "Update an existing tag (admin only)")
+    @Operation(summary = "Actualizar tag",
+        description = "Actualiza un tag existente (solo admin)")
     public ResponseEntity<UserTagDTO> updateTag(
-        @Parameter(description = "Tag ID") @PathVariable Long tagId,
+        @Parameter(description = "ID del tag") @PathVariable Long tagId,
         @Valid @RequestBody UserTagRequestDTO request) {
         try {
             UserTagDTO updatedTag = userTagService.updateTag(tagId, request.name());
             return ResponseEntity.ok(updatedTag);
         } catch (Exception e) {
-            log.error("Error actualizando tag: {}", tagId, e);
+            logger.error("Error actualizando tag", Map.of("tagId", tagId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/cleanup")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Cleanup unused tags",
-        description = "Remove unused tags from the system (admin only)")
+    @Operation(summary = "Limpiar tags sin uso",
+        description = "Elimina tags sin uso del sistema (solo admin)")
     public ResponseEntity<MessageResponseDTO> cleanupUnusedTags(Authentication authentication) {
         try {
             String adminEmail = authentication.getName();
             MessageResponseDTO response = userTagService.cleanupUnusedTagsManually(adminEmail);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error limpiando tags sin uso", e);
+            logger.error("Error limpiando tags sin uso", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al limpiar tags sin uso"));
         }
@@ -259,17 +268,17 @@ public class UserTagController {
 
     @PostMapping("/{tagId}/approve")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Approve tag",
-        description = "Approve a pending tag (admin only)")
+    @Operation(summary = "Aprobar tag",
+        description = "Aprueba un tag pendiente (solo admin)")
     public ResponseEntity<MessageResponseDTO> approveTag(
-        @Parameter(description = "Tag ID") @PathVariable Long tagId,
+        @Parameter(description = "ID del tag") @PathVariable Long tagId,
         Authentication authentication) {
         try {
             String adminEmail = authentication.getName();
             MessageResponseDTO response = userTagService.approveTag(tagId, adminEmail);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error aprobando tag: {}", tagId, e);
+            logger.error("Error aprobando tag", Map.of("tagId", tagId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al aprobar tag"));
         }
@@ -277,10 +286,10 @@ public class UserTagController {
 
     @PostMapping("/{tagId}/reject")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Reject tag",
-        description = "Reject a pending tag with reason (admin only)")
+    @Operation(summary = "Rechazar tag",
+        description = "Rechaza un tag pendiente con razón (solo admin)")
     public ResponseEntity<MessageResponseDTO> rejectTag(
-        @Parameter(description = "Tag ID") @PathVariable Long tagId,
+        @Parameter(description = "ID del tag") @PathVariable Long tagId,
         @RequestParam(required = false, defaultValue = "Tag no apropiado para la plataforma") String reason,
         Authentication authentication) {
         try {
@@ -288,7 +297,7 @@ public class UserTagController {
             MessageResponseDTO response = userTagService.rejectTag(tagId, reason, adminEmail);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error rechazando tag: {}", tagId, e);
+            logger.error("Error rechazando tag", Map.of("tagId", tagId), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al rechazar tag"));
         }
@@ -296,8 +305,8 @@ public class UserTagController {
 
     @PostMapping("/approve-batch")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Approve tags in batch",
-        description = "Approve multiple tags at once (admin only)")
+    @Operation(summary = "Aprobar tags en lote",
+        description = "Aprueba múltiples tags a la vez (solo admin)")
     public ResponseEntity<MessageResponseDTO> approveBatchTags(
         @RequestBody List<Long> tagIds,
         Authentication authentication) {
@@ -306,7 +315,7 @@ public class UserTagController {
             MessageResponseDTO response = userTagService.approveBatchTags(tagIds, adminEmail);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error aprobando tags en lote", e);
+            logger.error("Error aprobando tags en lote", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponseDTO("Error al aprobar tags en lote"));
         }

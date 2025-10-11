@@ -7,10 +7,11 @@ import com.feeling.packages.event.infrastructure.entities.EventStatus;
 import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.match.infrastructure.entities.MatchPlan;
 import com.feeling.packages.match.infrastructure.repositories.IMatchPlanRepository;
-import com.feeling.packages.user.domain.enums.ApprovalStatus;
-import com.feeling.packages.user.domain.enums.TagApprovalStatus;
+import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.domain.enums.UserRoleList;
+import com.feeling.packages.user.domain.enums.UserTagApprovalStatus;
+import com.feeling.packages.user.domain.services.UserAttributeService;
 import com.feeling.packages.user.infrastructure.entities.*;
 import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -42,8 +43,7 @@ public class DataInitializer implements CommandLineRunner {
     private final IMatchPlanRepository matchPlanRepository;
     private final IEventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
-    private final IUserCategoryInterestRepository categoryInterestRepository;
-    private final com.feeling.packages.user.domain.services.UserAttributeService userAttributeService;
+    private final UserAttributeService userAttributeService;
 
     // Usar variables de entorno para el administrador del sistema
     @Value("${admin.username}")
@@ -422,7 +422,7 @@ public class DataInitializer implements CommandLineRunner {
                         .createdAt(LocalDateTime.now())
                         .usageCount(0L)
                         .lastUsed(LocalDateTime.now())
-                        .approvalStatus(TagApprovalStatus.APPROVED) // Tags comunes del sistema pre-aprobados
+                        .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags comunes del sistema pre-aprobados
                         .approvedBy(adminEmail)
                         .approvedAt(LocalDateTime.now())
                         .build();
@@ -519,7 +519,7 @@ public class DataInitializer implements CommandLineRunner {
                 .password(passwordEncoder.encode(this.adminPassword))
                 .userRole(adminRole)
                 .verified(true)
-                .approvalStatus(ApprovalStatus.APPROVED)
+                .userApprovalStatus(UserApprovalStatus.APPROVED)
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -703,7 +703,7 @@ public class DataInitializer implements CommandLineRunner {
                     .createdAt(LocalDateTime.now())
                     .usageCount(1L)
                     .lastUsed(LocalDateTime.now())
-                    .approvalStatus(TagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
+                    .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                     .approvedBy(normalizedAdminEmail)
                     .approvedAt(LocalDateTime.now())
                     .build();
@@ -720,7 +720,7 @@ public class DataInitializer implements CommandLineRunner {
                     .createdAt(LocalDateTime.now())
                     .usageCount(1L)
                     .lastUsed(LocalDateTime.now())
-                    .approvalStatus(TagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
+                    .approvalStatus(UserTagApprovalStatus.APPROVED) // Tags del sistema pre-aprobados
                     .approvedBy(normalizedAdminEmail)
                     .approvedAt(LocalDateTime.now())
                     .build();
@@ -790,7 +790,7 @@ public class DataInitializer implements CommandLineRunner {
             Random random = new Random();
             int usuariosCreados = 0;
 
-            // 1. USUARIOS ACTIVOS (15 usuarios): verified=true, approvalStatus=APPROVED, profileComplete=true, accountDeactivated=false
+            // 1. USUARIOS ACTIVOS (15 usuarios): verified=true, userApprovalStatus=APPROVED, profileComplete=true, accountDeactivated=false
             logger.info("Creando usuarios activos...");
             for (int i = 0; i < 15; i++) {
                 User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "ACTIVE", i);
@@ -801,7 +801,7 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 2. USUARIOS PENDIENTES DE APROBACIÓN (8 usuarios): verified=true, profileComplete=true, approvalStatus=PENDING, accountDeactivated=false
+            // 2. USUARIOS PENDIENTES DE APROBACIÓN (8 usuarios): verified=true, profileComplete=true, userApprovalStatus=PENDING, accountDeactivated=false
             logger.info("Creando usuarios pendientes de aprobación...");
             for (int i = 0; i < 8; i++) {
                 User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "PENDING_APPROVAL", i);
@@ -812,7 +812,7 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 3. USUARIOS CON PERFILES INCOMPLETOS (4 usuarios): verified=true, profileComplete=false, approvalStatus=PENDING, accountDeactivated=false
+            // 3. USUARIOS CON PERFILES INCOMPLETOS (4 usuarios): verified=true, profileComplete=false, userApprovalStatus=PENDING, accountDeactivated=false
             logger.info("Creando usuarios con perfiles incompletos...");
             for (int i = 0; i < 4; i++) {
                 User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "INCOMPLETE_PROFILE", i);
@@ -834,7 +834,7 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 5. USUARIOS RECHAZADOS (5 usuarios): verified=true, approvalStatus=REJECTED, accountDeactivated=false, perfil completo
+            // 5. USUARIOS RECHAZADOS (5 usuarios): verified=true, userApprovalStatus=REJECTED, accountDeactivated=false, perfil completo
             logger.info("Creando usuarios rechazados...");
             for (int i = 0; i < 5; i++) {
                 User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "REJECTED", i);
@@ -977,13 +977,13 @@ public class DataInitializer implements CommandLineRunner {
 
         // Configurar estados según la categoría
         boolean verified = !categoria.equals("UNVERIFIED");
-        ApprovalStatus approvalStatus;
+        UserApprovalStatus userApprovalStatus;
         if (categoria.equals("ACTIVE")) {
-            approvalStatus = ApprovalStatus.APPROVED;
+            userApprovalStatus = UserApprovalStatus.APPROVED;
         } else if (categoria.equals("REJECTED")) {
-            approvalStatus = ApprovalStatus.REJECTED;
+            userApprovalStatus = UserApprovalStatus.REJECTED;
         } else {
-            approvalStatus = ApprovalStatus.PENDING;
+            userApprovalStatus = UserApprovalStatus.PENDING;
         }
         boolean accountDeactivated = categoria.equals("DEACTIVATED");
 
@@ -996,7 +996,7 @@ public class DataInitializer implements CommandLineRunner {
             .email(emailFinal)
             .password(passwordEncoder.encode("123456")) // Contraseña fija para testing
             .verified(verified)
-            .approvalStatus(approvalStatus)
+            .userApprovalStatus(userApprovalStatus)
             .accountDeactivated(accountDeactivated)
             .userRole(clientRole)
             .userAuthProvider(AuthProvider.LOCAL)

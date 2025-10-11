@@ -247,7 +247,7 @@ public class EventService {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
-        // Only the creator or admin can toggle status
+        // Only the creator or admin can toggle complaintStatus
         if (!event.getCreatedBy().getId().equals(user.getId()) &&
             !user.getUserRole().getAuthority().equals("ADMIN")) {
             throw new UnauthorizedException("No tienes permisos para modificar este evento");

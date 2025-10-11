@@ -42,15 +42,15 @@ public class EventController {
     @GetMapping
     @Operation(summary = "Get all active events", description = "Retrieve all active events with optional pagination")
     public ResponseEntity<List<EventResponseDTO>> getAllEvents(
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getAllActiveEvents();
             return ResponseEntity.ok(events);
@@ -60,15 +60,15 @@ public class EventController {
     @GetMapping("/upcoming")
     @Operation(summary = "Get upcoming events", description = "Retrieve events that haven't started yet")
     public ResponseEntity<List<EventResponseDTO>> getUpcomingEvents(
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getUpcomingEvents(pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getUpcomingEvents();
             return ResponseEntity.ok(events);
@@ -78,16 +78,16 @@ public class EventController {
     @GetMapping("/category/{category}")
     @Operation(summary = "Get events by category", description = "Retrieve events filtered by category")
     public ResponseEntity<List<EventResponseDTO>> getEventsByCategory(
-            @Parameter(description = "Event category") @PathVariable EventCategory category,
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @Parameter(description = "Event category") @PathVariable EventCategory category,
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getEventsByCategory(category, pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getEventsByCategory(category);
             return ResponseEntity.ok(events);
@@ -97,16 +97,16 @@ public class EventController {
     @GetMapping("/search")
     @Operation(summary = "Search events", description = "Search events by title or description")
     public ResponseEntity<List<EventResponseDTO>> searchEvents(
-            @Parameter(description = "Search term") @RequestParam String q,
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @Parameter(description = "Search term") @RequestParam String q,
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.searchEvents(q, pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.searchEvents(q);
             return ResponseEntity.ok(events);
@@ -114,12 +114,12 @@ public class EventController {
     }
 
     @GetMapping("/status/{status}")
-    @Operation(summary = "Get events by status", description = "Retrieve events filtered by status")
+    @Operation(summary = "Get events by complaintStatus", description = "Retrieve events filtered by complaintStatus")
     public ResponseEntity<List<EventResponseDTO>> getEventsByStatus(
-            @Parameter(description = "Event status") @PathVariable EventStatus status,
-            @RequestParam(required = false) boolean paginated,
-            @RequestParam(required = false) String q,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @Parameter(description = "Event complaintStatus") @PathVariable EventStatus status,
+        @RequestParam(required = false) boolean paginated,
+        @RequestParam(required = false) String q,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events;
@@ -129,9 +129,9 @@ public class EventController {
                 events = eventService.getEventsByStatus(status, pageable);
             }
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events;
             if (q != null && !q.trim().isEmpty()) {
@@ -146,7 +146,7 @@ public class EventController {
     @GetMapping("/{id}")
     @Operation(summary = "Get event by ID", description = "Retrieve a specific event by its ID")
     public ResponseEntity<EventResponseDTO> getEventById(
-            @Parameter(description = "Event ID") @PathVariable Long id) {
+        @Parameter(description = "Event ID") @PathVariable Long id) {
 
         EventResponseDTO event = eventService.getEventById(id);
         return ResponseEntity.ok(event);
@@ -155,9 +155,9 @@ public class EventController {
     @GetMapping("/my-events")
     @Operation(summary = "Get my created events", description = "Retrieve events created by the authenticated user")
     public ResponseEntity<List<EventResponseDTO>> getMyEvents(
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable,
-            Authentication authentication) {
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
 
@@ -166,9 +166,9 @@ public class EventController {
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getEventsByCreatorEmail(userEmail, pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getEventsByCreatorEmail(userEmail);
             return ResponseEntity.ok(events);
@@ -178,8 +178,8 @@ public class EventController {
     @PostMapping
     @Operation(summary = "Create new event", description = "Create a new event")
     public ResponseEntity<EventResponseDTO> createEvent(
-            @Valid @RequestBody EventCreateRequestDTO request,
-            Authentication authentication) {
+        @Valid @RequestBody EventCreateRequestDTO request,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO createdEvent = eventService.createEvent(request, userEmail);
@@ -189,9 +189,9 @@ public class EventController {
     @PostMapping(value = "/with-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Create new event with image", description = "Create a new event and upload its main image in one request")
     public ResponseEntity<EventResponseDTO> createEventWithImage(
-            @Valid @ModelAttribute EventCreateRequestDTO request,
-            @Parameter(description = "Main image file") @RequestParam(value = "mainImage", required = false) MultipartFile mainImage,
-            Authentication authentication) throws IOException {
+        @Valid @ModelAttribute EventCreateRequestDTO request,
+        @Parameter(description = "Main image file") @RequestParam(value = "mainImage", required = false) MultipartFile mainImage,
+        Authentication authentication) throws IOException {
 
         String userEmail = authentication.getName();
 
@@ -211,9 +211,9 @@ public class EventController {
     @PutMapping("/{id}")
     @Operation(summary = "Update event", description = "Update an existing event")
     public ResponseEntity<EventResponseDTO> updateEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            @Valid @RequestBody EventUpdateRequestDTO request,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        @Valid @RequestBody EventUpdateRequestDTO request,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.updateEvent(id, request, userEmail);
@@ -223,8 +223,8 @@ public class EventController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete event", description = "Delete an event")
     public ResponseEntity<Void> deleteEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         eventService.deleteEvent(id, userEmail);
@@ -232,10 +232,10 @@ public class EventController {
     }
 
     @PatchMapping("/{id}/toggle-status")
-    @Operation(summary = "Toggle event status", description = "Activate or deactivate an event")
+    @Operation(summary = "Toggle event complaintStatus", description = "Activate or deactivate an event")
     public ResponseEntity<EventResponseDTO> toggleEventStatus(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.toggleEventStatus(id, userEmail);
@@ -258,7 +258,7 @@ public class EventController {
     @GetMapping("/stats/count-by-category")
     @Operation(summary = "Get events count by category", description = "Get count of active events by category")
     public ResponseEntity<Long> getActiveEventsByCategory(
-            @Parameter(description = "Event category") @RequestParam EventCategory category) {
+        @Parameter(description = "Event category") @RequestParam EventCategory category) {
         Long count = eventService.countActiveEventsByCategory(category);
         return ResponseEntity.ok(count);
     }
@@ -279,17 +279,17 @@ public class EventController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all events (admin)", description = "Get all events including inactive ones (admin only)")
     public ResponseEntity<List<EventResponseDTO>> getAllEventsAdmin(
-            @RequestParam(required = false) boolean paginated,
-            @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) EventCategory category,
-            @PageableDefault(size = 20) Pageable pageable) {
+        @RequestParam(required = false) boolean paginated,
+        @RequestParam(required = false) Boolean isActive,
+        @RequestParam(required = false) EventCategory category,
+        @PageableDefault(size = 20) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getAllActiveEvents();
             return ResponseEntity.ok(events);
@@ -300,16 +300,16 @@ public class EventController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get events by user", description = "Get all events created by a specific user")
     public ResponseEntity<List<EventResponseDTO>> getEventsByUser(
-            @Parameter(description = "User ID") @PathVariable Long userId,
-            @RequestParam(required = false) boolean paginated,
-            @PageableDefault(size = 10) Pageable pageable) {
+        @Parameter(description = "User ID") @PathVariable Long userId,
+        @RequestParam(required = false) boolean paginated,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         if (paginated) {
             Page<EventResponseDTO> events = eventService.getEventsByCreator(userId, pageable);
             return ResponseEntity.ok()
-                    .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                    .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                    .body(events.getContent());
+                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
+                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
+                .body(events.getContent());
         } else {
             List<EventResponseDTO> events = eventService.getEventsByCreator(userId);
             return ResponseEntity.ok(events);
@@ -318,10 +318,10 @@ public class EventController {
 
     @PatchMapping("/{id}/admin-toggle-status")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Operation(summary = "Toggle event status (admin)", description = "Activate or deactivate any event as admin")
+    @Operation(summary = "Toggle event complaintStatus (admin)", description = "Activate or deactivate any event as admin")
     public ResponseEntity<EventResponseDTO> adminToggleEventStatus(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.toggleEventStatus(id, userEmail);
@@ -332,8 +332,8 @@ public class EventController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Force delete event", description = "Force delete any event as admin (even with attendees)")
     public ResponseEntity<Void> forceDeleteEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         eventService.deleteEvent(id, userEmail);
@@ -363,8 +363,8 @@ public class EventController {
     @PatchMapping("/{id}/publish")
     @Operation(summary = "Publish event", description = "Publish an event making it available for registrations")
     public ResponseEntity<EventResponseDTO> publishEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.publishEvent(id, userEmail);
@@ -374,8 +374,8 @@ public class EventController {
     @PatchMapping("/{id}/pause")
     @Operation(summary = "Pause event", description = "Pause a published event")
     public ResponseEntity<EventResponseDTO> pauseEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.pauseEvent(id, userEmail);
@@ -385,8 +385,8 @@ public class EventController {
     @PatchMapping("/{id}/cancel")
     @Operation(summary = "Cancel event", description = "Cancel an event")
     public ResponseEntity<EventResponseDTO> cancelEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.cancelEvent(id, userEmail);
@@ -396,8 +396,8 @@ public class EventController {
     @PatchMapping("/{id}/finish")
     @Operation(summary = "Finish event", description = "Mark an event as finished")
     public ResponseEntity<EventResponseDTO> finishEvent(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.finishEvent(id, userEmail);
@@ -407,8 +407,8 @@ public class EventController {
     @PatchMapping("/{id}/back-to-edition")
     @Operation(summary = "Back to edition", description = "Move a paused event back to edition")
     public ResponseEntity<EventResponseDTO> backToEdition(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         EventResponseDTO updatedEvent = eventService.backToEdition(id, userEmail);
@@ -424,8 +424,8 @@ public class EventController {
     @PreAuthorize("hasAuthority('ADMIN') or @eventService.isEventCreator(#id, authentication.name)")
     @Operation(summary = "Get event registrations", description = "Get all users registered for an event")
     public ResponseEntity<List<Map<String, Object>>> getEventRegistrations(
-            @Parameter(description = "Event ID") @PathVariable Long id,
-            Authentication authentication) {
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
 
         List<Map<String, Object>> registrations = eventService.getEventRegistrations(id);
         return ResponseEntity.ok(registrations);
@@ -434,7 +434,7 @@ public class EventController {
     @GetMapping("/my-registrations")
     @Operation(summary = "Get my registrations", description = "Get events where the current user is registered")
     public ResponseEntity<List<EventResponseDTO>> getMyRegistrations(
-            Authentication authentication) {
+        Authentication authentication) {
 
         String userEmail = authentication.getName();
         List<EventResponseDTO> events = eventService.getUserRegisteredEvents(userEmail);

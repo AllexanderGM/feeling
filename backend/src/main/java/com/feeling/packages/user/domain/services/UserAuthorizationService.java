@@ -13,7 +13,19 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 /**
- * Servicio para validaciones de autorización de usuarios
+ * Servicio especializado para validaciones de autorización y mapeo de identidades de usuarios.
+ * <p>
+ * Responsabilidades:
+ * - Validar correspondencia entre userId y email
+ * - Mapeo bidireccional userId ↔ email (cacheado)
+ * - Verificar estado activo de usuarios
+ * - Obtener usuario actual desde contexto de autenticación
+ * <p>
+ * Todos los métodos de consulta están cacheados para optimizar performance
+ * en validaciones de seguridad frecuentes.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
  */
 @Service
 @RequiredArgsConstructor
@@ -24,8 +36,15 @@ public class UserAuthorizationService {
     private final IUserRepository userRepository;
 
     /**
-     * Verifica si un userId corresponde a un email específico
-     * Útil para validar auto-modificación cuando el identificador es un ID numérico
+     * Verifica si un userId corresponde a un email específico.
+     * <p>
+     * Útil para validar auto-modificación cuando el identificador es un ID numérico.
+     * Usado principalmente en filtros de seguridad para verificar que el usuario
+     * solo pueda modificar sus propios datos.
+     *
+     * @param userId ID del usuario a verificar
+     * @param email  Email a validar contra el usuario
+     * @return true si el userId corresponde al email
      */
     @Cacheable(value = "user-id-email-mapping", key = "#userId + ':' + #email")
     public boolean isUserIdMatchesEmail(Long userId, String email) {
@@ -48,7 +67,12 @@ public class UserAuthorizationService {
     }
 
     /**
-     * Obtiene el email de un usuario por su ID
+     * Obtiene el email de un usuario por su ID.
+     * <p>
+     * Útil para mapeo inverso en operaciones de autorización y auditoría.
+     *
+     * @param userId ID del usuario
+     * @return Optional con el email del usuario, vacío si no existe
      */
     @Cacheable(value = "user-id-to-email", key = "#userId")
     public Optional<String> getEmailByUserId(Long userId) {
@@ -62,7 +86,13 @@ public class UserAuthorizationService {
     }
 
     /**
-     * Obtiene el ID de un usuario por su email
+     * Obtiene el ID de un usuario por su email.
+     * <p>
+     * Útil para mapeo de identidad en operaciones que reciben email
+     * y necesitan el ID numérico del usuario.
+     *
+     * @param email Email del usuario
+     * @return Optional con el ID del usuario, vacío si no existe
      */
     @Cacheable(value = "user-email-to-id", key = "#email")
     public Optional<Long> getUserIdByEmail(String email) {
@@ -76,7 +106,13 @@ public class UserAuthorizationService {
     }
 
     /**
-     * Verifica si un usuario existe y está activo
+     * Verifica si un usuario existe y está activo por su email.
+     * <p>
+     * Un usuario se considera activo si está habilitado (enabled=true)
+     * y no está desactivado (accountDeactivated=false).
+     *
+     * @param email Email del usuario a verificar
+     * @return true si el usuario existe y está activo
      */
     @Cacheable(value = "user-active-status", key = "#email")
     public boolean isUserActiveByEmail(String email) {
@@ -91,7 +127,14 @@ public class UserAuthorizationService {
     }
 
     /**
-     * Obtiene el usuario actual desde el contexto de autenticación
+     * Obtiene el usuario actual desde el contexto de autenticación Spring Security.
+     * <p>
+     * Extrae el email desde el Authentication principal (UserDetails o String)
+     * y busca el usuario completo en la base de datos.
+     *
+     * @param authentication Contexto de autenticación de Spring Security
+     * @return Usuario autenticado completo
+     * @throws RuntimeException Si el usuario no está autenticado o no se encuentra en BD
      */
     public User getCurrentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

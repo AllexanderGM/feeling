@@ -88,7 +88,14 @@ const NavAdmin = ({ user }) => {
         isInvisible={!active}
         classNames={{ badge: styles.badge }}>
         {isProfileButton ? (
-          <UserProfileMenu user={user} isAdmin={true} isOpen={isPopoverOpen} onOpenChange={setIsPopoverOpen} placement='top' isActive={active} />
+          <UserProfileMenu
+            user={user}
+            isAdmin={true}
+            isOpen={isPopoverOpen}
+            onOpenChange={setIsPopoverOpen}
+            placement='top'
+            isActive={active}
+          />
         ) : (
           <Button
             isIconOnly

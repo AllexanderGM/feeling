@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
@@ -22,16 +21,16 @@ import java.util.UUID;
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)
 public class RequestLoggingFilter implements Filter {
 
-    private static final StructuredLoggerFactory.StructuredLogger logger = 
-            StructuredLoggerFactory.create(RequestLoggingFilter.class);
+    private static final StructuredLoggerFactory.StructuredLogger logger =
+        StructuredLoggerFactory.create(RequestLoggingFilter.class);
 
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     private static final String REQUEST_ID_ATTRIBUTE = "requestId";
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
-            throws IOException, ServletException {
-        
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+        throws IOException, ServletException {
+
         if (!(request instanceof HttpServletRequest) || !(response instanceof HttpServletResponse)) {
             chain.doFilter(request, response);
             return;
@@ -60,10 +59,10 @@ public class RequestLoggingFilter implements Filter {
 
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            
+
             // Log de finalización de request
             logRequestEnd(wrappedRequest, wrappedResponse, requestId, duration);
-            
+
             // Importante: copiar el contenido de vuelta al response original
             wrappedResponse.copyBodyToResponse();
         }
@@ -94,13 +93,13 @@ public class RequestLoggingFilter implements Filter {
         headers.put("Authorization", request.getHeader("Authorization") != null ? "Bearer ***" : null);
         context.put("headers", headers);
 
-        logger.info("HTTP request started", context);
+        logger.debug("HTTP request started", context);
     }
 
     /**
      * Log del final de una request HTTP
      */
-    private void logRequestEnd(HttpServletRequest request, HttpServletResponse response, 
+    private void logRequestEnd(HttpServletRequest request, HttpServletResponse response,
                                String requestId, long duration) {
         if (shouldSkipLogging(request)) {
             return;
@@ -121,7 +120,7 @@ public class RequestLoggingFilter implements Filter {
         String contentLength = response.getHeader("Content-Length");
         context.put("contentLength", contentLength != null ? contentLength : "unknown");
 
-        // Determinar nivel de log basado en status y duración
+        // Determinar nivel de log basado en complaintStatus y duración
         if (response.getStatus() >= 500) {
             logger.error("HTTP request completed with server error", context);
         } else if (response.getStatus() >= 400) {
@@ -148,9 +147,9 @@ public class RequestLoggingFilter implements Filter {
      */
     private boolean shouldSkipLogging(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        
+
         // Skipear requests de health check y actuator
-        if (uri.contains("/actuator") || 
+        if (uri.contains("/actuator") ||
             uri.contains("/health") ||
             uri.contains("/metrics") ||
             uri.contains("/favicon.ico") ||
@@ -160,9 +159,9 @@ public class RequestLoggingFilter implements Filter {
         }
 
         // Skipear requests de recursos estáticos
-        if (uri.endsWith(".css") || 
-            uri.endsWith(".js") || 
-            uri.endsWith(".jpg") || 
+        if (uri.endsWith(".css") ||
+            uri.endsWith(".js") ||
+            uri.endsWith(".jpg") ||
             uri.endsWith(".png") ||
             uri.endsWith(".gif") ||
             uri.endsWith(".ico")) {
