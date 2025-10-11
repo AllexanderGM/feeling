@@ -31,7 +31,7 @@
     "@react-aria/visually-hidden": "3.8.25",
     "@react-oauth/google": "0.12.2",
     "@react-types/shared": "3.30.0",
-    "axios": "1.8.1",
+    "axios": "1.12.2",
     "clsx": "2.1.1",
     "framer-motion": "11.15.0",
     "lightgallery": "^2.9.0-beta.1",
@@ -53,16 +53,11 @@
   "devDependencies": {
     "@eslint/compat": "1.2.8",
     "@eslint/eslintrc": "3.3.1",
-    "@eslint/js": "9.25.1",
+    "@eslint/js": "9.37.0",
     "@next/eslint-plugin-next": "^15.5.4",
-    "@types/node": "20.5.7",
-    "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
-    "@typescript-eslint/eslint-plugin": "8.31.1",
-    "@typescript-eslint/parser": "8.31.1",
-    "@vitejs/plugin-react": "4.4.1",
+    "@vitejs/plugin-react": "5.0.4",
     "autoprefixer": "10.4.21",
-    "eslint": "9.25.1",
+    "eslint": "9.37.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
@@ -76,9 +71,7 @@
     "postcss-import": "16.1.1",
     "postcss-scss": "4.0.9",
     "prettier": "3.5.3",
-    "sass": "1.83.4",
-    "typescript": "5.6.3",
-    "vite": "5.2.0",
-    "vite-tsconfig-paths": "4.3.2"
+    "sass-embedded": "1.83.4",
+    "vite": "7.1.9"
   }
 }

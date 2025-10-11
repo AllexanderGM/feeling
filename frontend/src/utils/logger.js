@@ -155,7 +155,7 @@ export class Logger {
    */
   static debug(category, operation, message, options = {}) {
     // Solo loguear debug en desarrollo
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       return this.log(this.LEVELS.DEBUG, category, operation, message, options)
     }
   }
