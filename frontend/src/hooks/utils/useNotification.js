@@ -1,79 +1,107 @@
-import { addToast } from '@heroui/react'
+import { addToast, closeAll } from '@heroui/toast'
 import { useCallback } from 'react'
 import { Logger } from '@utils/logger.js'
 
+/**
+ * Hook simplificado para notificaciones usando HeroUI Toast
+ * Basado en la documentación oficial de HeroUI
+ */
 export const useNotification = () => {
-  // Función simplificada para crear toasts siguiendo la documentación oficial
-  const createToast = useCallback(options => {
+  /**
+   * Muestra notificación de éxito
+   * @param {string} message - Mensaje a mostrar
+   * @param {string} title - Título opcional
+   * @param {number} duration - Duración en ms (default: 3000)
+   */
+  const showSuccess = useCallback((message, title = 'Éxito', duration = 3000) => {
     try {
-      return addToast(options)
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing notification', error)
-      return null
-    }
-  }, [])
-
-  const showSuccess = useCallback(
-    (message, title = 'Éxito', duration = 2000) => {
-      return createToast({
+      return addToast({
         title,
         description: message,
         color: 'success',
         timeout: duration
       })
-    },
-    [createToast]
-  )
+    } catch (error) {
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing success toast', error)
+      return null
+    }
+  }, [])
 
-  const showError = useCallback(
-    (message, title = 'Error', duration = 3000, options = {}) => {
-      // No mostrar toast para errores de rate limiting si se está mostrando modal
-      if (options._showModal || options.type === 'RATE_LIMIT_EXCEEDED') {
-        return null
-      }
-
-      return createToast({
+  /**
+   * Muestra notificación de error
+   * @param {string} message - Mensaje a mostrar
+   * @param {string} title - Título opcional
+   * @param {number} duration - Duración en ms (default: 4000)
+   */
+  const showError = useCallback((message, title = 'Error', duration = 4000) => {
+    try {
+      return addToast({
         title,
         description: message,
         color: 'danger',
         timeout: duration
       })
-    },
-    [createToast]
-  )
+    } catch (error) {
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing error toast', error)
+      return null
+    }
+  }, [])
 
-  const showWarning = useCallback(
-    (message, title = 'Advertencia', duration = 3000) => {
-      return createToast({
+  /**
+   * Muestra notificación de advertencia
+   * @param {string} message - Mensaje a mostrar
+   * @param {string} title - Título opcional
+   * @param {number} duration - Duración en ms (default: 3000)
+   */
+  const showWarning = useCallback((message, title = 'Advertencia', duration = 3000) => {
+    try {
+      return addToast({
         title,
         description: message,
         color: 'warning',
         timeout: duration
       })
-    },
-    [createToast]
-  )
+    } catch (error) {
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing warning toast', error)
+      return null
+    }
+  }, [])
 
-  const showInfo = useCallback(
-    (message, title = 'Información', duration = 2000) => {
-      return createToast({
+  /**
+   * Muestra notificación informativa
+   * @param {string} message - Mensaje a mostrar
+   * @param {string} title - Título opcional
+   * @param {number} duration - Duración en ms (default: 3000)
+   */
+  const showInfo = useCallback((message, title = 'Información', duration = 3000) => {
+    try {
+      return addToast({
         title,
         description: message,
         color: 'default',
         timeout: duration
       })
-    },
-    [createToast]
-  )
+    } catch (error) {
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing info toast', error)
+      return null
+    }
+  }, [])
 
-  // Método genérico simplificado
+  /**
+   * Método genérico para agregar notificaciones
+   * @param {Object} options - Opciones de la notificación
+   * @param {string} options.type - Tipo: 'success' | 'error' | 'warning' | 'info'
+   * @param {string} options.message - Mensaje a mostrar
+   * @param {string} options.title - Título opcional
+   * @param {number} options.duration - Duración en ms
+   */
   const addNotification = useCallback(
-    ({ type = 'info', message, title, duration = 2000 }) => {
+    ({ type = 'info', message, title, duration = 3000 }) => {
       const notificationMap = {
-        success: () => showSuccess(message, title || 'Éxito', duration),
-        error: () => showError(message, title || 'Error', duration),
-        warning: () => showWarning(message, title || 'Advertencia', duration),
-        info: () => showInfo(message, title || 'Información', duration)
+        success: () => showSuccess(message, title, duration),
+        error: () => showError(message, title, duration),
+        warning: () => showWarning(message, title, duration),
+        info: () => showInfo(message, title, duration)
       }
 
       const handler = notificationMap[type] || notificationMap.info
@@ -82,9 +110,16 @@ export const useNotification = () => {
     [showSuccess, showError, showWarning, showInfo]
   )
 
-  // Método simplificado para limpiar notificaciones - dejamos que HeroUI lo maneje
+  /**
+   * Limpia todas las notificaciones activas
+   */
   const clearAllNotifications = useCallback(() => {
-    Logger.debug(Logger.CATEGORIES.SYSTEM, 'clearAllNotifications called - letting HeroUI handle cleanup', {})
+    try {
+      closeAll()
+      Logger.debug(Logger.CATEGORIES.SYSTEM, 'All notifications cleared', {})
+    } catch (error) {
+      Logger.error(Logger.CATEGORIES.SYSTEM, 'Error clearing notifications', error)
+    }
   }, [])
 
   return {

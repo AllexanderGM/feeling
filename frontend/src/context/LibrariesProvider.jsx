@@ -17,10 +17,14 @@ const LibrariesProvider = ({ children }) => {
     <HeroUIProvider navigate={navigate} useHref={useHref} locale='es-ES' skipFramerMotionAnimations={false} disableRipple={false}>
       <HelmetProvider>
         <CookiesProvider defaultSetOptions={{ path: '/' }}>
-          <GoogleOAuthProvider clientId={safeClientId}>{children}</GoogleOAuthProvider>
+          <GoogleOAuthProvider clientId={safeClientId}>
+            {children}
+            <div className='fixed z-[100]'>
+              <ToastProvider />
+            </div>
+          </GoogleOAuthProvider>
         </CookiesProvider>
       </HelmetProvider>
-      <ToastProvider />
     </HeroUIProvider>
   )
 }
