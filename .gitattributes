@@ -1,0 +1,26 @@
+# Ensure shell scripts and wrapper scripts use LF line endings
+*.sh text eol=lf
+mvnw text eol=lf
+gradlew text eol=lf
+
+# Normalize line endings for text files
+* text=auto
+
+# Explicitly declare text files
+*.java text
+*.xml text
+*.properties text
+*.yml text
+*.yaml text
+*.json text
+*.md text
+*.txt text
+
+# Explicitly declare binary files
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
