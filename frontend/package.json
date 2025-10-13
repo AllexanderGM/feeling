@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint:check": "eslint",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:all": "prettier --write .",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
     "lint:format": "npm run format && npm run lint",
     "preview": "vite preview"
   },

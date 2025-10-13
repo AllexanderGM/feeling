@@ -25,7 +25,7 @@ class RequestCache {
    * Obtiene datos del cache si están disponibles y no han expirado
    * CACHE DESHABILITADO - siempre usa datos reales
    */
-  get(url, params = {}, ttl = 30000) {
+  get(_url, _params = {}, _ttl = 30000) {
     // TTL por defecto: 30 segundos
     // Cache deshabilitado - siempre devolver null para usar datos reales
     return null
@@ -36,6 +36,7 @@ class RequestCache {
    */
   set(url, params = {}, data) {
     const key = this.generateKey(url, params)
+
     this.cache.set(key, {
       data,
       timestamp: Date.now()
@@ -50,14 +51,17 @@ class RequestCache {
 
     // Verificar cache primero
     const cached = this.get(url, params, ttl)
+
     if (cached) {
       Logger.debug(Logger.CATEGORIES.SYSTEM, 'usar cache', `Cache hit para ${key}`)
+
       return cached
     }
 
     // Verificar si ya hay una petición en curso
     if (this.ongoingRequests.has(key)) {
       Logger.debug(Logger.CATEGORIES.SYSTEM, 'esperar petición', `Petición en curso para ${key}`)
+
       return await this.ongoingRequests.get(key)
     }
 
@@ -66,7 +70,9 @@ class RequestCache {
       try {
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'nueva petición', `Ejecutando petición para ${key}`)
         const data = await fetcher()
+
         this.set(url, params, data)
+
         return data
       } catch (error) {
         throw error
@@ -76,6 +82,7 @@ class RequestCache {
     })()
 
     this.ongoingRequests.set(key, requestPromise)
+
     return requestPromise
   }
 
@@ -92,6 +99,7 @@ class RequestCache {
    */
   cleanup(ttl = 30000) {
     const now = Date.now()
+
     for (const [key, value] of this.cache.entries()) {
       if (now - value.timestamp >= ttl) {
         this.cache.delete(key)

@@ -52,6 +52,7 @@ class CookieService extends ServiceNoREST {
       // Validar valores nulos o indefinidos
       if (value === undefined || value === 'undefined' || value === null) {
         this.logInfo(`Cookie '${name}' no encontrada o tiene valor nulo`)
+
         return null
       }
 
@@ -85,10 +86,13 @@ class CookieService extends ServiceNoREST {
       if (typeof value === 'string' && this.isJsonString(value)) {
         try {
           const parsed = JSON.parse(value)
+
           this.logInfo(`Cookie '${name}' parseada como JSON`)
+
           return parsed
         } catch {
           this.logInfo(`Cookie '${name}' devuelta como string (parsing JSON falló)`)
+
           return value
         }
       }
@@ -136,6 +140,7 @@ class CookieService extends ServiceNoREST {
       this.validateParams({ name }, { name: { required: true, type: 'string' } })
 
       const removeOptions = options || { path: '/' }
+
       this.cookieHandler.removeCookie(name, removeOptions)
 
       this.logInfo(`Cookie '${name}' eliminada correctamente`)
@@ -156,6 +161,7 @@ class CookieService extends ServiceNoREST {
       this.validateParams({ name }, { name: { required: true, type: 'string' } })
 
       const value = this.cookieHandler.cookies[name]
+
       return value !== undefined && value !== null && value !== 'undefined'
     }, `exists('${name}')`)
   }
@@ -169,6 +175,7 @@ class CookieService extends ServiceNoREST {
       this.checkInitialization()
 
       const allCookies = { ...this.cookieHandler.cookies }
+
       this.logInfo(`Obtenidas todas las cookies (${Object.keys(allCookies).length} encontradas)`)
 
       return allCookies
@@ -218,6 +225,7 @@ class CookieService extends ServiceNoREST {
    */
   async clearAuthCookies() {
     const authCookies = ['access_token', 'refresh_token', 'user']
+
     return this.clearMultiple(authCookies)
   }
 
@@ -241,6 +249,7 @@ class CookieService extends ServiceNoREST {
 
       if (currentValue && typeof currentValue === 'object') {
         const updatedValue = { ...currentValue, ...updates }
+
         await this.set(name, updatedValue)
 
         this.logInfo(`Cookie '${name}' actualizada correctamente`)
@@ -275,6 +284,7 @@ class CookieService extends ServiceNoREST {
     } catch (error) {
       if (error.errorType === 'CORRUPT_COOKIE') {
         this.logWarn(`Cookie '${name}' corrupta, usando valor por defecto`)
+
         return defaultValue
       }
       throw error
@@ -291,6 +301,7 @@ class CookieService extends ServiceNoREST {
 
     try {
       const parsed = JSON.parse(str)
+
       return typeof parsed === 'object' && parsed !== null
     } catch {
       return false
@@ -310,6 +321,7 @@ class CookieService extends ServiceNoREST {
           return await this.get(name)
         } catch (error) {
           this.logError(`Error en cookieHandler.get('${name}'):`, error.message)
+
           return null // Para compatibilidad con código existente
         }
       },
@@ -319,6 +331,7 @@ class CookieService extends ServiceNoREST {
           return await this.set(name, value, options)
         } catch (error) {
           this.logError(`Error en cookieHandler.set('${name}'):`, error.message)
+
           return false
         }
       },
@@ -328,6 +341,7 @@ class CookieService extends ServiceNoREST {
           return await this.remove(name, options)
         } catch (error) {
           this.logError(`Error en cookieHandler.remove('${name}'):`, error.message)
+
           return false
         }
       },
@@ -337,6 +351,7 @@ class CookieService extends ServiceNoREST {
           return await this.exists(name)
         } catch (error) {
           this.logError(`Error en cookieHandler.exists('${name}'):`, error.message)
+
           return false
         }
       },
@@ -346,6 +361,7 @@ class CookieService extends ServiceNoREST {
           return await this.update(name, updates)
         } catch (error) {
           this.logError(`Error en cookieHandler.update('${name}'):`, error.message)
+
           return null
         }
       },
@@ -355,6 +371,7 @@ class CookieService extends ServiceNoREST {
           return await this.getWithDefault(name, defaultValue)
         } catch (error) {
           this.logError(`Error en cookieHandler.getWithDefault('${name}'):`, error.message)
+
           return defaultValue
         }
       },
@@ -364,6 +381,7 @@ class CookieService extends ServiceNoREST {
           return await this.clearAuthCookies()
         } catch (error) {
           this.logError('Error en cookieHandler.clearAuthCookies():', error.message)
+
           return { successful: [], failed: [] }
         }
       }

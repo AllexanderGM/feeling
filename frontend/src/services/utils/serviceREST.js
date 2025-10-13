@@ -1,5 +1,6 @@
 import { ErrorManager } from '@utils/errorManager.js'
 import { Logger } from '@utils/logger.js'
+
 import api from './api.js'
 
 /**
@@ -39,6 +40,7 @@ export class ServiceREST {
       data: data || null,
       params: params || null
     })
+
     return btoa(key) // Encode en base64 para hacer la clave más compacta
   }
 
@@ -72,6 +74,7 @@ export class ServiceREST {
     // Verificar si la petición ya está pendiente
     if (this.pendingRequests.has(key)) {
       const entry = this.pendingRequests.get(key)
+
       return entry.promise
     }
 
@@ -90,6 +93,7 @@ export class ServiceREST {
     }
 
     const key = this.generateRequestKey(config)
+
     this.pendingRequests.set(key, {
       promise,
       timestamp: Date.now()
@@ -172,6 +176,7 @@ export class ServiceREST {
     if (data instanceof FormData) {
       return this.handleFormDataRequest('POST', url, data, config)
     }
+
     return this.request({ ...config, method: 'POST', url, data })
   }
 
@@ -186,6 +191,7 @@ export class ServiceREST {
     if (data instanceof FormData) {
       return this.handleFormDataRequest('PUT', url, data, config)
     }
+
     return this.request({ ...config, method: 'PUT', url, data })
   }
 
@@ -212,6 +218,7 @@ export class ServiceREST {
   static async request(config) {
     // Verificar si hay una petición pendiente idéntica
     const pendingRequest = this.checkPendingRequest(config)
+
     if (pendingRequest) {
       return pendingRequest
     }
@@ -234,6 +241,7 @@ export class ServiceREST {
   static async executeRequest(config) {
     try {
       const response = await api(config)
+
       return {
         success: true,
         data: response.data,
@@ -291,6 +299,7 @@ export class ServiceREST {
       Logger.validationError('petición HTTP', error, ErrorManager.getFieldErrors(error))
     } else if (errorType === ErrorManager.ERROR_TYPES.CONFLICT) {
       const backendMessage = ErrorManager.extractBackendMessage(error)
+
       Logger.warn(Logger.CATEGORIES.SERVICE, 'conflicto de recurso', backendMessage || 'El recurso ya existe', {
         context: {
           endpoint: error.config?.url,
@@ -330,6 +339,7 @@ export class ServiceREST {
     }
 
     const error = new Error(result.error.message)
+
     error.response = result.originalError?.response
     error.errorType = result.error.type
     error.fieldErrors = result.error.fieldErrors
@@ -351,6 +361,7 @@ export class ServiceREST {
   static emitAuthError(error) {
     Logger.authError('emitir evento de autenticación', error)
     const authErrorEvent = new CustomEvent('authError', { detail: error })
+
     window.dispatchEvent(authErrorEvent)
   }
 }

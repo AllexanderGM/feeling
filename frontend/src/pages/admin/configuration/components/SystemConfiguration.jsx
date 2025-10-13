@@ -15,7 +15,7 @@ import {
   ModalBody,
   ModalFooter
 } from '@heroui/react'
-import { Database, Save, Wrench, HardDrive, Zap, Shield, AlertTriangle, Download, RefreshCw } from 'lucide-react'
+import { Database, Save, Wrench, Zap, Shield, AlertTriangle, Download } from 'lucide-react'
 import { useConfiguration } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -162,7 +162,7 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
                 <Wrench className='w-4 h-4 text-orange-400' />
                 <span className='text-sm font-medium text-gray-200'>Mantenimiento</span>
               </div>
-              <Chip size='sm' variant='flat' color={maintenanceMode ? 'danger' : 'success'}>
+              <Chip color={maintenanceMode ? 'danger' : 'success'} size='sm' variant='flat'>
                 {maintenanceMode ? 'Activo' : 'Inactivo'}
               </Chip>
             </div>
@@ -176,13 +176,13 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
                 <span className='text-sm text-gray-400'>{systemStats.cpuUsage}%</span>
               </div>
               <Progress
-                value={systemStats.cpuUsage}
-                color={systemStats.cpuUsage > 80 ? 'danger' : systemStats.cpuUsage > 60 ? 'warning' : 'success'}
-                size='sm'
                 classNames={{
                   base: 'max-w-md',
                   track: 'bg-gray-700'
                 }}
+                color={systemStats.cpuUsage > 80 ? 'danger' : systemStats.cpuUsage > 60 ? 'warning' : 'success'}
+                size='sm'
+                value={systemStats.cpuUsage}
               />
             </div>
 
@@ -192,13 +192,13 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
                 <span className='text-sm text-gray-400'>{systemStats.memoryUsage}%</span>
               </div>
               <Progress
-                value={systemStats.memoryUsage}
-                color={systemStats.memoryUsage > 80 ? 'danger' : systemStats.memoryUsage > 60 ? 'warning' : 'success'}
-                size='sm'
                 classNames={{
                   base: 'max-w-md',
                   track: 'bg-gray-700'
                 }}
+                color={systemStats.memoryUsage > 80 ? 'danger' : systemStats.memoryUsage > 60 ? 'warning' : 'success'}
+                size='sm'
+                value={systemStats.memoryUsage}
               />
             </div>
 
@@ -208,13 +208,13 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
                 <span className='text-sm text-gray-400'>{systemStats.diskUsage}%</span>
               </div>
               <Progress
-                value={systemStats.diskUsage}
-                color={systemStats.diskUsage > 80 ? 'danger' : systemStats.diskUsage > 60 ? 'warning' : 'success'}
-                size='sm'
                 classNames={{
                   base: 'max-w-md',
                   track: 'bg-gray-700'
                 }}
+                color={systemStats.diskUsage > 80 ? 'danger' : systemStats.diskUsage > 60 ? 'warning' : 'success'}
+                size='sm'
+                value={systemStats.diskUsage}
               />
             </div>
           </div>
@@ -236,57 +236,57 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
               label='Nombre del Sistema'
               value={formData.systemName}
               onChange={e => handleInputChange('systemName', e.target.value)}
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
-            />
-
-            <Input
               label='Versión'
               value={formData.version}
               onChange={e => handleInputChange('version', e.target.value)}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
 
             <Input
-              label='Entorno'
-              value={formData.environment}
-              onChange={e => handleInputChange('environment', e.target.value)}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Entorno'
+              value={formData.environment}
+              onChange={e => handleInputChange('environment', e.target.value)}
             />
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              type='number'
-              label='Usuarios Concurrentes Máximos'
-              value={formData.maxConcurrentUsers.toString()}
-              onChange={e => handleInputChange('maxConcurrentUsers', parseInt(e.target.value) || 0)}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Usuarios Concurrentes Máximos'
+              type='number'
+              value={formData.maxConcurrentUsers.toString()}
+              onChange={e => handleInputChange('maxConcurrentUsers', parseInt(e.target.value) || 0)}
             />
 
             <Input
-              type='number'
-              label='Timeout de Sesión (minutos)'
-              value={formData.sessionTimeout.toString()}
-              onChange={e => handleInputChange('sessionTimeout', parseInt(e.target.value) || 0)}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Timeout de Sesión (minutos)'
+              type='number'
+              value={formData.sessionTimeout.toString()}
+              onChange={e => handleInputChange('sessionTimeout', parseInt(e.target.value) || 0)}
             />
           </div>
         </CardBody>
@@ -310,14 +310,14 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableRateLimit}
-                    onValueChange={value => handleInputChange('enableRateLimit', value)}
                     color='primary'
+                    isSelected={formData.enableRateLimit}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableRateLimit', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Rate Limiting</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableRateLimit ? 'primary' : 'default'}>
+                <Chip color={formData.enableRateLimit ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableRateLimit ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -325,14 +325,14 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableSecurityHeaders}
-                    onValueChange={value => handleInputChange('enableSecurityHeaders', value)}
                     color='success'
+                    isSelected={formData.enableSecurityHeaders}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableSecurityHeaders', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Security Headers</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableSecurityHeaders ? 'success' : 'default'}>
+                <Chip color={formData.enableSecurityHeaders ? 'success' : 'default'} size='sm' variant='flat'>
                   {formData.enableSecurityHeaders ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -342,14 +342,14 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableCORS}
-                    onValueChange={value => handleInputChange('enableCORS', value)}
                     color='warning'
+                    isSelected={formData.enableCORS}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableCORS', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>CORS</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableCORS ? 'warning' : 'default'}>
+                <Chip color={formData.enableCORS ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.enableCORS ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -357,14 +357,14 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.debugMode}
-                    onValueChange={value => handleInputChange('debugMode', value)}
                     color='danger'
+                    isSelected={formData.debugMode}
                     size='sm'
+                    onValueChange={value => handleInputChange('debugMode', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Debug Mode</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.debugMode ? 'danger' : 'default'}>
+                <Chip color={formData.debugMode ? 'danger' : 'default'} size='sm' variant='flat'>
                   {formData.debugMode ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -392,8 +392,8 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <p className='text-sm text-orange-200/80 mb-4'>Desactiva temporalmente el acceso de usuarios al sistema</p>
               <Button
                 color={maintenanceMode ? 'success' : 'danger'}
-                onPress={() => setShowMaintenanceModal(true)}
-                startContent={<Wrench className='w-4 h-4' />}>
+                startContent={<Wrench className='w-4 h-4' />}
+                onPress={() => setShowMaintenanceModal(true)}>
                 {maintenanceMode ? 'Desactivar Mantenimiento' : 'Activar Mantenimiento'}
               </Button>
             </div>
@@ -403,9 +403,9 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
               <p className='text-sm text-orange-200/80 mb-4'>Crear una copia de seguridad completa del sistema</p>
               <Button
                 color='warning'
-                onPress={handleCreateBackup}
                 isLoading={creatingBackup}
-                startContent={!creatingBackup && <Download className='w-4 h-4' />}>
+                startContent={!creatingBackup && <Download className='w-4 h-4' />}
+                onPress={handleCreateBackup}>
                 Crear Backup
               </Button>
             </div>
@@ -417,23 +417,23 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>
 
       {/* Modal de confirmación de mantenimiento */}
       <Modal
-        isOpen={showMaintenanceModal}
-        onClose={() => setShowMaintenanceModal(false)}
-        placement='center'
         classNames={{
           base: 'bg-gray-800 border border-gray-700',
           closeButton: 'text-gray-400 hover:text-gray-200'
-        }}>
+        }}
+        isOpen={showMaintenanceModal}
+        placement='center'
+        onClose={() => setShowMaintenanceModal(false)}>
         <ModalContent>
           <ModalHeader className='text-gray-100'>
             <div className='flex items-center gap-3'>
@@ -465,13 +465,13 @@ const SystemConfiguration = ({ config, maintenanceMode, loading }) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button variant='bordered' onPress={() => setShowMaintenanceModal(false)} className='border-gray-600 text-gray-300'>
+            <Button className='border-gray-600 text-gray-300' variant='bordered' onPress={() => setShowMaintenanceModal(false)}>
               Cancelar
             </Button>
             <Button
               color={maintenanceMode ? 'success' : 'danger'}
-              onPress={handleMaintenanceToggle}
-              startContent={<Wrench className='w-4 h-4' />}>
+              startContent={<Wrench className='w-4 h-4' />}
+              onPress={handleMaintenanceToggle}>
               {maintenanceMode ? 'Desactivar' : 'Activar'}
             </Button>
           </ModalFooter>

@@ -19,6 +19,7 @@ const CheckAvailability = () => {
         }
 
         const data = await response.json()
+
         setAvailabilityData(data)
         Logger.info('Datos de disponibilidad obtenidos', Logger.CATEGORIES.SERVICE, { tourId: 1, dataCount: data?.length || 0 })
       } catch (err) {

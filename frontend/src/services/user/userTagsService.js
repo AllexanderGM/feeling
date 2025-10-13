@@ -22,6 +22,7 @@ class UserTagsService extends ServiceREST {
   async getMyTags() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_TAGS.MY_TAGS)
+
       return ServiceREST.handleServiceResponse(result, 'obtener mis tags')
     } catch (error) {
       this.logError('obtener mis tags', error)
@@ -35,6 +36,7 @@ class UserTagsService extends ServiceREST {
   async addTagsToUser(tags) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_TAGS.ADD_TAGS, { tags })
+
       return ServiceREST.handleServiceResponse(result, 'agregar tags')
     } catch (error) {
       this.logError('agregar tags', error)
@@ -49,6 +51,7 @@ class UserTagsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_TAGS.REPLACE_TAGS.replace('{tagId}', tagId)
       const result = await ServiceREST.put(url, { tags: newTags })
+
       return ServiceREST.handleServiceResponse(result, 'reemplazar tags')
     } catch (error) {
       this.logError('reemplazar tags', error)
@@ -63,6 +66,7 @@ class UserTagsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_TAGS.REMOVE_TAG.replace('{tagId}', tagId)
       const result = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(result, 'remover tag')
     } catch (error) {
       this.logError('remover tag', error)
@@ -89,6 +93,7 @@ class UserTagsService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.SEARCH}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'buscar tags')
     } catch (error) {
       this.logError('buscar tags', error)
@@ -107,6 +112,7 @@ class UserTagsService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.POPULAR}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener tags populares')
     } catch (error) {
       this.logError('obtener tags populares', error)
@@ -125,6 +131,7 @@ class UserTagsService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.TRENDING}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener tags en tendencia')
     } catch (error) {
       this.logError('obtener tags en tendencia', error)
@@ -143,6 +150,7 @@ class UserTagsService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.SUGGESTIONS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener sugerencias de tags')
     } catch (error) {
       this.logError('obtener sugerencias de tags', error)
@@ -165,6 +173,7 @@ class UserTagsService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_TAGS.PENDING_APPROVAL}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener tags pendientes')
     } catch (error) {
       this.logError('obtener tags pendientes', error)
@@ -178,6 +187,7 @@ class UserTagsService extends ServiceREST {
   async createTag(tagData) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_TAGS.CREATE, tagData)
+
       return ServiceREST.handleServiceResponse(result, 'crear tag')
     } catch (error) {
       this.logError('crear tag', error)
@@ -192,6 +202,7 @@ class UserTagsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_TAGS.UPDATE.replace('{tagId}', tagId)
       const result = await ServiceREST.put(url, tagData)
+
       return ServiceREST.handleServiceResponse(result, 'actualizar tag')
     } catch (error) {
       this.logError('actualizar tag', error)
@@ -205,6 +216,7 @@ class UserTagsService extends ServiceREST {
   async cleanupUnusedTags() {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_TAGS.CLEANUP)
+
       return ServiceREST.handleServiceResponse(result, 'limpiar tags sin uso')
     } catch (error) {
       this.logError('limpiar tags sin uso', error)
@@ -219,6 +231,7 @@ class UserTagsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_TAGS.APPROVE.replace('{tagId}', tagId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, 'aprobar tag')
     } catch (error) {
       this.logError('aprobar tag', error)
@@ -233,6 +246,7 @@ class UserTagsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_TAGS.REJECT.replace('{tagId}', tagId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, 'rechazar tag')
     } catch (error) {
       this.logError('rechazar tag', error)
@@ -246,6 +260,7 @@ class UserTagsService extends ServiceREST {
   async approveTagsBatch(tagIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_TAGS.APPROVE_BATCH, tagIds)
+
       return ServiceREST.handleServiceResponse(result, 'aprobar tags en lote')
     } catch (error) {
       this.logError('aprobar tags en lote', error)
@@ -269,6 +284,7 @@ class UserTagsService extends ServiceREST {
    */
   async searchTagsLegacy(query, limit = 20) {
     const result = await this.searchTags(query, 0, limit)
+
     return result.content || result
   }
 
@@ -277,6 +293,7 @@ class UserTagsService extends ServiceREST {
    */
   async getPopularTagsLegacy(limit = 20) {
     const result = await this.getPopularTags(0, limit)
+
     return result.content || result
   }
 
@@ -285,6 +302,7 @@ class UserTagsService extends ServiceREST {
    */
   async getTrendingTagsLegacy(limit = 15) {
     const result = await this.getTrendingTags(0, limit)
+
     return result.content || result
   }
 
@@ -293,6 +311,7 @@ class UserTagsService extends ServiceREST {
    */
   async getTagSuggestionsLegacy(limit = 10) {
     const result = await this.getTagSuggestions(0, limit)
+
     return result.content || result
   }
 

@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Avatar, Chip } from '@heroui/react'
 import { Trash2, AlertTriangle, User, Shield, UserIcon } from 'lucide-react'
 import { useError, useAuth, useUser } from '@hooks'
@@ -41,6 +40,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
       if (deletionValidation.errorMessage) {
         setError(deletionValidation.errorMessage)
       }
+
       return
     }
 
@@ -48,12 +48,14 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
       setError(null)
 
       const result = await deleteUser(userData.profile.email)
+
       if (result.success) {
         handleSuccess('Usuario eliminado exitosamente')
         onSuccess?.()
         onClose()
       } else {
         const errorMsg = result.error || 'Error al eliminar el usuario'
+
         setError(errorMsg)
         handleError(errorMsg)
       }
@@ -64,6 +66,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
         currentUserEmail: currentUser?.email
       })
       const errorMsg = error.message || 'Error al eliminar el usuario'
+
       setError(errorMsg)
       handleError(error)
     }
@@ -71,16 +74,16 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size='lg'
       classNames={{
         backdrop: 'bg-gray-900/50 backdrop-blur-sm',
         base: 'bg-gray-900 border border-gray-700',
         header: 'border-b border-gray-700',
         body: 'py-6',
         footer: 'border-t border-gray-700'
-      }}>
+      }}
+      isOpen={isOpen}
+      size='lg'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>
           <div className='flex items-center gap-3'>
@@ -115,9 +118,9 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
             </div>
             <div className='flex items-center gap-3'>
               <Avatar
-                src={userData?.profile?.mainImage || userData?.profile?.image}
                 className='w-12 h-12'
                 icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                src={userData?.profile?.mainImage || userData?.profile?.image}
               />
               <div className='flex-1'>
                 <p className='text-sm font-semibold text-gray-200'>
@@ -126,12 +129,12 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
                 <p className='text-xs text-gray-400'>{userData?.profile?.email}</p>
                 <div className='flex items-center gap-2 mt-1'>
                   {userData?.status?.role && (
-                    <Chip size='sm' color={userData.status.role === 'ADMIN' ? 'warning' : 'default'} variant='flat'>
+                    <Chip color={userData.status.role === 'ADMIN' ? 'warning' : 'default'} size='sm' variant='flat'>
                       {userData.status.role}
                     </Chip>
                   )}
                   {userData?.status?.active !== undefined && (
-                    <Chip size='sm' color={userData.status.active ? 'success' : 'danger'} variant='dot'>
+                    <Chip color={userData.status.active ? 'success' : 'danger'} size='sm' variant='dot'>
                       {userData.status.active ? 'Activo' : 'Inactivo'}
                     </Chip>
                   )}
@@ -176,15 +179,15 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
           )}
         </ModalBody>
         <ModalFooter>
-          <Button color='default' variant='light' onPress={onClose} isDisabled={submitting}>
+          <Button color='default' isDisabled={submitting} variant='light' onPress={onClose}>
             Cancelar
           </Button>
           <Button
             color='danger'
-            onPress={handleDelete}
             isDisabled={submitting || !deletionValidation.canDelete}
             isLoading={submitting}
-            startContent={<Trash2 className='w-4 h-4' />}>
+            startContent={<Trash2 className='w-4 h-4' />}
+            onPress={handleDelete}>
             Eliminar Usuario
           </Button>
         </ModalFooter>

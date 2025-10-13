@@ -10,6 +10,7 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
   const updatePosition = useCallback(() => {
     if (isOpen && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
+
       setPosition({
         top: rect.bottom + window.scrollY,
         left: rect.left + window.scrollX,
@@ -71,8 +72,10 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
     }
 
     const inputEl = inputRef?.current
+
     if (inputEl) {
       inputEl.addEventListener('keydown', handleInputKeyDown)
+
       return () => {
         inputEl.removeEventListener('keydown', handleInputKeyDown)
       }
@@ -83,24 +86,31 @@ const SearchAutocomplete = ({ suggestions, onSelect, isOpen, inputRef }) => {
 
   const dropdownContent = (
     <div
+      aria-label='Sugerencias de búsqueda'
+      role='listbox'
       style={{
         position: 'absolute',
         top: `${position.top}px`,
         left: `${position.left}px`,
         width: `${position.width}px`
-      }}
-      role='listbox'
-      aria-label='Sugerencias de búsqueda'>
+      }}>
       <div className='bg-white/90 backdrop-blur rounded-lg shadow-lg overflow-hidden'>
         {suggestions.map((suggestion, index) => (
           <div
             key={`${suggestion.text}-${index}`}
-            role='option'
             aria-selected={index === selectedIndex}
             className={`px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer text-left flex items-center gap-2 ${
               index === selectedIndex ? 'bg-gray-100' : ''
             }`}
+            role='option'
+            tabIndex={0}
             onClick={() => onSelect(suggestion.text)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onSelect(suggestion.text)
+              }
+            }}
             onMouseEnter={() => setSelectedIndex(index)}>
             <span className='material-symbols-outlined icon text-gray-500'>{suggestion.icon}</span>
             <span>{suggestion.text}</span>

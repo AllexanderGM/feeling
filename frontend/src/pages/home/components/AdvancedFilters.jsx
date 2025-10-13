@@ -13,7 +13,6 @@ import {
   Switch,
   Card,
   CardBody,
-  Divider,
   RadioGroup,
   Radio,
   Accordion,
@@ -23,7 +22,7 @@ import { Sparkles, Flame, Star, Heart, Filter, RotateCcw, MapPin, Calendar, User
 import { useUserInterests } from '@hooks'
 
 const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters = {} }) => {
-  const { interestOptions, loading: interestsLoading } = useUserInterests()
+  const { interestOptions } = useUserInterests()
 
   // Estados de filtros locales
   const [filters, setFilters] = useState({
@@ -156,6 +155,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
   // Contar filtros activos
   const activeFiltersCount = useMemo(() => {
     let count = 0
+
     if (filters.categoryInterest !== 'all') count++
     if (filters.ageMin !== 18 || filters.ageMax !== 65) count++
     if (filters.distance !== 50) count++
@@ -170,22 +170,23 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
     if (filters.smokingPreference !== 'all') count++
     if (filters.drinkingPreference !== 'all') count++
     if (filters.sortBy !== 'compatibility') count++
+
     return count
   }, [filters])
 
   return (
     <Modal
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      size='3xl'
-      scrollBehavior='inside'
-      placement='center'
       classNames={{
         base: 'bg-gray-900/95 backdrop-blur-sm',
         header: 'border-b border-gray-700/50',
         body: 'py-4',
         footer: 'border-t border-gray-700/50'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='3xl'
+      onOpenChange={onOpenChange}>
       <ModalContent>
         {onClose => (
           <>
@@ -195,17 +196,17 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                   <Filter className='w-5 h-5 text-primary-400' />
                   <h3 className='text-lg font-semibold text-gray-200'>Filtros Avanzados</h3>
                   {activeFiltersCount > 0 && (
-                    <Chip size='sm' color='primary' variant='flat'>
+                    <Chip color='primary' size='sm' variant='flat'>
                       {activeFiltersCount} activos
                     </Chip>
                   )}
                 </div>
                 <Button
+                  className='text-gray-400'
                   size='sm'
-                  variant='light'
                   startContent={<RotateCcw className='w-4 h-4' />}
-                  onPress={resetFilters}
-                  className='text-gray-400'>
+                  variant='light'
+                  onPress={resetFilters}>
                   Limpiar
                 </Button>
               </div>
@@ -223,15 +224,18 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
 
                     {/* Categoría de interés */}
                     <div>
-                      <label className='text-sm text-gray-300 mb-2 block'>Categoría de interés</label>
+                      <label className='text-sm text-gray-300 mb-2 block' htmlFor='categoryInterestSelect'>
+                        Categoría de interés
+                      </label>
                       <Select
-                        selectedKeys={filters.categoryInterest ? [filters.categoryInterest] : []}
-                        onSelectionChange={keys => handleFilterChange('categoryInterest', Array.from(keys)[0])}
-                        placeholder='Selecciona una categoría'
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        id='categoryInterestSelect'
+                        placeholder='Selecciona una categoría'
+                        selectedKeys={filters.categoryInterest ? [filters.categoryInterest] : []}
+                        onSelectionChange={keys => handleFilterChange('categoryInterest', Array.from(keys)[0])}>
                         <SelectItem key='all' textValue='Todas las categorías'>
                           <div className='flex items-center gap-2'>
                             <Heart className='w-4 h-4 text-gray-400' />
@@ -255,11 +259,6 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                         Rango de edad: {filters.ageMin} - {filters.ageMax} años
                       </label>
                       <Slider
-                        step={1}
-                        minValue={18}
-                        maxValue={80}
-                        value={[filters.ageMin, filters.ageMax]}
-                        onChange={handleAgeRangeChange}
                         className='w-full'
                         color='primary'
                         marks={[
@@ -269,21 +268,21 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           { value: 65, label: '65' },
                           { value: 80, label: '80' }
                         ]}
+                        maxValue={80}
+                        minValue={18}
+                        step={1}
+                        value={[filters.ageMin, filters.ageMax]}
+                        onChange={handleAgeRangeChange}
                       />
                     </div>
 
                     {/* Distancia */}
                     <div>
-                      <label className='text-sm text-gray-300 mb-3 block flex items-center gap-2'>
+                      <label className='text-sm text-gray-300 mb-3 flex items-center gap-2'>
                         <MapPin className='w-4 h-4' />
                         Distancia máxima: {filters.distance} km
                       </label>
                       <Slider
-                        step={5}
-                        minValue={5}
-                        maxValue={200}
-                        value={filters.distance}
-                        onChange={value => handleFilterChange('distance', value)}
                         className='w-full'
                         color='primary'
                         marks={[
@@ -292,13 +291,18 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           { value: 100, label: '100km' },
                           { value: 200, label: '200km' }
                         ]}
+                        maxValue={200}
+                        minValue={5}
+                        step={5}
+                        value={filters.distance}
+                        onChange={value => handleFilterChange('distance', value)}
                       />
                     </div>
                   </CardBody>
                 </Card>
 
                 {/* Filtros Avanzados en Accordion */}
-                <Accordion variant='bordered' className='bg-gray-800/30 border-gray-700/30'>
+                <Accordion className='bg-gray-800/30 border-gray-700/30' variant='bordered'>
                   {/* Preferencias de Relación */}
                   <AccordionItem
                     key='relationship'
@@ -311,13 +315,13 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                     }>
                     <div className='space-y-4 pb-4'>
                       <Select
-                        label='Tipo de relación buscada'
-                        selectedKeys={filters.relationshipType ? [filters.relationshipType] : []}
-                        onSelectionChange={keys => handleFilterChange('relationshipType', Array.from(keys)[0])}
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        label='Tipo de relación buscada'
+                        selectedKeys={filters.relationshipType ? [filters.relationshipType] : []}
+                        onSelectionChange={keys => handleFilterChange('relationshipType', Array.from(keys)[0])}>
                         {relationshipOptions.map(option => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
@@ -328,11 +332,6 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                       <div>
                         <label className='text-sm text-gray-300 mb-3 block'>Compatibilidad mínima: {filters.minCompatibility}%</label>
                         <Slider
-                          step={5}
-                          minValue={0}
-                          maxValue={100}
-                          value={filters.minCompatibility}
-                          onChange={value => handleFilterChange('minCompatibility', value)}
                           className='w-full'
                           color='danger'
                           marks={[
@@ -341,6 +340,11 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                             { value: 80, label: '80%' },
                             { value: 100, label: '100%' }
                           ]}
+                          maxValue={100}
+                          minValue={0}
+                          step={5}
+                          value={filters.minCompatibility}
+                          onChange={value => handleFilterChange('minCompatibility', value)}
                         />
                       </div>
                     </div>
@@ -359,42 +363,42 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                     <div className='space-y-4 pb-4'>
                       <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                         <Switch
-                          isSelected={filters.showOnlineOnly}
-                          onValueChange={value => handleFilterChange('showOnlineOnly', value)}
                           classNames={{
                             base: 'flex-row-reverse max-w-full justify-between',
                             wrapper: 'mr-0'
-                          }}>
+                          }}
+                          isSelected={filters.showOnlineOnly}
+                          onValueChange={value => handleFilterChange('showOnlineOnly', value)}>
                           <span className='text-sm text-gray-300'>Solo usuarios en línea</span>
                         </Switch>
 
                         <Switch
-                          isSelected={filters.showRecentActivity}
-                          onValueChange={value => handleFilterChange('showRecentActivity', value)}
                           classNames={{
                             base: 'flex-row-reverse max-w-full justify-between',
                             wrapper: 'mr-0'
-                          }}>
+                          }}
+                          isSelected={filters.showRecentActivity}
+                          onValueChange={value => handleFilterChange('showRecentActivity', value)}>
                           <span className='text-sm text-gray-300'>Activos recientemente</span>
                         </Switch>
 
                         <Switch
-                          isSelected={filters.showVerifiedOnly}
-                          onValueChange={value => handleFilterChange('showVerifiedOnly', value)}
                           classNames={{
                             base: 'flex-row-reverse max-w-full justify-between',
                             wrapper: 'mr-0'
-                          }}>
+                          }}
+                          isSelected={filters.showVerifiedOnly}
+                          onValueChange={value => handleFilterChange('showVerifiedOnly', value)}>
                           <span className='text-sm text-gray-300'>Solo perfiles verificados</span>
                         </Switch>
 
                         <Switch
-                          isSelected={filters.showWithPhotosOnly}
-                          onValueChange={value => handleFilterChange('showWithPhotosOnly', value)}
                           classNames={{
                             base: 'flex-row-reverse max-w-full justify-between',
                             wrapper: 'mr-0'
-                          }}>
+                          }}
+                          isSelected={filters.showWithPhotosOnly}
+                          onValueChange={value => handleFilterChange('showWithPhotosOnly', value)}>
                           <span className='text-sm text-gray-300'>Solo con fotos</span>
                         </Switch>
                       </div>
@@ -413,13 +417,13 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                     }>
                     <div className='space-y-4 pb-4'>
                       <Select
-                        label='Nivel educativo'
-                        selectedKeys={filters.educationLevel ? [filters.educationLevel] : []}
-                        onSelectionChange={keys => handleFilterChange('educationLevel', Array.from(keys)[0])}
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        label='Nivel educativo'
+                        selectedKeys={filters.educationLevel ? [filters.educationLevel] : []}
+                        onSelectionChange={keys => handleFilterChange('educationLevel', Array.from(keys)[0])}>
                         {educationOptions.map(option => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
@@ -428,13 +432,13 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                       </Select>
 
                       <Select
-                        label='Situación laboral'
-                        selectedKeys={filters.hasJob ? [filters.hasJob] : []}
-                        onSelectionChange={keys => handleFilterChange('hasJob', Array.from(keys)[0])}
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        label='Situación laboral'
+                        selectedKeys={filters.hasJob ? [filters.hasJob] : []}
+                        onSelectionChange={keys => handleFilterChange('hasJob', Array.from(keys)[0])}>
                         {jobOptions.map(option => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
@@ -456,13 +460,13 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                     }>
                     <div className='space-y-4 pb-4'>
                       <Select
-                        label='Fumar'
-                        selectedKeys={filters.smokingPreference ? [filters.smokingPreference] : []}
-                        onSelectionChange={keys => handleFilterChange('smokingPreference', Array.from(keys)[0])}
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        label='Fumar'
+                        selectedKeys={filters.smokingPreference ? [filters.smokingPreference] : []}
+                        onSelectionChange={keys => handleFilterChange('smokingPreference', Array.from(keys)[0])}>
                         {preferenceOptions.map(option => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
@@ -471,13 +475,13 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                       </Select>
 
                       <Select
-                        label='Beber alcohol'
-                        selectedKeys={filters.drinkingPreference ? [filters.drinkingPreference] : []}
-                        onSelectionChange={keys => handleFilterChange('drinkingPreference', Array.from(keys)[0])}
                         classNames={{
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
-                        }}>
+                        }}
+                        label='Beber alcohol'
+                        selectedKeys={filters.drinkingPreference ? [filters.drinkingPreference] : []}
+                        onSelectionChange={keys => handleFilterChange('drinkingPreference', Array.from(keys)[0])}>
                         {preferenceOptions.map(option => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
@@ -493,19 +497,19 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                   <CardBody className='space-y-4'>
                     <h4 className='text-md font-semibold text-gray-200'>Ordenar por</h4>
                     <RadioGroup
-                      value={filters.sortBy}
-                      onValueChange={value => handleFilterChange('sortBy', value)}
                       classNames={{
                         wrapper: 'grid grid-cols-2 gap-3'
-                      }}>
+                      }}
+                      value={filters.sortBy}
+                      onValueChange={value => handleFilterChange('sortBy', value)}>
                       {sortOptions.map(option => (
                         <Radio
                           key={option.key}
-                          value={option.key}
                           classNames={{
                             base: 'bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600 rounded-lg p-3 transition-colors',
                             wrapper: 'hidden'
-                          }}>
+                          }}
+                          value={option.key}>
                           <span className='text-sm text-gray-300'>{option.label}</span>
                         </Radio>
                       ))}
@@ -517,10 +521,10 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
 
             <ModalFooter>
               <div className='flex gap-3 w-full'>
-                <Button variant='light' onPress={onClose} className='flex-1'>
+                <Button className='flex-1' variant='light' onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color='primary' onPress={applyFilters} className='flex-1' startContent={<Filter className='w-4 h-4' />}>
+                <Button className='flex-1' color='primary' startContent={<Filter className='w-4 h-4' />} onPress={applyFilters}>
                   Aplicar Filtros {activeFiltersCount > 0 && `(${activeFiltersCount})`}
                 </Button>
               </div>

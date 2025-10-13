@@ -1,18 +1,14 @@
 import { useState, useMemo } from 'react'
 import { Button, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
 import {
-  Edit2,
   Check,
   X,
   Brain,
   Heart,
   GraduationCap,
-  Briefcase,
   Ruler,
   User,
   Settings,
-  Smile,
-  Book,
   Target,
   Users,
   Eye,
@@ -20,7 +16,6 @@ import {
   UserCheck,
   Users2,
   Sparkles,
-  MapPin,
   Badge
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
@@ -44,9 +39,7 @@ const CharacteristicsSection = ({ user }) => {
   // React Hook Form para StepCharacteristics
   const {
     control,
-    handleSubmit,
     formState: { errors },
-    trigger,
     watch,
     getValues,
     setValue,
@@ -73,6 +66,7 @@ const CharacteristicsSection = ({ user }) => {
     try {
       setLoading(true)
       const formData = getValues()
+
       await updateUserProfile(formData)
       onEditOpenChange()
     } catch (error) {
@@ -99,6 +93,7 @@ const CharacteristicsSection = ({ user }) => {
   const getAttributeName = (attributeType, attributeId) => {
     if (!attributeId || !userAttributes[attributeType]) return 'No especificado'
     const attribute = userAttributes[attributeType].find(attr => attr.id === parseInt(attributeId))
+
     return attribute?.name || 'No especificado'
   }
 
@@ -151,6 +146,7 @@ const CharacteristicsSection = ({ user }) => {
       ámbar: '#FFBF00'
     }
     const colorCode = colors[eyeColor?.toLowerCase()] || '#999999'
+
     return {
       color: colorCode,
       name: eyeColor || 'No especificado'
@@ -169,6 +165,7 @@ const CharacteristicsSection = ({ user }) => {
       caoba: '#C04000'
     }
     const colorCode = colors[hairColor?.toLowerCase()] || '#999999'
+
     return {
       color: colorCode,
       name: hairColor || 'No especificado'
@@ -186,11 +183,11 @@ const CharacteristicsSection = ({ user }) => {
             <span className='text-sm font-medium text-gray-200'>Características</span>
           </div>
           <Button
-            size='sm'
-            variant='solid'
-            color='primary'
             className='bg-primary-600 hover:bg-primary-700'
+            color='primary'
+            size='sm'
             startContent={<Settings className='w-3 h-3' />}
+            variant='solid'
             onPress={handleEdit}>
             Editar
           </Button>
@@ -227,15 +224,15 @@ const CharacteristicsSection = ({ user }) => {
                 {(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).slice(0, 8).map((tag, index) => (
                   <Chip
                     key={index}
-                    size='sm'
-                    variant='flat'
+                    className='bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs'
                     color='secondary'
-                    className='bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs'>
+                    size='sm'
+                    variant='flat'>
                     {typeof tag === 'string' ? tag : tag.name || tag}
                   </Chip>
                 ))}
                 {(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).length > 8 && (
-                  <Chip size='sm' variant='flat' className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs'>
+                  <Chip className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs' size='sm' variant='flat'>
                     +{(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).length - 8} más
                   </Chip>
                 )}
@@ -254,15 +251,15 @@ const CharacteristicsSection = ({ user }) => {
               {(user?.profile?.interests || user?.interests || []).slice(0, 8).map((interest, index) => (
                 <Chip
                   key={index}
-                  size='sm'
-                  variant='flat'
+                  className='bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs'
                   color='primary'
-                  className='bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs'>
+                  size='sm'
+                  variant='flat'>
                   {interest}
                 </Chip>
               ))}
               {(user?.profile?.interests || user?.interests || []).length > 8 && (
-                <Chip size='sm' variant='flat' className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs'>
+                <Chip className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs' size='sm' variant='flat'>
                   +{(user?.profile?.interests || user?.interests || []).length - 8} más
                 </Chip>
               )}
@@ -335,7 +332,8 @@ const CharacteristicsSection = ({ user }) => {
               {(user?.profile?.eyeColor || user?.eyeColor) && (
                 <div
                   className='w-3 h-3 rounded-full border border-gray-500'
-                  style={{ backgroundColor: getEyeColorDisplay(user?.profile?.eyeColor || user?.eyeColor).color }}></div>
+                  style={{ backgroundColor: getEyeColorDisplay(user?.profile?.eyeColor || user?.eyeColor).color }}
+                />
               )}
               <span className='text-gray-300'>{getEyeColorDisplay(user?.profile?.eyeColor || user?.eyeColor).name}</span>
             </div>
@@ -349,7 +347,8 @@ const CharacteristicsSection = ({ user }) => {
               {(user?.profile?.hairColor || user?.hairColor) && (
                 <div
                   className='w-3 h-3 rounded-full border border-gray-500'
-                  style={{ backgroundColor: getHairColorDisplay(user?.profile?.hairColor || user?.hairColor).color }}></div>
+                  style={{ backgroundColor: getHairColorDisplay(user?.profile?.hairColor || user?.hairColor).color }}
+                />
               )}
               <span className='text-gray-300'>{getHairColorDisplay(user?.profile?.hairColor || user?.hairColor).name}</span>
             </div>
@@ -359,40 +358,36 @@ const CharacteristicsSection = ({ user }) => {
 
       {/* Modal para editar características */}
       <Modal
-        isOpen={isEditOpen}
-        onOpenChange={onEditOpenChange}
-        size='5xl'
-        scrollBehavior='inside'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isEditOpen}
+        scrollBehavior='inside'
+        size='5xl'
+        onOpenChange={onEditOpenChange}>
         <ModalContent>
-          {onClose => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                <h3 className='text-lg font-bold text-gray-200'>Editar Características</h3>
-                <p className='text-sm text-gray-400'>Actualiza tu descripción, intereses y características físicas</p>
-              </ModalHeader>
-              <ModalBody className='py-6'>
-                <StepCharacteristics {...stepCharacteristicsProps} />
-              </ModalBody>
-              <ModalFooter>
-                <Button color='danger' variant='light' onPress={handleCancel} startContent={<X className='w-4 h-4' />} isDisabled={loading}>
-                  Cancelar
-                </Button>
-                <Button
-                  color='primary'
-                  onPress={handleSave}
-                  startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
-                  isDisabled={loading}>
-                  {loading ? 'Guardando...' : 'Guardar cambios'}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
+          <ModalHeader className='flex flex-col gap-1'>
+            <h3 className='text-lg font-bold text-gray-200'>Editar Características</h3>
+            <p className='text-sm text-gray-400'>Actualiza tu descripción, intereses y características físicas</p>
+          </ModalHeader>
+          <ModalBody className='py-6'>
+            <StepCharacteristics {...stepCharacteristicsProps} />
+          </ModalBody>
+          <ModalFooter>
+            <Button color='danger' isDisabled={loading} startContent={<X className='w-4 h-4' />} variant='light' onPress={handleCancel}>
+              Cancelar
+            </Button>
+            <Button
+              color='primary'
+              isDisabled={loading}
+              startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
+              onPress={handleSave}>
+              {loading ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </div>

@@ -1,31 +1,12 @@
 import { useState, useMemo } from 'react'
-import { Button, Spinner, Chip, Slider, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
-import {
-  Edit2,
-  Check,
-  X,
-  Target,
-  Heart,
-  MapPin,
-  Calendar,
-  Church,
-  Building,
-  Settings,
-  Users,
-  Search,
-  Filter,
-  Sparkles,
-  Flame,
-  MessageCircle
-} from 'lucide-react'
+import { Button, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
+import { Check, X, Target, Heart, MapPin, Calendar, Church, Settings, Users, Search, Sparkles, Flame, MessageCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useUser, useUserAttributes, useUserInterests } from '@hooks'
 import { stepPreferencesSchema, getDefaultValuesForStep } from '@schemas'
 import { Logger } from '@utils/logger.js'
-
 import StepPreferences from '@pages/user/complete/components/StepPreferences.jsx'
-import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
 
 const PreferencesSection = ({ user }) => {
   const [loading, setLoading] = useState(false)
@@ -41,12 +22,10 @@ const PreferencesSection = ({ user }) => {
   // React Hook Form para StepPreferences
   const {
     control,
-    handleSubmit,
     formState: { errors },
     watch,
     getValues,
     setValue,
-    setError,
     clearErrors,
     reset
   } = useForm({
@@ -69,6 +48,7 @@ const PreferencesSection = ({ user }) => {
     try {
       setLoading(true)
       const formData = getValues()
+
       await updateUserProfile(formData)
       onEditOpenChange()
     } catch (error) {
@@ -82,12 +62,14 @@ const PreferencesSection = ({ user }) => {
   const getAttributeName = (attributeType, attributeId) => {
     if (!attributeId || !userAttributes[attributeType]) return 'No especificado'
     const attribute = userAttributes[attributeType].find(attr => attr.id === parseInt(attributeId))
+
     return attribute?.name || 'No especificado'
   }
 
   // Obtener categoría de interés con detalles
   const getInterestDetails = interestKey => {
     if (!interestKey || !interestOptions) return null
+
     return interestOptions.find(interest => interest.key === interestKey)
   }
 
@@ -149,11 +131,11 @@ const PreferencesSection = ({ user }) => {
             <span className='text-sm font-medium text-gray-200'>Preferencias</span>
           </div>
           <Button
-            size='sm'
-            variant='solid'
-            color='primary'
             className='bg-primary-600 hover:bg-primary-700'
+            color='primary'
+            size='sm'
             startContent={<Settings className='w-3 h-3' />}
+            variant='solid'
             onPress={handleEdit}>
             Editar
           </Button>
@@ -297,7 +279,7 @@ const PreferencesSection = ({ user }) => {
               <span className='text-xs font-medium text-gray-200'>Filtros de búsqueda</span>
             </div>
             <div className='flex flex-wrap gap-1'>
-              <Chip size='sm' variant='flat' color='success' className='bg-green-500/20 text-green-300 border border-green-500/30 text-xs'>
+              <Chip className='bg-green-500/20 text-green-300 border border-green-500/30 text-xs' color='success' size='sm' variant='flat'>
                 Solo usuarios verificados
               </Chip>
             </div>
@@ -307,40 +289,36 @@ const PreferencesSection = ({ user }) => {
 
       {/* Modal para editar preferencias */}
       <Modal
-        isOpen={isEditOpen}
-        onOpenChange={onEditOpenChange}
-        size='5xl'
-        scrollBehavior='inside'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isEditOpen}
+        scrollBehavior='inside'
+        size='5xl'
+        onOpenChange={onEditOpenChange}>
         <ModalContent>
-          {onClose => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                <h3 className='text-lg font-bold text-gray-200'>Editar Preferencias</h3>
-                <p className='text-sm text-gray-400'>Actualiza tus preferencias de búsqueda y match</p>
-              </ModalHeader>
-              <ModalBody className='py-6'>
-                <StepPreferences {...stepPreferencesProps} />
-              </ModalBody>
-              <ModalFooter>
-                <Button color='danger' variant='light' onPress={handleCancel} startContent={<X className='w-4 h-4' />} isDisabled={loading}>
-                  Cancelar
-                </Button>
-                <Button
-                  color='primary'
-                  onPress={handleSave}
-                  startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
-                  isDisabled={loading}>
-                  {loading ? 'Guardando...' : 'Guardar cambios'}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
+          <ModalHeader className='flex flex-col gap-1'>
+            <h3 className='text-lg font-bold text-gray-200'>Editar Preferencias</h3>
+            <p className='text-sm text-gray-400'>Actualiza tus preferencias de búsqueda y match</p>
+          </ModalHeader>
+          <ModalBody className='py-6'>
+            <StepPreferences {...stepPreferencesProps} />
+          </ModalBody>
+          <ModalFooter>
+            <Button color='danger' isDisabled={loading} startContent={<X className='w-4 h-4' />} variant='light' onPress={handleCancel}>
+              Cancelar
+            </Button>
+            <Button
+              color='primary'
+              isDisabled={loading}
+              startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
+              onPress={handleSave}>
+              {loading ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </div>

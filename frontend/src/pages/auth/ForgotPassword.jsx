@@ -26,13 +26,14 @@ const ForgotPassword = () => {
   const onSubmit = async formData => {
     const data = extractForgotPasswordData(formData)
     const result = await forgotPassword(data)
+
     if (result.success) setStatus('success')
   }
 
   return (
     <LiteContainer ariaLabel='Página de recuperación de contraseña'>
       <figure className='text-center pb-8'>
-        <img src={logo} alt='Logo Feeling' className='w-52' />
+        <img alt='Logo Feeling' className='w-52' src={logo} />
       </figure>
 
       <div className='flex flex-col w-full space-y-6 max-w-md'>
@@ -49,11 +50,11 @@ const ForgotPassword = () => {
             </p>
             <Button
               as={Link}
-              href={APP_PATHS.AUTH.LOGIN}
-              variant='bordered'
+              className='w-full mt-4 transition-colors'
               color='default'
+              href={APP_PATHS.AUTH.LOGIN}
               radius='full'
-              className='w-full mt-4 transition-colors'>
+              variant='bordered'>
               Volver al inicio de sesión
             </Button>
           </div>
@@ -65,38 +66,38 @@ const ForgotPassword = () => {
 
             <Form className='flex flex-col w-full space-y-6' validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
               <Controller
-                name='email'
                 control={control}
+                name='email'
                 render={({ field }) => (
                   <Input
                     {...field}
-                    variant='underlined'
                     isRequired
+                    autoComplete='email'
+                    errorMessage={errors.email?.message}
+                    isDisabled={loading}
+                    isInvalid={!!errors.email}
                     label='Correo electrónico'
                     placeholder='usuario@correo.com'
                     type='email'
-                    autoComplete='email'
-                    isInvalid={!!errors.email}
-                    errorMessage={errors.email?.message}
-                    isDisabled={loading}
+                    variant='underlined'
                   />
                 )}
               />
 
               <div className='pt-6 space-y-6 w-full'>
                 <Button
-                  type='submit'
-                  radius='full'
-                  color='default'
                   className='w-full py-3 transition-colors'
+                  color='default'
+                  isDisabled={loading || !isValid}
                   isLoading={loading}
-                  isDisabled={loading || !isValid}>
+                  radius='full'
+                  type='submit'>
                   {loading ? 'Enviando...' : 'Enviar instrucciones'}
                 </Button>
 
                 <div className='w-full text-center text-xs text-gray-500 mt-6'>
                   ¿Recordaste tu contraseña?
-                  <Link href={APP_PATHS.AUTH.LOGIN} className='text-gray-300 hover:text-white transition-colors underline ml-2'>
+                  <Link className='text-gray-300 hover:text-white transition-colors underline ml-2' href={APP_PATHS.AUTH.LOGIN}>
                     Inicia sesión aquí
                   </Link>
                 </div>

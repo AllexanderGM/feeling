@@ -85,7 +85,7 @@ export class ErrorBoundary extends React.Component {
                     <div className='w-32 h-32 rounded-full bg-gradient-to-br from-red-500/20 to-orange-500/20 border-4 border-red-500/30 flex items-center justify-center'>
                       <span className='material-symbols-outlined text-red-400 text-5xl'>emergency_heat</span>
                     </div>
-                    <div className='absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-br from-red-500/10 to-orange-500/10 animate-pulse'></div>
+                    <div className='absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-br from-red-500/10 to-orange-500/10 animate-pulse' />
                   </div>
 
                   <div className='text-center'>
@@ -103,16 +103,16 @@ export class ErrorBoundary extends React.Component {
                   <div className='grid grid-cols-1 gap-3'>
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
                       <Button
-                        variant='solid'
                         color='primary'
                         startContent={<span className='material-symbols-outlined'>refresh</span>}
+                        variant='solid'
                         onPress={() => window.location.reload()}>
                         Recargar página
                       </Button>
 
                       <Button
-                        variant='ghost'
                         startContent={<span className='material-symbols-outlined'>home</span>}
+                        variant='ghost'
                         onPress={() => (window.location.href = '/')}>
                         Ir al inicio
                       </Button>
@@ -178,6 +178,7 @@ export const withErrorBoundary = (Component, fallback) => {
   )
 
   WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`
+
   return WrappedComponent
 }
 

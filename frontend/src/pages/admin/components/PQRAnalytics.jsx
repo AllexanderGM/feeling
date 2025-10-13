@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress, Badge } from '@heroui/react'
+import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress } from '@heroui/react'
 import { MessageSquare, TrendingUp, AlertTriangle, CheckCircle, Clock, RefreshCw, Bug, Star, Users, Zap } from 'lucide-react'
 import { useError, useComplaints } from '@hooks'
 
@@ -9,8 +9,6 @@ const PQRAnalytics = () => {
     complaintStats,
     allComplaints,
     pendingComplaints,
-    urgentComplaints,
-    overdueComplaints,
     resolvedComplaints,
     loading,
     fetchComplaintStats,
@@ -35,7 +33,7 @@ const PQRAnalytics = () => {
           fetchOverdueComplaints && fetchOverdueComplaints(),
           fetchResolvedComplaints && fetchResolvedComplaints()
         ])
-      } catch (error) {
+      } catch {
         handleError('Error al cargar estadísticas de PQRs')
       }
     }
@@ -63,7 +61,7 @@ const PQRAnalytics = () => {
         fetchResolvedComplaints && fetchResolvedComplaints()
       ])
       handleSuccess('Estadísticas de PQRs actualizadas')
-    } catch (error) {
+    } catch {
       handleError('Error al actualizar estadísticas')
     } finally {
       setRefreshing(false)
@@ -163,7 +161,7 @@ const PQRAnalytics = () => {
   if (loading && !complaintStats && allComplaints.length === 0) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <Spinner size='lg' color='primary' />
+        <Spinner color='primary' size='lg' />
       </div>
     )
   }
@@ -178,12 +176,12 @@ const PQRAnalytics = () => {
         </div>
         <Button
           isIconOnly
-          variant='flat'
-          color='primary'
-          onPress={handleRefresh}
-          isLoading={refreshing}
+          aria-label='Actualizar estadísticas de PQRs'
           className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-          aria-label='Actualizar estadísticas de PQRs'>
+          color='primary'
+          isLoading={refreshing}
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -340,10 +338,10 @@ const PQRAnalytics = () => {
                   <span className='text-sm text-default-500'>{pqrStats.performance.responseTime}h</span>
                 </div>
                 <Progress
-                  value={Math.min(((24 - pqrStats.performance.responseTime) / 24) * 100, 100)}
-                  color='primary'
-                  className='max-w-full'
                   aria-label={`Tiempo de respuesta: ${pqrStats.performance.responseTime} horas`}
+                  className='max-w-full'
+                  color='primary'
+                  value={Math.min(((24 - pqrStats.performance.responseTime) / 24) * 100, 100)}
                 />
               </div>
               <div className='space-y-1'>
@@ -352,10 +350,10 @@ const PQRAnalytics = () => {
                   <span className='text-sm text-default-500'>{pqrStats.performance.resolutionTime}d</span>
                 </div>
                 <Progress
-                  value={Math.min(((7 - pqrStats.performance.resolutionTime) / 7) * 100, 100)}
-                  color='success'
-                  className='max-w-full'
                   aria-label={`Tiempo de resolución: ${pqrStats.performance.resolutionTime} días`}
+                  className='max-w-full'
+                  color='success'
+                  value={Math.min(((7 - pqrStats.performance.resolutionTime) / 7) * 100, 100)}
                 />
               </div>
               <div className='space-y-1'>
@@ -364,10 +362,10 @@ const PQRAnalytics = () => {
                   <span className='text-sm text-default-500'>{pqrStats.performance.firstContactResolution}%</span>
                 </div>
                 <Progress
-                  value={pqrStats.performance.firstContactResolution}
-                  color='warning'
-                  className='max-w-full'
                   aria-label={`Resolución en primer contacto: ${pqrStats.performance.firstContactResolution}%`}
+                  className='max-w-full'
+                  color='warning'
+                  value={pqrStats.performance.firstContactResolution}
                 />
               </div>
             </div>
@@ -390,10 +388,10 @@ const PQRAnalytics = () => {
                     <span className='text-sm text-default-500'>{count}</span>
                   </div>
                   <Progress
-                    value={(count / pqrStats.totals.total) * 100}
-                    color={getPriorityColor(priority)}
-                    className='max-w-full'
                     aria-label={`Prioridad ${priority}: ${count} casos (${((count / pqrStats.totals.total) * 100).toFixed(1)}%)`}
+                    className='max-w-full'
+                    color={getPriorityColor(priority)}
+                    value={(count / pqrStats.totals.total) * 100}
                   />
                 </div>
               ))}
@@ -411,13 +409,13 @@ const PQRAnalytics = () => {
                 <div key={report.id} className='p-3 bg-gray-700/30 rounded-lg'>
                   <div className='flex justify-between items-start mb-2'>
                     <span className='text-sm font-medium text-foreground'>{report.id}</span>
-                    <Chip size='sm' variant='flat' color={getStatusColor(report.status)}>
+                    <Chip color={getStatusColor(report.status)} size='sm' variant='flat'>
                       {report.status}
                     </Chip>
                   </div>
                   <p className='text-xs text-default-500 mb-1'>{report.type}</p>
                   <div className='flex justify-between items-center'>
-                    <Chip size='sm' variant='flat' color={getPriorityColor(report.priority)}>
+                    <Chip color={getPriorityColor(report.priority)} size='sm' variant='flat'>
                       {report.priority}
                     </Chip>
                     <span className='text-xs text-default-500'>{report.date}</span>

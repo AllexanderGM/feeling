@@ -8,8 +8,9 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNotification } from '@hooks'
-import { validateImageFile, createPreviewUrl, cleanupPreviewUrl, cleanupPreviewUrls } from '../utils'
 import { Logger } from '@utils/logger.js'
+
+import { validateImageFile, createPreviewUrl, cleanupPreviewUrl, cleanupPreviewUrls } from '../utils'
 
 const useImageManager = ({
   maxImages = 5,
@@ -43,9 +44,11 @@ const useImageManager = ({
   // Normalizar imágenes para tener siempre el array completo
   const normalizedImages = useMemo(() => {
     const normalized = [...(images || [])]
+
     while (normalized.length < maxImages) {
       normalized.push(null)
     }
+
     return normalized.slice(0, maxImages)
   }, [images, maxImages])
 
@@ -53,6 +56,7 @@ const useImageManager = ({
   const previewUrls = useMemo(() => {
     return normalizedImages.map(image => {
       if (!image) return null
+
       return createPreviewUrl(image)
     })
   }, [normalizedImages])
@@ -66,21 +70,25 @@ const useImageManager = ({
 
       setImageErrors(prev => {
         const newErrors = { ...prev }
+
         if (validation.isValid) {
           delete newErrors[index]
         } else {
           newErrors[index] = validation.error
         }
+
         return newErrors
       })
 
       return validation
-    } catch (error) {
+    } catch {
       const errorMessage = 'Error al validar imagen'
+
       setImageErrors(prev => ({
         ...prev,
         [index]: errorMessage
       }))
+
       return { isValid: false, error: errorMessage }
     } finally {
       setIsValidating(false)
@@ -96,6 +104,7 @@ const useImageManager = ({
 
       // Filtrar archivos válidos
       const validFiles = newFiles.filter(file => file instanceof File)
+
       if (validFiles.length === 0) return
 
       setIsValidating(true)
@@ -105,6 +114,7 @@ const useImageManager = ({
         const fileValidations = await Promise.all(
           validFiles.map(async (file, index) => {
             const validation = await validateImageFile(file)
+
             return { file, validation, index }
           })
         )
@@ -116,6 +126,7 @@ const useImageManager = ({
         // Mostrar errores para archivos inválidos
         if (invalidFileResults.length > 0) {
           const firstError = invalidFileResults[0].validation.error
+
           showError(firstError, 'Error de validación')
 
           // Si todos los archivos son inválidos, no continuar
@@ -142,6 +153,7 @@ const useImageManager = ({
             currentCount: images.length,
             maxImages
           })
+
           return
         }
 
@@ -167,6 +179,7 @@ const useImageManager = ({
 
         // Si crop está deshabilitado, agregar normalmente
         const newImages = [...currentImages]
+
         validFilesOnly.forEach((file, index) => {
           if (availablePositions[index] !== undefined) {
             newImages[availablePositions[index]] = file
@@ -175,6 +188,7 @@ const useImageManager = ({
 
         // Filtrar nulls para el array final
         const filteredImages = newImages.filter(img => img !== null)
+
         setImages(filteredImages)
 
         // Notificar cambio
@@ -197,6 +211,7 @@ const useImageManager = ({
 
       // Limpiar URL de previsualización
       const previewUrl = previewUrls[index]
+
       if (previewUrl) {
         cleanupPreviewUrl(previewUrl)
       }
@@ -207,7 +222,9 @@ const useImageManager = ({
       // Limpiar errores
       setImageErrors(prev => {
         const newErrors = { ...prev }
+
         delete newErrors[index]
+
         return newErrors
       })
 
@@ -228,6 +245,7 @@ const useImageManager = ({
 
       const newImages = [...images]
       const [removed] = newImages.splice(startIndex, 1)
+
       newImages.splice(endIndex, 0, removed)
 
       // Animación visual
@@ -235,8 +253,10 @@ const useImageManager = ({
       setTimeout(() => {
         setAnimatingPositions(prev => {
           const newSet = new Set(prev)
+
           newSet.delete(startIndex)
           newSet.delete(endIndex)
+
           return newSet
         })
       }, 300)
@@ -307,6 +327,7 @@ const useImageManager = ({
 
       // Actualizar imagen
       const newImages = [...images]
+
       newImages[index] = croppedFile
 
       setImages(newImages)

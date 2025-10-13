@@ -19,7 +19,6 @@ import {
 } from '@heroui/react'
 import { Search, Plus, RefreshCw, Download, ChevronDown, Trash2, Edit3 } from 'lucide-react'
 import TablePagination from '@components/ui/TablePagination.jsx'
-import { Logger } from '@utils/logger.js'
 
 /**
  * Componente de tabla reutilizable para administración
@@ -100,12 +99,12 @@ const AdminDataTable = ({
               ) : (
                 <>
                   {onEdit && (
-                    <Button isIconOnly size='sm' variant='light' onPress={() => onEdit(item)} className='text-default-400'>
+                    <Button isIconOnly className='text-default-400' size='sm' variant='light' onPress={() => onEdit(item)}>
                       <Edit3 className='h-4 w-4' />
                     </Button>
                   )}
                   {onDelete && (
-                    <Button isIconOnly size='sm' variant='light' color='danger' onPress={() => onDelete(item)} className='text-danger'>
+                    <Button isIconOnly className='text-danger' color='danger' size='sm' variant='light' onPress={() => onDelete(item)}>
                       <Trash2 className='h-4 w-4' />
                     </Button>
                   )}
@@ -117,6 +116,7 @@ const AdminDataTable = ({
           if (renderCell) {
             return renderCell(item, columnKey)
           }
+
           return cellValue?.toString() || '-'
       }
     },
@@ -155,13 +155,13 @@ const AdminDataTable = ({
 
           <div className='flex items-center gap-2'>
             {onRefresh && (
-              <Button isIconOnly variant='flat' onPress={handleRefresh} isLoading={isRefreshing} className='min-w-unit-10'>
+              <Button isIconOnly className='min-w-unit-10' isLoading={isRefreshing} variant='flat' onPress={handleRefresh}>
                 <RefreshCw className='h-4 w-4' />
               </Button>
             )}
 
             {enableExport && onExport && (
-              <Button variant='flat' startContent={<Download className='h-4 w-4' />} onPress={onExport}>
+              <Button startContent={<Download className='h-4 w-4' />} variant='flat' onPress={onExport}>
                 Exportar
               </Button>
             )}
@@ -179,12 +179,12 @@ const AdminDataTable = ({
           {enableSearch && onSearchChange && (
             <div className='flex-1'>
               <Input
-                placeholder={searchPlaceholder}
-                value={searchValue}
-                onValueChange={onSearchChange}
-                startContent={<Search className='h-4 w-4 text-default-400' />}
                 isClearable
                 className='max-w-xs'
+                placeholder={searchPlaceholder}
+                startContent={<Search className='h-4 w-4 text-default-400' />}
+                value={searchValue}
+                onValueChange={onSearchChange}
               />
             </div>
           )}
@@ -194,7 +194,7 @@ const AdminDataTable = ({
               {filters.map((filter, index) => (
                 <Dropdown key={index}>
                   <DropdownTrigger>
-                    <Button variant='flat' endContent={<ChevronDown className='h-4 w-4' />}>
+                    <Button endContent={<ChevronDown className='h-4 w-4' />} variant='flat'>
                       {filter.label}
                     </Button>
                   </DropdownTrigger>
@@ -215,7 +215,7 @@ const AdminDataTable = ({
             <span className='text-sm text-default-600'>{selectedKeys.size} elementos seleccionados</span>
             <div className='flex gap-2 ml-auto'>
               {batchActions.map(action => (
-                <Button key={action.key} size='sm' color={action.color} onPress={action.action}>
+                <Button key={action.key} color={action.color} size='sm' onPress={action.action}>
                   {action.label}
                 </Button>
               ))}
@@ -228,15 +228,15 @@ const AdminDataTable = ({
       <CardBody className='p-0'>
         <Table
           aria-label={title}
-          selectionMode={enableSelection ? 'multiple' : 'none'}
-          selectedKeys={selectedKeys}
-          onSelectionChange={onSelectionChange}
-          sortDescriptor={sortDescriptor}
-          onSortChange={onSortChange}
           classNames={{
             table: 'min-h-[300px]',
             wrapper: 'shadow-none'
           }}
+          selectedKeys={selectedKeys}
+          selectionMode={enableSelection ? 'multiple' : 'none'}
+          sortDescriptor={sortDescriptor}
+          onSelectionChange={onSelectionChange}
+          onSortChange={onSortChange}
           {...tableProps}>
           <TableHeader columns={columns}>
             {column => (
@@ -245,7 +245,7 @@ const AdminDataTable = ({
               </TableColumn>
             )}
           </TableHeader>
-          <TableBody items={data} isLoading={loading} loadingContent={<Spinner label='Cargando...' />} emptyContent={emptyMessage}>
+          <TableBody emptyContent={emptyMessage} isLoading={loading} items={data} loadingContent={<Spinner label='Cargando...' />}>
             {item => (
               <TableRow key={item.id || item.key}>{columnKey => <TableCell>{defaultRenderCell(item, columnKey)}</TableCell>}</TableRow>
             )}
@@ -257,9 +257,9 @@ const AdminDataTable = ({
           <div className='flex justify-center px-4 py-3 border-t border-divider'>
             <TablePagination
               currentPage={pagination.page + 1}
-              totalPages={pagination.totalPages}
-              totalItems={pagination.totalElements}
               itemsPerPage={pagination.size}
+              totalItems={pagination.totalElements}
+              totalPages={pagination.totalPages}
               onPageChange={page => onPageChange?.(page - 1)}
               onPageSizeChange={onPageSizeChange}
             />

@@ -33,6 +33,7 @@ const ErrorDisplay = () => {
     // Si es un objeto (incluyendo Error), intentar obtener una representación segura
     try {
       if (content instanceof Error) return content.message || 'Error desconocido'
+
       return JSON.stringify(content)
     } catch {
       return 'Contenido no representable'
@@ -46,20 +47,20 @@ const ErrorDisplay = () => {
           {alerts.map(alert => (
             <Alert
               key={alert.id}
+              className='transform transition-all duration-300 ease-in-out'
               color='danger'
               description={safeRender(alert.message)}
               isVisible={true}
               title={safeRender(alert.title)}
               variant='faded'
               onClose={() => closeAlert(alert.id)}
-              className='transform transition-all duration-300 ease-in-out'
             />
           ))}
         </div>
       )}
 
       {isModalOpen && alertType === 'modal' && error && (
-        <Modal backdrop='blur' isOpen={isOpen} onClose={handleClose} placement='center'>
+        <Modal backdrop='blur' isOpen={isOpen} placement='center' onClose={handleClose}>
           <ModalContent>
             {onClose => (
               <>
@@ -69,7 +70,7 @@ const ErrorDisplay = () => {
 
                   {error.details && (
                     <>
-                      <Button color='primary' variant='light' size='sm' className='mb-2' onPress={toggleDetails}>
+                      <Button className='mb-2' color='primary' size='sm' variant='light' onPress={toggleDetails}>
                         {showDetails ? 'Ocultar detalles técnicos' : 'Mostrar detalles técnicos'}
                       </Button>
 

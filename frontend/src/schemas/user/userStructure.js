@@ -244,6 +244,7 @@ export const USER_DEFAULT_VALUES = {
 export const isSpecialField = (field, value) => {
   if (field === 'images') return value && value.length > 0
   if (field === 'tags') return value && value.length > 0
+
   return value && value.toString().trim() !== ''
 }
 
@@ -255,6 +256,7 @@ export const isProfileComplete = user => {
 
   return USER_PROFILE_REQUIRED_FIELDS.every(field => {
     const value = user.profile[field]
+
     return isSpecialField(field, value)
   })
 }
@@ -307,7 +309,7 @@ export const USER_ACCOUNT_FIELDS = {
 /**
  * Formatear datos del formulario para enviar al backend usando la nueva estructura
  */
-export const formatFormDataToApi = (formData, section = 'profile') => {
+export const formatFormDataToApi = formData => {
   if (!formData) return {}
 
   // Si los datos ya vienen organizados por secciones

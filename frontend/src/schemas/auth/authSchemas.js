@@ -1,4 +1,5 @@
 import * as yup from 'yup'
+
 import { baseValidations, conditionalValidations } from '../validation/baseValidations'
 
 /**
@@ -120,6 +121,7 @@ export const validateTokenFormat = token => {
   if (!token || typeof token !== 'string') return false
   // JWT básico tiene 3 partes separadas por puntos
   const parts = token.split('.')
+
   return parts.length === 3
 }
 
@@ -128,6 +130,7 @@ export const validateTokenFormat = token => {
  */
 export const isValidEmailFormat = email => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
   return emailRegex.test(email)
 }
 

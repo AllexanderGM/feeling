@@ -27,13 +27,16 @@ const ProfileCreation = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => setAnimateIn(true), 100)
+
     return () => clearTimeout(timer)
   }, [])
 
   const handleImageUpload = event => {
     const file = event.target.files[0]
+
     if (file) {
       const reader = new FileReader()
+
       reader.onload = e => setProfileImage(e.target.result)
       reader.readAsDataURL(file)
     }
@@ -41,10 +44,13 @@ const ProfileCreation = () => {
 
   const handlePhotoUpload = (index, event) => {
     const file = event.target.files[0]
+
     if (file) {
       const reader = new FileReader()
+
       reader.onload = e => {
         const newPhotos = [...profilePhotos]
+
         newPhotos[index] = e.target.result
         setProfilePhotos(newPhotos)
       }
@@ -163,7 +169,7 @@ const ProfileCreation = () => {
       className={`w-full max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto px-6 py-8 transition-all duration-700 ease-out transform ${animateIn ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
       {/* Logo */}
       <div className='text-center mb-8'>
-        <img src={logo} alt='Logo Feeling' className='w-24 h-24 mx-auto mb-4' />
+        <img alt='Logo Feeling' className='w-24 h-24 mx-auto mb-4' src={logo} />
         <h1 className='text-3xl font-bold text-white mb-2'>Crea tu perfil</h1>
       </div>
 
@@ -171,11 +177,11 @@ const ProfileCreation = () => {
         {/* Foto de perfil */}
         <div className='text-center'>
           <div className='relative inline-block mb-4'>
-            <Avatar src={profileImage} className='w-32 h-32' showFallback name='?' />
+            <Avatar showFallback className='w-32 h-32' name='?' src={profileImage} />
           </div>
           <div>
-            <input type='file' accept='image/*' onChange={handleImageUpload} className='hidden' id='profile-image' />
-            <Button as='label' htmlFor='profile-image' color='default' variant='bordered' className='cursor-pointer'>
+            <input accept='image/*' className='hidden' id='profile-image' type='file' onChange={handleImageUpload} />
+            <Button as='label' className='cursor-pointer' color='default' htmlFor='profile-image' variant='bordered'>
               Cargar foto de perfil
             </Button>
           </div>
@@ -183,24 +189,24 @@ const ProfileCreation = () => {
 
         {/* Campo básico */}
         <div className='lg:max-w-md mx-auto'>
-          <Input label='Nombre' placeholder='Tu nombre' variant='bordered' className='text-white' />
+          <Input className='text-white' label='Nombre' placeholder='Tu nombre' variant='bordered' />
         </div>
 
         <div className='lg:max-w-md mx-auto'>
-          <DatePicker label='Fecha de nacimiento' variant='bordered' className='text-white' />
+          <DatePicker className='text-white' label='Fecha de nacimiento' variant='bordered' />
         </div>
 
         {/* Género */}
         <div className='lg:max-w-md mx-auto'>
           <p className='text-white text-lg mb-4'>¿Con qué género te identificas?</p>
-          <RadioGroup orientation='horizontal' className='text-white'>
-            <Radio value='hombre' className='text-white'>
+          <RadioGroup className='text-white' orientation='horizontal'>
+            <Radio className='text-white' value='hombre'>
               Hombre
             </Radio>
-            <Radio value='mujer' className='text-white'>
+            <Radio className='text-white' value='mujer'>
               Mujer
             </Radio>
-            <Radio value='gay' className='text-white'>
+            <Radio className='text-white' value='gay'>
               Gay
             </Radio>
           </RadioGroup>
@@ -213,8 +219,8 @@ const ProfileCreation = () => {
               <Button
                 key={category.id}
                 className={`${category.className} transition-all duration-300 hover:scale-105 ${selectedCategory === category.id ? 'ring-2 ring-white/50' : ''}`}
-                onClick={() => setSelectedCategory(category.id)}
-                size='lg'>
+                size='lg'
+                onClick={() => setSelectedCategory(category.id)}>
                 {category.label}
               </Button>
             ))}
@@ -229,23 +235,23 @@ const ProfileCreation = () => {
           <div className='mb-6'>
             <p className='text-white mb-4'>Estatura: {height} cm</p>
             <Slider
-              size='lg'
-              step={1}
+              className='max-w-md'
               color='primary'
+              maxValue={220}
+              minValue={140}
+              showOutline={true}
               showSteps={false}
               showTooltip={true}
-              showOutline={true}
-              minValue={140}
-              maxValue={220}
+              size='lg'
+              step={1}
               value={height}
               onChange={setHeight}
-              className='max-w-md'
             />
           </div>
 
           {/* Dropdowns de información personal */}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-            <Select label='Color de ojos' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Color de ojos' variant='bordered'>
               {eyeColors.map(color => (
                 <SelectItem key={color.key} value={color.key}>
                   {color.label}
@@ -253,7 +259,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Color de cabello' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Color de cabello' variant='bordered'>
               {hairColors.map(color => (
                 <SelectItem key={color.key} value={color.key}>
                   {color.label}
@@ -261,7 +267,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Tono de piel' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Tono de piel' variant='bordered'>
               {skinTones.map(tone => (
                 <SelectItem key={tone.key} value={tone.key}>
                   {tone.label}
@@ -269,7 +275,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Nivel de estudios' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Nivel de estudios' variant='bordered'>
               {educationLevels.map(level => (
                 <SelectItem key={level.key} value={level.key}>
                   {level.label}
@@ -277,7 +283,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Profesión' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Profesión' variant='bordered'>
               {professions.map(prof => (
                 <SelectItem key={prof.key} value={prof.key}>
                   {prof.label}
@@ -285,7 +291,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Religión' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Religión' variant='bordered'>
               {religions.map(religion => (
                 <SelectItem key={religion.key} value={religion.key}>
                   {religion.label}
@@ -293,7 +299,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Deportes' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Deportes' variant='bordered'>
               {sports.map(sport => (
                 <SelectItem key={sport.key} value={sport.key}>
                   {sport.label}
@@ -301,7 +307,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Consumo de alcohol' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Consumo de alcohol' variant='bordered'>
               {alcoholConsumption.map(level => (
                 <SelectItem key={level.key} value={level.key}>
                   {level.label}
@@ -309,7 +315,7 @@ const ProfileCreation = () => {
               ))}
             </Select>
 
-            <Select label='Consumo de tabaco' variant='bordered' className='text-white'>
+            <Select className='text-white' label='Consumo de tabaco' variant='bordered'>
               {tobaccoConsumption.map(level => (
                 <SelectItem key={level.key} value={level.key}>
                   {level.label}
@@ -328,7 +334,7 @@ const ProfileCreation = () => {
                 <Card className='bg-white/10 border border-white/20'>
                   <CardBody className='p-0'>
                     {photo ? (
-                      <img src={photo} alt={`Foto ${index + 1}`} className='w-full h-32 object-cover rounded-lg' />
+                      <img alt={`Foto ${index + 1}`} className='w-full h-32 object-cover rounded-lg' src={photo} />
                     ) : (
                       <div className='w-full h-32 flex items-center justify-center text-white/60'>
                         <span className='material-symbols-outlined text-3xl'>add_photo_alternate</span>
@@ -336,13 +342,13 @@ const ProfileCreation = () => {
                     )}
                   </CardBody>
                 </Card>
-                <input type='file' accept='image/*' onChange={e => handlePhotoUpload(index, e)} className='hidden' id={`photo-${index}`} />
+                <input accept='image/*' className='hidden' id={`photo-${index}`} type='file' onChange={e => handlePhotoUpload(index, e)} />
                 <Button
                   as='label'
+                  className='absolute -bottom-2 left-1/2 transform -translate-x-1/2 cursor-pointer'
                   htmlFor={`photo-${index}`}
                   size='sm'
-                  variant='flat'
-                  className='absolute -bottom-2 left-1/2 transform -translate-x-1/2 cursor-pointer'>
+                  variant='flat'>
                   {photo ? 'Cambiar' : 'Agregar'}
                 </Button>
               </div>
@@ -353,7 +359,7 @@ const ProfileCreation = () => {
         {/* Acerca de ti */}
         <div>
           <h3 className='text-xl font-semibold text-white mb-4'>Acerca de ti</h3>
-          <Textarea placeholder='Cuéntanos algo sobre ti...' variant='bordered' minRows={4} className='text-white' />
+          <Textarea className='text-white' minRows={4} placeholder='Cuéntanos algo sobre ti...' variant='bordered' />
         </div>
 
         {/* Gustos e intereses */}
@@ -361,12 +367,12 @@ const ProfileCreation = () => {
           <h3 className='text-xl font-semibold text-white mb-4'>Gustos e intereses</h3>
           <div className='flex gap-2 mb-4 lg:max-w-2xl mx-auto'>
             <Input
+              className='flex-1'
               placeholder='Agregar interés'
               value={newInterest}
+              variant='bordered'
               onChange={e => setNewInterest(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && addInterest()}
-              variant='bordered'
-              className='flex-1'
             />
             <Button color='default' onClick={addInterest}>
               Agregar
@@ -374,7 +380,7 @@ const ProfileCreation = () => {
           </div>
           <div className='flex flex-wrap gap-2 lg:max-w-2xl mx-auto'>
             {interests.map((interest, index) => (
-              <Chip key={index} onClose={() => removeInterest(interest)} variant='flat' color='default'>
+              <Chip key={index} color='default' variant='flat' onClose={() => removeInterest(interest)}>
                 {interest}
               </Chip>
             ))}
@@ -383,7 +389,7 @@ const ProfileCreation = () => {
 
         {/* Botón de submit */}
         <div className='text-center pt-6'>
-          <Button color='default' size='lg' className='w-full max-w-md transition-all duration-300 hover:scale-105'>
+          <Button className='w-full max-w-md transition-all duration-300 hover:scale-105' color='default' size='lg'>
             Crear perfil
           </Button>
         </div>

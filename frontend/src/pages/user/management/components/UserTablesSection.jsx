@@ -6,7 +6,6 @@ import { Logger } from '@utils/logger.js'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
-
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
 import useTableActions from '@hooks/table/useTableActions.js'
@@ -144,10 +143,13 @@ const UserTablesSection = memo(() => {
   // Cargar datos cuando cambie la pestaña de usuarios seleccionada (lazy loading)
   useEffect(() => {
     const userTabs = ['active', 'pending', 'incomplete', 'unverified', 'nonApproved', 'deactivated']
+
     if (userTabs.includes(selectedUserTab)) {
       const currentUsers = usersByStatus[selectedUserTab]
+
       if (!currentUsers || currentUsers.length === 0) {
         const backendStatus = getBackendStatusName(selectedUserTab)
+
         getUsersByStatus(backendStatus, selectedUserTab, 0, DEFAULT_ROWS_PER_PAGE, '')
       }
     }
@@ -163,6 +165,7 @@ const UserTablesSection = memo(() => {
       nonApproved: 'non-approved',
       deactivated: 'deactivated'
     }
+
     return statusMap[frontendStatus] || frontendStatus
   }, [])
 
@@ -171,6 +174,7 @@ const UserTablesSection = memo(() => {
     tableType => {
       const users = usersByStatus[tableType] || []
       const pagination = usersPagination[tableType] || null
+
       return { users, pagination }
     },
     [usersByStatus, usersPagination]
@@ -252,6 +256,7 @@ const UserTablesSection = memo(() => {
     const refreshAllTables = () => {
       Object.keys(searchQueries).forEach(tableType => {
         const backendStatus = getBackendStatusName(tableType)
+
         getUsersByStatus(backendStatus, tableType, 0, DEFAULT_ROWS_PER_PAGE, searchQueries[tableType] || '')
       })
     }
@@ -263,18 +268,6 @@ const UserTablesSection = memo(() => {
   }, [searchQueries, getUsersByStatus, getBackendStatusName, getUserOverview, handleCloseModals, handleCloseAdminModals])
 
   // Funciones adicionales para gestión de usuarios
-  const handleDeactivateUser = useCallback(
-    async userId => {
-      try {
-        await deactivateUserAccount(userId, 'Desactivado por administrador')
-        handleSuccess?.('Usuario desactivado exitosamente')
-        handleOperationSuccess()
-      } catch (error) {
-        handleError?.('Error al desactivar usuario')
-      }
-    },
-    [deactivateUserAccount, handleSuccess, handleError, handleOperationSuccess]
-  )
 
   const handleReactivateUser = useCallback(
     async userId => {
@@ -282,7 +275,7 @@ const UserTablesSection = memo(() => {
         await reactivateUserAccount(userId)
         handleSuccess?.('Usuario reactivado exitosamente')
         handleOperationSuccess()
-      } catch (error) {
+      } catch {
         handleError?.('Error al reactivar usuario')
       }
     },
@@ -294,7 +287,7 @@ const UserTablesSection = memo(() => {
     if (!birthDate) return 'N/A'
     try {
       return calculateAgeFromJavaDate(birthDate)
-    } catch (error) {
+    } catch {
       return 'N/A'
     }
   }
@@ -318,16 +311,16 @@ const UserTablesSection = memo(() => {
             <div className='flex items-center gap-3'>
               {hasImage ? (
                 <Avatar
-                  radius='lg'
-                  src={hasImage}
                   alt={`${user.profile?.name || 'Usuario'}`}
                   className='w-10 h-10'
+                  radius='lg'
+                  src={hasImage}
                   onError={() => {
                     // Imagen de placeholder fallará silenciosamente
                   }}
                 />
               ) : (
-                <Avatar radius='lg' className='w-10 h-10 bg-default-100' icon={<UserIcon className='w-6 h-6 text-default-500' />} />
+                <Avatar className='w-10 h-10 bg-default-100' icon={<UserIcon className='w-6 h-6 text-default-500' />} radius='lg' />
               )}
               <div className='flex flex-col'>
                 <div className='flex items-center gap-2'>
@@ -335,7 +328,7 @@ const UserTablesSection = memo(() => {
                     {`${user.profile?.name || 'Usuario'} ${user.profile?.lastName || ''}`.trim()}
                   </p>
                   {isCurrentUser && (
-                    <Chip size='sm' color='primary' variant='flat'>
+                    <Chip color='primary' size='sm' variant='flat'>
                       Tú
                     </Chip>
                   )}
@@ -346,6 +339,7 @@ const UserTablesSection = memo(() => {
           )
         case 'age':
           const age = calculateAge(user.profile?.dateOfBirth || user.profile?.birthDate)
+
           return (
             <div className='flex flex-col items-center'>
               <span className='text-sm font-semibold text-foreground'>{age !== 'N/A' ? `${age}` : 'N/A'}</span>
@@ -370,7 +364,7 @@ const UserTablesSection = memo(() => {
           return (
             <div className='flex flex-col items-center'>
               <div className='flex items-center gap-2'>
-                <div className='w-2 h-2 rounded-full bg-primary-500'></div>
+                <div className='w-2 h-2 rounded-full bg-primary-500' />
                 <span className='text-sm font-semibold text-foreground'>
                   {user.metrics?.matchesAvailable !== undefined ? user.metrics.matchesAvailable : 'N/A'}
                 </span>
@@ -384,6 +378,7 @@ const UserTablesSection = memo(() => {
             if (percentage >= 80) return 'success'
             if (percentage >= 60) return 'warning'
             if (percentage >= 40) return 'primary'
+
             return 'danger'
           }
 
@@ -406,7 +401,7 @@ const UserTablesSection = memo(() => {
                 </div>
                 <span className='text-xs font-semibold text-foreground'>{completeness}%</span>
               </div>
-              <Chip size='sm' variant='flat' color={getColor(completeness)} className='text-xs'>
+              <Chip className='text-xs' color={getColor(completeness)} size='sm' variant='flat'>
                 {completeness >= 80 ? 'Completo' : completeness >= 60 ? 'Bueno' : completeness >= 40 ? 'Regular' : 'Incompleto'}
               </Chip>
             </div>
@@ -440,6 +435,7 @@ const UserTablesSection = memo(() => {
             GOOGLE: 'Google',
             FACEBOOK: 'Facebook'
           }
+
           return (
             <Chip className='capitalize' color={authProviderColors[user.auth?.userAuthProvider] || 'default'} size='sm' variant='flat'>
               {authProviderLabels[user.auth?.userAuthProvider] || user.auth?.userAuthProvider || 'Local'}
@@ -449,6 +445,7 @@ const UserTablesSection = memo(() => {
           const createdDate = user.status?.createdAt || user.status?.registeredAt
           const formattedDate = formatJavaDateForDisplay(createdDate)
           const daysSince = daysSinceJavaDate(createdDate)
+
           return (
             <div className='flex flex-col'>
               <p className='text-sm font-semibold text-foreground'>{formattedDate}</p>
@@ -634,6 +631,7 @@ const UserTablesSection = memo(() => {
       nonApproved: 'Buscar usuarios por nombre, email...',
       deactivated: 'Buscar usuarios por nombre, email, rol...'
     }
+
     return placeholders[tableType] || 'Buscar usuarios...'
   }, [])
 
@@ -657,6 +655,7 @@ const UserTablesSection = memo(() => {
       }))
 
       const backendStatus = getBackendStatusName(selectedUserTab)
+
       getUsersByStatus(backendStatus, selectedUserTab, 0, DEFAULT_ROWS_PER_PAGE, searchQuery).finally(() => {
         setTableLoading(prev => ({
           ...prev,
@@ -675,6 +674,7 @@ const UserTablesSection = memo(() => {
 
     const backendStatus = getBackendStatusName(selectedUserTab)
     const currentPage = currentPages[selectedUserTab] || 1
+
     getUsersByStatus(backendStatus, selectedUserTab, currentPage - 1, DEFAULT_ROWS_PER_PAGE, searchQueries[selectedUserTab] || '').finally(
       () => {
         setTableLoading(prev => ({
@@ -699,6 +699,7 @@ const UserTablesSection = memo(() => {
       }))
 
       const backendStatus = getBackendStatusName(selectedUserTab)
+
       getUsersByStatus(backendStatus, selectedUserTab, page - 1, DEFAULT_ROWS_PER_PAGE, searchQueries[selectedUserTab] || '').finally(
         () => {
           setTableLoading(prev => ({
@@ -725,6 +726,7 @@ const UserTablesSection = memo(() => {
       }))
 
       const backendStatus = getBackendStatusName(selectedUserTab)
+
       getUsersByStatus(backendStatus, selectedUserTab, 0, size, searchQueries[selectedUserTab] || '').finally(() => {
         setTableLoading(prev => ({
           ...prev,
@@ -752,30 +754,30 @@ const UserTablesSection = memo(() => {
 
       return (
         <GenericDataTable
-          data={currentUsers || []}
           columns={allColumns}
-          pagination={localPagination}
-          loading={tableLoading[userType] || loading}
-          loadingMessage='Cargando usuarios...'
-          emptyMessage={`No hay usuarios ${userType} para mostrar.`}
-          renderCell={renderCell}
-          onSearch={handleSearch}
-          onRefresh={handleRefresh}
-          onCreate={userType === 'active' ? handleOpenCreateModal : undefined}
           createButtonLabel='Crear Usuario'
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          searchPlaceholder={getSearchPlaceholder(userType)}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          showColumnSelector={true}
-          showRowsPerPage={true}
-          showCreateButton={userType === 'active'}
-          showRefreshButton={true}
-          showSearch={true}
-          showPagination={true}
+          data={currentUsers || []}
+          emptyMessage={`No hay usuarios ${userType} para mostrar.`}
           enableSelection={false}
           getItemKey={item => `user-${item.id}`}
+          loading={tableLoading[userType] || loading}
+          loadingMessage='Cargando usuarios...'
+          pagination={localPagination}
+          renderCell={renderCell}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          searchPlaceholder={getSearchPlaceholder(userType)}
+          showColumnSelector={true}
+          showCreateButton={userType === 'active'}
+          showPagination={true}
+          showRefreshButton={true}
+          showRowsPerPage={true}
+          showSearch={true}
           tableId={`user-table-${userType}`}
+          onCreate={userType === 'active' ? handleOpenCreateModal : undefined}
+          onPageChange={handlePageChange}
+          onRefresh={handleRefresh}
+          onRowsPerPageChange={handleRowsPerPageChange}
+          onSearch={handleSearch}
         />
       )
     },
@@ -797,11 +799,11 @@ const UserTablesSection = memo(() => {
   return (
     <div className='py-4'>
       <Tabs
-        selectedKey={selectedUserTab || 'active'}
-        onSelectionChange={setSelectedUserTab}
         aria-label='Gestión de usuarios'
         color='secondary'
-        variant='underlined'>
+        selectedKey={selectedUserTab || 'active'}
+        variant='underlined'
+        onSelectionChange={setSelectedUserTab}>
         {/* Usuarios Activos */}
         <Tab
           key='active'
@@ -885,52 +887,52 @@ const UserTablesSection = memo(() => {
       {isCreateModalOpen && <CreateUserForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />}
 
       {isEditModalOpen && selectedUser && (
-        <EditUserForm isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} user={selectedUser} />
+        <EditUserForm isOpen={isEditModalOpen} user={selectedUser} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />
       )}
 
       {isDeleteModalOpen && selectedUser && (
         <DeleteUserModal
           isOpen={isDeleteModalOpen}
+          userData={selectedUser}
           onClose={handleCloseModals}
           onSuccess={handleOperationSuccess}
-          userData={selectedUser}
         />
       )}
 
       {/* Modales de administración */}
       <AdminUserModals
-        isViewModalOpen={isViewModalOpen}
-        isEmailModalOpen={isEmailModalOpen}
-        isRejectModalOpen={isRejectModalOpen}
-        isDeactivateModalOpen={isDeactivateModalOpen}
         isApproveModalOpen={isApproveModalOpen}
+        isDeactivateModalOpen={isDeactivateModalOpen}
+        isEmailModalOpen={isEmailModalOpen}
         isReactivateModalOpen={isReactivateModalOpen}
-        onCloseModals={handleCloseAdminModals}
+        isRejectModalOpen={isRejectModalOpen}
+        isViewModalOpen={isViewModalOpen}
+        loading={loading}
         selectedUser={selectedAdminUser}
-        onSendEmail={async (userId, emailData) => {
-          await sendEmailToUser(userId, emailData)
-          handleSuccess('Correo enviado exitosamente')
+        onApproveUser={async userId => {
+          await approveUser(userId)
+          handleSuccess('Usuario aprobado exitosamente')
           handleOperationSuccess()
+        }}
+        onCloseModals={handleCloseAdminModals}
+        onDeactivateUser={async (userId, reason) => {
+          await deactivateUserAccount(userId, reason)
+          handleSuccess('Usuario desactivado exitosamente')
+          handleOperationSuccess()
+        }}
+        onReactivateUser={async userId => {
+          await handleReactivateUser(userId)
         }}
         onRejectUser={async (userId, reason) => {
           await rejectUser(userId, reason)
           handleSuccess('Usuario desaprobado exitosamente')
           handleOperationSuccess()
         }}
-        onDeactivateUser={async (userId, reason) => {
-          await deactivateUserAccount(userId, reason)
-          handleSuccess('Usuario desactivado exitosamente')
+        onSendEmail={async (userId, emailData) => {
+          await sendEmailToUser(userId, emailData)
+          handleSuccess('Correo enviado exitosamente')
           handleOperationSuccess()
         }}
-        onApproveUser={async userId => {
-          await approveUser(userId)
-          handleSuccess('Usuario aprobado exitosamente')
-          handleOperationSuccess()
-        }}
-        onReactivateUser={async userId => {
-          await handleReactivateUser(userId)
-        }}
-        loading={loading}
       />
     </div>
   )

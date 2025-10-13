@@ -29,6 +29,7 @@ const Body = () => {
     // Función para controlar la visibilidad del botón de scroll
     const handleScroll = () => {
       const scrollY = window.scrollY
+
       // Mostrar el botón cuando el scroll supere los 400px
       setShowScrollTop(scrollY > 400)
     }
@@ -36,6 +37,7 @@ const Body = () => {
     window.addEventListener('scroll', handleScroll)
     // Llamar handleScroll inicialmente para establecer el estado correcto
     handleScroll()
+
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -47,16 +49,19 @@ const Body = () => {
     }
 
     window.addEventListener('tour-created', handleTourCreated)
+
     return () => window.removeEventListener('tour-created', handleTourCreated)
   }, [loadAllRandomTours])
 
   // Determinar el título basado en el estado de búsqueda
   let title = 'Recomendaciones'
+
   if (isSearching) {
     if (emptyPlaces) {
       title = `No se encontraron resultados para "${searchTerm}"`
     } else {
       const resultCount = data.length
+
       title =
         resultCount === 1
           ? `Se encontró ${resultCount} tour para "${searchTerm}"`
@@ -95,7 +100,7 @@ const Body = () => {
             </div>
             {hasMoreItems && (
               <div className='flex justify-center mt-8'>
-                <Button color='primary' variant='flat' onPress={handleLoadMore} className='px-8'>
+                <Button className='px-8' color='primary' variant='flat' onPress={handleLoadMore}>
                   <Plus className='mr-2' />
                   Cargar más tours
                 </Button>
@@ -112,13 +117,13 @@ const Body = () => {
       {/* Botón flotante para volver arriba */}
       <Button
         isIconOnly
-        color='primary'
-        variant='flat'
-        onPress={scrollToTop}
+        aria-label='Volver arriba'
         className={`fixed right-[4vw] bottom-24 z-50 rounded-full shadow-lg transition-all duration-300 ${
           showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
         }`}
-        aria-label='Volver arriba'>
+        color='primary'
+        variant='flat'
+        onPress={scrollToTop}>
         <ArrowUp className='text-2xl' />
       </Button>
     </div>

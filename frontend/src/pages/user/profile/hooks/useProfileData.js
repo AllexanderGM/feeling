@@ -92,11 +92,14 @@ export const useProfileData = user => {
     const getMainImage = () => {
       // Try to get mainImage from backend first
       const mainImage = user?.profile?.mainImage
+
       if (mainImage) return mainImage
 
       // Fallback to first image in array
       const images = userHelpers.getUserImages()
+
       if (images.length === 0) return null
+
       return images[0]
     }
 
@@ -105,6 +108,7 @@ export const useProfileData = user => {
       if (!birthDate) return null
 
       let birth
+
       // Handle array format from backend [year, month, day]
       if (Array.isArray(birthDate) && birthDate.length >= 3) {
         birth = new Date(birthDate[0], birthDate[1] - 1, birthDate[2]) // month is 0-indexed in JS
@@ -119,10 +123,12 @@ export const useProfileData = user => {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
         age--
       }
+
       return age
     }
 
     const birthDate = user?.profile?.dateOfBirth || user?.birthDate || user?.dateOfBirth
+
     return {
       mainImage: getMainImage(),
       age: calculateAge(birthDate)

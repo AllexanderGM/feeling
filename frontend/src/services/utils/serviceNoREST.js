@@ -20,6 +20,7 @@ export class ServiceNoREST {
    */
   createServiceError(type, message, context = {}) {
     const error = new Error(message)
+
     error.errorType = type
     error.service = this.serviceName
     error.context = context
@@ -94,6 +95,7 @@ export class ServiceNoREST {
 
       if (rules.validator && typeof rules.validator === 'function') {
         const isValid = rules.validator(value)
+
         if (!isValid) {
           throw this.createServiceError('VALIDATION_ERROR', `Parámetro '${key}' no pasa la validación personalizada`, { key, value, rules })
         }
@@ -111,7 +113,9 @@ export class ServiceNoREST {
     try {
       this.logInfo(`Ejecutando operación: ${operationName}`)
       const result = await operation()
+
       this.logInfo(`Operación '${operationName}' completada exitosamente`)
+
       return result
     } catch (error) {
       if (error.errorType) {

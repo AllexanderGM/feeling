@@ -53,6 +53,7 @@ export const useError = (authContext = null) => {
       }
 
       const message = customMessage || error?.message || 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.'
+
       showError(message, 'Sesión expirada')
 
       // Redirigir después de un breve delay
@@ -92,6 +93,7 @@ export const useError = (authContext = null) => {
         } else {
           handleAuthError(error, customMessage)
         }
+
         return formattedError
       }
 
@@ -117,6 +119,7 @@ export const useError = (authContext = null) => {
       }
 
       const backendMessage = ErrorManager.extractBackendMessage(error)
+
       Logger.error(Logger.CATEGORIES.SYSTEM, 'error manejado', backendMessage || `Error tipo: ${errorType}`, {
         context: {
           type: errorType,
@@ -124,6 +127,7 @@ export const useError = (authContext = null) => {
           operation: error?.operation || 'desconocida'
         }
       })
+
       return formattedError
     },
     [errorContext, handleAuthError, showError]
@@ -210,6 +214,7 @@ export const useError = (authContext = null) => {
         if (showNotifications && successMessage) {
           handleSuccess(successMessage)
         }
+
         return result
       } catch (error) {
         // En caso de error (aunque esto normalmente se manejaría antes)

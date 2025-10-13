@@ -13,14 +13,14 @@ import './backgroundEffect.scss'
 const BackgroundEffect = ({ children, style = {}, className = '' }) => {
   return (
     <div className={`background-container ${className}`} style={style}>
-      <div className='top-ellipse'></div>
-      <div className='bottom-ellipse'></div>
-      <div className='light-orb-1'></div>
-      <div className='light-orb-2'></div>
-      <div className='light-orb-3'></div>
-      <div className='light-orb-4'></div>
-      <div className='light-orb-5'></div>
-      <div className='light-orb-6'></div>
+      <div className='top-ellipse' />
+      <div className='bottom-ellipse' />
+      <div className='light-orb-1' />
+      <div className='light-orb-2' />
+      <div className='light-orb-3' />
+      <div className='light-orb-4' />
+      <div className='light-orb-5' />
+      <div className='light-orb-6' />
       <div className={`content`}>{children}</div>
     </div>
   )

@@ -18,9 +18,11 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
 
     // Buscar patrones como "1 minuto", "30 segundos", etc.
     const minuteMatch = message.match(/(\d+)\s*minuto/i)
+
     if (minuteMatch) return parseInt(minuteMatch[1]) * 60
 
     const secondMatch = message.match(/(\d+)\s*segundo/i)
+
     if (secondMatch) return parseInt(secondMatch[1])
 
     // Default: 60 segundos
@@ -30,6 +32,7 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
   useEffect(() => {
     if (isOpen && errorCode === '429') {
       const waitTime = extractWaitTime(errorMessage)
+
       setCountdown(waitTime)
       setIsActive(true)
     }
@@ -43,8 +46,10 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
         setCountdown(countdown => {
           if (countdown <= 1) {
             setIsActive(false)
+
             return 0
           }
+
           return countdown - 1
         })
       }, 1000)
@@ -64,6 +69,7 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
     if (minutes > 0) {
       return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
     }
+
     return `${remainingSeconds} segundos`
   }
 
@@ -79,11 +85,7 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={canRetry ? handleClose : undefined}
-      size='2xl'
       backdrop='blur'
-      hideCloseButton={countdown > 0}
       classNames={{
         backdrop: 'bg-black/80',
         base: 'border border-gray-700/50 bg-gray-900/95 backdrop-blur-sm',
@@ -91,6 +93,8 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
         body: 'py-6',
         footer: 'border-t border-gray-700/50'
       }}
+      hideCloseButton={countdown > 0}
+      isOpen={isOpen}
       motionProps={{
         variants: {
           enter: {
@@ -110,7 +114,9 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
             }
           }
         }
-      }}>
+      }}
+      size='2xl'
+      onClose={canRetry ? handleClose : undefined}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-3 px-6 py-4'>
           <div className='flex items-center justify-center gap-3'>
@@ -152,13 +158,13 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
                   <div className='text-center'>
                     <div className='text-3xl font-bold text-orange-300 mb-2'>{formatTime(countdown)}</div>
                     <Progress
-                      value={progressValue}
-                      color='warning'
                       className='max-w-md mx-auto'
                       classNames={{
                         base: 'bg-orange-500/20',
                         indicator: 'bg-gradient-to-r from-orange-400 to-yellow-400'
                       }}
+                      color='warning'
+                      value={progressValue}
                     />
                   </div>
                 </div>
@@ -195,19 +201,19 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
 
               <ul className='space-y-2 text-sm text-blue-200'>
                 <li className='flex items-center gap-2'>
-                  <div className='w-1 h-1 bg-blue-400 rounded-full'></div>
+                  <div className='w-1 h-1 bg-blue-400 rounded-full' />
                   Espera unos segundos entre cada acción
                 </li>
                 <li className='flex items-center gap-2'>
-                  <div className='w-1 h-1 bg-blue-400 rounded-full'></div>
+                  <div className='w-1 h-1 bg-blue-400 rounded-full' />
                   Evita hacer clic múltiples veces en los botones
                 </li>
                 <li className='flex items-center gap-2'>
-                  <div className='w-1 h-1 bg-blue-400 rounded-full'></div>
+                  <div className='w-1 h-1 bg-blue-400 rounded-full' />
                   Refresca la página si experimentas problemas
                 </li>
                 <li className='flex items-center gap-2'>
-                  <div className='w-1 h-1 bg-blue-400 rounded-full'></div>
+                  <div className='w-1 h-1 bg-blue-400 rounded-full' />
                   Esta protección ayuda a mantener la estabilidad del servicio
                 </li>
               </ul>
@@ -230,21 +236,21 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
         <ModalFooter className='px-6 py-4'>
           <div className='w-full space-y-3'>
             <Button
-              color={canRetry ? 'success' : 'warning'}
-              variant={canRetry ? 'solid' : 'bordered'}
-              size='lg'
               className={`w-full font-semibold ${
                 canRetry ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-orange-500/50 text-orange-300 bg-orange-500/10'
               }`}
-              onClick={handleClose}
+              color={canRetry ? 'success' : 'warning'}
               isDisabled={!canRetry && countdown > 0}
-              startContent={canRetry ? <RefreshCw className='w-4 h-4' /> : <Clock className='w-4 h-4' />}>
+              size='lg'
+              startContent={canRetry ? <RefreshCw className='w-4 h-4' /> : <Clock className='w-4 h-4' />}
+              variant={canRetry ? 'solid' : 'bordered'}
+              onClick={handleClose}>
               {canRetry ? 'Entendido, intentar de nuevo' : `Esperar ${formatTime(countdown)}`}
             </Button>
 
             {errorTimestamp && (
               <div className='text-center'>
-                <Chip size='sm' variant='flat' className='bg-gray-700/50 text-gray-400 text-xs'>
+                <Chip className='bg-gray-700/50 text-gray-400 text-xs' size='sm' variant='flat'>
                   Error registrado:{' '}
                   {new Date(errorTimestamp).toLocaleString('es-ES', {
                     day: '2-digit',

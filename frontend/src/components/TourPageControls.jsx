@@ -1,6 +1,5 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { normalizeWords } from '@utils/normalizeWords.js'
-
 import { Search, ChevronDown } from 'lucide-react'
 
 const TourPageControls = ({
@@ -22,12 +21,6 @@ const TourPageControls = ({
           <Input
             isClearable
             className='w-full sm:max-w-[44%]'
-            placeholder='Buscar tours...'
-            startContent={<Search />}
-            value={filterValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
-            variant='underlined'
             classNames={{
               inputWrapper: [
                 'data-[focus=true]:after:bg-[#E86C6E]',
@@ -35,6 +28,12 @@ const TourPageControls = ({
                 'after:bg-[#E86C6E]'
               ]
             }}
+            placeholder='Buscar tours...'
+            startContent={<Search />}
+            value={filterValue}
+            variant='underlined'
+            onClear={onClear}
+            onValueChange={onSearchChange}
           />
           <div className='flex gap-3'>
             <Dropdown>

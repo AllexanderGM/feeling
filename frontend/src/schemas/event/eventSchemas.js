@@ -1,5 +1,4 @@
 import * as yup from 'yup'
-import { baseValidations } from '../validation/baseValidations'
 
 /**
  * ESQUEMAS DE VALIDACIÓN PARA EVENTOS
@@ -34,19 +33,23 @@ const eventValidations = {
     .test('valid-date', 'Ingresa una fecha válida', function (value) {
       if (!value) return false
       const date = new Date(value)
+
       return !isNaN(date.getTime())
     })
     .test('future-date', 'La fecha debe ser en el futuro', function (value) {
       if (!value) return false
       const eventDate = new Date(value)
       const now = new Date()
+
       return eventDate > now
     })
     .test('reasonable-future', 'La fecha no puede ser más de 2 años en el futuro', function (value) {
       if (!value) return false
       const eventDate = new Date(value)
       const twoYearsFromNow = new Date()
+
       twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
+
       return eventDate <= twoYearsFromNow
     }),
 
@@ -57,6 +60,7 @@ const eventValidations = {
     .required('El precio es requerido')
     .test('decimal-places', 'El precio no puede tener más de 2 decimales', function (value) {
       if (value === null || value === undefined) return true
+
       return Number.isInteger(value * 100)
     }),
 
@@ -81,6 +85,7 @@ const eventValidations = {
   startDate: yup.string().test('valid-date', 'Fecha de inicio inválida', function (value) {
     if (!value) return true
     const date = new Date(value)
+
     return !isNaN(date.getTime())
   }),
 
@@ -89,11 +94,14 @@ const eventValidations = {
     .test('valid-date', 'Fecha de fin inválida', function (value) {
       if (!value) return true
       const date = new Date(value)
+
       return !isNaN(date.getTime())
     })
     .test('after-start', 'La fecha de fin debe ser posterior a la de inicio', function (value) {
       const { startDate } = this.parent
+
       if (!value || !startDate) return true
+
       return new Date(value) >= new Date(startDate)
     }),
 
@@ -105,7 +113,9 @@ const eventValidations = {
     .min(0, 'El precio máximo no puede ser negativo')
     .test('greater-than-min', 'El precio máximo debe ser mayor al mínimo', function (value) {
       const { minPrice } = this.parent
+
       if (value === null || value === undefined || minPrice === null || minPrice === undefined) return true
+
       return value >= minPrice
     })
 }
@@ -233,6 +243,7 @@ export const isFreeEvent = price => {
  */
 export const formatEventPrice = price => {
   if (isFreeEvent(price)) return 'Gratis'
+
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Card, CardBody, Progress, Chip, Skeleton } from '@heroui/react'
-import { MessageCircle, Clock, AlertTriangle, CheckCircle, XCircle, TrendingUp, Users, Timer } from 'lucide-react'
+import { MessageCircle, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
 
 const ComplaintStatsCards = memo(({ stats = {}, loading = false }) => {
   if (!stats && !loading) return null
@@ -21,8 +21,6 @@ const ComplaintStatsCards = memo(({ stats = {}, loading = false }) => {
   const pendingComplaints = defaultStats.openComplaints + defaultStats.inProgressComplaints
   const resolutionRate =
     defaultStats.totalComplaints > 0 ? ((defaultStats.resolvedComplaints / defaultStats.totalComplaints) * 100).toFixed(1) : 0
-  const urgencyRate =
-    defaultStats.totalComplaints > 0 ? ((defaultStats.urgentComplaints / defaultStats.totalComplaints) * 100).toFixed(1) : 0
 
   const statsConfig = [
     {
@@ -95,7 +93,6 @@ const ComplaintStatsCards = memo(({ stats = {}, loading = false }) => {
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                 {statsConfig.map((stat, index) => {
                   const Icon = stat.icon
-                  const isHighPriority = stat.label.includes('Urgentes') || stat.label.includes('Pendientes')
 
                   return (
                     <div key={index} className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
@@ -145,18 +142,17 @@ const ComplaintStatsCards = memo(({ stats = {}, loading = false }) => {
                     <div className='text-lg font-bold text-green-400'>{resolutionRate}%</div>
                     <div className='text-xs text-gray-400'>Tasa de Resolución</div>
                     <Progress
-                      value={parseFloat(resolutionRate)}
-                      color='success'
-                      className='mt-2 max-w-full'
-                      size='sm'
                       aria-label={`Tasa de resolución: ${resolutionRate}%`}
+                      className='mt-2 max-w-full'
+                      color='success'
+                      size='sm'
+                      value={parseFloat(resolutionRate)}
                     />
                   </div>
 
                   {/* Estado general */}
                   <div className='text-center'>
                     <Chip
-                      variant='flat'
                       color={
                         defaultStats.overdueComplaints === 0 && defaultStats.urgentComplaints === 0
                           ? 'success'
@@ -164,7 +160,8 @@ const ComplaintStatsCards = memo(({ stats = {}, loading = false }) => {
                             ? 'warning'
                             : 'danger'
                       }
-                      size='sm'>
+                      size='sm'
+                      variant='flat'>
                       {defaultStats.overdueComplaints === 0 && defaultStats.urgentComplaints === 0
                         ? 'Todo al día'
                         : defaultStats.overdueComplaints <= 2 && defaultStats.urgentComplaints <= 3

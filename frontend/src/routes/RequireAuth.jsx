@@ -1,4 +1,4 @@
-import { Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@hooks'
 import LoadData from '@components/layout/LoadData'
 import { APP_PATHS } from '@constants/paths.js'
@@ -44,29 +44,29 @@ const RequireAuth = ({ children, requireVerification = true, requireCompleteProf
 
   // 1. VERIFICAR AUTENTICACIÓN BÁSICA
   if (!isAuthenticated || !user) {
-    return <Navigate to={APP_PATHS.AUTH.LOGIN} state={{ from: location }} replace />
+    return <Navigate replace state={{ from: location }} to={APP_PATHS.AUTH.LOGIN} />
   }
 
   // 2. VERIFICAR ROL ESPECÍFICO
   if (requiredRole && !checkUserRole(user, requiredRole)) {
-    return <Navigate to={APP_PATHS.ROOT} state={{ from: location }} replace />
+    return <Navigate replace state={{ from: location }} to={APP_PATHS.ROOT} />
   }
 
   // 3. REDIRIGIR ADMIN AL PANEL DE ADMIN
   if (isAdmin && location.pathname !== APP_PATHS.ADMIN.ROOT && !location.pathname.startsWith('/admin')) {
-    return <Navigate to={APP_PATHS.ADMIN.ROOT} state={{ from: location }} replace />
+    return <Navigate replace state={{ from: location }} to={APP_PATHS.ADMIN.ROOT} />
   }
 
   // 4. VERIFICACIONES PARA USUARIOS NO-ADMIN
   if (!isAdmin) {
     // Verificar email si se requiere
     if (requireVerification && !user.status?.verified) {
-      return <Navigate to={APP_PATHS.AUTH.VERIFY_EMAIL} state={{ from: location }} replace />
+      return <Navigate replace state={{ from: location }} to={APP_PATHS.AUTH.VERIFY_EMAIL} />
     }
 
     // Verificar perfil completo si se requiere
     if (requireCompleteProfile && !user.status?.profileComplete) {
-      return <Navigate to={APP_PATHS.USER.COMPLETE_PROFILE} state={{ from: location }} replace />
+      return <Navigate replace state={{ from: location }} to={APP_PATHS.USER.COMPLETE_PROFILE} />
     }
   }
 
@@ -91,7 +91,7 @@ const RequireAuth = ({ children, requireVerification = true, requireCompleteProf
  */
 export const RequireAuthOnly = ({ children }) => {
   return (
-    <RequireAuth requireVerification={false} requireCompleteProfile={false}>
+    <RequireAuth requireCompleteProfile={false} requireVerification={false}>
       {children}
     </RequireAuth>
   )
@@ -111,7 +111,7 @@ export const RequireAuthOnly = ({ children }) => {
  */
 export const RequireVerifiedUser = ({ children }) => {
   return (
-    <RequireAuth requireVerification={true} requireCompleteProfile={true}>
+    <RequireAuth requireCompleteProfile={true} requireVerification={true}>
       {children}
     </RequireAuth>
   )
@@ -131,7 +131,7 @@ export const RequireVerifiedUser = ({ children }) => {
  */
 export const RequireCompleteProfile = ({ children }) => {
   return (
-    <RequireAuth requireVerification={true} requireCompleteProfile={true}>
+    <RequireAuth requireCompleteProfile={true} requireVerification={true}>
       {children}
     </RequireAuth>
   )
@@ -151,7 +151,7 @@ export const RequireCompleteProfile = ({ children }) => {
  */
 export const RequireAdmin = ({ children }) => {
   return (
-    <RequireAuth requireVerification={false} requireCompleteProfile={false} requiredRole='admin'>
+    <RequireAuth requireCompleteProfile={false} requireVerification={false} requiredRole='admin'>
       {children}
     </RequireAuth>
   )
@@ -186,7 +186,7 @@ export const RedirectIfAuthenticated = ({ children, redirectTo = APP_PATHS.ROOT 
 
   // Si está autenticado, redirigir
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />
+    return <Navigate replace to={redirectTo} />
   }
 
   // Si no está autenticado, mostrar contenido
@@ -220,7 +220,7 @@ export const RedirectIfProfileComplete = ({ children, redirectTo = APP_PATHS.ROO
 
   // Si está autenticado, tiene perfil completo, está verificado y no es admin, redirigir
   if (isAuthenticated && user && user.status.profileComplete && user.status.verified && !isAdmin) {
-    return <Navigate to={redirectTo} replace />
+    return <Navigate replace to={redirectTo} />
   }
 
   // En cualquier otro caso, mostrar contenido

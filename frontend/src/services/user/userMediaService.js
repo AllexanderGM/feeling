@@ -33,6 +33,7 @@ class UserMediaService extends ServiceREST {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_MEDIA.UPLOAD, formData, {
         'Content-Type': 'multipart/form-data'
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -48,6 +49,7 @@ class UserMediaService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_MEDIA.MY_MEDIA)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -67,6 +69,7 @@ class UserMediaService extends ServiceREST {
       })
 
       const result = await ServiceREST.put(`${API_ENDPOINTS.USER_MEDIA.SET_MAIN}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -86,6 +89,7 @@ class UserMediaService extends ServiceREST {
       })
 
       const result = await ServiceREST.delete(`${API_ENDPOINTS.USER_MEDIA.DELETE_MY_IMAGE}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -106,6 +110,7 @@ class UserMediaService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_MEDIA.USER_MEDIA.replace('{userId}', userId)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -126,6 +131,7 @@ class UserMediaService extends ServiceREST {
 
       const url = API_ENDPOINTS.USER_MEDIA.DELETE_USER_IMAGE.replace('{userId}', userId)
       const result = await ServiceREST.delete(`${url}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -183,6 +189,7 @@ class UserMediaService extends ServiceREST {
 
     for (let file of files) {
       const validation = this.validateImage(file)
+
       if (!validation.valid) {
         return validation
       }
@@ -234,6 +241,7 @@ class UserMediaService extends ServiceREST {
           canvas.height = height
 
           const ctx = canvas.getContext('2d')
+
           ctx.drawImage(img, 0, 0, width, height)
 
           canvas.toBlob(

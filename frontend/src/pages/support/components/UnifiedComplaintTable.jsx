@@ -38,9 +38,11 @@ const UnifiedComplaintTable = memo(
         if (diffDays < 30) return `hace ${diffDays} día${diffDays > 1 ? 's' : ''}`
 
         const diffMonths = Math.floor(diffDays / 30)
+
         if (diffMonths < 12) return `hace ${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`
 
         const diffYears = Math.floor(diffDays / 365)
+
         return `hace ${diffYears} año${diffYears > 1 ? 's' : ''}`
       } catch {
         return 'Fecha inválida'
@@ -60,6 +62,7 @@ const UnifiedComplaintTable = memo(
         if (days > 0) {
           return `${days}d ${hours % 24}h`
         }
+
         return `${hours}h`
       } catch {
         return 'N/A'
@@ -83,8 +86,6 @@ const UnifiedComplaintTable = memo(
             return (
               <div className='flex items-center gap-3'>
                 <User
-                  name={complaint.user?.name || 'Usuario desconocido'}
-                  description={complaint.user?.email || 'Sin email'}
                   avatarProps={{
                     src: complaint.user?.profileImage,
                     size: 'sm'
@@ -93,6 +94,8 @@ const UnifiedComplaintTable = memo(
                     name: 'text-sm font-semibold text-foreground',
                     description: 'text-xs text-default-500'
                   }}
+                  description={complaint.user?.email || 'Sin email'}
+                  name={complaint.user?.name || 'Usuario desconocido'}
                 />
               </div>
             )
@@ -120,6 +123,7 @@ const UnifiedComplaintTable = memo(
               ABUSE_REPORT: 'danger',
               REFUND_REQUEST: 'warning'
             }
+
             return (
               <Chip className='capitalize' color={typeColors[complaint.complaintType] || 'default'} size='sm' variant='flat'>
                 {COMPLAINT_TYPES[complaint.complaintType] || complaint.complaintType}
@@ -139,7 +143,6 @@ const UnifiedComplaintTable = memo(
                 className='capitalize'
                 color={COMPLAINT_STATUS_COLORS[complaint.status]}
                 size='sm'
-                variant='flat'
                 startContent={
                   complaint.status === 'ESCALATED' ? (
                     <AlertTriangle size={12} />
@@ -148,7 +151,8 @@ const UnifiedComplaintTable = memo(
                   ) : complaint.status === 'IN_PROGRESS' ? (
                     <Clock size={12} />
                   ) : null
-                }>
+                }
+                variant='flat'>
                 {complaint.status?.replace('_', ' ').toLowerCase()}
               </Chip>
             )
@@ -171,9 +175,10 @@ const UnifiedComplaintTable = memo(
 
           case 'overdue':
             const overdueTime = formatRelativeTime(complaint.createdAt)
+
             return (
               <div className='flex flex-col'>
-                <Chip color='danger' size='sm' variant='flat' startContent={<AlertTriangle size={12} />}>
+                <Chip color='danger' size='sm' startContent={<AlertTriangle size={12} />} variant='flat'>
                   {overdueTime}
                 </Chip>
               </div>
@@ -183,8 +188,6 @@ const UnifiedComplaintTable = memo(
             return complaint.resolvedBy ? (
               <div className='flex items-center gap-3'>
                 <User
-                  name={complaint.resolvedBy.name}
-                  description={complaint.resolvedBy.email}
                   avatarProps={{
                     src: complaint.resolvedBy.profileImage,
                     size: 'sm'
@@ -193,6 +196,8 @@ const UnifiedComplaintTable = memo(
                     name: 'text-sm font-semibold text-foreground',
                     description: 'text-xs text-default-500'
                   }}
+                  description={complaint.resolvedBy.email}
+                  name={complaint.resolvedBy.name}
                 />
               </div>
             ) : (
@@ -264,6 +269,7 @@ const UnifiedComplaintTable = memo(
         resolved: 'No hay quejas resueltas',
         my: 'No tienes quejas registradas'
       }
+
       return messages[viewType] || 'No hay datos disponibles'
     }, [viewType])
 
@@ -272,16 +278,16 @@ const UnifiedComplaintTable = memo(
         <Table
           aria-label='Tabla de quejas y reclamos'
           className='min-h-[400px]'
-          removeWrapper={false}
-          isHeaderSticky={true}
-          color='primary'
-          selectionMode='none'
-          sortDescriptor={sortDescriptor}
-          onSortChange={onSort}
           classNames={{
             wrapper: 'bg-gray-800/40 backdrop-blur-sm border border-gray-700/50',
             th: 'bg-gray-700/50 border-b border-gray-600/50'
-          }}>
+          }}
+          color='primary'
+          isHeaderSticky={true}
+          removeWrapper={false}
+          selectionMode='none'
+          sortDescriptor={sortDescriptor}
+          onSortChange={onSort}>
           <TableHeader columns={columns}>
             {column => (
               <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'} allowsSorting={column.sortable}>
@@ -290,9 +296,9 @@ const UnifiedComplaintTable = memo(
             )}
           </TableHeader>
           <TableBody
+            emptyContent={emptyContent}
             items={complaints}
             loadingContent='Cargando quejas...'
-            emptyContent={emptyContent}
             loadingState={loading ? 'loading' : 'idle'}>
             {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
           </TableBody>

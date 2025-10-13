@@ -4,8 +4,8 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, 
 import { normalizeWords } from '@utils/normalizeWords.js'
 import { deleteTour } from '@services'
 import { Logger } from '@utils/logger.js'
+import { EyeIcon, PencilAltIcon as EditIcon, TrashIcon as DeleteIcon } from '@heroicons/react/outline'
 
-import { Eye, Trash2, Edit, Search, ChevronDown, Plus } from 'lucide-react'
 import CrearTourForm from './CrearTourForm.jsx'
 import EditarTourForm from './EditarTourForm.jsx'
 import TableControls from './TableControls.jsx'
@@ -144,6 +144,7 @@ const TableTours = () => {
       }
 
       const data = await response.json()
+
       Logger.info('Tours recibidos exitosamente', Logger.CATEGORIES.SERVICE, { count: Array.isArray(data) ? data.length : 0 })
 
       // Procesar los datos según la estructura real del backend
@@ -177,6 +178,7 @@ const TableTours = () => {
       if (import.meta.env.DEV) {
         try {
           const response = await fetch('/data/tours.json')
+
           if (response.ok) {
             const mockData = await response.json()
             const processedMockData = mockData.map(tour => ({
@@ -195,6 +197,7 @@ const TableTours = () => {
               hotel: tour.hotel,
               availability: tour.availability
             }))
+
             setLugares(processedMockData)
             setError('Usando datos de desarrollo (mock)')
           }
@@ -281,10 +284,10 @@ const TableTours = () => {
                 radius: 'lg',
                 src: lugar.imagenes && lugar.imagenes.length > 0 ? lugar.imagenes[0] : 'https://via.placeholder.com/150'
               }}
-              name={cellValue || 'Sin nombre'}
               description={
                 lugar.description ? (lugar.description.length > 30 ? `${lugar.description.substring(0, 30)}...` : lugar.description) : ''
               }
+              name={cellValue || 'Sin nombre'}
             />
           )
         case 'categoria':
@@ -350,24 +353,47 @@ const TableTours = () => {
           // Mostramos el destino con más detalle si está disponible
           if (lugar.destination) {
             const fullDestination = [lugar.destination.city?.name, lugar.destination.country].filter(Boolean).join(', ')
+
             return fullDestination || cellValue || 'Sin destino'
           }
+
           return cellValue || 'Sin destino'
         case 'actions':
           return (
             <div className='relative flex items-center justify-center gap-2'>
               <Tooltip content='Detalles'>
-                <Link to={`/tour/${lugar.idPaquete}`} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
+                <Link className='text-lg text-default-400 cursor-pointer active:opacity-50' to={`/tour/${lugar.idPaquete}`}>
                   <EyeIcon />
                 </Link>
               </Tooltip>
               <Tooltip content='Editar'>
-                <span onClick={() => handleOpenEditModal(lugar)} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
+                <span
+                  aria-label='Editar tour'
+                  className='text-lg text-default-400 cursor-pointer active:opacity-50'
+                  role='button'
+                  tabIndex={0}
+                  onClick={() => handleOpenEditModal(lugar)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleOpenEditModal(lugar)
+                    }
+                  }}>
                   <EditIcon />
                 </span>
               </Tooltip>
               <Tooltip color='danger' content='Eliminar'>
-                <span className='text-lg text-danger cursor-pointer active:opacity-50' onClick={() => handleOpenDeleteModal(lugar)}>
+                <span
+                  className='text-lg text-danger cursor-pointer active:opacity-50'
+                  role='button'
+                  tabIndex={0}
+                  onClick={() => handleOpenDeleteModal(lugar)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleOpenDeleteModal(lugar)
+                    }
+                  }}>
                   <DeleteIcon />
                 </span>
               </Tooltip>
@@ -412,10 +438,6 @@ const TableTours = () => {
     setPage(1)
   }, [])
 
-  const handleRefresh = useCallback(() => {
-    fetchLugares()
-  }, [fetchLugares])
-
   const handleOpenCreateModal = useCallback(() => {
     setIsCreateModalOpen(true)
   }, [])
@@ -435,13 +457,13 @@ const TableTours = () => {
   const bottomContent = useMemo(() => {
     return (
       <TablePagination
-        selectedKeys={selectedKeys}
         filteredItemsLength={filteredItems.length}
         page={page}
         pages={pages}
-        onPreviousPage={onPreviousPage}
+        selectedKeys={selectedKeys}
         onNextPage={onNextPage}
         onPageChange={setPage}
+        onPreviousPage={onPreviousPage}
       />
     )
   }, [selectedKeys, filteredItems.length, page, pages, onPreviousPage, onNextPage])
@@ -449,20 +471,20 @@ const TableTours = () => {
   const topContent = useMemo(() => {
     return (
       <TableControls
-        filterValue={filterValue}
-        onClear={onClear}
-        onSearchChange={onSearchChange}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        statusOptions={statusOptions}
-        visibleColumns={visibleColumns}
-        setVisibleColumns={setVisibleColumns}
-        onCreateTour={handleOpenCreateModal}
-        loading={loading}
         error={error}
-        totalItems={lugares.length}
+        filterValue={filterValue}
+        loading={loading}
         rowsPerPage={rowsPerPage}
+        setStatusFilter={setStatusFilter}
+        setVisibleColumns={setVisibleColumns}
+        statusFilter={statusFilter}
+        statusOptions={statusOptions}
+        totalItems={lugares.length}
+        visibleColumns={visibleColumns}
+        onClear={onClear}
+        onCreateTour={handleOpenCreateModal}
         onRowsPerPageChange={onRowsPerPageChange}
+        onSearchChange={onSearchChange}
       />
     )
   }, [
@@ -487,9 +509,9 @@ const TableTours = () => {
       <Table
         isHeaderSticky
         aria-label='Tours Table'
-        className='w-full max-w-6xl mt-6'
         bottomContent={bottomContent}
         bottomContentPlacement='outside'
+        className='w-full max-w-6xl mt-6'
         selectedKeys={selectedKeys}
         selectionMode='multiple'
         sortDescriptor={sortDescriptor}
@@ -505,8 +527,8 @@ const TableTours = () => {
           )}
         </TableHeader>
         <TableBody
-          items={sortedItems}
           emptyContent={loading ? 'Cargando...' : error ? `Error: ${error}` : 'No se encontraron paquetes'}
+          items={sortedItems}
           loadingContent={<div>Cargando tours...</div>}
           loadingState={loading ? 'loading' : 'idle'}>
           {item => (
@@ -522,15 +544,15 @@ const TableTours = () => {
 
       {/* Modal para editar tour */}
       {editingTour && (
-        <EditarTourForm isOpen={isEditModalOpen} onClose={handleCloseEditModal} onSuccess={handleTourUpdated} tourData={editingTour} />
+        <EditarTourForm isOpen={isEditModalOpen} tourData={editingTour} onClose={handleCloseEditModal} onSuccess={handleTourUpdated} />
       )}
       <DeleteTourModal
+        error={deleteError}
+        isLoading={deleteLoading}
         isOpen={isDeleteModalOpen}
+        tourData={tourToDelete}
         onClose={handleCloseDeleteModal}
         onConfirm={handleConfirmDelete}
-        tourData={tourToDelete}
-        isLoading={deleteLoading}
-        error={deleteError}
       />
     </>
   )

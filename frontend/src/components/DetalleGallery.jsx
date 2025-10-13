@@ -1,12 +1,9 @@
 import LightGallery from 'lightgallery/react'
 import lgThumbnail from 'lightgallery/plugins/thumbnail'
 import lgZoom from 'lightgallery/plugins/zoom'
-
 import 'lightgallery/css/lightgallery.css'
 import 'lightgallery/css/lg-zoom.css'
 import 'lightgallery/css/lg-thumbnail.css'
-
-// Estilos personalizados para LightGallery
 import './DetalleGallery.scss'
 import { Logger } from '@utils/logger.js'
 
@@ -35,6 +32,7 @@ const DetalleGallery = ({ tour }) => {
     if (imageCount === 0 || validTourImages.length === 0) {
       return [defaultImages[0]]
     }
+
     return validTourImages
   }
 
@@ -122,13 +120,16 @@ const DetalleGallery = ({ tour }) => {
         }
       case 4: {
         const styles = { ...baseStyle }
+
         if (index === 2) styles.borderBottomLeftRadius = '0.75rem'
         if (index === 3) styles.borderBottomRightRadius = '0.75rem'
+
         return styles
       }
       case 5:
       default: {
         const defaultStyles = { ...baseStyle }
+
         if (index === 0) {
           return {
             ...defaultStyles,
@@ -137,6 +138,7 @@ const DetalleGallery = ({ tour }) => {
           }
         }
         if (index === 4) defaultStyles.borderBottomRightRadius = '0.75rem'
+
         return defaultStyles
       }
     }
@@ -156,6 +158,7 @@ const DetalleGallery = ({ tour }) => {
   // Clases específicas para cada layout de grid
   const getLayoutClass = (index, total) => {
     let classes = ''
+
     switch (total) {
       case 3:
         if (index === 0) classes += ' col-span-1 row-span-2'
@@ -166,12 +169,13 @@ const DetalleGallery = ({ tour }) => {
       default:
         break
     }
+
     return classes
   }
 
   return (
     <div className='mb-10'>
-      <LightGallery speed={500} plugins={[lgThumbnail, lgZoom]} elementClassNames={`grid gap-1 ${getGridClasses()} ${getHeightClass()}`}>
+      <LightGallery elementClassNames={`grid gap-1 ${getGridClasses()} ${getHeightClass()}`} plugins={[lgThumbnail, lgZoom]} speed={500}>
         {galleryItems.map((src, index) => (
           <a
             key={index}

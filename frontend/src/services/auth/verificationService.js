@@ -24,6 +24,7 @@ class VerificationService extends ServiceREST {
         email,
         code
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -36,6 +37,7 @@ class VerificationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.VERIFICATION.RESEND_CODE, { email })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -52,6 +54,7 @@ class VerificationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.VERIFICATION.CHECK_EMAIL}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -64,6 +67,7 @@ class VerificationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.VERIFICATION.STATUS}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -78,6 +82,7 @@ class VerificationService extends ServiceREST {
       const result = await ServiceREST.get(
         `${API_ENDPOINTS.VERIFICATION.VALIDATE_CODE}?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`
       )
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -102,6 +107,7 @@ class VerificationService extends ServiceREST {
           }
         }
       )
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

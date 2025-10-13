@@ -32,12 +32,14 @@ const ManagementTablesSection = memo(({ managementCounts, onManagementCountsUpda
       // Verificar cache y prevenir llamadas innecesarias
       if (!forceRefresh && dataCache.managementCountsLoaded) {
         Logger.info('ManagementCounts already loaded from cache, skipping', { category: Logger.CATEGORIES.USER })
+
         return
       }
 
       // Prevenir llamadas concurrentes
       if (loadingCounts.managementCounts) {
         Logger.info('loadManagementCounts already in progress, skipping', { category: Logger.CATEGORIES.USER })
+
         return
       }
 
@@ -101,11 +103,11 @@ const ManagementTablesSection = memo(({ managementCounts, onManagementCountsUpda
   return (
     <div className='py-4'>
       <Tabs
-        selectedKey={selectedManagementTab || 'attributes'}
-        onSelectionChange={setSelectedManagementTab}
         aria-label='Gestión de datos'
         color='secondary'
-        variant='underlined'>
+        selectedKey={selectedManagementTab || 'attributes'}
+        variant='underlined'
+        onSelectionChange={setSelectedManagementTab}>
         {/* Atributos */}
         <Tab
           key='attributes'

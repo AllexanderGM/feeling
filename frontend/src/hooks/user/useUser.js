@@ -1,14 +1,15 @@
 import { useCallback, useState, useContext } from 'react'
 import { userService, matchService } from '@services'
 import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField } from '@schemas'
-
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
+import { Logger } from '@utils/logger'
 
 const useUser = () => {
   const context = useContext(AuthContext)
+
   if (!context) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
 
   const { user, updateUser } = context
@@ -40,7 +41,9 @@ const useUser = () => {
   const getCurrentUser = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userService.getCurrentUser(), 'obtener usuario actual')
+
       updateUser(result.data)
+
       return handleApiResponse(result, 'Usuario obtenido correctamente.', { showNotifications })
     },
     [withLoading, updateUser, handleApiResponse]
@@ -94,16 +97,18 @@ const useUser = () => {
   const fetchUserSuggestions = useCallback(
     async (page = 0, size = 4, showNotifications = false) => {
       const result = await withLoading(async () => {
-        console.log('🌐 Calling userService.getUserSuggestions with page:', page, 'size:', size)
+        Logger.log('🌍 Fetching user suggestions - page:', page, 'size:', size)
         const response = await userService.getUserSuggestions(page, size)
-        console.log('📡 API Response received:', response)
+
+        Logger.log('📡 API Response received:', response)
 
         // Manejar respuesta paginada
         if (response.content && Array.isArray(response.content)) {
-          console.log('📄 Processing paginated response with', response.content.length, 'users')
+          Logger.log('📄 Processing paginated response with', response.content.length, 'users')
           // Usar directamente la estructura estándar del proyecto
           const suggestions = response.content
-          console.log('📋 Final suggestions to set:', suggestions)
+
+          Logger.log('📋 Final suggestions to set:', suggestions)
 
           setSuggestions(suggestions)
           setSuggestionsPagination({
@@ -114,10 +119,12 @@ const useUser = () => {
             hasNext: !response.last,
             hasPrevious: !response.first
           })
+
           return suggestions
         } else {
           // Fallback para respuesta no paginada
           const suggestions = Array.isArray(response) ? response : [response].filter(Boolean)
+
           setSuggestions(suggestions)
           setSuggestionsPagination({
             page: 0,
@@ -127,6 +134,7 @@ const useUser = () => {
             hasNext: false,
             hasPrevious: false
           })
+
           return suggestions
         }
       }, 'obtener sugerencias')
@@ -143,7 +151,9 @@ const useUser = () => {
     async (profileData, profileImages = null, showNotifications = true) => {
       const result = await withSubmitting(async () => {
         const updatedProfile = await userService.updateCurrentProfile(profileData, profileImages)
+
         updateUser(updatedProfile)
+
         return updatedProfile
       }, 'actualizar perfil')
 
@@ -208,6 +218,7 @@ const useUser = () => {
     async (email, showNotifications = true) => {
       const result = await withLoading(async () => {
         const userData = await userService.getUserByEmail(email)
+
         return userData
       }, 'obtener usuario por email')
 
@@ -431,11 +442,13 @@ const useUser = () => {
 
     const requiredComplete = requiredFields.filter(field => {
       const value = user[field]
+
       return isSpecialField(field, value)
     }).length
 
     const optionalComplete = optionalFields.filter(field => {
       const value = user[field]
+
       return isSpecialField(field, value)
     }).length
 

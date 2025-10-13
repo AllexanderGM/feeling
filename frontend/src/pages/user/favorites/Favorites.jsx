@@ -19,7 +19,6 @@ import {
 } from '@heroui/react'
 import {
   Heart,
-  HeartOff,
   MessageCircle,
   MapPin,
   Calendar,
@@ -39,10 +38,7 @@ import {
   Send
 } from 'lucide-react'
 import { Logger } from '@utils/logger.js'
-
-// Hooks
 import { useAuth, useUserInterests } from '@hooks'
-
 // Components
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
@@ -51,7 +47,7 @@ import UserCard from '@components/ui/UserCard.jsx'
 
 const Favorites = () => {
   const { user, loading: authLoading } = useAuth()
-  const { getInterestByEnum, loading: interestLoading } = useUserInterests()
+  const { loading: interestLoading } = useUserInterests()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('dateAdded')
@@ -155,6 +151,7 @@ const Favorites = () => {
     // Filtro por búsqueda
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
+
       filtered = filtered.filter(
         fav =>
           fav.name.toLowerCase().includes(searchLower) ||
@@ -227,6 +224,7 @@ const Favorites = () => {
     if (diffInDays === 1) return 'Ayer'
     if (diffInDays < 7) return `Hace ${diffInDays} días`
     if (diffInDays < 30) return `Hace ${Math.floor(diffInDays / 7)} sem`
+
     return `Hace ${Math.floor(diffInDays / 30)} meses`
   }
 
@@ -267,7 +265,7 @@ const Favorites = () => {
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de favoritos'>
+    <LiteContainer ariaLabel='Página de favoritos' className='gap-4'>
       {/* Header de favoritos */}
       <div className='w-full bg-gradient-to-br from-pink-900/20 via-red-800/10 to-purple-900/20 backdrop-blur-sm rounded-xl border border-pink-700/50 p-4 sm:p-6'>
         <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-between gap-4'>
@@ -305,14 +303,14 @@ const Favorites = () => {
         <div className='mt-4 flex flex-col sm:flex-row gap-3'>
           <div className='flex-1'>
             <Input
-              placeholder='Buscar en favoritos...'
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              startContent={<Search className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 backdrop-blur-sm border-gray-600'
               }}
+              placeholder='Buscar en favoritos...'
+              startContent={<Search className='w-4 h-4 text-gray-400' />}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
 
@@ -321,19 +319,19 @@ const Favorites = () => {
             <Dropdown>
               <DropdownTrigger>
                 <Button
-                  variant='bordered'
+                  className='border-gray-600 text-gray-300 hover:bg-gray-700/30'
                   startContent={<Filter className='w-4 h-4' />}
-                  className='border-gray-600 text-gray-300 hover:bg-gray-700/30'>
+                  variant='bordered'>
                   Categoría
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                selectedKeys={[filterCategory]}
-                onSelectionChange={keys => setFilterCategory(Array.from(keys)[0])}
-                selectionMode='single'
                 classNames={{
                   base: 'bg-gray-800 border-gray-600'
-                }}>
+                }}
+                selectedKeys={[filterCategory]}
+                selectionMode='single'
+                onSelectionChange={keys => setFilterCategory(Array.from(keys)[0])}>
                 {categoryOptions.map(option => (
                   <DropdownItem key={option.value} className='text-gray-200 hover:bg-gray-700'>
                     {option.label}
@@ -346,9 +344,9 @@ const Favorites = () => {
             <Dropdown>
               <DropdownTrigger>
                 <Button
-                  variant='bordered'
+                  className='border-gray-600 text-gray-300 hover:bg-gray-700/30'
                   startContent={sortOrder === 'asc' ? <SortAsc className='w-4 h-4' /> : <SortDesc className='w-4 h-4' />}
-                  className='border-gray-600 text-gray-300 hover:bg-gray-700/30'>
+                  variant='bordered'>
                   Ordenar
                 </Button>
               </DropdownTrigger>
@@ -363,9 +361,9 @@ const Favorites = () => {
                 ))}
                 <DropdownItem className='border-t border-gray-600 mt-2 pt-2'>
                   <Button
+                    className='w-full justify-start text-gray-300'
                     size='sm'
                     variant='light'
-                    className='w-full justify-start text-gray-300'
                     onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
                     {sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
                   </Button>
@@ -377,19 +375,19 @@ const Favorites = () => {
             <div className='flex items-center rounded-lg border border-gray-600 overflow-hidden'>
               <Button
                 isIconOnly
+                className={viewMode === 'grid' ? '' : 'text-gray-400'}
+                color={viewMode === 'grid' ? 'primary' : 'default'}
                 size='sm'
                 variant={viewMode === 'grid' ? 'solid' : 'light'}
-                color={viewMode === 'grid' ? 'primary' : 'default'}
-                className={viewMode === 'grid' ? '' : 'text-gray-400'}
                 onPress={() => setViewMode('grid')}>
                 <Grid3X3 className='w-4 h-4' />
               </Button>
               <Button
                 isIconOnly
+                className={viewMode === 'list' ? '' : 'text-gray-400'}
+                color={viewMode === 'list' ? 'primary' : 'default'}
                 size='sm'
                 variant={viewMode === 'list' ? 'solid' : 'light'}
-                color={viewMode === 'list' ? 'primary' : 'default'}
-                className={viewMode === 'list' ? '' : 'text-gray-400'}
                 onPress={() => setViewMode('list')}>
                 <List className='w-4 h-4' />
               </Button>
@@ -409,8 +407,8 @@ const Favorites = () => {
                   <h3 className='text-lg font-medium text-gray-400 mb-2'>No se encontraron favoritos</h3>
                   <p className='text-gray-500 mb-4'>Intenta ajustar los filtros o términos de búsqueda</p>
                   <Button
-                    variant='bordered'
                     className='border-gray-600 text-gray-300'
+                    variant='bordered'
                     onPress={() => {
                       setSearchTerm('')
                       setFilterCategory('all')
@@ -424,9 +422,9 @@ const Favorites = () => {
                   <h3 className='text-lg font-medium text-gray-400 mb-2'>¡Aún no tienes favoritos!</h3>
                   <p className='text-gray-500 mb-4'>Guarda perfiles que te interesen para encontrarlos fácilmente aquí</p>
                   <Button
+                    className='bg-gradient-to-r from-primary-500 to-purple-500'
                     color='primary'
-                    startContent={<Users className='w-4 h-4' />}
-                    className='bg-gradient-to-r from-primary-500 to-purple-500'>
+                    startContent={<Users className='w-4 h-4' />}>
                     Explorar Perfiles
                   </Button>
                 </>
@@ -440,19 +438,19 @@ const Favorites = () => {
                   {filteredFavorites.map(favorite => (
                     <UserCard
                       key={favorite.id}
+                      isFavorite={true}
+                      showCompatibility={true}
+                      showDistance={true}
+                      showLastActivity={true}
                       user={{
                         ...favorite,
                         interests: favorite.commonInterests,
                         lastActivity: favorite.dateAdded
                       }}
                       variant='default'
-                      onViewProfile={handleViewProfile}
                       onMessage={handleSendMessage}
                       onToggleFavorite={handleRemoveFromFavorites}
-                      isFavorite={true}
-                      showCompatibility={true}
-                      showDistance={true}
-                      showLastActivity={true}
+                      onViewProfile={handleViewProfile}
                     />
                   ))}
                 </div>
@@ -464,19 +462,19 @@ const Favorites = () => {
                   {filteredFavorites.map(favorite => (
                     <UserCard
                       key={favorite.id}
+                      isFavorite={true}
+                      showCompatibility={true}
+                      showDistance={true}
+                      showLastActivity={true}
                       user={{
                         ...favorite,
                         interests: favorite.commonInterests,
                         lastActivity: favorite.dateAdded
                       }}
                       variant='compact'
-                      onViewProfile={handleViewProfile}
                       onMessage={handleSendMessage}
                       onToggleFavorite={handleRemoveFromFavorites}
-                      isFavorite={true}
-                      showCompatibility={true}
-                      showDistance={true}
-                      showLastActivity={true}
+                      onViewProfile={handleViewProfile}
                     />
                   ))}
                 </div>
@@ -488,15 +486,15 @@ const Favorites = () => {
 
       {/* Modal de perfil detallado */}
       <Modal
-        isOpen={isProfileOpen}
-        onOpenChange={onProfileOpenChange}
-        size='3xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isProfileOpen}
+        size='3xl'
+        onOpenChange={onProfileOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -504,7 +502,7 @@ const Favorites = () => {
                 {selectedProfile && (
                   <div className='flex items-center gap-3'>
                     <div className='relative'>
-                      <Avatar src={selectedProfile.image} alt={selectedProfile.name} className='w-16 h-16' />
+                      <Avatar alt={selectedProfile.name} className='w-16 h-16' src={selectedProfile.image} />
                       {selectedProfile.isOnline && (
                         <div className='absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-gray-900 rounded-full' />
                       )}
@@ -515,10 +513,10 @@ const Favorites = () => {
                         {selectedProfile.age} años • {selectedProfile.location}
                       </p>
                       <div className='flex items-center gap-2 mt-1'>
-                        <Chip color='danger' variant='flat' size='sm'>
+                        <Chip color='danger' size='sm' variant='flat'>
                           {selectedProfile.compatibility}% match
                         </Chip>
-                        <Chip color={selectedProfile.isOnline ? 'success' : 'default'} variant='flat' size='sm'>
+                        <Chip color={selectedProfile.isOnline ? 'success' : 'default'} size='sm' variant='flat'>
                           {selectedProfile.isOnline ? 'En línea' : 'Desconectado'}
                         </Chip>
                       </div>
@@ -567,9 +565,9 @@ const Favorites = () => {
                           {selectedProfile.photos.slice(0, 4).map((photo, index) => (
                             <div key={index} className='aspect-square rounded-lg overflow-hidden'>
                               <img
-                                src={photo}
                                 alt={`Foto ${index + 1}`}
                                 className='w-full h-full object-cover hover:scale-105 transition-transform'
+                                src={photo}
                               />
                             </div>
                           ))}
@@ -582,7 +580,7 @@ const Favorites = () => {
                       <h4 className='font-semibold text-gray-200 mb-3'>Intereses en común</h4>
                       <div className='flex flex-wrap gap-2'>
                         {selectedProfile.commonInterests.map((interest, index) => (
-                          <Chip key={index} size='sm' variant='flat' color='primary' className='bg-primary-500/20 text-primary-300'>
+                          <Chip key={index} className='bg-primary-500/20 text-primary-300' color='primary' size='sm' variant='flat'>
                             {interest}
                           </Chip>
                         ))}
@@ -594,8 +592,8 @@ const Favorites = () => {
               <ModalFooter>
                 <Button
                   color='danger'
-                  variant='flat'
                   startContent={<Trash2 className='w-4 h-4' />}
+                  variant='flat'
                   onPress={() => {
                     handleRemoveFromFavorites(selectedProfile.id)
                     onClose()

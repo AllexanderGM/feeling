@@ -41,16 +41,18 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
       // Si ya se cargó y no es un refresh forzado, no volver a cargar
       if (hasLoaded && !forceRefresh) {
         Logger.info('Analytics already loaded, skipping', { category: Logger.CATEGORIES.USER })
+
         return
       }
 
       setLoading(true)
       try {
         const data = await userAnalyticsService.getCompleteAnalytics()
+
         setAnalytics(data)
         setHasLoaded(true)
-      } catch (error) {
-        Logger.error(Logger.CATEGORIES.SERVICE, 'load_user_analytics', 'Error loading analytics admin', { error })
+      } catch {
+        Logger.error(Logger.CATEGORIES.SERVICE, 'load_user_analytics', 'Error loading analytics admin')
         onError?.('Error al cargar analíticas')
       } finally {
         setLoading(false)
@@ -65,7 +67,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
     try {
       await loadAnalytics(true) // Forzar refresh
       onSuccess?.('Analíticas actualizadas')
-    } catch (error) {
+    } catch {
       onError?.('Error al actualizar analíticas')
     } finally {
       setRefreshing(false)
@@ -101,12 +103,12 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
             </div>
             <div className='flex gap-2'>
               <Button
-                size='sm'
-                variant='bordered'
                 className='border-gray-600 text-gray-300'
+                isLoading={refreshing}
+                size='sm'
                 startContent={<RefreshCw className='h-4 w-4' />}
-                onPress={handleRefresh}
-                isLoading={refreshing}>
+                variant='bordered'
+                onPress={handleRefresh}>
                 Actualizar
               </Button>
             </div>
@@ -213,18 +215,18 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                       <IconComponent className='w-4 h-4 text-gray-400' />
                       <span className='text-sm font-medium text-gray-300'>{status.label}</span>
                     </div>
-                    <Chip size='sm' color={status.color} variant='flat' className='text-xs'>
+                    <Chip className='text-xs' color={status.color} size='sm' variant='flat'>
                       {value}
                     </Chip>
                   </div>
                   <Progress
-                    value={percentage}
-                    color={status.color}
-                    size='sm'
-                    showValueLabel={true}
-                    formatOptions={{ style: 'percent', maximumFractionDigits: 1 }}
                     aria-label={`${status.label}: ${percentage.toFixed(1)}%`}
                     className='w-full'
+                    color={status.color}
+                    formatOptions={{ style: 'percent', maximumFractionDigits: 1 }}
+                    showValueLabel={true}
+                    size='sm'
+                    value={percentage}
                   />
                 </div>
               )
@@ -258,6 +260,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                     .map(([countryName, count], index) => {
                       const totalUsers = analytics.userMetrics?.userTabsCount?.total || 1
                       const percentage = (count / totalUsers) * 100
+
                       return (
                         <div key={countryName} className='flex items-center justify-between p-3 bg-gray-700/30 rounded-lg'>
                           <div className='flex items-center gap-3'>
@@ -269,11 +272,11 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                           <div className='flex items-center gap-3'>
                             <span className='text-sm font-bold text-gray-200'>{count}</span>
                             <Progress
-                              value={percentage}
-                              size='sm'
+                              aria-label={`${countryName}: ${count} usuarios`}
                               className='w-20'
                               color='primary'
-                              aria-label={`${countryName}: ${count} usuarios`}
+                              size='sm'
+                              value={percentage}
                             />
                           </div>
                         </div>
@@ -299,6 +302,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                     .map(([cityName, count], index) => {
                       const totalUsers = analytics.userMetrics?.userTabsCount?.total || 1
                       const percentage = (count / totalUsers) * 100
+
                       return (
                         <div key={cityName} className='flex items-center justify-between p-3 bg-gray-700/30 rounded-lg'>
                           <div className='flex items-center gap-3'>
@@ -310,11 +314,11 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                           <div className='flex items-center gap-3'>
                             <span className='text-sm font-bold text-gray-200'>{count}</span>
                             <Progress
-                              value={percentage}
-                              size='sm'
+                              aria-label={`${cityName}: ${count} usuarios`}
                               className='w-20'
                               color='secondary'
-                              aria-label={`${cityName}: ${count} usuarios`}
+                              size='sm'
+                              value={percentage}
                             />
                           </div>
                         </div>
@@ -363,7 +367,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
               )}
               <div className='flex justify-between items-center'>
                 <span className='text-sm text-gray-400'>Tipos disponibles</span>
-                <Chip size='sm' color='primary' variant='flat' className='text-xs'>
+                <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                   {analytics.attributeStatistics?.availableTypes?.length || 0}
                 </Chip>
               </div>
@@ -386,7 +390,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                             .join(' ')
 
                           return (
-                            <Chip key={type} size='sm' color='warning' variant='flat' className='text-xs'>
+                            <Chip key={type} className='text-xs' color='warning' size='sm' variant='flat'>
                               {typeLabel} ({count})
                             </Chip>
                           )
@@ -444,18 +448,18 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                 <p className='text-xs text-gray-500 font-medium'>Categorías principales:</p>
                 <div className='flex flex-wrap gap-1'>
                   {analytics.interestsStatistics?.topCategories?.slice(0, 3).map((category, index) => (
-                    <Chip key={index} size='sm' color='danger' variant='flat' className='text-xs'>
+                    <Chip key={index} className='text-xs' color='danger' size='sm' variant='flat'>
                       {category}
                     </Chip>
                   )) || (
                     <div className='flex flex-wrap gap-1'>
-                      <Chip size='sm' color='danger' variant='flat' className='text-xs'>
+                      <Chip className='text-xs' color='danger' size='sm' variant='flat'>
                         Essence
                       </Chip>
-                      <Chip size='sm' color='danger' variant='flat' className='text-xs'>
+                      <Chip className='text-xs' color='danger' size='sm' variant='flat'>
                         Rouse
                       </Chip>
-                      <Chip size='sm' color='danger' variant='flat' className='text-xs'>
+                      <Chip className='text-xs' color='danger' size='sm' variant='flat'>
                         Spirit
                       </Chip>
                     </div>
@@ -474,19 +478,19 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
                 </div>
                 <div className='space-y-1 text-xs text-gray-500 ml-6'>
                   <div className='flex items-center gap-1'>
-                    <div className='w-1 h-1 bg-pink-400 rounded-full'></div>
+                    <div className='w-1 h-1 bg-pink-400 rounded-full' />
                     <span>Distribución detallada por categoría</span>
                   </div>
                   <div className='flex items-center gap-1'>
-                    <div className='w-1 h-1 bg-pink-400 rounded-full'></div>
+                    <div className='w-1 h-1 bg-pink-400 rounded-full' />
                     <span>Tendencias de crecimiento</span>
                   </div>
                   <div className='flex items-center gap-1'>
-                    <div className='w-1 h-1 bg-pink-400 rounded-full'></div>
+                    <div className='w-1 h-1 bg-pink-400 rounded-full' />
                     <span>Métricas de engagement</span>
                   </div>
                   <div className='flex items-center gap-1'>
-                    <div className='w-1 h-1 bg-pink-400 rounded-full'></div>
+                    <div className='w-1 h-1 bg-pink-400 rounded-full' />
                     <span>Análisis de compatibilidad</span>
                   </div>
                 </div>
@@ -524,7 +528,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
               )}
               <div className='flex justify-between items-center'>
                 <span className='text-sm text-gray-400'>Usuarios con tags</span>
-                <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                   {analytics.tagsStatistics?.uniqueUsersWithTags || 0}
                 </Chip>
               </div>
@@ -547,16 +551,16 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
               <div className='bg-gray-700/30 rounded-lg p-3'>
                 <p className='text-xs text-gray-500 mb-2'>Tags populares:</p>
                 <div className='flex flex-wrap gap-1'>
-                  <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                     viajes
                   </Chip>
-                  <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                     música
                   </Chip>
-                  <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                     deportes
                   </Chip>
-                  <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                     cocina
                   </Chip>
                 </div>
@@ -605,13 +609,13 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
               <div className='bg-gray-700/30 rounded-lg p-3'>
                 <p className='text-xs text-gray-500 mb-2'>Próximos rankings:</p>
                 <div className='flex flex-wrap gap-1'>
-                  <Chip size='sm' color='primary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                     Más activos
                   </Chip>
-                  <Chip size='sm' color='secondary' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                     Más visitados
                   </Chip>
-                  <Chip size='sm' color='success' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='success' size='sm' variant='flat'>
                     Más matches
                   </Chip>
                 </div>
@@ -657,7 +661,7 @@ const UserAnalyticsSection = ({ onError, onSuccess }) => {
               </div>
               <div className='flex justify-between items-center'>
                 <span className='text-sm text-gray-400'>Últimos 30 días</span>
-                <Chip size='sm' color='success' variant='flat' className='text-xs'>
+                <Chip className='text-xs' color='success' size='sm' variant='flat'>
                   {analytics.userMetrics?.growthStats?.usersLast30Days || 0}
                 </Chip>
               </div>

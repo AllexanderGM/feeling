@@ -27,7 +27,7 @@ const Management = memo(() => {
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Administración de Usuarios | Feeling</title>
-        <meta name='description' content='Panel de administración completo para gestión de usuarios, atributos, categorías y tags' />
+        <meta content='Panel de administración completo para gestión de usuarios, atributos, categorías y tags' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -41,11 +41,11 @@ const Management = memo(() => {
       {/* Secciones principales */}
       <div className='flex w-full flex-col'>
         <Tabs
-          selectedKey={selectedTab}
-          onSelectionChange={setSelectedTab}
           aria-label='Administración de usuarios'
           color='primary'
-          variant='bordered'>
+          selectedKey={selectedTab}
+          variant='bordered'
+          onSelectionChange={setSelectedTab}>
           {/* SECCIÓN 1: USUARIOS */}
           <Tab
             key='users'

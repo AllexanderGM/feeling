@@ -4,6 +4,7 @@ import { registerAuthCallbacks } from '@services'
 import { getDefaultValuesForUser } from '@schemas'
 import { COOKIE_KEYS } from '@constants/cookieKeys'
 import { Logger } from '@utils/logger.js'
+
 import { useRateLimitInterceptor } from '../hooks/utils/useRateLimitInterceptor'
 
 /**
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }) => {
   // Estados del usuario obtenido de cookies al inicializar
   const [user, setUser] = useState(() => {
     const userCookie = cookieHandler.get(COOKIE_KEYS.USER)
+
     return userCookie ? createUserStructure(userCookie) : null
   })
 
@@ -64,11 +66,13 @@ export const AuthProvider = ({ children }) => {
       if (!token) {
         setAccessToken(null)
         cookieHandler.remove(COOKIE_KEYS.ACCESS_TOKEN)
+
         return null
       }
 
       setAccessToken(token)
       cookieHandler.set(COOKIE_KEYS.ACCESS_TOKEN, token)
+
       return token
     },
     [cookieHandler]
@@ -79,11 +83,13 @@ export const AuthProvider = ({ children }) => {
       if (!token) {
         setRefreshToken(null)
         cookieHandler.remove(COOKIE_KEYS.REFRESH_TOKEN)
+
         return null
       }
 
       setRefreshToken(token)
       cookieHandler.set(COOKIE_KEYS.REFRESH_TOKEN, token)
+
       return token
     },
     [cookieHandler]
@@ -100,6 +106,7 @@ export const AuthProvider = ({ children }) => {
     (accessTokenValue, refreshTokenValue) => {
       if (!accessTokenValue && !refreshTokenValue) {
         clearTokens()
+
         return
       }
 
@@ -118,6 +125,7 @@ export const AuthProvider = ({ children }) => {
       if (!userData) {
         setUser(null)
         cookieHandler.remove(COOKIE_KEYS.USER)
+
         return null
       }
 
@@ -162,6 +170,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(updatedUser)
       cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
+
       return updatedUser
     },
     [user, cookieHandler]
@@ -187,6 +196,7 @@ export const AuthProvider = ({ children }) => {
 
       setUser(updatedUser)
       cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
+
       return updatedUser
     },
     [user, cookieHandler]
@@ -199,6 +209,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserStatus = useCallback(
     statusData => {
       if (!user) return null
+
       return updateUserFields({ status: statusData })
     },
     [user, updateUserFields]
@@ -207,6 +218,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserProfile = useCallback(
     profileData => {
       if (!user) return null
+
       return updateUserFields({ profile: profileData })
     },
     [user, updateUserFields]
@@ -215,6 +227,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserMetrics = useCallback(
     metricsData => {
       if (!user) return null
+
       return updateUserFields({ metrics: metricsData })
     },
     [user, updateUserFields]
@@ -223,6 +236,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserPrivacy = useCallback(
     privacyData => {
       if (!user) return null
+
       return updateUserFields({ privacy: privacyData })
     },
     [user, updateUserFields]
@@ -231,6 +245,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserNotifications = useCallback(
     notificationsData => {
       if (!user) return null
+
       return updateUserFields({ notifications: notificationsData })
     },
     [user, updateUserFields]
@@ -239,6 +254,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserAuth = useCallback(
     authData => {
       if (!user) return null
+
       return updateUserFields({ auth: authData })
     },
     [user, updateUserFields]
@@ -247,6 +263,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserAccount = useCallback(
     accountData => {
       if (!user) return null
+
       return updateUserFields({ account: accountData })
     },
     [user, updateUserFields]
@@ -255,6 +272,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserMetadata = useCallback(
     metadataData => {
       if (!user) return null
+
       return updateUserFields({ _metadata: metadataData })
     },
     [user, updateUserFields]
@@ -264,6 +282,7 @@ export const AuthProvider = ({ children }) => {
   const updateUserSections = useCallback(
     sectionsData => {
       if (!user) return null
+
       return updateUserFields(sectionsData)
     },
     [user, updateUserFields]
@@ -344,13 +363,14 @@ export const AuthProvider = ({ children }) => {
     // Escuchar eventos de actualización de token
     const handleTokenUpdate = event => {
       const { token } = event.detail
+
       if (token) {
         updateAccessToken(token)
       }
     }
 
     // Escuchar eventos de error de autenticación
-    const handleAuthError = event => {
+    const handleAuthError = () => {
       // Verificar si realmente necesitamos limpiar todo
       // Si ya no tenemos tokens, no hacer nada más
       if (!accessToken && !refreshToken) {
@@ -382,9 +402,11 @@ export const AuthProvider = ({ children }) => {
       const payload = JSON.parse(atob(token.split('.')[1]))
       const now = Date.now() / 1000
       const timeLeft = payload.exp - now
+
       return timeLeft < minutesBeforeExpiry * 60
     } catch (error) {
       Logger.warn(Logger.CATEGORIES.AUTH, 'tokenExpiration', 'Error al verificar expiración del token', { error })
+
       return true
     }
   }, [])
@@ -415,6 +437,7 @@ export const AuthProvider = ({ children }) => {
             if (refreshTokenNew) {
               updateRefreshToken(refreshTokenNew)
             }
+
             return true
           }
         } else {
@@ -422,10 +445,11 @@ export const AuthProvider = ({ children }) => {
             clearAllAuth()
           }
         }
-      } catch (error) {
+      } catch {
         clearAllAuth()
       }
     }
+
     return false
   }, [accessToken, refreshToken, isTokenExpiringSoon, updateAccessToken, clearAllAuth])
 

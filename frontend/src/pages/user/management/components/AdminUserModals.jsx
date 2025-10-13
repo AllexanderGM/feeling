@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react'
+import { useCallback, memo } from 'react'
 import {
   Modal,
   ModalContent,
@@ -6,42 +6,31 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Chip,
   Avatar,
   Input,
   Textarea,
   Select,
-  SelectItem,
-  Divider
+  SelectItem
 } from '@heroui/react'
 import {
   User,
   Mail,
-  Phone,
   MapPin,
   Calendar,
   Shield,
   Star,
-  Eye,
-  Users,
   CheckCircle,
   AlertTriangle,
   X,
   UserX,
-  Send,
-  Globe,
-  Search,
   MessageCircle,
   Lock,
   UserIcon,
-  Tags,
   Clock,
-  Check,
-  Trash2
+  Check
 } from 'lucide-react'
+import { Logger } from '@utils/logger'
 import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
 
@@ -50,7 +39,7 @@ const calculateAge = birthDate => {
   if (!birthDate) return 'N/A'
   try {
     return calculateAgeFromJavaDate(birthDate)
-  } catch (error) {
+  } catch {
     return 'N/A'
   }
 }
@@ -70,7 +59,6 @@ const AdminUserModals = memo(
     selectedUser,
 
     // Actions
-    onSendEmail,
     onRejectUser,
     onDeactivateUser,
     onApproveUser,
@@ -79,20 +67,8 @@ const AdminUserModals = memo(
     // Loading states
     loading = false
   }) => {
-    // Estados locales para los formularios
-    const [emailForm, setEmailForm] = useState({
-      subject: '',
-      message: '',
-      template: 'custom'
-    })
-
-    // Estados simplificados para confirmación
-    const [confirmationReason, setConfirmationReason] = useState('')
-
     // Reset forms when modals close
     const handleCloseModals = useCallback(() => {
-      setEmailForm({ subject: '', message: '', template: 'custom' })
-      setConfirmationReason('')
       onCloseModals()
     }, [onCloseModals])
 
@@ -143,32 +119,6 @@ const AdminUserModals = memo(
       { value: 'other', label: 'Otra razón (especificar)' }
     ]
 
-    // Handle template change
-    const handleTemplateChange = useCallback(template => {
-      setEmailForm(prev => ({
-        ...prev,
-        template,
-        subject: emailTemplates[template]?.subject || '',
-        message: emailTemplates[template]?.message || ''
-      }))
-    }, [])
-
-    // Handle form submissions
-    const handleSendEmail = useCallback(async () => {
-      if (!selectedUser || !emailForm.subject.trim() || !emailForm.message.trim()) return
-
-      try {
-        await onSendEmail(selectedUser.id, {
-          subject: emailForm.subject,
-          message: emailForm.message,
-          template: emailForm.template
-        })
-        handleCloseModals()
-      } catch (error) {
-        console.error('Error sending email:', error)
-      }
-    }, [selectedUser, emailForm, onSendEmail, handleCloseModals])
-
     const handleRejectUser = useCallback(async () => {
       if (!selectedUser) return
 
@@ -176,7 +126,7 @@ const AdminUserModals = memo(
         await onRejectUser(selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
-        console.error('Error rejecting user:', error)
+        Logger.error('AdminUserModals', 'handleRejectUser', 'Error rejecting user', error)
       }
     }, [selectedUser, genericModerationReason, onRejectUser, handleCloseModals])
 
@@ -187,7 +137,7 @@ const AdminUserModals = memo(
         await onDeactivateUser(selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
-        console.error('Error deactivating user:', error)
+        Logger.error('AdminUserModals', 'handleDeactivateUser', 'Error deactivating user', error)
       }
     }, [selectedUser, genericModerationReason, onDeactivateUser, handleCloseModals])
 
@@ -198,7 +148,7 @@ const AdminUserModals = memo(
         await onApproveUser(selectedUser.id)
         handleCloseModals()
       } catch (error) {
-        console.error('Error approving user:', error)
+        Logger.error('AdminUserModals', 'handleApproveUser', 'Error approving user', error)
       }
     }, [selectedUser, onApproveUser, handleCloseModals])
 
@@ -209,7 +159,7 @@ const AdminUserModals = memo(
         await onReactivateUser(selectedUser.id)
         handleCloseModals()
       } catch (error) {
-        console.error('Error reactivating user:', error)
+        Logger.error('AdminUserModals', 'handleReactivateUser', 'Error reactivating user', error)
       }
     }, [selectedUser, onReactivateUser, handleCloseModals])
 
@@ -219,17 +169,17 @@ const AdminUserModals = memo(
       <>
         {/* Modal para ver perfil completo del usuario */}
         <Modal
-          isOpen={isViewModalOpen}
-          onClose={handleCloseModals}
-          size='5xl'
-          scrollBehavior='inside'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700 max-h-[90vh]',
             header: 'border-b border-gray-700 flex-shrink-0',
             body: 'py-4 px-6 overflow-y-auto',
             footer: 'border-t border-gray-700 flex-shrink-0'
-          }}>
+          }}
+          isOpen={isViewModalOpen}
+          scrollBehavior='inside'
+          size='5xl'
+          onClose={handleCloseModals}>
           <ModalContent className='max-h-[90vh]'>
             <ModalHeader className='flex flex-col gap-1 pb-4'>
               <div className='flex items-center gap-3'>
@@ -250,11 +200,11 @@ const AdminUserModals = memo(
                 <div className='flex items-start gap-4'>
                   <div className='flex flex-col items-center gap-2'>
                     <Avatar
-                      src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                       className='w-16 h-16'
                       icon={<UserIcon className='w-8 h-8 text-default-500' />}
+                      src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     />
-                    <Chip size='sm' color={selectedUser.status?.active ? 'success' : 'danger'} variant='flat'>
+                    <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                       {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
                     </Chip>
                   </div>
@@ -335,7 +285,7 @@ const AdminUserModals = memo(
                     </div>
                     <div>
                       <p className='text-xs text-gray-400'>Categoría de Interés</p>
-                      <Chip size='sm' color={USER_INTEREST_COLORS[selectedUser.profile?.categoryInterest] || 'default'} variant='flat'>
+                      <Chip color={USER_INTEREST_COLORS[selectedUser.profile?.categoryInterest] || 'default'} size='sm' variant='flat'>
                         {selectedUser.profile?.categoryInterest || 'No especificado'}
                       </Chip>
                     </div>
@@ -351,19 +301,19 @@ const AdminUserModals = memo(
                   <div className='space-y-2'>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Verificado:</span>
-                      <Chip size='sm' color={selectedUser.status?.verified ? 'success' : 'danger'} variant='flat'>
+                      <Chip color={selectedUser.status?.verified ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.verified ? 'Sí' : 'No'}
                       </Chip>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Aprobado:</span>
-                      <Chip size='sm' color={selectedUser.status?.approved ? 'success' : 'warning'} variant='flat'>
+                      <Chip color={selectedUser.status?.approved ? 'success' : 'warning'} size='sm' variant='flat'>
                         {selectedUser.status?.approved ? 'Sí' : 'Pendiente'}
                       </Chip>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Rol:</span>
-                      <Chip size='sm' color={USER_ROLE_COLORS[selectedUser.status?.role] || 'default'} variant='flat'>
+                      <Chip color={USER_ROLE_COLORS[selectedUser.status?.role] || 'default'} size='sm' variant='flat'>
                         {selectedUser.status?.role || 'CLIENT'}
                       </Chip>
                     </div>
@@ -403,7 +353,7 @@ const AdminUserModals = memo(
               )}
 
               {/* Espaciado adicional al final */}
-              <div className='h-4'></div>
+              <div className='h-4' />
             </ModalBody>
             <ModalFooter className='pt-4'>
               <Button color='danger' variant='light' onPress={handleCloseModals}>
@@ -415,16 +365,16 @@ const AdminUserModals = memo(
 
         {/* Modal para enviar correo electrónico */}
         <Modal
-          isOpen={isEmailModalOpen}
-          onClose={handleCloseModals}
-          size='2xl'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isEmailModalOpen}
+          size='2xl'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -458,9 +408,9 @@ const AdminUserModals = memo(
                 </div>
                 <div className='flex items-center gap-3'>
                   <Avatar
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
@@ -468,11 +418,11 @@ const AdminUserModals = memo(
                     </p>
                     <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
-                      <Chip size='sm' color={selectedUser.status?.active ? 'success' : 'danger'} variant='flat'>
+                      <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
                       </Chip>
                       {selectedUser.status?.verified && (
-                        <Chip size='sm' color='success' variant='dot'>
+                        <Chip color='success' size='sm' variant='dot'>
                           Verificado
                         </Chip>
                       )}
@@ -484,14 +434,14 @@ const AdminUserModals = memo(
               {/* Plantillas y formulario (deshabilitados) */}
               <div className='space-y-4'>
                 <Select
-                  label='Plantilla de correo'
-                  placeholder='Selección de plantillas no disponible'
                   isDisabled
                   classNames={{
                     base: 'max-w-full',
                     trigger: 'bg-gray-800 border-gray-700 opacity-50'
-                  }}>
-                  {Object.entries(emailTemplates).map(([key, template]) => (
+                  }}
+                  label='Plantilla de correo'
+                  placeholder='Selección de plantillas no disponible'>
+                  {Object.entries(emailTemplates).map(([key]) => (
                     <SelectItem key={key} value={key}>
                       {key === 'custom'
                         ? 'Personalizado'
@@ -505,24 +455,24 @@ const AdminUserModals = memo(
                 </Select>
 
                 <Input
-                  label='Asunto'
-                  placeholder='Personalización de asunto no disponible'
                   isDisabled
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700 opacity-50'
                   }}
+                  label='Asunto'
+                  placeholder='Personalización de asunto no disponible'
                 />
 
                 <Textarea
-                  label='Mensaje'
-                  placeholder='Editor de mensaje no disponible'
                   isDisabled
-                  minRows={4}
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700 opacity-50'
                   }}
+                  label='Mensaje'
+                  minRows={4}
+                  placeholder='Editor de mensaje no disponible'
                 />
 
                 <div className='bg-gray-800 border border-gray-600 rounded-lg p-3'>
@@ -540,7 +490,7 @@ const AdminUserModals = memo(
               <Button color='default' variant='light' onPress={handleCloseModals}>
                 Cerrar
               </Button>
-              <Button color='primary' isDisabled startContent={<Lock className='w-4 h-4' />}>
+              <Button isDisabled color='primary' startContent={<Lock className='w-4 h-4' />}>
                 Enviar Correo (No disponible)
               </Button>
             </ModalFooter>
@@ -549,16 +499,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para desaprobar usuario */}
         <Modal
-          isOpen={isRejectModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isRejectModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -590,9 +540,9 @@ const AdminUserModals = memo(
               <div className='bg-gray-800 border border-gray-700 rounded-lg p-4'>
                 <div className='flex items-center gap-3'>
                   <Avatar
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                   />
                   <div>
                     <p className='text-sm font-semibold text-gray-200'>
@@ -606,13 +556,13 @@ const AdminUserModals = memo(
               {/* Motivos (deshabilitados) */}
               <div className='space-y-4'>
                 <Select
-                  label='Motivo de desaprobación'
-                  placeholder='Selección de motivos no disponible'
                   isDisabled
                   classNames={{
                     base: 'max-w-full',
                     trigger: 'bg-gray-800 border-gray-700 opacity-50'
-                  }}>
+                  }}
+                  label='Motivo de desaprobación'
+                  placeholder='Selección de motivos no disponible'>
                   {rejectReasons.map(reason => (
                     <SelectItem key={reason.value} value={reason.value}>
                       {reason.label}
@@ -633,7 +583,7 @@ const AdminUserModals = memo(
               <Button color='default' variant='light' onPress={handleCloseModals}>
                 Cancelar
               </Button>
-              <Button color='warning' onPress={handleRejectUser} isLoading={loading} startContent={<X className='w-4 h-4' />}>
+              <Button color='warning' isLoading={loading} startContent={<X className='w-4 h-4' />} onPress={handleRejectUser}>
                 Desaprobar Usuario
               </Button>
             </ModalFooter>
@@ -642,16 +592,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para desactivar usuario */}
         <Modal
-          isOpen={isDeactivateModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isDeactivateModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -695,9 +645,9 @@ const AdminUserModals = memo(
               <div className='bg-gray-800 border border-gray-700 rounded-lg p-4'>
                 <div className='flex items-center gap-3'>
                   <Avatar
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                   />
                   <div>
                     <p className='text-sm font-semibold text-gray-200'>
@@ -705,7 +655,7 @@ const AdminUserModals = memo(
                     </p>
                     <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
-                      <Chip size='sm' color={selectedUser.status?.active ? 'success' : 'danger'} variant='flat'>
+                      <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
                       </Chip>
                     </div>
@@ -716,13 +666,13 @@ const AdminUserModals = memo(
               {/* Motivos (deshabilitados) */}
               <div className='space-y-4'>
                 <Select
-                  label='Motivo de desactivación'
-                  placeholder='Selección de motivos no disponible'
                   isDisabled
                   classNames={{
                     base: 'max-w-full',
                     trigger: 'bg-gray-800 border-gray-700 opacity-50'
-                  }}>
+                  }}
+                  label='Motivo de desactivación'
+                  placeholder='Selección de motivos no disponible'>
                   {deactivateReasons.map(reason => (
                     <SelectItem key={reason.value} value={reason.value}>
                       {reason.label}
@@ -743,7 +693,7 @@ const AdminUserModals = memo(
               <Button color='default' variant='light' onPress={handleCloseModals}>
                 Cancelar
               </Button>
-              <Button color='danger' onPress={handleDeactivateUser} isLoading={loading} startContent={<UserX className='w-4 h-4' />}>
+              <Button color='danger' isLoading={loading} startContent={<UserX className='w-4 h-4' />} onPress={handleDeactivateUser}>
                 Desactivar Usuario
               </Button>
             </ModalFooter>
@@ -752,16 +702,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para aprobar usuario */}
         <Modal
-          isOpen={isApproveModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isApproveModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -797,9 +747,9 @@ const AdminUserModals = memo(
                 </div>
                 <div className='flex items-center gap-3'>
                   <Avatar
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
@@ -807,10 +757,10 @@ const AdminUserModals = memo(
                     </p>
                     <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
-                      <Chip size='sm' color={selectedUser.status?.verified ? 'success' : 'warning'} variant='flat'>
+                      <Chip color={selectedUser.status?.verified ? 'success' : 'warning'} size='sm' variant='flat'>
                         {selectedUser.status?.verified ? 'Verificado' : 'Sin verificar'}
                       </Chip>
-                      <Chip size='sm' color='warning' variant='dot'>
+                      <Chip color='warning' size='sm' variant='dot'>
                         Pendiente aprobación
                       </Chip>
                     </div>
@@ -834,7 +784,7 @@ const AdminUserModals = memo(
               <Button color='default' variant='light' onPress={handleCloseModals}>
                 Cancelar
               </Button>
-              <Button color='success' onPress={handleApproveUser} isLoading={loading} startContent={<CheckCircle className='w-4 h-4' />}>
+              <Button color='success' isLoading={loading} startContent={<CheckCircle className='w-4 h-4' />} onPress={handleApproveUser}>
                 Aprobar Usuario
               </Button>
             </ModalFooter>
@@ -843,16 +793,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para reactivar usuario */}
         <Modal
-          isOpen={isReactivateModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isReactivateModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -888,9 +838,9 @@ const AdminUserModals = memo(
                 </div>
                 <div className='flex items-center gap-3'>
                   <Avatar
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
+                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
@@ -898,11 +848,11 @@ const AdminUserModals = memo(
                     </p>
                     <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
-                      <Chip size='sm' color='danger' variant='flat'>
+                      <Chip color='danger' size='sm' variant='flat'>
                         Desactivado
                       </Chip>
                       {selectedUser.status?.verified && (
-                        <Chip size='sm' color='success' variant='dot'>
+                        <Chip color='success' size='sm' variant='dot'>
                           Verificado
                         </Chip>
                       )}
@@ -949,7 +899,7 @@ const AdminUserModals = memo(
               <Button color='default' variant='light' onPress={handleCloseModals}>
                 Cancelar
               </Button>
-              <Button color='primary' onPress={handleReactivateUser} isLoading={loading} startContent={<CheckCircle className='w-4 h-4' />}>
+              <Button color='primary' isLoading={loading} startContent={<CheckCircle className='w-4 h-4' />} onPress={handleReactivateUser}>
                 Reactivar Usuario
               </Button>
             </ModalFooter>

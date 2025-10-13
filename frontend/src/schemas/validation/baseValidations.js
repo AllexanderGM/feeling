@@ -58,11 +58,13 @@ export const baseValidations = {
     .test('valid-date', 'Ingresa una fecha válida', function (value) {
       if (!value) return false
       const date = new Date(value)
+
       return !isNaN(date.getTime())
     })
     .test('not-future', 'La fecha no puede ser futura', function (value) {
       if (!value) return false
       const date = new Date(value)
+
       return date <= new Date()
     })
     .test('age', 'Debes ser mayor de 18 años', function (value) {
@@ -75,6 +77,7 @@ export const baseValidations = {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())) {
         return age - 1 >= 18
       }
+
       return age >= 18
     }),
 
@@ -109,6 +112,7 @@ export const baseValidations = {
     .max(80, 'La edad máxima no puede ser mayor a 80 años')
     .test('min-max', 'La edad máxima debe ser mayor a la mínima', function (value) {
       const { agePreferenceMin } = this.parent
+
       return !agePreferenceMin || !value || value > agePreferenceMin
     })
     .required('Define la edad máxima'),
@@ -193,6 +197,7 @@ export const combineSchemas = (...schemas) => {
 
   schemas.forEach(schema => {
     const fields = schema.fields
+
     Object.assign(combinedFields, fields)
   })
 
@@ -211,10 +216,12 @@ export const fileValidations = {
     .mixed()
     .test('fileSize', 'La imagen no puede exceder 5MB', value => {
       if (!value) return true
+
       return value.size <= 5 * 1024 * 1024 // 5MB
     })
     .test('fileType', 'Solo se permiten imágenes JPG, PNG o WEBP', value => {
       if (!value) return true
+
       return ['image/jpeg', 'image/png', 'image/webp'].includes(value.type)
     }),
 

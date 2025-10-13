@@ -18,7 +18,9 @@ const useForm = (totalSteps, formData) => {
       if (errors[field]) {
         setErrors(prev => {
           const newErrors = { ...prev }
+
           delete newErrors[field]
+
           return newErrors
         })
       }
@@ -30,10 +32,13 @@ const useForm = (totalSteps, formData) => {
   const clearFieldErrors = useCallback(
     fields => {
       const fieldsToClean = fields.filter(field => errors[field])
+
       if (fieldsToClean.length > 0) {
         setErrors(prev => {
           const newErrors = { ...prev }
+
           fieldsToClean.forEach(field => delete newErrors[field])
+
           return newErrors
         })
       }
@@ -65,6 +70,7 @@ const useForm = (totalSteps, formData) => {
         // Scroll al primer error después de un pequeño delay
         setTimeout(() => {
           const firstError = document.querySelector('[data-invalid="true"]')
+
           if (firstError) {
             firstError.scrollIntoView({ behavior: 'smooth', block: 'center' })
           }
@@ -92,6 +98,7 @@ const useForm = (totalSteps, formData) => {
   const getStepValidationStatus = useCallback(
     (step, data = formData) => {
       const validation = validateStep(step, data)
+
       return {
         isValid: validation.isValid,
         errorCount: validation.errorCount,
@@ -111,6 +118,7 @@ const useForm = (totalSteps, formData) => {
       if (currentStep < totalSteps) {
         setCurrentStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'smooth' })
+
         return true
       }
 
@@ -123,6 +131,7 @@ const useForm = (totalSteps, formData) => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+
       return true
     }
 
@@ -139,6 +148,7 @@ const useForm = (totalSteps, formData) => {
 
       setCurrentStep(step)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+
       return true
     },
     [currentStep, totalSteps, validateCurrentStep]
@@ -163,10 +173,12 @@ const useForm = (totalSteps, formData) => {
   const isFormValid = useMemo(() => {
     for (let step = 1; step <= totalSteps; step++) {
       const validation = validateStep(step, formData)
+
       if (!validation.isValid) {
         return false
       }
     }
+
     return true
   }, [formData, totalSteps])
 
@@ -176,6 +188,7 @@ const useForm = (totalSteps, formData) => {
 
     for (let step = 1; step <= totalSteps; step++) {
       const validation = validateStep(step, formData)
+
       if (!validation.isValid) {
         errorsByStep[step] = validation.errors
       }

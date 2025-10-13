@@ -41,19 +41,19 @@ const ProfileHeader = ({
         {/* Avatar */}
         <div className='relative shrink-0'>
           <Avatar
-            src={profileData?.mainImage}
             alt={`${getUserName()} ${getUserLastName()}`}
             className='w-24 h-24 sm:w-28 sm:h-28 text-large border-2 border-gray-600'
+            src={profileData?.mainImage}
           />
           {/* Mostrar chip de categoría solo si existe */}
           {categoryInterestDetails && (
             <div className='absolute -bottom-1 -right-1 rounded-full'>
               <Chip
-                size='sm'
-                variant='flat'
-                color='primary'
                 className='bg-primary-900/90 text-primary-300 border border-primary-500/30'
-                startContent={categoryInterestDetails.icon && <span className='text-sm'>{categoryInterestDetails.icon}</span>}>
+                color='primary'
+                size='sm'
+                startContent={categoryInterestDetails.icon && <span className='text-sm'>{categoryInterestDetails.icon}</span>}
+                variant='flat'>
                 {categoryInterestDetails.name || 'Sin categoría'}
               </Chip>
             </div>
@@ -79,7 +79,7 @@ const ProfileHeader = ({
               {/* Ubicación */}
               <div className='flex items-center gap-2'>
                 {getCountryData && (
-                  <img src={getCountryData.image} alt={`Bandera de ${getCountryData.name}`} className='w-4 h-4 rounded-full object-cover' />
+                  <img alt={`Bandera de ${getCountryData.name}`} className='w-4 h-4 rounded-full object-cover' src={getCountryData.image} />
                 )}
                 <span className='truncate'>
                   {getUserCity()}, {getUserCountry()}
@@ -126,14 +126,14 @@ const ProfileHeader = ({
             <span className='text-sm font-bold text-gray-200'>{profileStats?.completionPercentage || 0}%</span>
           </div>
           <Progress
-            value={profileStats?.completionPercentage || 0}
-            className='h-2'
-            color='primary'
             aria-label={`Completitud del perfil: ${profileStats?.completionPercentage || 0}%`}
+            className='h-2'
             classNames={{
               indicator: 'bg-gradient-to-r from-primary-400 to-primary-600',
               track: 'bg-gray-700'
             }}
+            color='primary'
+            value={profileStats?.completionPercentage || 0}
           />
         </div>
 
@@ -175,19 +175,19 @@ const ProfileHeader = ({
           {/* Botones de acción */}
           <div className='flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-700/30'>
             <Button
-              size='sm'
-              variant='light'
+              aria-label='Compartir perfil'
               className='text-primary-400 hover:text-primary-300 hover:bg-primary-500/10'
+              size='sm'
               startContent={<Share2 className='w-3 h-3' />}
-              aria-label='Compartir perfil'>
+              variant='light'>
               Compartir Perfil
             </Button>
             <Button
-              size='sm'
-              variant='light'
+              aria-label='Configuración de privacidad'
               className='text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
+              size='sm'
               startContent={<Settings className='w-3 h-3' />}
-              aria-label='Configuración de privacidad'>
+              variant='light'>
               Configuración
             </Button>
           </div>
@@ -218,21 +218,21 @@ const ProfileHeader = ({
           {/* Estado del perfil */}
           <div className='flex items-center justify-center sm:justify-start gap-2 sm:gap-3 flex-wrap'>
             <Chip
-              size='sm'
+              className={`${isProfileComplete() ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}
               color={isProfileComplete() ? 'success' : 'warning'}
-              variant='flat'
+              size='sm'
               startContent={<User className='w-3 h-3' />}
-              className={`${isProfileComplete() ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}>
+              variant='flat'>
               {isProfileComplete() ? 'Perfil completo' : 'Perfil incompleto'}
             </Chip>
 
             {/* Estado de actividad */}
             <Chip
-              size='sm'
+              className='bg-primary-500/20 text-primary-300 border border-primary-500/30'
               color='primary'
-              variant='flat'
+              size='sm'
               startContent={<Activity className='w-3 h-3' />}
-              className='bg-primary-500/20 text-primary-300 border border-primary-500/30'>
+              variant='flat'>
               {isAccountActive() ? 'Activo' : 'Inactivo'}
             </Chip>
           </div>

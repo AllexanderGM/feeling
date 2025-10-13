@@ -39,6 +39,7 @@ const ContactPage = () => {
 
   const handleChange = e => {
     const { name, value } = e.target
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -75,6 +76,7 @@ const ContactPage = () => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -161,8 +163,8 @@ const ContactPage = () => {
       <Helmet>
         <title>Contacto | Glocal Tours</title>
         <meta
-          name='description'
           content='Contáctanos para obtener más información sobre nuestros tours o para resolver cualquier duda que tengas.'
+          name='description'
         />
       </Helmet>
 
@@ -187,56 +189,56 @@ const ContactPage = () => {
                 </div>
               </CardHeader>
               <CardBody>
-                <form onSubmit={handleSubmit} className='space-y-4'>
+                <form className='space-y-4' onSubmit={handleSubmit}>
                   <Input
-                    type='text'
+                    errorMessage={errors.name}
+                    isInvalid={!!errors.name}
                     label='Nombre completo'
                     name='name'
-                    value={formData.name}
-                    onChange={handleChange}
                     placeholder='Ingresa tu nombre completo'
-                    isInvalid={!!errors.name}
-                    errorMessage={errors.name}
-                    variant='bordered'
                     startContent={<User className='text-gray-400' />}
+                    type='text'
+                    value={formData.name}
+                    variant='bordered'
+                    onChange={handleChange}
                   />
 
                   <Input
-                    type='email'
+                    errorMessage={errors.email}
+                    isInvalid={!!errors.email}
                     label='Correo electrónico'
                     name='email'
-                    value={formData.email}
-                    onChange={handleChange}
                     placeholder='tucorreo@ejemplo.com'
-                    isInvalid={!!errors.email}
-                    errorMessage={errors.email}
-                    variant='bordered'
                     startContent={<Mail className='text-gray-400' />}
+                    type='email'
+                    value={formData.email}
+                    variant='bordered'
+                    onChange={handleChange}
                   />
 
                   <Input
-                    type='text'
+                    errorMessage={errors.subject}
+                    isInvalid={!!errors.subject}
                     label='Asunto'
                     name='subject'
-                    value={formData.subject}
-                    onChange={handleChange}
                     placeholder='¿Sobre qué quieres hablar?'
-                    isInvalid={!!errors.subject}
-                    errorMessage={errors.subject}
-                    variant='bordered'
                     startContent={<FileText className='text-gray-400' />}
+                    type='text'
+                    value={formData.subject}
+                    variant='bordered'
+                    onChange={handleChange}
                   />
 
                   <Textarea
-                    label='Mensaje'
-                    name='message'
-                    value={formData.message}
-                    onChange={handleChange}
-                    placeholder='Escribe tu mensaje aquí...'
-                    isInvalid={!!errors.message}
                     errorMessage={errors.message}
-                    variant='bordered'
+                    isInvalid={!!errors.message}
+                    label='Mensaje'
                     minRows={4}
+                    name='message'
+                    placeholder='Escribe tu mensaje aquí...'
+                    value={formData.message}
+                    variant='bordered'
+                    onChange={handleChange}
                   />
 
                   {submitStatus && (
@@ -251,10 +253,10 @@ const ContactPage = () => {
                     </div>
                   )}
 
-                  <Button type='submit' color='primary' className='w-full' disabled={isSubmitting} startContent={!isSubmitting && <Send />}>
+                  <Button className='w-full' color='primary' disabled={isSubmitting} startContent={!isSubmitting && <Send />} type='submit'>
                     {isSubmitting ? (
                       <>
-                        <Spinner size='sm' color='white' className='mr-2' />
+                        <Spinner className='mr-2' color='white' size='sm' />
                         Enviando...
                       </>
                     ) : (
@@ -301,51 +303,51 @@ const ContactPage = () => {
               <CardBody>
                 <div className='flex gap-4'>
                   <Button
-                    as='a'
-                    href={url_facebook}
-                    target='_blank'
-                    rel='noopener noreferrer'
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='Facebook'
-                    className='bg-blue-100'>
+                    as='a'
+                    className='bg-blue-100'
+                    color='primary'
+                    href={url_facebook}
+                    rel='noopener noreferrer'
+                    target='_blank'
+                    variant='light'>
                     <Facebook className='text-blue-600' />
                   </Button>
                   <Button
-                    as='a'
-                    href={url_insta}
-                    target='_blank'
-                    rel='noopener noreferrer'
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='Instagram'
-                    className='bg-pink-100'>
+                    as='a'
+                    className='bg-pink-100'
+                    color='primary'
+                    href={url_insta}
+                    rel='noopener noreferrer'
+                    target='_blank'
+                    variant='light'>
                     <Instagram className='text-pink-600' />
                   </Button>
                   <Button
-                    as='a'
-                    href={url_github}
-                    target='_blank'
-                    rel='noopener noreferrer'
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='GitHub'
-                    className='bg-gray-100'>
+                    as='a'
+                    className='bg-gray-100'
+                    color='primary'
+                    href={url_github}
+                    rel='noopener noreferrer'
+                    target='_blank'
+                    variant='light'>
                     <Github className='text-gray-600' />
                   </Button>
                   <Button
-                    as='a'
-                    href='https://wa.me/573053328285'
-                    target='_blank'
-                    rel='noopener noreferrer'
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='WhatsApp'
-                    className='bg-green-100'>
+                    as='a'
+                    className='bg-green-100'
+                    color='primary'
+                    href='https://wa.me/573053328285'
+                    rel='noopener noreferrer'
+                    target='_blank'
+                    variant='light'>
                     <MessageCircle className='text-green-600' />
                   </Button>
                 </div>
@@ -382,13 +384,13 @@ const ContactPage = () => {
             </div>
           </CardHeader>
           <CardBody>
-            <Accordion variant='splitted' className='p-2'>
+            <Accordion className='p-2' variant='splitted'>
               {faqItems.map((item, index) => (
                 <AccordionItem
                   key={index}
                   aria-label={item.title}
-                  title={item.title}
-                  startContent={<HelpCircle className='text-primary' />}>
+                  startContent={<HelpCircle className='text-primary' />}
+                  title={item.title}>
                   <div className='px-2 py-1'>
                     <p className='text-gray-700'>{item.content}</p>
                   </div>
@@ -399,7 +401,7 @@ const ContactPage = () => {
           <CardFooter>
             <p className='text-sm text-gray-600 text-center w-full'>
               ¿No encuentras lo que buscas?{' '}
-              <Button color='primary' variant='light' className='px-2 py-0'>
+              <Button className='px-2 py-0' color='primary' variant='light'>
                 Contáctanos
               </Button>
             </p>

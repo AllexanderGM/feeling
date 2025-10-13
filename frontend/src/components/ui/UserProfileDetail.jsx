@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardBody, Button, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
+import { Button, Chip, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
 import {
   Heart,
   MapPin,
@@ -10,9 +10,6 @@ import {
   Star,
   Sparkles,
   Flame,
-  Phone,
-  Mail,
-  Calendar,
   Briefcase,
   GraduationCap,
   Clock,
@@ -48,6 +45,7 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
         lastActivity: user.lastActivity
       }
     }
+
     return {
       name: user.profile?.name,
       age: user.profile?.age,
@@ -106,6 +104,7 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
     if (diffInDays === 1) return 'Ayer'
     if (diffInDays < 7) return `Hace ${diffInDays} días`
     if (diffInDays < 30) return `Hace ${Math.floor(diffInDays / 7)} semanas`
+
     return `Hace ${Math.floor(diffInDays / 30)} meses`
   }
 
@@ -116,9 +115,9 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
       <div className={`${isMobile ? '' : 'flex flex-col'}`}>
         <div className='relative h-96 md:h-full md:max-h-[600px] group bg-gray-800 rounded-2xl overflow-hidden'>
           <img
-            src={images[currentPhotoIndex]}
             alt={`${userData.name} - Foto ${currentPhotoIndex + 1}`}
             className='w-full h-full object-cover'
+            src={images[currentPhotoIndex]}
           />
 
           {/* Indicadores de fotos */}
@@ -137,13 +136,13 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
           {hasMultipleImages && (
             <>
               <button
-                onClick={prevPhoto}
-                className='absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'>
+                className='absolute left-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'
+                onClick={prevPhoto}>
                 <ChevronLeft className='w-5 h-5' />
               </button>
               <button
-                onClick={nextPhoto}
-                className='absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'>
+                className='absolute right-4 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'
+                onClick={nextPhoto}>
                 <ChevronRight className='w-5 h-5' />
               </button>
             </>
@@ -189,17 +188,17 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
         {/* Compatibilidad y estado */}
         <div className='flex flex-wrap gap-3'>
           {user.compatibility && (
-            <Chip size='lg' color='danger' variant='flat' className='font-semibold'>
+            <Chip className='font-semibold' color='danger' size='lg' variant='flat'>
               {user.compatibility}% compatibilidad
             </Chip>
           )}
           {user.isOnline && (
-            <Chip size='lg' color='success' variant='flat'>
+            <Chip color='success' size='lg' variant='flat'>
               En línea ahora
             </Chip>
           )}
           {userData.lastActivity && (
-            <Chip size='lg' color='default' variant='flat' startContent={<Clock className='w-4 h-4' />}>
+            <Chip color='default' size='lg' startContent={<Clock className='w-4 h-4' />} variant='flat'>
               Activo {getTimeAgo(userData.lastActivity)}
             </Chip>
           )}
@@ -211,7 +210,7 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
             <h3 className='text-lg font-semibold text-gray-200 mb-3'>Intereses</h3>
             <div className='flex flex-wrap gap-2'>
               {userData.tags.map((tag, index) => (
-                <Chip key={index} size='md' variant='bordered' className='text-gray-300 border-gray-600 bg-gray-800/30'>
+                <Chip key={index} className='text-gray-300 border-gray-600 bg-gray-800/30' size='md' variant='bordered'>
                   {tag}
                 </Chip>
               ))}
@@ -256,10 +255,10 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
             {onPass && (
               <Button
                 isIconOnly
-                variant='solid'
-                size='lg'
-                color='default'
                 className='bg-gray-700 hover:bg-gray-600 transition-all duration-200 w-14 h-14'
+                color='default'
+                size='lg'
+                variant='solid'
                 onPress={() => onPass(user)}>
                 <X className='w-6 h-6' />
               </Button>
@@ -268,9 +267,9 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
             {onSuperLike && (
               <Button
                 isIconOnly
-                variant='solid'
-                size='lg'
                 className='bg-gradient-to-br from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 transition-all duration-200 w-14 h-14'
+                size='lg'
+                variant='solid'
                 onPress={() => onSuperLike(user)}>
                 <Bookmark className='w-6 h-6 text-white' />
               </Button>
@@ -279,10 +278,10 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
             {onLike && (
               <Button
                 isIconOnly
-                variant='solid'
-                size='lg'
-                color='danger'
                 className='bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 transition-all duration-200 w-14 h-14'
+                color='danger'
+                size='lg'
+                variant='solid'
                 onPress={() => onLike(user)}>
                 <Heart className='w-6 h-6 text-white' />
               </Button>
@@ -297,26 +296,22 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
   if (isMobile) {
     return (
       <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        size='full'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50 top-4 right-4 z-50'
-        }}>
+        }}
+        isOpen={isOpen}
+        size='full'
+        onOpenChange={onOpenChange}>
         <ModalContent>
-          {onClose => (
-            <>
-              <ModalHeader className='flex justify-between items-center'>
-                <span className='text-gray-200'>Perfil de {userData.name}</span>
-              </ModalHeader>
-              <ModalBody className='px-6 py-0'>
-                <ProfileContent />
-              </ModalBody>
-            </>
-          )}
+          <ModalHeader className='flex justify-between items-center'>
+            <span className='text-gray-200'>Perfil de {userData.name}</span>
+          </ModalHeader>
+          <ModalBody className='px-6 py-0'>
+            <ProfileContent />
+          </ModalBody>
         </ModalContent>
       </Modal>
     )

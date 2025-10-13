@@ -13,7 +13,7 @@ import {
   Card,
   CardBody
 } from '@heroui/react'
-import { Tags, CheckCircle, XCircle, Clock, ThumbsUp, ThumbsDown, Eye, Hash } from 'lucide-react'
+import { Tags, CheckCircle, XCircle, Clock, ThumbsUp, ThumbsDown, Hash } from 'lucide-react'
 import { useError } from '@hooks'
 import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
@@ -33,6 +33,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
   const loadUserTags = useCallback(async () => {
     if (!user?.tags || user.tags.length === 0) {
       setUserTags([])
+
       return
     }
 
@@ -63,7 +64,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
         if (onTagStatusUpdate) {
           onTagStatusUpdate(tagId, 'approved')
         }
-      } catch (error) {
+      } catch {
         handleError('Error al aprobar tag')
       }
     },
@@ -78,13 +79,14 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
 
         // Actualizar el estado local
         const reason = 'Tag no apropiado para la plataforma'
+
         setUserTags(prev => prev.map(tag => (tag.id === tagId ? { ...tag, approved: false, rejectionReason: reason } : tag)))
 
         // Notificar al componente padre si existe la función
         if (onTagStatusUpdate) {
           onTagStatusUpdate(tagId, 'rejected')
         }
-      } catch (error) {
+      } catch {
         handleError('Error al rechazar tag')
       }
     },
@@ -94,20 +96,21 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
   const getTagStatusChip = useCallback(tag => {
     if (tag.rejectionReason) {
       return (
-        <Chip color='danger' variant='flat' size='sm' startContent={<XCircle className='w-3 h-3' />}>
+        <Chip color='danger' size='sm' startContent={<XCircle className='w-3 h-3' />} variant='flat'>
           Rechazado
         </Chip>
       )
     }
     if (tag.approved) {
       return (
-        <Chip color='success' variant='flat' size='sm' startContent={<CheckCircle className='w-3 h-3' />}>
+        <Chip color='success' size='sm' startContent={<CheckCircle className='w-3 h-3' />} variant='flat'>
           Aprobado
         </Chip>
       )
     }
+
     return (
-      <Chip color='warning' variant='flat' size='sm' startContent={<Clock className='w-3 h-3' />}>
+      <Chip color='warning' size='sm' startContent={<Clock className='w-3 h-3' />} variant='flat'>
         Pendiente
       </Chip>
     )
@@ -125,11 +128,11 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
           <Tooltip content='Aprobar tag'>
             <Button
               isIconOnly
-              size='sm'
+              className='min-w-8 h-8'
               color='success'
+              size='sm'
               variant='flat'
-              onPress={() => handleApproveTag(tag.id, tag.name)}
-              className='min-w-8 h-8'>
+              onPress={() => handleApproveTag(tag.id, tag.name)}>
               <ThumbsUp className='w-3 h-3' />
             </Button>
           </Tooltip>
@@ -137,11 +140,11 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
           <Tooltip content='Rechazar tag'>
             <Button
               isIconOnly
-              size='sm'
+              className='min-w-8 h-8'
               color='danger'
+              size='sm'
               variant='flat'
-              onPress={() => handleRejectTag(tag.id, tag.name)}
-              className='min-w-8 h-8'>
+              onPress={() => handleRejectTag(tag.id, tag.name)}>
               <ThumbsDown className='w-3 h-3' />
             </Button>
           </Tooltip>
@@ -157,7 +160,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
   const rejectedTags = userTags.filter(tag => tag.rejectionReason)
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl' scrollBehavior='inside'>
+    <Modal isOpen={isOpen} scrollBehavior='inside' size='2xl' onOpenChange={onOpenChange}>
       <ModalContent>
         {onClose => (
           <>
@@ -174,7 +177,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
             <ModalBody className='space-y-4'>
               {loading ? (
                 <div className='flex items-center justify-center py-8'>
-                  <Spinner size='lg' color='primary' />
+                  <Spinner color='primary' size='lg' />
                 </div>
               ) : userTags.length === 0 ? (
                 <div className='text-center py-8'>
@@ -229,7 +232,7 @@ const UserTagModal = ({ isOpen, onOpenChange, user, onTagStatusUpdate }) => {
 
                       <div className='flex flex-wrap gap-2'>
                         {approvedTags.map(tag => (
-                          <Chip key={tag.id} color='success' variant='flat' startContent={<Hash className='w-3 h-3' />}>
+                          <Chip key={tag.id} color='success' startContent={<Hash className='w-3 h-3' />} variant='flat'>
                             {tag.name}
                           </Chip>
                         ))}

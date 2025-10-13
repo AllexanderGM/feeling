@@ -1,21 +1,21 @@
 import PropTypes from 'prop-types'
 import { Input as InputHeroUi } from '@heroui/react'
 
-const Input = ({ value, label, name, placeholder, type, handleChange, errors }) => {
+const Input = ({ value, handleChange, errors }) => {
   return (
     <InputHeroUi
-      variant='underlined'
       isRequired
+      aria-label='Email'
+      autoComplete='email'
+      errorMessage={errors}
+      isInvalid={!!errors}
       label='Correo electrónico'
       name='email'
       placeholder='usuario@correo.com'
       type='email'
-      autoComplete='email'
-      aria-label='Email'
       value={value}
+      variant='underlined'
       onChange={handleChange}
-      isInvalid={!!errors}
-      errorMessage={errors}
     />
   )
 }

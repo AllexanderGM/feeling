@@ -39,7 +39,7 @@ export const AttributeButton = ({ option, isSelected, onClick, className = '' })
   `
 
   return (
-    <button type='button' onClick={() => onClick(option.value)} className={baseClasses}>
+    <button className={baseClasses} type='button' onClick={() => onClick(option.value)}>
       <AttributeDetailRenderer detail={option.detail} size='md' />
       <span className='text-sm'>{option.label}</span>
     </button>
@@ -53,9 +53,9 @@ export const ColorSelector = ({ options, selectedValue, onChange, className = ''
       {options.map(option => (
         <button
           key={option.key}
+          className='relative group flex flex-col items-center p-2 transition-all'
           type='button'
-          onClick={() => onChange(option.value)}
-          className='relative group flex flex-col items-center p-2 transition-all'>
+          onClick={() => onChange(option.value)}>
           <div
             className={`
               w-12 h-12 rounded-full border-3 transition-all
@@ -90,13 +90,13 @@ export const IconGrid = ({ options, selectedValue, onChange, columns = 3, classN
       {options.map(option => (
         <button
           key={option.key}
-          type='button'
-          onClick={() => onChange(option.value)}
           className={`
             flex flex-col items-center p-4 rounded-lg border-2 transition-all
             ${selectedValue === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-          `}>
-          <AttributeDetailRenderer detail={option.detail} size='xl' className='mb-2' />
+          `}
+          type='button'
+          onClick={() => onChange(option.value)}>
+          <AttributeDetailRenderer className='mb-2' detail={option.detail} size='xl' />
           <span className='text-sm text-center'>{option.label}</span>
         </button>
       ))}

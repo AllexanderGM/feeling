@@ -25,6 +25,7 @@ class OAuthService extends ServiceREST {
         tokenType,
         scope
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -41,6 +42,7 @@ class OAuthService extends ServiceREST {
         tokenType,
         scope
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -59,6 +61,7 @@ class OAuthService extends ServiceREST {
       const result = await ServiceREST.post(API_ENDPOINTS.OAUTH.FACEBOOK_REGISTER, {
         accessToken
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -73,6 +76,7 @@ class OAuthService extends ServiceREST {
       const result = await ServiceREST.post(API_ENDPOINTS.OAUTH.FACEBOOK_LOGIN, {
         accessToken
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -92,6 +96,7 @@ class OAuthService extends ServiceREST {
         identityToken,
         authorizationCode
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -107,6 +112,7 @@ class OAuthService extends ServiceREST {
         identityToken,
         authorizationCode
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -123,6 +129,7 @@ class OAuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.OAUTH.METHODS}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -135,6 +142,7 @@ class OAuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.OAUTH.PROVIDERS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -158,6 +166,7 @@ class OAuthService extends ServiceREST {
           }
         }
       )
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

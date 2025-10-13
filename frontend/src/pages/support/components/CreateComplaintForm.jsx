@@ -70,6 +70,7 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -113,7 +114,7 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
   }))
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size='3xl' scrollBehavior='inside'>
+    <Modal isOpen={isOpen} scrollBehavior='inside' size='3xl' onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>
           <div className='flex items-center gap-3'>
@@ -147,13 +148,13 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
           {/* Formulario principal */}
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Select
+              errorMessage={errors.complaintType}
+              isInvalid={!!errors.complaintType}
               label='Tipo de Queja'
               placeholder='Selecciona el tipo de problema'
               selectedKeys={formData.complaintType ? [formData.complaintType] : []}
-              onSelectionChange={keys => handleInputChange('complaintType', Array.from(keys)[0])}
-              isInvalid={!!errors.complaintType}
-              errorMessage={errors.complaintType}
-              startContent={<FileText size={16} />}>
+              startContent={<FileText size={16} />}
+              onSelectionChange={keys => handleInputChange('complaintType', Array.from(keys)[0])}>
               {complaintTypeOptions.map(option => (
                 <SelectItem key={option.key} value={option.key}>
                   {option.value}
@@ -165,16 +166,16 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
               label='Prioridad'
               placeholder='Selecciona la prioridad'
               selectedKeys={formData.priority ? [formData.priority] : []}
-              onSelectionChange={keys => handleInputChange('priority', Array.from(keys)[0])}
-              startContent={<AlertCircle size={16} />}>
+              startContent={<AlertCircle size={16} />}
+              onSelectionChange={keys => handleInputChange('priority', Array.from(keys)[0])}>
               {priorityOptions.map(option => (
                 <SelectItem key={option.key} value={option.key}>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      size='sm'
                       color={
                         option.key === 'LOW' ? 'success' : option.key === 'MEDIUM' ? 'warning' : option.key === 'HIGH' ? 'danger' : 'danger'
                       }
+                      size='sm'
                       variant='flat'>
                       {option.value}
                     </Chip>
@@ -185,28 +186,28 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
           </div>
 
           <Input
+            description={`${formData.subject.length}/200 caracteres`}
+            errorMessage={errors.subject}
+            isInvalid={!!errors.subject}
             label='Asunto'
+            maxLength={200}
             placeholder='Describe brevemente tu problema'
+            startContent={<MessageSquare size={16} />}
             value={formData.subject}
             onValueChange={value => handleInputChange('subject', value)}
-            isInvalid={!!errors.subject}
-            errorMessage={errors.subject}
-            maxLength={200}
-            startContent={<MessageSquare size={16} />}
-            description={`${formData.subject.length}/200 caracteres`}
           />
 
           <Textarea
+            description={`${formData.message.length}/2000 caracteres`}
+            errorMessage={errors.message}
+            isInvalid={!!errors.message}
             label='Descripción del Problema'
+            maxLength={2000}
+            maxRows={10}
+            minRows={6}
             placeholder='Describe detalladamente tu problema, incluyendo pasos para reproducirlo, capturas de pantalla relevantes, o cualquier información que pueda ayudarnos a resolver tu consulta...'
             value={formData.message}
             onValueChange={value => handleInputChange('message', value)}
-            isInvalid={!!errors.message}
-            errorMessage={errors.message}
-            maxLength={2000}
-            minRows={6}
-            maxRows={10}
-            description={`${formData.message.length}/2000 caracteres`}
           />
 
           {/* Referencias opcionales */}
@@ -218,28 +219,28 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
               </h4>
               <div className='grid grid-cols-1 md:grid-cols-3 gap-3'>
                 <Input
+                  description='Si tu queja involucra a otro usuario'
                   label='ID de Usuario'
                   placeholder='ej: 12345'
+                  size='sm'
                   value={formData.referencedUserId}
                   onValueChange={value => handleInputChange('referencedUserId', value)}
-                  size='sm'
-                  description='Si tu queja involucra a otro usuario'
                 />
                 <Input
+                  description='Si tu queja es sobre un evento específico'
                   label='ID de Evento'
                   placeholder='ej: 67890'
+                  size='sm'
                   value={formData.referencedEventId}
                   onValueChange={value => handleInputChange('referencedEventId', value)}
-                  size='sm'
-                  description='Si tu queja es sobre un evento específico'
                 />
                 <Input
+                  description='Si tu queja es sobre una reserva'
                   label='ID de Reserva'
                   placeholder='ej: 54321'
+                  size='sm'
                   value={formData.referencedBookingId}
                   onValueChange={value => handleInputChange('referencedBookingId', value)}
-                  size='sm'
-                  description='Si tu queja es sobre una reserva'
                 />
               </div>
             </CardBody>
@@ -247,10 +248,10 @@ const CreateComplaintForm = memo(({ isOpen, onClose, onSubmit, loading = false }
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='light' onPress={handleClose} isDisabled={loading}>
+          <Button isDisabled={loading} variant='light' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='primary' onPress={handleSubmit} isLoading={loading} startContent={!loading ? <Send size={16} /> : null}>
+          <Button color='primary' isLoading={loading} startContent={!loading ? <Send size={16} /> : null} onPress={handleSubmit}>
             {loading ? 'Enviando...' : 'Enviar Queja'}
           </Button>
         </ModalFooter>

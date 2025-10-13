@@ -6,7 +6,6 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Input,
   Textarea,
   Chip,
   User,
@@ -17,8 +16,10 @@ import {
   Select,
   SelectItem
 } from '@heroui/react'
-import { Send, MessageSquare, Clock, User as UserIcon, Shield, AlertTriangle, CheckCircle, XCircle, FileText, Calendar } from 'lucide-react'
 import { Logger } from '@utils/logger.js'
+import { Send, MessageSquare, Clock, User as UserIcon, Shield, AlertTriangle, CheckCircle, XCircle, FileText, Calendar } from 'lucide-react'
+import { COMPLAINT_STATUS, COMPLAINT_STATUS_COLORS, COMPLAINT_PRIORITY_COLORS, COMPLAINT_TYPES } from '@constants/tableConstants.js'
+
 // Utility function for relative time formatting
 const formatRelativeTime = timestamp => {
   if (!timestamp) return 'N/A'
@@ -36,17 +37,18 @@ const formatRelativeTime = timestamp => {
     if (diffDays < 30) return `hace ${diffDays}d`
 
     const diffMonths = Math.floor(diffDays / 30)
+
     if (diffMonths < 12) return `hace ${diffMonths}mes`
 
     const diffYears = Math.floor(diffDays / 365)
+
     return `hace ${diffYears}año${diffYears > 1 ? 's' : ''}`
   } catch {
     return 'Fecha inválida'
   }
 }
-import { COMPLAINT_STATUS, COMPLAINT_STATUS_COLORS, COMPLAINT_PRIORITY_COLORS, COMPLAINT_TYPES } from '@constants/tableConstants.js'
 
-const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, onSendMessage, onUpdateStatus, loading = false }) => {
+const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, onSendMessage, onUpdateStatus }) => {
   const [newMessage, setNewMessage] = useState('')
   const [newStatus, setNewStatus] = useState('')
   const [adminNotes, setAdminNotes] = useState('')
@@ -165,13 +167,13 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size='4xl'
-      scrollBehavior='inside'
       classNames={{
         base: 'max-h-[90vh]'
-      }}>
+      }}
+      isOpen={isOpen}
+      scrollBehavior='inside'
+      size='4xl'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 pb-2'>
           <div className='flex items-center justify-between'>
@@ -183,14 +185,14 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
               </div>
             </div>
             <div className='flex items-center gap-2'>
-              <Chip size='sm' color={COMPLAINT_PRIORITY_COLORS[complaint.priority]} variant='flat'>
+              <Chip color={COMPLAINT_PRIORITY_COLORS[complaint.priority]} size='sm' variant='flat'>
                 {complaint.priority}
               </Chip>
               <Chip
-                size='sm'
                 color={COMPLAINT_STATUS_COLORS[complaint.status]}
-                variant='flat'
-                startContent={getStatusIcon(complaint.status)}>
+                size='sm'
+                startContent={getStatusIcon(complaint.status)}
+                variant='flat'>
                 {complaint.status.replace('_', ' ')}
               </Chip>
             </div>
@@ -208,12 +210,12 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
                     Información del Usuario
                   </h4>
                   <User
-                    name={complaint.user?.name}
-                    description={complaint.user?.email}
                     avatarProps={{
                       src: complaint.user?.profileImage,
                       size: 'sm'
                     }}
+                    description={complaint.user?.email}
+                    name={complaint.user?.name}
                   />
                 </div>
                 <div>
@@ -252,7 +254,7 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
                   <div key={message.id}>
                     {message.isSystemMessage ? (
                       <div className='flex justify-center'>
-                        <Chip size='sm' color='default' variant='flat' startContent={<Calendar size={12} />}>
+                        <Chip color='default' size='sm' startContent={<Calendar size={12} />} variant='flat'>
                           {message.content} • {formatTimestamp(message.timestamp)}
                         </Chip>
                       </div>
@@ -264,9 +266,9 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
                           } rounded-lg p-3`}>
                           <div className='flex items-center gap-2 mb-1'>
                             {message.senderType === 'admin' ? (
-                              <Shield size={12} className='text-white' />
+                              <Shield className='text-white' size={12} />
                             ) : (
-                              <UserIcon size={12} className='text-gray-600' />
+                              <UserIcon className='text-gray-600' size={12} />
                             )}
                             <span className='text-xs font-medium'>
                               {message.sender?.name || (message.senderType === 'admin' ? 'Administrador' : 'Usuario')}
@@ -310,20 +312,20 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
 
                 <Button
                   color='primary'
-                  variant='flat'
-                  onPress={handleStatusUpdate}
+                  isDisabled={newStatus === complaint.status}
                   isLoading={updatingStatus}
-                  isDisabled={newStatus === complaint.status}>
+                  variant='flat'
+                  onPress={handleStatusUpdate}>
                   Actualizar Estado
                 </Button>
               </div>
 
               <Textarea
                 label='Notas Administrativas (Opcional)'
+                maxRows={3}
                 placeholder='Agregar notas internas sobre esta queja...'
                 value={adminNotes}
                 onValueChange={setAdminNotes}
-                maxRows={3}
               />
             </div>
           )}
@@ -331,18 +333,18 @@ const ComplaintChatModal = memo(({ isOpen, onClose, complaint, isAdmin = false, 
           {/* Campo de nuevo mensaje */}
           <div className='flex gap-2'>
             <Textarea
+              maxRows={3}
               placeholder='Escribir mensaje...'
               value={newMessage}
-              onValueChange={setNewMessage}
-              maxRows={3}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
                   handleSendMessage()
                 }
               }}
+              onValueChange={setNewMessage}
             />
-            <Button isIconOnly color='primary' onPress={handleSendMessage} isLoading={sendingMessage} isDisabled={!newMessage.trim()}>
+            <Button isIconOnly color='primary' isDisabled={!newMessage.trim()} isLoading={sendingMessage} onPress={handleSendMessage}>
               <Send size={16} />
             </Button>
           </div>

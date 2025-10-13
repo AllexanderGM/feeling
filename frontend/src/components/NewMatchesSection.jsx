@@ -4,12 +4,13 @@ import { Heart, Users, Zap } from 'lucide-react'
 import UserCard from '@components/ui/UserCard.jsx'
 import { Logger } from '@utils/logger.js'
 
-const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
+const NewMatchesSection = ({ matches, searchTerm }) => {
   // Filtrar matches basado en el término de búsqueda
   const filteredMatches = useMemo(() => {
     if (!searchTerm.trim()) return matches
 
     const searchLower = searchTerm.toLowerCase()
+
     return matches.filter(
       match =>
         match.name.toLowerCase().includes(searchLower) ||
@@ -26,10 +27,6 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
     Logger.info('Iniciando conversación con nuevo match', Logger.CATEGORIES.USER, { matchName: match.name, matchId: match.id })
   }
 
-  const handleSuperLike = match => {
-    Logger.info('Enviando super like', Logger.CATEGORIES.USER, { matchName: match.name, matchId: match.id })
-  }
-
   if (filteredMatches.length === 0) {
     return (
       <div className='text-center py-12'>
@@ -44,7 +41,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
             <Heart className='w-12 h-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-400 mb-2'>¡Aún no tienes nuevos matches!</h3>
             <p className='text-gray-500 mb-4'>Sigue explorando y conectando con personas increíbles</p>
-            <Button color='primary' startContent={<Zap className='w-4 h-4' />} className='bg-gradient-to-r from-primary-500 to-purple-500'>
+            <Button className='bg-gradient-to-r from-primary-500 to-purple-500' color='primary' startContent={<Zap className='w-4 h-4' />}>
               Buscar Más Personas
             </Button>
           </>
@@ -57,7 +54,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
         <h2 className='text-lg font-semibold text-gray-200'>Nuevos Matches ({filteredMatches.length})</h2>
-        <Chip color='success' variant='flat' size='sm'>
+        <Chip color='success' size='sm' variant='flat'>
           ¡{filteredMatches.filter(m => m.isOnline).length} en línea!
         </Chip>
       </div>
@@ -67,12 +64,12 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
         {filteredMatches.map(match => (
           <UserCard
             key={match.id}
-            user={match}
-            variant='default'
-            onViewProfile={handleViewProfile}
-            onMessage={handleStartConversation}
             showCompatibility={true}
             showDistance={true}
+            user={match}
+            variant='default'
+            onMessage={handleStartConversation}
+            onViewProfile={handleViewProfile}
           />
         ))}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Card, CardBody, Avatar, Button, Chip, Badge } from '@heroui/react'
-import { MessageCircle, Users, Send, Clock, Eye, MoreHorizontal, Trash2, Archive, VolumeX, Pin, Search } from 'lucide-react'
+import { MessageCircle, Users, Send, Clock, Archive, VolumeX, Pin, Search } from 'lucide-react'
 import { Logger } from '@utils/logger.js'
 
 const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, getCategoryIcon }) => {
@@ -11,6 +11,7 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
     if (!searchTerm.trim()) return conversations
 
     const searchLower = searchTerm.toLowerCase()
+
     return conversations.filter(
       conv =>
         conv.name.toLowerCase().includes(searchLower) ||
@@ -26,8 +27,10 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
     if (diffInHours < 1) return 'Hace unos minutos'
     if (diffInHours < 24) return `Hace ${diffInHours}h`
     const diffInDays = Math.floor(diffInHours / 24)
+
     if (diffInDays === 1) return 'Ayer'
     if (diffInDays < 7) return `Hace ${diffInDays}d`
+
     return `Hace ${Math.floor(diffInDays / 7)}sem`
   }
 
@@ -39,11 +42,6 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
   const handleMuteConversation = (e, convId) => {
     e.stopPropagation()
     Logger.info('Silenciar conversación', { conversationId: convId }, { category: Logger.CATEGORIES.UI })
-  }
-
-  const handleDeleteConversation = (e, convId) => {
-    e.stopPropagation()
-    Logger.info('Eliminar conversación', { conversationId: convId }, { category: Logger.CATEGORIES.UI })
   }
 
   const handlePinConversation = (e, convId) => {
@@ -66,9 +64,9 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
             <h3 className='text-lg font-medium text-gray-400 mb-2'>¡Aún no tienes conversaciones activas!</h3>
             <p className='text-gray-500 mb-4'>Cuando tengas nuevos matches, podrás iniciar conversaciones aquí</p>
             <Button
+              className='bg-gradient-to-r from-primary-500 to-purple-500'
               color='primary'
-              startContent={<Users className='w-4 h-4' />}
-              className='bg-gradient-to-r from-primary-500 to-purple-500'>
+              startContent={<Users className='w-4 h-4' />}>
               Ver Nuevos Matches
             </Button>
           </>
@@ -81,7 +79,7 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
         <h2 className='text-lg font-semibold text-gray-200'>Conversaciones Activas ({filteredConversations.length})</h2>
-        <Chip color='primary' variant='flat' size='sm'>
+        <Chip color='primary' size='sm' variant='flat'>
           {filteredConversations.filter(conv => conv.unreadCount > 0).length} con mensajes nuevos
         </Chip>
       </div>
@@ -98,16 +96,16 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
               <div className='flex items-center gap-4'>
                 {/* Avatar con estado */}
                 <div className='relative shrink-0'>
-                  <Avatar src={conversation.image} alt={conversation.name} className='w-14 h-14' />
+                  <Avatar alt={conversation.name} className='w-14 h-14' src={conversation.image} />
                   {conversation.isOnline && (
                     <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full' />
                   )}
                   {conversation.unreadCount > 0 && (
                     <Badge
-                      content={conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                      color='danger'
-                      size='sm'
                       className='absolute -top-1 -left-1'
+                      color='danger'
+                      content={conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                      size='sm'
                     />
                   )}
                 </div>
@@ -132,9 +130,9 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
                         {conversation.isTyping ? (
                           <div className='flex items-center gap-1'>
                             <div className='flex space-x-1'>
-                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce'></div>
-                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce' style={{ animationDelay: '0.1s' }}></div>
-                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce' style={{ animationDelay: '0.2s' }}></div>
+                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce' />
+                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce' style={{ animationDelay: '0.1s' }} />
+                              <div className='w-1 h-1 bg-primary-400 rounded-full animate-bounce' style={{ animationDelay: '0.2s' }} />
                             </div>
                             <span className='text-sm text-primary-400 italic'>escribiendo...</span>
                           </div>
@@ -158,25 +156,25 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
                       }`}>
                       <Button
                         isIconOnly
+                        className='text-gray-400 hover:text-blue-400'
                         size='sm'
                         variant='light'
-                        className='text-gray-400 hover:text-blue-400'
                         onPress={e => handlePinConversation(e, conversation.id)}>
                         <Pin className='w-3 h-3' />
                       </Button>
                       <Button
                         isIconOnly
+                        className='text-gray-400 hover:text-yellow-400'
                         size='sm'
                         variant='light'
-                        className='text-gray-400 hover:text-yellow-400'
                         onPress={e => handleMuteConversation(e, conversation.id)}>
                         <VolumeX className='w-3 h-3' />
                       </Button>
                       <Button
                         isIconOnly
+                        className='text-gray-400 hover:text-gray-300'
                         size='sm'
                         variant='light'
-                        className='text-gray-400 hover:text-gray-300'
                         onPress={e => handleArchiveConversation(e, conversation.id)}>
                         <Archive className='w-3 h-3' />
                       </Button>
@@ -187,11 +185,11 @@ const ActiveConversationsSection = ({ conversations, searchTerm, onSelectChat, g
                 {/* Botón de mensaje rápido */}
                 <div className='shrink-0'>
                   <Button
-                    size='sm'
-                    color='primary'
-                    variant={conversation.unreadCount > 0 ? 'solid' : 'bordered'}
                     className={conversation.unreadCount > 0 ? '' : 'border-gray-600 text-gray-300'}
+                    color='primary'
+                    size='sm'
                     startContent={<Send className='w-3 h-3' />}
+                    variant={conversation.unreadCount > 0 ? 'solid' : 'bordered'}
                     onPress={() => onSelectChat(conversation)}>
                     {conversation.unreadCount > 0 ? 'Responder' : 'Mensaje'}
                   </Button>

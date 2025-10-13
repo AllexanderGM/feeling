@@ -19,16 +19,16 @@ const Footer = () => {
       </div>
 
       <div className='flex flex-1 items-center justify-center md:justify-end space-x-4 mt-4 md:mt-0'>
-        <Link href={url_facebook} isExternal>
-          <Facebook height='25' color='oklch(0.707 0.022 261.325)' />
+        <Link isExternal href={url_facebook}>
+          <Facebook color='oklch(0.707 0.022 261.325)' height='25' />
         </Link>
 
-        <Link href={url_insta} isExternal>
-          <Instagram height='20' color='oklch(0.707 0.022 261.325)' />
+        <Link isExternal href={url_insta}>
+          <Instagram color='oklch(0.707 0.022 261.325)' height='20' />
         </Link>
 
-        <Link href={url_github} isExternal>
-          <GitHub height='28' color='oklch(0.707 0.022 261.325)' />
+        <Link isExternal href={url_github}>
+          <GitHub color='oklch(0.707 0.022 261.325)' height='28' />
         </Link>
       </div>
     </footer>

@@ -61,8 +61,8 @@ const SuccessBookingBanner = ({ message, onClose }) => {
         showAlert ? 'translate-x-0 opacity-100' : 'translate-x-[120%] opacity-0'
       }`}>
       <div className='w-auto max-w-md pointer-events-auto' onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-        <Link to='/mis-reservas' className='block'>
-          <Alert color='success' dismissible={false} onClose={handleClose} className='cursor-pointer hover:opacity-90 transition-opacity'>
+        <Link className='block' to='/mis-reservas'>
+          <Alert className='cursor-pointer hover:opacity-90 transition-opacity' color='success' dismissible={false} onClose={handleClose}>
             {typeof message === 'object' ? (
               <span>
                 {message.prefix}

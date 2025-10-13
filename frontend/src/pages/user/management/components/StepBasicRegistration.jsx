@@ -14,20 +14,20 @@ const StepBasicRegistration = ({ control, errors }) => {
       <div className='space-y-6'>
         {/* Email */}
         <Controller
-          name='email'
           control={control}
+          name='email'
           render={({ field }) => (
             <Input
               {...field}
-              variant='underlined'
               isRequired
+              description='Este será el correo con el que el usuario iniciará sesión'
+              errorMessage={errors.email?.message}
+              isInvalid={!!errors.email}
               label='Correo electrónico'
               placeholder='usuario@correo.com'
-              type='email'
-              isInvalid={!!errors.email}
-              errorMessage={errors.email?.message}
               startContent={<Mail className='text-gray-400 w-4 h-4' />}
-              description='Este será el correo con el que el usuario iniciará sesión'
+              type='email'
+              variant='underlined'
             />
           )}
         />
@@ -35,37 +35,37 @@ const StepBasicRegistration = ({ control, errors }) => {
         {/* Contraseñas */}
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name='password'
             control={control}
+            name='password'
             render={({ field }) => (
               <Input
                 {...field}
-                variant='underlined'
                 isRequired
+                errorMessage={errors.password?.message}
+                isInvalid={!!errors.password}
                 label='Contraseña'
                 placeholder='Mínimo 6 caracteres'
-                type='password'
-                isInvalid={!!errors.password}
-                errorMessage={errors.password?.message}
                 startContent={<Lock className='text-gray-400 w-4 h-4' />}
+                type='password'
+                variant='underlined'
               />
             )}
           />
 
           <Controller
-            name='confirmPassword'
             control={control}
+            name='confirmPassword'
             render={({ field }) => (
               <Input
                 {...field}
-                variant='underlined'
                 isRequired
+                errorMessage={errors.confirmPassword?.message}
+                isInvalid={!!errors.confirmPassword}
                 label='Confirmar Contraseña'
                 placeholder='Repite la contraseña'
-                type='password'
-                isInvalid={!!errors.confirmPassword}
-                errorMessage={errors.confirmPassword?.message}
                 startContent={<Lock className='text-gray-400 w-4 h-4' />}
+                type='password'
+                variant='underlined'
               />
             )}
           />
@@ -73,24 +73,25 @@ const StepBasicRegistration = ({ control, errors }) => {
 
         {/* Rol */}
         <Controller
-          name='role'
           control={control}
+          name='role'
           render={({ field }) => (
             <Select
               {...field}
-              variant='underlined'
               isRequired
+              description='Define los permisos y accesos del usuario'
+              errorMessage={errors.role?.message}
+              isInvalid={!!errors.role}
               label='Rol del Usuario'
               placeholder='Selecciona un rol'
               selectedKeys={field.value ? [field.value] : []}
+              startContent={<Shield className='text-gray-400 w-4 h-4' />}
+              variant='underlined'
               onSelectionChange={keys => {
                 const selectedKey = Array.from(keys)[0]
+
                 field.onChange(selectedKey)
-              }}
-              isInvalid={!!errors.role}
-              errorMessage={errors.role?.message}
-              startContent={<Shield className='text-gray-400 w-4 h-4' />}
-              description='Define los permisos y accesos del usuario'>
+              }}>
               <SelectItem key='CLIENT' value='CLIENT'>
                 Cliente
               </SelectItem>

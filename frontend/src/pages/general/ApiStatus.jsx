@@ -69,6 +69,7 @@ const ApiStatus = () => {
 
     try {
       const result = await ping(2000)
+
       setPingResult(result)
 
       if (result.success) {
@@ -95,6 +96,7 @@ const ApiStatus = () => {
       clearCache()
       handleInfo('Cache limpiado')
       const result = await refresh()
+
       if (result.success) {
         handleSuccess('Estado actualizado después de limpiar cache')
       }
@@ -113,6 +115,7 @@ const ApiStatus = () => {
       hitRate: 0.85,
       memoryUsageKB: 12
     }
+
     setCacheStats(mockStats)
     onOpen()
   }, [onOpen])
@@ -122,6 +125,7 @@ const ApiStatus = () => {
     if (!responseTime) return 'N/A'
     if (responseTime < 100) return { text: `${responseTime}ms`, color: 'success' }
     if (responseTime < 500) return { text: `${responseTime}ms`, color: 'warning' }
+
     return { text: `${responseTime}ms`, color: 'danger' }
   }, [])
 
@@ -180,7 +184,7 @@ const ApiStatus = () => {
           {/* Indicador de ping en tiempo real */}
           {pingResult && (
             <div className='hidden md:block'>
-              <Chip color={pingResult.success ? 'success' : 'danger'} variant='flat' size='sm'>
+              <Chip color={pingResult.success ? 'success' : 'danger'} size='sm' variant='flat'>
                 Ping: {pingResult.success ? `${pingResult.responseTime}ms` : 'Error'}
               </Chip>
             </div>
@@ -189,45 +193,45 @@ const ApiStatus = () => {
 
         <div className='flex gap-2 flex-wrap'>
           <Button
-            color='primary'
-            variant='flat'
-            onPress={refresh}
-            isLoading={loading}
             aria-label='Actualizar estado del sistema'
-            startContent={!loading && <span className='material-symbols-outlined'>refresh</span>}>
+            color='primary'
+            isLoading={loading}
+            startContent={!loading && <span className='material-symbols-outlined'>refresh</span>}
+            variant='flat'
+            onPress={refresh}>
             Actualizar
           </Button>
 
           <Button
-            color='secondary'
-            variant='flat'
-            onPress={handlePing}
-            isLoading={pingLoading}
             aria-label='Realizar ping al servidor'
-            startContent={!pingLoading && <span className='material-symbols-outlined'>network_ping</span>}>
+            color='secondary'
+            isLoading={pingLoading}
+            startContent={!pingLoading && <span className='material-symbols-outlined'>network_ping</span>}
+            variant='flat'
+            onPress={handlePing}>
             {pingLoading ? 'Ping...' : 'Ping'}
           </Button>
 
           <Button
-            color='warning'
-            variant='flat'
-            onPress={handleClearCacheAndRefresh}
             aria-label='Limpiar cache del sistema'
-            startContent={<span className='material-symbols-outlined'>cleaning_services</span>}>
+            color='warning'
+            startContent={<span className='material-symbols-outlined'>cleaning_services</span>}
+            variant='flat'
+            onPress={handleClearCacheAndRefresh}>
             Limpiar Cache
           </Button>
 
           <Button
-            color={isAutoRefreshing ? 'success' : 'default'}
-            variant={isAutoRefreshing ? 'solid' : 'flat'}
-            onPress={toggleAutoRefresh}
             aria-label={`${isAutoRefreshing ? 'Pausar' : 'Activar'} auto-actualización`}
-            startContent={<span className='material-symbols-outlined'>{isAutoRefreshing ? 'pause' : 'play_arrow'}</span>}>
+            color={isAutoRefreshing ? 'success' : 'default'}
+            startContent={<span className='material-symbols-outlined'>{isAutoRefreshing ? 'pause' : 'play_arrow'}</span>}
+            variant={isAutoRefreshing ? 'solid' : 'flat'}
+            onPress={toggleAutoRefresh}>
             {isAutoRefreshing ? 'Pausar' : 'Auto-actualizar'}
           </Button>
 
           <Tooltip content='Ver detalles técnicos'>
-            <Button color='default' variant='flat' isIconOnly onPress={handleGetCacheStats} aria-label='Ver detalles técnicos del sistema'>
+            <Button isIconOnly aria-label='Ver detalles técnicos del sistema' color='default' variant='flat' onPress={handleGetCacheStats}>
               <span className='material-symbols-outlined'>info</span>
             </Button>
           </Tooltip>
@@ -249,7 +253,7 @@ const ApiStatus = () => {
                 </div>
               </div>
               <div className='text-right'>
-                <Chip color={pingResult.success ? 'success' : 'danger'} variant='flat' size='lg'>
+                <Chip color={pingResult.success ? 'success' : 'danger'} size='lg' variant='flat'>
                   {pingResult.success ? `${pingResult.responseTime}ms` : 'Error'}
                 </Chip>
                 {!pingResult.success && <p className='text-xs text-danger mt-1'>{pingResult.error}</p>}
@@ -274,11 +278,11 @@ const ApiStatus = () => {
             </div>
           </div>
           <div className='ml-auto flex items-center gap-2'>
-            <Chip color={overallHealth.color} variant='flat' size='lg'>
+            <Chip color={overallHealth.color} size='lg' variant='flat'>
               {overallHealth.text}
             </Chip>
             {isAutoRefreshing && (
-              <Chip color='primary' variant='flat' size='sm'>
+              <Chip color='primary' size='sm' variant='flat'>
                 Auto-refresh: 30s
               </Chip>
             )}
@@ -288,7 +292,7 @@ const ApiStatus = () => {
         <CardBody>
           {loading ? (
             <div className='flex justify-center items-center py-8'>
-              <Spinner size='lg' label='Cargando estado del sistema...' aria-label='Cargando estado del sistema' />
+              <Spinner aria-label='Cargando estado del sistema' label='Cargando estado del sistema...' size='lg' />
             </div>
           ) : hasError ? (
             <div className='text-center py-8'>
@@ -314,11 +318,11 @@ const ApiStatus = () => {
                     <span className='text-sm text-gray-600'>{stats.healthPercentage}%</span>
                   </div>
                   <Progress
-                    value={stats.healthPercentage}
-                    color={stats.healthPercentage >= 80 ? 'success' : stats.healthPercentage >= 60 ? 'warning' : 'danger'}
-                    className='mb-4'
                     aria-label={`Salud del sistema: ${stats.healthPercentage}%`}
+                    className='mb-4'
+                    color={stats.healthPercentage >= 80 ? 'success' : stats.healthPercentage >= 60 ? 'warning' : 'danger'}
                     label={`Salud del sistema: ${stats.healthPercentage}%`}
+                    value={stats.healthPercentage}
                   />
                 </div>
               )}
@@ -368,8 +372,8 @@ const ApiStatus = () => {
                       <Chip
                         color={isHealthy ? 'success' : 'danger'}
                         size='sm'
-                        variant='flat'
-                        startContent={<span className='material-symbols-outlined text-xs'>{isHealthy ? 'wifi' : 'wifi_off'}</span>}>
+                        startContent={<span className='material-symbols-outlined text-xs'>{isHealthy ? 'wifi' : 'wifi_off'}</span>}
+                        variant='flat'>
                         {isHealthy ? 'Disponible' : 'No Disponible'}
                       </Chip>
                     </div>
@@ -471,7 +475,7 @@ const ApiStatus = () => {
                           <p className='text-sm text-gray-600 dark:text-gray-400'>{status.message || serviceStatus}</p>
                         </div>
                       </div>
-                      <Chip color={status.color} variant='flat' size='sm'>
+                      <Chip color={status.color} size='sm' variant='flat'>
                         {status.status === 'healthy' ? 'Operativo' : status.status === 'error' ? 'Error' : 'Advertencia'}
                       </Chip>
                     </div>
@@ -484,7 +488,7 @@ const ApiStatus = () => {
       )}
 
       {/* Modal de detalles técnicos */}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl'>
+      <Modal isOpen={isOpen} size='2xl' onOpenChange={onOpenChange}>
         <ModalContent>
           {onClose => (
             <>

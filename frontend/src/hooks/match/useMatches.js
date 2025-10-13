@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { matchService } from '@services'
-
 import { useError } from '@hooks/utils/useError.js'
 
 export const useMatches = () => {
@@ -29,10 +28,13 @@ export const useMatches = () => {
       try {
         setLoading(true)
         const response = await matchService.getSentMatches(page, size)
+
         setMatches(prev => ({ ...prev, sent: response.content || response }))
+
         return response
       } catch (error) {
         handleError('Error al cargar matches enviados', error)
+
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
@@ -46,10 +48,13 @@ export const useMatches = () => {
       try {
         setLoading(true)
         const response = await matchService.getReceivedMatches(page, size)
+
         setMatches(prev => ({ ...prev, received: response.content || response }))
+
         return response
       } catch (error) {
         handleError('Error al cargar matches recibidos', error)
+
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
@@ -63,10 +68,13 @@ export const useMatches = () => {
       try {
         setLoading(true)
         const response = await matchService.getAcceptedMatches(page, size)
+
         setMatches(prev => ({ ...prev, accepted: response.content || response }))
+
         return response
       } catch (error) {
         handleError('Error al cargar matches aceptados', error)
+
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
@@ -80,10 +88,13 @@ export const useMatches = () => {
       try {
         setLoading(true)
         const response = await matchService.getFavorites(page, size)
+
         setMatches(prev => ({ ...prev, favorites: response.content || response }))
+
         return response
       } catch (error) {
         handleError('Error al cargar favoritos', error)
+
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
@@ -95,10 +106,13 @@ export const useMatches = () => {
   const fetchMatchStats = useCallback(async () => {
     try {
       const response = await matchService.getMatchStats()
+
       setMatchStats(response)
+
       return response
     } catch (error) {
       handleError('Error al cargar estadísticas de matches', error)
+
       return {}
     }
   }, [handleError])
@@ -106,10 +120,13 @@ export const useMatches = () => {
   const fetchRemainingAttempts = useCallback(async () => {
     try {
       const response = await matchService.getRemainingAttempts()
+
       setMatchStats(prev => ({ ...prev, availableAttempts: response.remainingAttempts || 0 }))
+
       return response
     } catch (error) {
       handleError('Error al cargar intentos disponibles', error)
+
       return { remainingAttempts: 0 }
     }
   }, [handleError])
@@ -117,10 +134,13 @@ export const useMatches = () => {
   const fetchNotifications = useCallback(async () => {
     try {
       const response = await matchService.getMatchNotifications()
+
       setNotifications(response)
+
       return response
     } catch (error) {
       handleError('Error al cargar notificaciones', error)
+
       return []
     }
   }, [handleError])
@@ -193,6 +213,7 @@ export const useMatches = () => {
     async matchId => {
       try {
         const response = await matchService.getMatchContact(matchId)
+
         return response
       } catch (error) {
         handleError('Error al obtener información de contacto', error)

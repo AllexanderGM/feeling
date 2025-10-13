@@ -17,8 +17,10 @@ export const CreateTourProvider = ({ children }) => {
 
 export const useCreateTour = () => {
   const context = useContext(CreateTourContext)
+
   if (!context) {
     throw new Error('useCreateTour debe ser usado dentro de un CreateTourProvider')
   }
+
   return context
 }

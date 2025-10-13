@@ -38,6 +38,7 @@ const ResetPassword = () => {
   const onSubmit = async formData => {
     const data = extractResetPasswordData(formData)
     const result = await resetPassword(token, data.password, data.confirmPassword)
+
     if (result.success) {
       setStatus('success')
       setTimeout(() => {
@@ -51,13 +52,14 @@ const ResetPassword = () => {
   // Si no hay token, redirigir
   if (!token) {
     navigate(APP_PATHS.AUTH.FORGOT_PASSWORD)
+
     return null
   }
 
   return (
     <LiteContainer ariaLabel='Página de restablecimiento de contraseña'>
       <figure className='text-center'>
-        <img src={logo} alt='Logo Feeling' className='w-40' />
+        <img alt='Logo Feeling' className='w-40' src={logo} />
       </figure>
 
       <div className='bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full'>
@@ -77,64 +79,64 @@ const ResetPassword = () => {
           <>
             <p className='text-gray-400 mb-6'>Crea una nueva contraseña segura para tu cuenta.</p>
 
-            <Form onSubmit={handleSubmit(onSubmit)} validationBehavior='aria'>
+            <Form validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
               <Controller
-                name='password'
                 control={control}
+                name='password'
                 render={({ field }) => (
                   <Input
                     {...field}
-                    variant='underlined'
                     isRequired
-                    label='Nueva contraseña'
-                    placeholder='••••••••'
-                    type={isPasswordVisible ? 'text' : 'password'}
                     autoComplete='new-password'
-                    isInvalid={!!errors.password}
-                    errorMessage={errors.password?.message}
-                    isDisabled={loading}
                     className='mb-4'
                     endContent={
-                      <button type='button' onClick={togglePasswordVisibility} className='focus:outline-none'>
+                      <button className='focus:outline-none' type='button' onClick={togglePasswordVisibility}>
                         {isPasswordVisible ? <EyeOff /> : <Eye />}
                       </button>
                     }
+                    errorMessage={errors.password?.message}
+                    isDisabled={loading}
+                    isInvalid={!!errors.password}
+                    label='Nueva contraseña'
+                    placeholder='••••••••'
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    variant='underlined'
                   />
                 )}
               />
 
               <Controller
-                name='confirmPassword'
                 control={control}
+                name='confirmPassword'
                 render={({ field }) => (
                   <Input
                     {...field}
-                    variant='underlined'
                     isRequired
-                    label='Confirma tu nueva contraseña'
-                    placeholder='••••••••'
-                    type={isConfirmPasswordVisible ? 'text' : 'password'}
                     autoComplete='new-password'
-                    isInvalid={!!errors.confirmPassword}
-                    errorMessage={errors.confirmPassword?.message}
-                    isDisabled={loading}
                     className='mb-6'
                     endContent={
-                      <button type='button' onClick={toggleConfirmPasswordVisibility} className='focus:outline-none'>
+                      <button className='focus:outline-none' type='button' onClick={toggleConfirmPasswordVisibility}>
                         {isConfirmPasswordVisible ? <EyeOff /> : <Eye />}
                       </button>
                     }
+                    errorMessage={errors.confirmPassword?.message}
+                    isDisabled={loading}
+                    isInvalid={!!errors.confirmPassword}
+                    label='Confirma tu nueva contraseña'
+                    placeholder='••••••••'
+                    type={isConfirmPasswordVisible ? 'text' : 'password'}
+                    variant='underlined'
                   />
                 )}
               />
 
               <Button
-                type='submit'
-                radius='full'
-                color='default'
                 className='w-full py-3 mt-4'
+                color='default'
+                isDisabled={loading || !isValid}
                 isLoading={loading}
-                isDisabled={loading || !isValid}>
+                radius='full'
+                type='submit'>
                 {loading ? 'Actualizando...' : 'Restablecer contraseña'}
               </Button>
             </Form>

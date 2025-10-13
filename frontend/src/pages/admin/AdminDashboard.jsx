@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardBody, CardHeader, Divider, Button, Chip } from '@heroui/react'
-import { BarChart3, Users, Heart, Calendar, MessageSquare, Activity, Tags, RefreshCw, TrendingUp, Package } from 'lucide-react'
+import { BarChart3, Users, Heart, Calendar, MessageSquare, Activity, Tags, RefreshCw } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import { Logger } from '@utils/logger.js'
 
@@ -33,7 +33,7 @@ const AdminDashboard = () => {
     <div className='max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8'>
       <Helmet>
         <title>Dashboard de Administración | Admin</title>
-        <meta name='description' content='Dashboard principal con todas las estadísticas de la plataforma' />
+        <meta content='Dashboard principal con todas las estadísticas de la plataforma' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -48,17 +48,17 @@ const AdminDashboard = () => {
           </div>
         </div>
         <div className='flex items-center gap-3'>
-          <Chip variant='flat' color='primary' size='sm'>
+          <Chip color='primary' size='sm' variant='flat'>
             Última actualización: {lastUpdated.toLocaleTimeString()}
           </Chip>
           <Button
             isIconOnly
-            variant='flat'
+            className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
             color='primary'
-            onPress={handleRefreshAll}
             isLoading={refreshing}
             size='sm'
-            className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'>
+            variant='flat'
+            onPress={handleRefreshAll}>
             <RefreshCw className='w-4 h-4' />
           </Button>
         </div>

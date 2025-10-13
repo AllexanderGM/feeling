@@ -1,8 +1,8 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
-
 import { Search, ChevronDown, Plus } from 'lucide-react'
-import { INITIAL_VISIBLE_COLUMNS, ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants.js'
 import { Logger } from '@utils/logger.js'
+
+import { INITIAL_VISIBLE_COLUMNS, ROWS_PER_PAGE_OPTIONS } from '../constants/tableConstants.js'
 
 export const capitalize = s => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '')
 
@@ -25,6 +25,7 @@ const TableControls = ({
   // Manejador para el cambio de filas por página
   const handleRowsPerPageChange = e => {
     const newValue = Number(e.target.value)
+
     Logger.debug('Cambiando filas por página', Logger.CATEGORIES.UI, { newValue })
     onRowsPerPageChange(newValue)
   }
@@ -35,12 +36,6 @@ const TableControls = ({
         <Input
           isClearable
           className='w-full sm:max-w-[44%]'
-          placeholder='Buscar por nombre...'
-          startContent={<Search />}
-          value={filterValue}
-          onClear={onClear}
-          onValueChange={onSearchChange}
-          variant='underlined'
           classNames={{
             inputWrapper: [
               'data-[focus=true]:after:bg-[#E86C6E]',
@@ -48,6 +43,12 @@ const TableControls = ({
               'after:bg-[#E86C6E]'
             ]
           }}
+          placeholder='Buscar por nombre...'
+          startContent={<Search />}
+          value={filterValue}
+          variant='underlined'
+          onClear={onClear}
+          onValueChange={onSearchChange}
         />
         <div className='flex gap-3'>
           <Dropdown>
@@ -105,8 +106,8 @@ const TableControls = ({
           Filas por página:
           <select
             className='bg-transparent outline-none text-default-400 text-small ml-2'
-            onChange={handleRowsPerPageChange}
-            value={rowsPerPage}>
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}>
             {ROWS_PER_PAGE_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}

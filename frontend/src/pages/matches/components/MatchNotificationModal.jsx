@@ -1,4 +1,4 @@
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody, Chip, Badge } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody, Badge } from '@heroui/react'
 import { Heart, Check, X, Clock, Bell, User, Sparkles, Flame, MessageCircle } from 'lucide-react'
 
 const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onReject, onMarkAsRead }) => {
@@ -62,6 +62,7 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
     if (diffInMinutes < 1) return 'Ahora'
     if (diffInMinutes < 60) return `Hace ${diffInMinutes}m`
     if (diffInMinutes < 1440) return `Hace ${Math.floor(diffInMinutes / 60)}h`
+
     return `Hace ${Math.floor(diffInMinutes / 1440)}d`
   }
 
@@ -69,15 +70,15 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement='center'
-      size='2xl'
-      scrollBehavior='inside'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='2xl'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -86,7 +87,7 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                 <Bell className='w-5 h-5 text-blue-400' />
               </div>
               {unreadCount > 0 && (
-                <Badge content={unreadCount > 99 ? '99+' : unreadCount} color='danger' size='sm' className='absolute -top-1 -right-1' />
+                <Badge className='absolute -top-1 -right-1' color='danger' content={unreadCount > 99 ? '99+' : unreadCount} size='sm' />
               )}
             </div>
             <div>
@@ -152,7 +153,7 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                               <Clock className='w-3 h-3 text-gray-500' />
                               <span className='text-xs text-gray-500'>{formatTime(notification.createdAt)}</span>
                             </div>
-                            {!notification.read && <div className='w-2 h-2 bg-blue-400 rounded-full'></div>}
+                            {!notification.read && <div className='w-2 h-2 bg-blue-400 rounded-full' />}
                           </div>
                         </div>
 
@@ -160,8 +161,8 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                         {notification.type === 'MATCH_RECEIVED' && !notification.responded && (
                           <div className='flex items-center gap-2 mt-3 pt-3 border-t border-gray-600/30'>
                             <Button
-                              size='sm'
                               color='success'
+                              size='sm'
                               startContent={<Check className='w-4 h-4' />}
                               onPress={() => {
                                 onAccept?.(notification)
@@ -170,10 +171,10 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                               Aceptar
                             </Button>
                             <Button
-                              size='sm'
                               color='danger'
-                              variant='bordered'
+                              size='sm'
                               startContent={<X className='w-4 h-4' />}
+                              variant='bordered'
                               onPress={() => {
                                 onReject?.(notification)
                                 onMarkAsRead?.(notification.id)
@@ -182,9 +183,9 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                             </Button>
                             {!notification.read && (
                               <Button
+                                className='text-blue-400 hover:bg-blue-500/20'
                                 size='sm'
                                 variant='light'
-                                className='text-blue-400 hover:bg-blue-500/20'
                                 onPress={() => onMarkAsRead?.(notification.id)}>
                                 Marcar como leída
                               </Button>
@@ -196,9 +197,9 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
                         {notification.type !== 'MATCH_RECEIVED' && !notification.read && (
                           <div className='mt-3 pt-3 border-t border-gray-600/30'>
                             <Button
+                              className='text-blue-400 hover:bg-blue-500/20'
                               size='sm'
                               variant='light'
-                              className='text-blue-400 hover:bg-blue-500/20'
                               onPress={() => onMarkAsRead?.(notification.id)}>
                               Marcar como leída
                             </Button>
@@ -216,8 +217,8 @@ const MatchNotificationModal = ({ isOpen, onClose, notifications, onAccept, onRe
         <ModalFooter>
           {notifications && notifications.length > 0 && unreadCount > 0 && (
             <Button
-              variant='bordered'
               className='border-gray-600 text-gray-300'
+              variant='bordered'
               onPress={() => {
                 notifications.forEach(notification => {
                   if (!notification.read) {

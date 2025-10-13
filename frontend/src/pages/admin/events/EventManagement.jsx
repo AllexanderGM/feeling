@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState, useEffect, memo, useRef } from 'react'
-import { useAuth, useEvents, useError } from '@hooks'
+import { useCallback, useMemo, useState, useEffect, memo } from 'react'
+import { useEvents, useError } from '@hooks'
 import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
 import { Logger } from '@utils/logger.js'
-import { Calendar, Clock, TrendingUp, Edit, Pause, X, CheckCircle } from 'lucide-react'
+import { Clock, TrendingUp, Edit, Pause, X, CheckCircle } from 'lucide-react'
 import GenericTableControls from '@components/ui/GenericTableControls.jsx'
 import TablePagination from '@components/ui/TablePagination.jsx'
 import { EVENT_TYPE_COLUMNS, DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
@@ -15,7 +15,6 @@ import EditEventForm from './components/EditEventForm.jsx'
 import DeleteEventModal from './components/DeleteEventModal.jsx'
 
 const EventManagement = memo(() => {
-  const { user: currentUser } = useAuth()
   const {
     // Todos los eventos
     allEvents,
@@ -129,9 +128,6 @@ const EventManagement = memo(() => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
 
-  // Ref to track if initial data load has been performed
-  const hasInitialLoadRef = useRef(false)
-
   // ========================================
   // HELPER FUNCTIONS
   // ========================================
@@ -208,6 +204,7 @@ const EventManagement = memo(() => {
           debouncedFilter: tableStates[tableType].filterValue
         })
       }, 500)
+
       timers.push(timer)
     })
 
@@ -229,9 +226,6 @@ const EventManagement = memo(() => {
     const currentTable = tableStates[selectedTab]
 
     if (!currentTable) return
-
-    // Crear una clave única para este estado de parámetros
-    const paramsKey = `${selectedTab}-${currentTable.page}-${currentTable.rowsPerPage}-${currentTable.debouncedFilter}`
 
     // Evitar llamadas repetitivas con los mismos parámetros
     if (currentTable.loading) return
@@ -276,6 +270,7 @@ const EventManagement = memo(() => {
     const visibleColumns = currentTableState?.visibleColumns
 
     if (visibleColumns === 'all') return allColumns
+
     return allColumns.filter(column => Array.from(visibleColumns || []).includes(column.uid))
   }, [allColumns, currentTableState?.visibleColumns])
 
@@ -288,12 +283,14 @@ const EventManagement = memo(() => {
     if (!currentEvents?.length) return []
 
     const sortDescriptor = currentTableState?.sortDescriptor
+
     if (!sortDescriptor) return currentEvents
 
     return [...currentEvents].sort((a, b) => {
       const first = a[sortDescriptor.column] || ''
       const second = b[sortDescriptor.column] || ''
       const cmp = first < second ? -1 : first > second ? 1 : 0
+
       return sortDescriptor.direction === 'descending' ? -cmp : cmp
     })
   }, [currentEvents, currentTableState?.sortDescriptor])
@@ -311,6 +308,7 @@ const EventManagement = memo(() => {
       try {
         // Get complete event data
         const fullEventData = await getEventById(event.id)
+
         setSelectedEvent(fullEventData)
         setIsEditModalOpen(true)
       } catch (error) {
@@ -329,6 +327,7 @@ const EventManagement = memo(() => {
       if (!event || !event.id) {
         Logger.error('Incomplete event data for deletion', { event }, { category: Logger.CATEGORIES.UI })
         handleError('No se puede eliminar el evento: datos incompletos')
+
         return
       }
 
@@ -373,7 +372,7 @@ const EventManagement = memo(() => {
         await createEvent(eventData)
         handleSuccess('Evento creado exitosamente')
         handleOperationSuccess()
-      } catch (error) {
+      } catch {
         handleError('Error al crear el evento')
       }
     },
@@ -386,7 +385,7 @@ const EventManagement = memo(() => {
         await updateEvent(eventId, eventData)
         handleSuccess('Evento actualizado exitosamente')
         handleOperationSuccess()
-      } catch (error) {
+      } catch {
         handleError('Error al actualizar el evento')
       }
     },
@@ -403,7 +402,7 @@ const EventManagement = memo(() => {
         }
         handleSuccess('Evento eliminado exitosamente')
         handleOperationSuccess()
-      } catch (error) {
+      } catch {
         handleError('Error al eliminar el evento')
       }
     },
@@ -439,7 +438,7 @@ const EventManagement = memo(() => {
 
         refreshAllTables()
         fetchEventStats() // Actualizar estadísticas
-      } catch (error) {
+      } catch {
         handleError('Error al cambiar el estado del evento')
       }
     },
@@ -453,6 +452,7 @@ const EventManagement = memo(() => {
   // Handlers de paginación genéricos
   const onNextPage = useCallback(() => {
     const currentTable = tableStates[selectedTab]
+
     if (currentTable.page < pages) {
       updateTableState(selectedTab, { page: currentTable.page + 1 })
     }
@@ -460,6 +460,7 @@ const EventManagement = memo(() => {
 
   const onPreviousPage = useCallback(() => {
     const currentTable = tableStates[selectedTab]
+
     if (currentTable.page > 1) {
       updateTableState(selectedTab, { page: currentTable.page - 1 })
     }
@@ -534,6 +535,7 @@ const EventManagement = memo(() => {
       CANCELADO: 'Buscar eventos cancelados por nombre, destino...',
       TERMINADO: 'Buscar eventos terminados por nombre, destino...'
     }
+
     return placeholders[tableType] || 'Buscar eventos...'
   }, [])
 
@@ -545,6 +547,7 @@ const EventManagement = memo(() => {
       } else if (['PUBLICADO', 'EN_EDICION', 'PAUSADO', 'CANCELADO', 'TERMINADO'].includes(tableType)) {
         return (page, size, searchTerm) => refreshEventsByStatus(tableType, page, size, searchTerm)
       }
+
       return null
     },
     [refreshAllEvents, refreshEventsByStatus]
@@ -556,15 +559,19 @@ const EventManagement = memo(() => {
 
     return (
       <GenericTableControls
-        filterValue={currentTableState?.filterValue || ''}
-        onClear={onClear}
-        onSearchChange={onSearchChange}
-        filterPlaceholder={getSearchPlaceholder(selectedTab)}
         columns={allColumns}
-        visibleColumns={currentTableState?.visibleColumns}
-        setVisibleColumns={onColumnsChange}
-        onCreateItem={handleOpenCreateModal}
         createButtonLabel='Crear Evento'
+        error={null}
+        filterPlaceholder={getSearchPlaceholder(selectedTab)}
+        filterValue={currentTableState?.filterValue || ''}
+        itemsLabel={`eventos ${selectedTab}`}
+        loading={currentTableState?.loading || loading}
+        rowsPerPage={currentTableState?.rowsPerPage || DEFAULT_ROWS_PER_PAGE}
+        setVisibleColumns={onColumnsChange}
+        totalItems={totalItems}
+        visibleColumns={currentTableState?.visibleColumns}
+        onClear={onClear}
+        onCreateItem={handleOpenCreateModal}
         onRefresh={() =>
           refreshMethod?.(
             (currentTableState?.page || 1) - 1,
@@ -572,12 +579,8 @@ const EventManagement = memo(() => {
             currentTableState?.debouncedFilter || ''
           )
         }
-        loading={currentTableState?.loading || loading}
-        error={null}
-        totalItems={totalItems}
-        itemsLabel={`eventos ${selectedTab}`}
-        rowsPerPage={currentTableState?.rowsPerPage || DEFAULT_ROWS_PER_PAGE}
         onRowsPerPageChange={onRowsPerPageChange}
+        onSearchChange={onSearchChange}
       />
     )
   }, [
@@ -598,13 +601,13 @@ const EventManagement = memo(() => {
   const bottomContent = useMemo(
     () => (
       <TablePagination
-        selectedKeys={currentTableState?.selectedKeys || new Set([])}
         filteredItemsLength={totalItems}
         page={currentTableState?.page || 1}
         pages={pages}
-        onPreviousPage={onPreviousPage}
+        selectedKeys={currentTableState?.selectedKeys || new Set([])}
         onNextPage={onNextPage}
         onPageChange={onPageChange}
+        onPreviousPage={onPreviousPage}
       />
     ),
     [currentTableState, totalItems, pages, onPreviousPage, onNextPage, onPageChange]
@@ -614,7 +617,7 @@ const EventManagement = memo(() => {
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Gestión de Eventos | Admin</title>
-        <meta name='description' content='Panel de administración para gestionar eventos del sistema' />
+        <meta content='Panel de administración para gestionar eventos del sistema' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -631,11 +634,11 @@ const EventManagement = memo(() => {
       {/* Pestañas para los 3 tipos de eventos */}
       <div className='flex w-full flex-col'>
         <Tabs
-          selectedKey={selectedTab}
-          onSelectionChange={setSelectedTab}
           aria-label='Gestión de eventos'
           color='primary'
-          variant='bordered'>
+          selectedKey={selectedTab}
+          variant='bordered'
+          onSelectionChange={setSelectedTab}>
           {/* Todos los Eventos */}
           <Tab
             key='all'
@@ -650,20 +653,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='all'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='all'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -682,20 +685,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='PUBLICADO'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='PUBLICADO'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -714,20 +717,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='EN_EDICION'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='EN_EDICION'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -746,20 +749,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='PAUSADO'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='PAUSADO'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -778,20 +781,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='CANCELADO'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='CANCELADO'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -810,20 +813,20 @@ const EventManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
                 events={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='TERMINADO'
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-                onToggleStatus={handleToggleEventStatus}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='TERMINADO'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
+                onToggleStatus={handleToggleEventStatus}
               />
             </div>
           </Tab>
@@ -831,22 +834,22 @@ const EventManagement = memo(() => {
       </div>
 
       {/* Modales para CRUD de eventos */}
-      <CreateEventForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSubmit={handleCreateEvent} loading={loading} />
+      <CreateEventForm isOpen={isCreateModalOpen} loading={loading} onClose={handleCloseModals} onSubmit={handleCreateEvent} />
 
       <EditEventForm
+        eventData={selectedEvent}
         isOpen={isEditModalOpen}
+        loading={loading}
         onClose={handleCloseModals}
         onSubmit={handleUpdateEvent}
-        loading={loading}
-        eventData={selectedEvent}
       />
 
       <DeleteEventModal
+        eventData={selectedEvent}
         isOpen={isDeleteModalOpen}
+        loading={loading}
         onClose={handleCloseModals}
         onConfirm={handleDeleteEvent}
-        loading={loading}
-        eventData={selectedEvent}
       />
     </div>
   )

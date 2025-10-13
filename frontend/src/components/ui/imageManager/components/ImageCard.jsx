@@ -18,7 +18,6 @@ const ImageCard = memo(
     error,
     isAnimating = false,
     enableCrop = true,
-    enableReorder = true,
     enableRemove = true,
     onRemove,
     onSetAsMain,
@@ -37,13 +36,13 @@ const ImageCard = memo(
     if (!image && !previewUrl) {
       return (
         <EmptyImageSlot
-          variant={variant}
-          size={size}
-          isMain={isMain}
           canAddMore={canAddMore}
-          dropzoneProps={dropzoneProps}
           className={className}
+          dropzoneProps={dropzoneProps}
           index={index}
+          isMain={isMain}
+          size={size}
+          variant={variant}
         />
       )
     }
@@ -106,24 +105,30 @@ const ImageCard = memo(
 
     return (
       <div
+        aria-label={`${isMain ? 'Imagen principal' : `Imagen ${index + 1}`}`}
         className={getBaseClasses()}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={handlePreviewClick}
         role='button'
         tabIndex={0}
-        aria-label={`${isMain ? 'Imagen principal' : `Imagen ${index + 1}`}`}>
+        onClick={handlePreviewClick}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            handlePreviewClick(e)
+          }
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}>
         {/* Imagen */}
         <img
-          src={previewUrl}
           alt={`${isMain ? 'Imagen principal' : `Imagen ${index + 1}`} del perfil`}
           className={`
           w-full h-full object-cover transition-opacity duration-300
           ${variant === 'circular' ? 'rounded-full' : 'rounded-lg'}
           ${imageLoaded ? 'opacity-100' : 'opacity-0'}
         `}
-          onLoad={handleImageLoad}
           loading='lazy'
+          src={previewUrl}
+          onLoad={handleImageLoad}
         />
 
         {/* Loading placeholder */}
@@ -146,11 +151,11 @@ const ImageCard = memo(
                 <Tooltip content='Editar imagen' size='sm'>
                   <Button
                     isIconOnly
+                    className='bg-primary-500/90 hover:bg-primary-500'
+                    color='primary'
                     size='sm'
                     variant='solid'
-                    color='primary'
-                    onClick={handleCropClick}
-                    className='bg-primary-500/90 hover:bg-primary-500'>
+                    onClick={handleCropClick}>
                     <Edit3 className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -161,11 +166,11 @@ const ImageCard = memo(
                 <Tooltip content='Hacer principal' size='sm'>
                   <Button
                     isIconOnly
+                    className='bg-yellow-500/90 hover:bg-yellow-500'
+                    color='warning'
                     size='sm'
                     variant='solid'
-                    color='warning'
-                    onClick={handleSetMainClick}
-                    className='bg-yellow-500/90 hover:bg-yellow-500'>
+                    onClick={handleSetMainClick}>
                     <Star className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -177,14 +182,14 @@ const ImageCard = memo(
         {/* Botón eliminar */}
         {enableRemove && imageLoaded && (
           <button
-            type='button'
-            onClick={handleRemoveClick}
+            aria-label={`Eliminar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}
             className={`
             absolute bg-red-500 rounded-full flex items-center justify-center text-white
             hover:bg-red-600 transition-all hover:scale-110 shadow-lg
             ${variant === 'circular' ? 'w-8 h-8 -top-1 -right-1' : 'w-6 h-6 -top-2 -right-2 opacity-0 group-hover:opacity-100'}
           `}
-            aria-label={`Eliminar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}>
+            type='button'
+            onClick={handleRemoveClick}>
             <X className={variant === 'circular' ? 'w-4 h-4' : 'w-3 h-3'} />
           </button>
         )}
@@ -192,7 +197,7 @@ const ImageCard = memo(
         {/* Badge de imagen principal */}
         {isMain && (
           <div className='absolute -bottom-2 left-1/2 transform -translate-x-1/2'>
-            <Chip color='primary' size='sm' startContent={<Star className='w-3 h-3' />} variant='shadow' className='text-xs font-medium'>
+            <Chip className='text-xs font-medium' color='primary' size='sm' startContent={<Star className='w-3 h-3' />} variant='shadow'>
               Principal
             </Chip>
           </div>
@@ -201,7 +206,7 @@ const ImageCard = memo(
         {/* Error indicator */}
         {error && (
           <div className='absolute -top-1 -left-1'>
-            <Tooltip content={error} color='danger' size='sm'>
+            <Tooltip color='danger' content={error} size='sm'>
               <div className='bg-red-500 rounded-full p-1'>
                 <AlertCircle className='w-3 h-3 text-white' />
               </div>
@@ -214,7 +219,7 @@ const ImageCard = memo(
 )
 
 // Componente para slot vacío
-const EmptyImageSlot = memo(({ variant, size, isMain, canAddMore, dropzoneProps, className, index }) => {
+const EmptyImageSlot = memo(({ variant, isMain, canAddMore, dropzoneProps, className, index }) => {
   // Obtener el estado de arrastre desde dropzoneProps
   const isDragActive = dropzoneProps?.isDragActive || false
 
@@ -258,10 +263,10 @@ const EmptyImageSlot = memo(({ variant, size, isMain, canAddMore, dropzoneProps,
   return (
     <div
       {...(dropzoneProps?.getRootProps ? dropzoneProps.getRootProps() : {})}
+      aria-label={`Agregar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}
       className={getEmptyClasses()}
       role='button'
-      tabIndex={0}
-      aria-label={`Agregar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}>
+      tabIndex={0}>
       {dropzoneProps?.getInputProps && <input {...dropzoneProps.getInputProps()} />}
 
       <div

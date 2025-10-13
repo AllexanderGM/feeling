@@ -14,12 +14,12 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
 
   return (
     <div
-      className={`space-y-2 ${className}`}
-      role='progressbar'
-      aria-valuenow={percentage}
-      aria-valuemin={0}
+      aria-label={`Progreso de subida de fotos: ${imageCount} de ${maxImages} imágenes`}
       aria-valuemax={100}
-      aria-label={`Progreso de subida de fotos: ${imageCount} de ${maxImages} imágenes`}>
+      aria-valuemin={0}
+      aria-valuenow={percentage}
+      className={`space-y-2 ${className}`}
+      role='progressbar'>
       {/* Progreso visual */}
       <div className='space-y-1.5'>
         <div className='flex items-center justify-between'>
@@ -33,9 +33,6 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
           </div>
 
           <Chip
-            size='sm'
-            variant='flat'
-            color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
             className={`
               ${
                 isComplete
@@ -44,27 +41,30 @@ const ImageProgress = memo(({ imageCount = 0, maxImages = 5, className = '' }) =
                     ? 'bg-primary-500/20 text-primary-400'
                     : 'bg-gray-700 text-gray-400'
               }
-            `}>
+            `}
+            color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
+            size='sm'
+            variant='flat'>
             {imageCount}/{maxImages}
           </Chip>
         </div>
 
         <Progress
-          size='sm'
-          value={percentage}
-          color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
-          className='w-full h-1.5'
           aria-label={`Progreso de subida de fotos: ${imageCount} de ${maxImages} imágenes subidas`}
           aria-valuetext={`${percentage}% completado. ${imageCount} de ${maxImages} fotos subidas`}
+          className='w-full h-1.5'
           classNames={{
             track: 'bg-gray-700 h-1.5',
             indicator: isComplete ? 'bg-green-500' : imageCount > 0 ? 'bg-primary-500' : 'bg-gray-600'
           }}
+          color={isComplete ? 'success' : imageCount > 0 ? 'primary' : 'default'}
+          size='sm'
+          value={percentage}
         />
       </div>
 
       {/* Estado y mensajes */}
-      <div className='text-center px-2' role='status' aria-live='polite'>
+      <div aria-live='polite' className='text-center px-2' role='status'>
         {isComplete ? (
           <p className='text-green-400 text-xs md:text-sm font-medium'>¡Perfil completo!</p>
         ) : imageCount > 0 ? (

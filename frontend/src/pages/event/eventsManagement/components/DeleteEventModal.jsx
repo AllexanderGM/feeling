@@ -12,6 +12,7 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
   const handleDelete = async () => {
     if (!eventData?.id) {
       Logger.error(Logger.CATEGORIES.SERVICE, 'delete_event', 'No event ID provided for deletion')
+
       return
     }
 
@@ -36,14 +37,14 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size='lg'
       classNames={{
         modal: 'bg-background',
         header: 'border-b border-divider',
         footer: 'border-t border-divider'
-      }}>
+      }}
+      isOpen={isOpen}
+      size='lg'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>
           <div className='flex items-center gap-3'>
@@ -71,10 +72,10 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
             <CardBody className='p-4'>
               <div className='flex items-start gap-4'>
                 <Avatar
-                  src={eventData.images?.[0] || 'https://via.placeholder.com/60x60?text=E'}
                   alt={eventData.name}
-                  size='lg'
                   className='flex-shrink-0'
+                  size='lg'
+                  src={eventData.images?.[0] || 'https://via.placeholder.com/60x60?text=E'}
                 />
 
                 <div className='flex-1 space-y-3'>
@@ -106,7 +107,7 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
                     {/* Estado */}
                     <div className='flex items-center gap-2'>
-                      <Chip size='sm' variant='flat' color={EVENT_STATUS_COLORS[eventData.status] || 'default'}>
+                      <Chip color={EVENT_STATUS_COLORS[eventData.status] || 'default'} size='sm' variant='flat'>
                         {eventData.status || 'PENDIENTE'}
                       </Chip>
                     </div>
@@ -116,12 +117,12 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                   {eventData.tags && eventData.tags.length > 0 && (
                     <div className='flex flex-wrap gap-1'>
                       {eventData.tags.slice(0, 3).map((tag, index) => (
-                        <Chip key={index} size='sm' variant='bordered' className='text-xs'>
+                        <Chip key={index} className='text-xs' size='sm' variant='bordered'>
                           {tag}
                         </Chip>
                       ))}
                       {eventData.tags.length > 3 && (
-                        <Chip size='sm' variant='bordered' className='text-xs'>
+                        <Chip className='text-xs' size='sm' variant='bordered'>
                           +{eventData.tags.length - 3}
                         </Chip>
                       )}
@@ -145,10 +146,10 @@ const DeleteEventModal = memo(({ isOpen, onClose, onSuccess, eventData }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='light' onPress={onClose} isDisabled={isDeleting}>
+          <Button isDisabled={isDeleting} variant='light' onPress={onClose}>
             Cancelar
           </Button>
-          <Button color='danger' onPress={handleDelete} isLoading={isDeleting} isDisabled={isDeleting}>
+          <Button color='danger' isDisabled={isDeleting} isLoading={isDeleting} onPress={handleDelete}>
             {isDeleting ? 'Eliminando...' : 'Sí, Eliminar Evento'}
           </Button>
         </ModalFooter>

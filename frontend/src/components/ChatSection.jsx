@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  Card,
   CardBody,
   CardHeader,
   Avatar,
@@ -17,7 +16,6 @@ import {
   ArrowLeft,
   Send,
   Smile,
-  Camera,
   Paperclip,
   MoreVertical,
   Phone,
@@ -27,17 +25,13 @@ import {
   Shield,
   Flag,
   Image as ImageIcon,
-  Clock,
   Check,
   CheckCheck,
-  Heart,
   MapPin
 } from 'lucide-react'
-import { useAuth } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
 const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
-  const { user } = useAuth()
   const [message, setMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [messages, setMessages] = useState([])
@@ -82,6 +76,7 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
         status: 'delivered'
       }
     ]
+
     setMessages(simulatedMessages)
   }, [chatData])
 
@@ -116,6 +111,7 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
           timestamp: new Date(),
           status: 'delivered'
         }
+
         setMessages(prev => [...prev, responseMessage])
       }, 2000)
     }, 1000)
@@ -144,6 +140,7 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
     }
 
     const yesterday = new Date(today)
+
     yesterday.setDate(yesterday.getDate() - 1)
 
     if (messageDate.toDateString() === yesterday.toDateString()) {
@@ -192,10 +189,12 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
   // Agrupar mensajes por fecha
   const groupedMessages = messages.reduce((groups, message) => {
     const date = formatDate(message.timestamp)
+
     if (!groups[date]) {
       groups[date] = []
     }
     groups[date].push(message)
+
     return groups
   }, {})
 
@@ -204,13 +203,13 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
       {/* Header del chat */}
       <CardHeader className='flex items-center justify-between p-4 border-b border-gray-700/50'>
         <div className='flex items-center gap-3'>
-          <Button isIconOnly variant='light' size='sm' onPress={onBack} className='text-gray-400 hover:text-gray-200'>
+          <Button isIconOnly className='text-gray-400 hover:text-gray-200' size='sm' variant='light' onPress={onBack}>
             <ArrowLeft className='w-4 h-4' />
           </Button>
 
           <div className='flex items-center gap-3'>
             <div className='relative'>
-              <Avatar src={chatData.image} alt={chatData.name} className='w-10 h-10' />
+              <Avatar alt={chatData.name} className='w-10 h-10' src={chatData.image} />
               {chatData.isOnline && (
                 <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full' />
               )}
@@ -227,7 +226,7 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
                   {chatData.location} • {chatData.distance} km
                 </span>
                 {chatData.isOnline ? (
-                  <Chip size='sm' color='success' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='success' size='sm' variant='flat'>
                     En línea
                   </Chip>
                 ) : (
@@ -240,20 +239,20 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
 
         <div className='flex items-center gap-2'>
           <Tooltip content='Llamada de voz'>
-            <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-green-400' onPress={handleVoiceCall}>
+            <Button isIconOnly className='text-gray-400 hover:text-green-400' size='sm' variant='light' onPress={handleVoiceCall}>
               <Phone className='w-4 h-4' />
             </Button>
           </Tooltip>
 
           <Tooltip content='Videollamada'>
-            <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-blue-400' onPress={handleVideoCall}>
+            <Button isIconOnly className='text-gray-400 hover:text-blue-400' size='sm' variant='light' onPress={handleVideoCall}>
               <Video className='w-4 h-4' />
             </Button>
           </Tooltip>
 
           <Dropdown>
             <DropdownTrigger>
-              <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-gray-200'>
+              <Button isIconOnly className='text-gray-400 hover:text-gray-200' size='sm' variant='light'>
                 <MoreVertical className='w-4 h-4' />
               </Button>
             </DropdownTrigger>
@@ -263,27 +262,27 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
                 base: 'bg-gray-800 border-gray-600',
                 content: 'bg-gray-800'
               }}>
-              <DropdownItem key='info' startContent={<Info className='w-4 h-4' />} className='text-gray-200 hover:bg-gray-700'>
+              <DropdownItem key='info' className='text-gray-200 hover:bg-gray-700' startContent={<Info className='w-4 h-4' />}>
                 Ver perfil
               </DropdownItem>
               <DropdownItem
                 key='mute'
-                startContent={<VolumeX className='w-4 h-4' />}
                 className='text-gray-200 hover:bg-gray-700'
+                startContent={<VolumeX className='w-4 h-4' />}
                 onPress={handleMuteChat}>
                 Silenciar
               </DropdownItem>
               <DropdownItem
                 key='block'
-                startContent={<Shield className='w-4 h-4' />}
                 className='text-warning-400 hover:bg-warning-400/10'
+                startContent={<Shield className='w-4 h-4' />}
                 onPress={handleBlockUser}>
                 Bloquear
               </DropdownItem>
               <DropdownItem
                 key='report'
-                startContent={<Flag className='w-4 h-4' />}
                 className='text-danger-400 hover:bg-danger-400/10'
+                startContent={<Flag className='w-4 h-4' />}
                 onPress={handleReportUser}>
                 Reportar
               </DropdownItem>
@@ -327,9 +326,9 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
             <div className='bg-gray-700/50 px-4 py-2 rounded-2xl'>
               <div className='flex items-center gap-2'>
                 <div className='flex space-x-1'>
-                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce'></div>
-                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '0.1s' }}></div>
-                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '0.2s' }}></div>
+                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce' />
+                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '0.1s' }} />
+                  <div className='w-1 h-1 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '0.2s' }} />
                 </div>
                 <span className='text-xs text-gray-400'>{chatData.name} está escribiendo...</span>
               </div>
@@ -345,29 +344,25 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
         <div className='flex items-center gap-3'>
           <div className='flex items-center gap-2'>
             <Tooltip content='Adjuntar archivo'>
-              <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-gray-200'>
+              <Button isIconOnly className='text-gray-400 hover:text-gray-200' size='sm' variant='light'>
                 <Paperclip className='w-4 h-4' />
               </Button>
             </Tooltip>
 
             <Tooltip content='Enviar imagen'>
-              <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-gray-200'>
+              <Button isIconOnly className='text-gray-400 hover:text-gray-200' size='sm' variant='light'>
                 <ImageIcon className='w-4 h-4' />
               </Button>
             </Tooltip>
 
             <Tooltip content='Emojis'>
-              <Button isIconOnly variant='light' size='sm' className='text-gray-400 hover:text-gray-200'>
+              <Button isIconOnly className='text-gray-400 hover:text-gray-200' size='sm' variant='light'>
                 <Smile className='w-4 h-4' />
               </Button>
             </Tooltip>
           </div>
 
           <Input
-            placeholder='Escribe un mensaje...'
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-700/30 border-gray-600 focus-within:border-primary-500'
@@ -375,15 +370,19 @@ const ChatSection = ({ chatData, onBack, getCategoryIcon }) => {
             endContent={
               <Button
                 isIconOnly
+                className={!message.trim() ? 'text-gray-400' : ''}
                 color='primary'
-                variant={message.trim() ? 'solid' : 'light'}
-                size='sm'
-                onPress={handleSendMessage}
                 isDisabled={!message.trim()}
-                className={!message.trim() ? 'text-gray-400' : ''}>
+                size='sm'
+                variant={message.trim() ? 'solid' : 'light'}
+                onPress={handleSendMessage}>
                 <Send className='w-4 h-4' />
               </Button>
             }
+            placeholder='Escribe un mensaje...'
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
           />
         </div>
 

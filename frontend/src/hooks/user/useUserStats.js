@@ -53,6 +53,7 @@ const useUserStats = users => {
 
         // Calcular completitud promedio
         const completeness = user.profileCompleteness || user.profile?.completeness || 0
+
         acc.totalCompleteness += completeness
 
         return acc

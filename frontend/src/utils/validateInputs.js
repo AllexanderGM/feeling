@@ -138,6 +138,7 @@ export const validateBirthDate = value => {
 export const validatePasswordMatch = (password, confirmPassword) => {
   if (!confirmPassword) return 'Confirma tu contraseña'
   if (password !== confirmPassword) return 'Las contraseñas no coinciden'
+
   return null
 }
 
@@ -147,6 +148,7 @@ export const validateTerms = value => {
 
 export const validatePhoneCode = value => {
   if (!value) return 'Selecciona el código de país'
+
   return null
 }
 
@@ -161,12 +163,14 @@ export const validateProfileImage = (images, options = {}) => {
   const validImages = imageArray.filter(img => {
     if (!img) return false
     if (typeof img === 'string' && !img.trim()) return false
+
     return true
   })
 
   // Validar imagen principal (posición 0) - ESTO ES LO MÁS IMPORTANTE
   if (requireMain) {
     const mainImage = imageArray[0]
+
     if (!mainImage) {
       return 'La foto de perfil es requerida'
     }
@@ -192,6 +196,7 @@ export const validateProfileImage = (images, options = {}) => {
 export const validateTags = tags => {
   if (!tags || tags.length === 0) return 'Agrega al menos un interés'
   if (tags.length > 10) return 'Máximo 10 intereses'
+
   return null
 }
 
@@ -210,6 +215,7 @@ export const formatters = {
   phone: value => value?.replace(/\D/g, '') || '',
   verificationCode: value => {
     const digits = value?.replace(/\D/g, '').slice(0, 6) || ''
+
     return digits.replace(/(\d{3})(\d{3})/, '$1 $2').trim()
   },
   name: value => value?.trim().replace(/\s+/g, ' ') || ''
@@ -225,6 +231,7 @@ export const validateForm = (data, validators) => {
   Object.entries(validators).forEach(([field, validator]) => {
     if (typeof validator === 'function') {
       const error = validator(data[field], data)
+
       if (error) errors[field] = error
     }
   })
@@ -275,6 +282,7 @@ export const validators = {
       if (!value || value < 140 || value > 220) {
         return 'La estatura debe estar entre 140 y 220 cm'
       }
+
       return null
     }
   },
@@ -284,15 +292,18 @@ export const validators = {
     categoryInterest: value => (!value ? 'Selecciona una categoría' : null),
     agePreferenceMin: value => {
       if (!value || value < 18) return 'Edad mínima debe ser 18 años'
+
       return null
     },
     agePreferenceMax: value => {
       if (!value || value > 80) return 'Edad máxima no puede ser mayor a 80 años'
+
       return null
     },
     locationPreferenceRadius: value => {
       if (!value || value < 5) return 'Radio mínimo debe ser 5 km'
       if (value > 200) return 'Radio máximo es 200 km'
+
       return null
     },
     // Validaciones específicas para SPIRIT
@@ -300,6 +311,7 @@ export const validators = {
       if (data.categoryInterest === 'SPIRIT' && !value) {
         return 'Selecciona tu religión'
       }
+
       return null
     },
     // Validaciones específicas para ROUSE
@@ -307,12 +319,14 @@ export const validators = {
       if (data.categoryInterest === 'ROUSE' && !value) {
         return 'Selecciona tu rol sexual'
       }
+
       return null
     },
     relationshipId: (value, data) => {
       if (data.categoryInterest === 'ROUSE' && !value) {
         return 'Selecciona el tipo de relación que buscas'
       }
+
       return null
     }
   },
@@ -365,6 +379,7 @@ export const validateFields = (fields, validatorMap) => {
   Object.entries(fields).forEach(([key, value]) => {
     if (validatorMap[key]) {
       const error = validatorMap[key](value, fields)
+
       if (error) results[key] = error
     }
   })

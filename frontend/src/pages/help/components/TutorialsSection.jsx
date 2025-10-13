@@ -170,6 +170,7 @@ const TutorialsSection = ({ searchTerm = '' }) => {
     if (views >= 1000) {
       return `${(views / 1000).toFixed(1)}k`
     }
+
     return views.toString()
   }
 
@@ -189,14 +190,14 @@ const TutorialsSection = ({ searchTerm = '' }) => {
       {!searchTerm && (
         <div className='max-w-md mx-auto'>
           <Input
-            placeholder='Buscar tutoriales...'
-            value={localSearch}
-            onChange={e => setLocalSearch(e.target.value)}
-            startContent={<Search className='w-4 h-4 text-gray-400' />}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-700/50'
             }}
+            placeholder='Buscar tutoriales...'
+            startContent={<Search className='w-4 h-4 text-gray-400' />}
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
           />
         </div>
       )}
@@ -204,8 +205,8 @@ const TutorialsSection = ({ searchTerm = '' }) => {
       {/* Estadísticas de búsqueda */}
       {currentSearchTerm && (
         <div className='text-center'>
-          <Chip color='primary' variant='flat' size='sm'>
-            {filteredTutorials.length} tutorial(es) encontrado(s) para "{currentSearchTerm}"
+          <Chip color='primary' size='sm' variant='flat'>
+            {filteredTutorials.length} tutorial(es) encontrado(s) para &quot;{currentSearchTerm}&quot;
           </Chip>
         </div>
       )}
@@ -222,8 +223,8 @@ const TutorialsSection = ({ searchTerm = '' }) => {
                   <div className='absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity'>
                     <Button
                       isIconOnly
-                      color='primary'
                       className='bg-primary-600/90 hover:bg-primary-700'
+                      color='primary'
                       onPress={() => handleWatchTutorial(tutorial)}>
                       <Play className='w-6 h-6' />
                     </Button>
@@ -244,10 +245,10 @@ const TutorialsSection = ({ searchTerm = '' }) => {
                   </div>
 
                   <div className='flex flex-wrap items-center gap-2 mb-3'>
-                    <Chip color={tutorial.color} variant='flat' size='sm'>
+                    <Chip color={tutorial.color} size='sm' variant='flat'>
                       {tutorial.category}
                     </Chip>
-                    <Chip color={getDifficultyColor(tutorial.difficulty)} variant='flat' size='sm'>
+                    <Chip color={getDifficultyColor(tutorial.difficulty)} size='sm' variant='flat'>
                       {tutorial.difficulty}
                     </Chip>
                   </div>
@@ -264,9 +265,9 @@ const TutorialsSection = ({ searchTerm = '' }) => {
                   </div>
 
                   <Button
+                    className='w-full'
                     color='primary'
                     size='sm'
-                    className='w-full'
                     startContent={<Play className='w-4 h-4' />}
                     onPress={() => handleWatchTutorial(tutorial)}>
                     Ver Tutorial
@@ -286,114 +287,110 @@ const TutorialsSection = ({ searchTerm = '' }) => {
 
       {/* Modal del reproductor de video */}
       <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        size='4xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           body: 'py-6',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isOpen}
+        size='4xl'
+        onOpenChange={onOpenChange}>
         <ModalContent>
-          {onClose => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                {selectedTutorial && (
-                  <div className='flex items-center gap-3'>
-                    <div className={`w-8 h-8 rounded-lg bg-${selectedTutorial.color}-500/20 flex items-center justify-center`}>
-                      {selectedTutorial.icon}
-                    </div>
-                    <div>
-                      <h3 className='text-lg font-bold text-gray-200'>{selectedTutorial.title}</h3>
-                      <p className='text-sm text-gray-400 font-normal'>{selectedTutorial.description}</p>
+          <ModalHeader className='flex flex-col gap-1'>
+            {selectedTutorial && (
+              <div className='flex items-center gap-3'>
+                <div className={`w-8 h-8 rounded-lg bg-${selectedTutorial.color}-500/20 flex items-center justify-center`}>
+                  {selectedTutorial.icon}
+                </div>
+                <div>
+                  <h3 className='text-lg font-bold text-gray-200'>{selectedTutorial.title}</h3>
+                  <p className='text-sm text-gray-400 font-normal'>{selectedTutorial.description}</p>
+                </div>
+              </div>
+            )}
+          </ModalHeader>
+          <ModalBody>
+            {selectedTutorial && (
+              <div className='space-y-6'>
+                {/* Placeholder del reproductor de video */}
+                <div className='bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg h-64 sm:h-80 flex items-center justify-center border border-gray-700/50'>
+                  <div className='text-center'>
+                    <div className='text-6xl mb-4'>{selectedTutorial.thumbnail}</div>
+                    <Button
+                      className='bg-primary-600 hover:bg-primary-700'
+                      color='primary'
+                      size='lg'
+                      startContent={<Play className='w-5 h-5' />}>
+                      Reproducir Tutorial
+                    </Button>
+                    <p className='text-sm text-gray-400 mt-2'>Duración: {selectedTutorial.duration}</p>
+                  </div>
+                </div>
+
+                {/* Información del tutorial */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  {/* Detalles */}
+                  <div>
+                    <h4 className='font-semibold text-gray-200 mb-3'>Detalles del tutorial</h4>
+                    <div className='space-y-2 text-sm'>
+                      <div className='flex justify-between'>
+                        <span className='text-gray-400'>Duración:</span>
+                        <span className='text-gray-300'>{selectedTutorial.duration}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='text-gray-400'>Nivel:</span>
+                        <Chip color={getDifficultyColor(selectedTutorial.difficulty)} size='sm' variant='flat'>
+                          {selectedTutorial.difficulty}
+                        </Chip>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='text-gray-400'>Vistas:</span>
+                        <span className='text-gray-300'>{selectedTutorial.views.toLocaleString()}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='text-gray-400'>Categoría:</span>
+                        <Chip color={selectedTutorial.color} size='sm' variant='flat'>
+                          {selectedTutorial.category}
+                        </Chip>
+                      </div>
                     </div>
                   </div>
-                )}
-              </ModalHeader>
-              <ModalBody>
-                {selectedTutorial && (
-                  <div className='space-y-6'>
-                    {/* Placeholder del reproductor de video */}
-                    <div className='bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg h-64 sm:h-80 flex items-center justify-center border border-gray-700/50'>
-                      <div className='text-center'>
-                        <div className='text-6xl mb-4'>{selectedTutorial.thumbnail}</div>
-                        <Button
-                          color='primary'
-                          size='lg'
-                          startContent={<Play className='w-5 h-5' />}
-                          className='bg-primary-600 hover:bg-primary-700'>
-                          Reproducir Tutorial
-                        </Button>
-                        <p className='text-sm text-gray-400 mt-2'>Duración: {selectedTutorial.duration}</p>
-                      </div>
-                    </div>
 
-                    {/* Información del tutorial */}
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                      {/* Detalles */}
-                      <div>
-                        <h4 className='font-semibold text-gray-200 mb-3'>Detalles del tutorial</h4>
-                        <div className='space-y-2 text-sm'>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-400'>Duración:</span>
-                            <span className='text-gray-300'>{selectedTutorial.duration}</span>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-400'>Nivel:</span>
-                            <Chip color={getDifficultyColor(selectedTutorial.difficulty)} variant='flat' size='sm'>
-                              {selectedTutorial.difficulty}
-                            </Chip>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-400'>Vistas:</span>
-                            <span className='text-gray-300'>{selectedTutorial.views.toLocaleString()}</span>
-                          </div>
-                          <div className='flex justify-between'>
-                            <span className='text-gray-400'>Categoría:</span>
-                            <Chip color={selectedTutorial.color} variant='flat' size='sm'>
-                              {selectedTutorial.category}
-                            </Chip>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Temas cubiertos */}
-                      <div>
-                        <h4 className='font-semibold text-gray-200 mb-3'>Temas cubiertos</h4>
-                        <ul className='space-y-2'>
-                          {selectedTutorial.topics.map((topic, index) => (
-                            <li key={index} className='flex items-start gap-2 text-sm'>
-                              <div className='w-1.5 h-1.5 bg-primary-400 rounded-full mt-2 shrink-0' />
-                              <span className='text-gray-300'>{topic}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    {/* Acciones adicionales */}
-                    <div className='flex flex-wrap gap-3 pt-4 border-t border-gray-700/50'>
-                      <Button
-                        variant='bordered'
-                        size='sm'
-                        startContent={<BookOpen className='w-4 h-4' />}
-                        className='border-gray-600 text-gray-300'>
-                        Ver Transcripción
-                      </Button>
-                      <Button
-                        variant='bordered'
-                        size='sm'
-                        startContent={<Download className='w-4 h-4' />}
-                        className='border-gray-600 text-gray-300'>
-                        Descargar Recursos
-                      </Button>
-                    </div>
+                  {/* Temas cubiertos */}
+                  <div>
+                    <h4 className='font-semibold text-gray-200 mb-3'>Temas cubiertos</h4>
+                    <ul className='space-y-2'>
+                      {selectedTutorial.topics.map((topic, index) => (
+                        <li key={index} className='flex items-start gap-2 text-sm'>
+                          <div className='w-1.5 h-1.5 bg-primary-400 rounded-full mt-2 shrink-0' />
+                          <span className='text-gray-300'>{topic}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                )}
-              </ModalBody>
-            </>
-          )}
+                </div>
+
+                {/* Acciones adicionales */}
+                <div className='flex flex-wrap gap-3 pt-4 border-t border-gray-700/50'>
+                  <Button
+                    className='border-gray-600 text-gray-300'
+                    size='sm'
+                    startContent={<BookOpen className='w-4 h-4' />}
+                    variant='bordered'>
+                    Ver Transcripción
+                  </Button>
+                  <Button
+                    className='border-gray-600 text-gray-300'
+                    size='sm'
+                    startContent={<Download className='w-4 h-4' />}
+                    variant='bordered'>
+                    Descargar Recursos
+                  </Button>
+                </div>
+              </div>
+            )}
+          </ModalBody>
         </ModalContent>
       </Modal>
 
@@ -404,13 +401,13 @@ const TutorialsSection = ({ searchTerm = '' }) => {
           <h3 className='text-blue-300 font-medium mb-2'>Próximos tutoriales</h3>
           <p className='text-blue-200 text-sm mb-3'>Estamos trabajando en nuevos contenidos para ayudarte mejor</p>
           <div className='flex flex-wrap justify-center gap-2'>
-            <Chip size='sm' variant='flat' color='primary'>
+            <Chip color='primary' size='sm' variant='flat'>
               Dating avanzado
             </Chip>
-            <Chip size='sm' variant='flat' color='primary'>
+            <Chip color='primary' size='sm' variant='flat'>
               Eventos y actividades
             </Chip>
-            <Chip size='sm' variant='flat' color='primary'>
+            <Chip color='primary' size='sm' variant='flat'>
               Análisis de compatibilidad
             </Chip>
           </div>

@@ -14,7 +14,6 @@ import {
   Textarea,
   Switch
 } from '@heroui/react'
-import { Edit3, Trash2 } from 'lucide-react'
 import { userAttributesService, userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
@@ -32,10 +31,9 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
     totalPages: 0,
     totalElements: 0
   })
-  const [searchValue, setSearchValue] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [selectedAttribute, setSelectedAttribute] = useState(null)
-  const [attributeStats, setAttributeStats] = useState({})
+  // const [attributeStats, setAttributeStats] = useState({})
 
   // Obtener acciones predefinidas del hook
   const { editAction, deleteAction } = useTableActions()
@@ -115,6 +113,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   const loadAttributes = useCallback(async () => {
     if (loadingStates.attributes) {
       Logger.info('loadAttributes already in progress, skipping', { category: Logger.CATEGORIES.USER })
+
       return
     }
 
@@ -122,16 +121,19 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
     setLoading(true)
     try {
       let response
+
       if (typeFilter === 'all') {
         response = await userAttributesService.getAllAttributesGrouped()
         // Convertir el objeto agrupado a array plano
         const allAttributes = Object.values(response).flat()
+
         response = allAttributes
       } else {
         response = await userAttributesService.getAttributesByType(typeFilter)
       }
 
       const filteredAttributes = Array.isArray(response) ? response : []
+
       setAttributes(filteredAttributes)
       setPagination(prev => ({
         ...prev,
@@ -153,18 +155,21 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       // Verificar cache y prevenir llamadas innecesarias
       if (!forceRefresh && dataCache.statsLoaded) {
         Logger.info('AttributeStats already loaded from cache, skipping', { category: Logger.CATEGORIES.USER })
+
         return
       }
 
       if (loadingStates.stats) {
         Logger.info('loadAttributeStats already in progress, skipping', { category: Logger.CATEGORIES.USER })
+
         return
       }
 
       setLoadingStates(prev => ({ ...prev, stats: true }))
       try {
-        const stats = await userAnalyticsService.getAttributeStatistics()
-        setAttributeStats(stats)
+        await userAnalyticsService.getAttributeStatistics()
+
+        // setAttributeStats(stats)
         setDataCache(prev => ({
           ...prev,
           statsLoaded: true,
@@ -194,21 +199,21 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
 
         case 'attributeType':
           return (
-            <Chip size='sm' variant='flat' color='secondary'>
+            <Chip color='secondary' size='sm' variant='flat'>
               {attributeTypes.find(type => type.key === attribute.attributeType)?.label || attribute.attributeType}
             </Chip>
           )
 
         case 'isActive':
           return (
-            <Chip size='sm' color={attribute.isActive ? 'success' : 'default'} variant='flat'>
+            <Chip color={attribute.isActive ? 'success' : 'default'} size='sm' variant='flat'>
               {attribute.isActive ? 'Activo' : 'Inactivo'}
             </Chip>
           )
 
         case 'isRequired':
           return (
-            <Chip size='sm' color={attribute.isRequired ? 'warning' : 'default'} variant='dot'>
+            <Chip color={attribute.isRequired ? 'warning' : 'default'} size='sm' variant='dot'>
               {attribute.isRequired ? 'Requerido' : 'Opcional'}
             </Chip>
           )
@@ -292,6 +297,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   const handleCreateSubmit = useCallback(async () => {
     if (!attributeForm.attributeType || !attributeForm.name) {
       onError?.('Por favor completa los campos requeridos')
+
       return
     }
 
@@ -360,18 +366,17 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   // Función de búsqueda
   const handleSearch = useCallback(
     searchQuery => {
-      setSearchValue(searchQuery)
       const filteredAttributes = attributes.filter(
         attr =>
           attr.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           attr.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           attr.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+
       setAttributes(filteredAttributes)
     },
     [attributes]
   )
-
   // Función de refresh
   const handleRefresh = useCallback(() => {
     loadAttributes()
@@ -383,7 +388,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
   }, [])
 
   // Función de cambio de filas por página
-  const handleRowsPerPageChange = useCallback(size => {
+  const handleRowsPerPageChange = useCallback(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
   }, [])
 
@@ -392,11 +397,11 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       {/* Filtro de tipo */}
       <div className='flex items-center gap-4'>
         <Select
+          className='w-48'
           label='Tipo de Atributo'
           placeholder='Filtrar por tipo'
           selectedKeys={typeFilter ? [typeFilter] : []}
-          onSelectionChange={keys => setTypeFilter(Array.from(keys)[0] || 'all')}
-          className='w-48'>
+          onSelectionChange={keys => setTypeFilter(Array.from(keys)[0] || 'all')}>
           <SelectItem key='all'>Todos</SelectItem>
           {attributeTypes.map(type => (
             <SelectItem key={type.key}>{type.label}</SelectItem>
@@ -406,44 +411,44 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
 
       {/* Main Table */}
       <GenericDataTable
-        data={attributes}
         columns={columns}
-        pagination={pagination}
-        loading={loading}
-        loadingMessage='Cargando atributos...'
-        emptyMessage='No se encontraron atributos'
-        renderCell={renderCell}
-        onSearch={handleSearch}
-        onRefresh={handleRefresh}
-        onCreate={handleCreateAttribute}
         createButtonLabel='Crear Atributo'
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        searchPlaceholder='Buscar atributos por nombre, tipo o descripción...'
-        rowsPerPageOptions={[10, 20, 30, 50]}
-        showColumnSelector={true}
-        showRowsPerPage={true}
-        showCreateButton={true}
-        showRefreshButton={true}
-        showSearch={true}
-        showPagination={true}
+        data={attributes}
+        emptyMessage='No se encontraron atributos'
         enableSelection={false}
         getItemKey={item => `attribute-${item.id}`}
+        loading={loading}
+        loadingMessage='Cargando atributos...'
+        pagination={pagination}
+        renderCell={renderCell}
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        searchPlaceholder='Buscar atributos por nombre, tipo o descripción...'
+        showColumnSelector={true}
+        showCreateButton={true}
+        showPagination={true}
+        showRefreshButton={true}
+        showRowsPerPage={true}
+        showSearch={true}
         tableId={`attributes-table`}
+        onCreate={handleCreateAttribute}
+        onPageChange={handlePageChange}
+        onRefresh={handleRefresh}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        onSearch={handleSearch}
       />
 
       {/* Create Attribute Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size='2xl'>
+      <Modal isOpen={isCreateOpen} size='2xl' onClose={onCreateClose}>
         <ModalContent>
           <ModalHeader>Crear Nuevo Atributo</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <Select
+                isRequired
                 label='Tipo de Atributo'
                 placeholder='Selecciona el tipo'
                 selectedKeys={attributeForm.attributeType ? [attributeForm.attributeType] : []}
-                onSelectionChange={keys => setAttributeForm(prev => ({ ...prev, attributeType: Array.from(keys)[0] }))}
-                isRequired>
+                onSelectionChange={keys => setAttributeForm(prev => ({ ...prev, attributeType: Array.from(keys)[0] }))}>
                 {attributeTypes.map(type => (
                   <SelectItem key={type.key} value={type.key}>
                     {type.label}
@@ -453,11 +458,11 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
 
               <div className='grid grid-cols-2 gap-4'>
                 <Input
+                  isRequired
                   label='Nombre técnico'
                   placeholder='ej: height, weight'
                   value={attributeForm.name}
                   onValueChange={value => setAttributeForm(prev => ({ ...prev, name: value }))}
-                  isRequired
                 />
                 <Input
                   label='Nombre mostrado'
@@ -469,16 +474,16 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
 
               <Textarea
                 label='Descripción'
+                minRows={2}
                 placeholder='Describe el propósito del atributo'
                 value={attributeForm.description}
                 onValueChange={value => setAttributeForm(prev => ({ ...prev, description: value }))}
-                minRows={2}
               />
 
               <div className='grid grid-cols-2 gap-4'>
                 <Input
-                  type='number'
                   label='Orden de visualización'
+                  type='number'
                   value={attributeForm.displayOrder.toString()}
                   onValueChange={value => setAttributeForm(prev => ({ ...prev, displayOrder: parseInt(value) || 1 }))}
                 />
@@ -515,7 +520,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onCreateClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleCreateSubmit} isDisabled={!attributeForm.attributeType || !attributeForm.name}>
+            <Button color='primary' isDisabled={!attributeForm.attributeType || !attributeForm.name} onPress={handleCreateSubmit}>
               Crear Atributo
             </Button>
           </ModalFooter>
@@ -523,17 +528,17 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
       </Modal>
 
       {/* Edit Attribute Modal */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} size='2xl'>
+      <Modal isOpen={isEditOpen} size='2xl' onClose={onEditClose}>
         <ModalContent>
           <ModalHeader>Editar Atributo</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <Input
+                  isRequired
                   label='Nombre técnico'
                   value={attributeForm.name}
                   onValueChange={value => setAttributeForm(prev => ({ ...prev, name: value }))}
-                  isRequired
                 />
                 <Input
                   label='Nombre mostrado'
@@ -544,15 +549,15 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
 
               <Textarea
                 label='Descripción'
+                minRows={2}
                 value={attributeForm.description}
                 onValueChange={value => setAttributeForm(prev => ({ ...prev, description: value }))}
-                minRows={2}
               />
 
               <div className='grid grid-cols-2 gap-4'>
                 <Input
-                  type='number'
                   label='Orden de visualización'
+                  type='number'
                   value={attributeForm.displayOrder.toString()}
                   onValueChange={value => setAttributeForm(prev => ({ ...prev, displayOrder: parseInt(value) || 1 }))}
                 />
@@ -587,7 +592,7 @@ const UserAttributesSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onEditClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleEditSubmit} isDisabled={!attributeForm.name}>
+            <Button color='primary' isDisabled={!attributeForm.name} onPress={handleEditSubmit}>
               Actualizar
             </Button>
           </ModalFooter>

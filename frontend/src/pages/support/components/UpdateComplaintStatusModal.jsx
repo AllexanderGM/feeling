@@ -72,6 +72,7 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -128,6 +129,7 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
       CLOSED: 'La queja ha sido cerrada (sin resolución o por decisión administrativa)',
       ESCALATED: 'La queja ha sido escalada a un nivel superior'
     }
+
     return descriptions[status] || ''
   }
 
@@ -142,7 +144,7 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
   if (!complaint) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size='3xl' scrollBehavior='inside'>
+    <Modal isOpen={isOpen} scrollBehavior='inside' size='3xl' onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>
           <div className='flex items-center gap-3'>
@@ -168,28 +170,28 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div>
                   <User
-                    name={complaint.user?.name}
-                    description={complaint.user?.email}
                     avatarProps={{
                       src: complaint.user?.profileImage,
                       size: 'sm'
                     }}
+                    description={complaint.user?.email}
+                    name={complaint.user?.name}
                   />
                 </div>
                 <div className='space-y-2'>
                   <div className='flex items-center gap-2'>
                     <span className='text-sm font-medium'>Estado actual:</span>
                     <Chip
-                      size='sm'
                       color={COMPLAINT_STATUS_COLORS[complaint.status]}
-                      variant='flat'
-                      startContent={getStatusIcon(complaint.status)}>
+                      size='sm'
+                      startContent={getStatusIcon(complaint.status)}
+                      variant='flat'>
                       {complaint.status?.replace('_', ' ')}
                     </Chip>
                   </div>
                   <div className='flex items-center gap-2'>
                     <span className='text-sm font-medium'>Prioridad:</span>
-                    <Chip size='sm' color={COMPLAINT_PRIORITY_COLORS[complaint.priority]} variant='flat'>
+                    <Chip color={COMPLAINT_PRIORITY_COLORS[complaint.priority]} size='sm' variant='flat'>
                       {complaint.priority}
                     </Chip>
                   </div>
@@ -212,15 +214,15 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
           {/* Formulario de actualización */}
           <div className='space-y-4'>
             <Select
+              errorMessage={errors.status}
+              isInvalid={!!errors.status}
               label='Nuevo Estado'
               placeholder='Selecciona el nuevo estado'
               selectedKeys={formData.status ? [formData.status] : []}
-              onSelectionChange={keys => handleInputChange('status', Array.from(keys)[0])}
-              isInvalid={!!errors.status}
-              errorMessage={errors.status}
-              startContent={<Shield size={16} />}>
+              startContent={<Shield size={16} />}
+              onSelectionChange={keys => handleInputChange('status', Array.from(keys)[0])}>
               {statusOptions.map(option => (
-                <SelectItem key={option.key} value={option.key} description={option.description}>
+                <SelectItem key={option.key} description={option.description} value={option.key}>
                   <div className='flex items-center gap-2'>
                     {option.icon}
                     <span>{option.label}</span>
@@ -244,29 +246,29 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
             )}
 
             <Textarea
+              description={`${formData.adminNotes.length}/1000 caracteres`}
+              errorMessage={errors.adminNotes}
+              isInvalid={!!errors.adminNotes}
               label='Notas para el Usuario'
+              maxLength={1000}
+              maxRows={6}
+              minRows={3}
               placeholder='Mensaje que será visible para el usuario (opcional, pero requerido para marcar como resuelto)'
               value={formData.adminNotes}
               onValueChange={value => handleInputChange('adminNotes', value)}
-              isInvalid={!!errors.adminNotes}
-              errorMessage={errors.adminNotes}
-              maxLength={1000}
-              minRows={3}
-              maxRows={6}
-              description={`${formData.adminNotes.length}/1000 caracteres`}
             />
 
             <Textarea
+              description={`${formData.internalNotes.length}/1000 caracteres`}
+              errorMessage={errors.internalNotes}
+              isInvalid={!!errors.internalNotes}
               label='Notas Internas (Solo Administradores)'
+              maxLength={1000}
+              maxRows={4}
+              minRows={2}
               placeholder='Notas internas que solo verán otros administradores'
               value={formData.internalNotes}
               onValueChange={value => handleInputChange('internalNotes', value)}
-              isInvalid={!!errors.internalNotes}
-              errorMessage={errors.internalNotes}
-              maxLength={1000}
-              minRows={2}
-              maxRows={4}
-              description={`${formData.internalNotes.length}/1000 caracteres`}
             />
           </div>
 
@@ -303,15 +305,15 @@ const UpdateComplaintStatusModal = memo(({ isOpen, onClose, complaint, onUpdate,
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='light' onPress={handleClose} isDisabled={loading}>
+          <Button isDisabled={loading} variant='light' onPress={handleClose}>
             Cancelar
           </Button>
           <Button
             color='primary'
-            onPress={handleSubmit}
+            isDisabled={formData.status === complaint.status}
             isLoading={loading}
             startContent={!loading ? <Save size={16} /> : null}
-            isDisabled={formData.status === complaint.status}>
+            onPress={handleSubmit}>
             {loading ? 'Actualizando...' : 'Actualizar Estado'}
           </Button>
         </ModalFooter>

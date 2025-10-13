@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react'
 import { configurationService } from '@services'
 import { Logger } from '@utils/logger.js'
-
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 
@@ -28,14 +27,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración básica', 'Iniciando carga')
         const config = await configurationService.getBasicConfiguration()
+
         setBasicConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración básica', config)
+
         return config
       }, 'obtener configuración básica')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración básica cargada correctamente.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -46,8 +48,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración básica', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateBasicConfiguration(configData)
+
         setBasicConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración básica', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración básica')
 
@@ -65,14 +69,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración redes sociales', 'Iniciando carga')
         const config = await configurationService.getSocialMediaConfiguration()
+
         setSocialMediaConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración redes sociales', config)
+
         return config
       }, 'obtener configuración de redes sociales')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración de redes sociales cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -83,8 +90,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración redes sociales', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateSocialMediaConfiguration(socialData)
+
         setSocialMediaConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración redes sociales', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración de redes sociales')
 
@@ -102,14 +111,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración email', 'Iniciando carga')
         const config = await configurationService.getEmailConfiguration()
+
         setEmailConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración email', config)
+
         return config
       }, 'obtener configuración de email')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración de email cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -120,8 +132,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración email', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateEmailConfiguration(emailData)
+
         setEmailConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración email', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración de email')
 
@@ -135,7 +149,9 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'enviar email masivo', 'Iniciando envío masivo')
         const response = await configurationService.sendMassEmail(emailData)
+
         Logger.info(Logger.CATEGORIES.SYSTEM, 'enviar email masivo', 'Email masivo enviado exitosamente')
+
         return response
       }, 'enviar email masivo')
 
@@ -153,14 +169,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración matching', 'Iniciando carga')
         const config = await configurationService.getMatchingConfiguration()
+
         setMatchingConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración matching', config)
+
         return config
       }, 'obtener configuración de matching')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración de matching cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -171,8 +190,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración matching', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateMatchingConfiguration(matchingData)
+
         setMatchingConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración matching', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración de matching')
 
@@ -190,14 +211,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración eventos', 'Iniciando carga')
         const config = await configurationService.getEventConfiguration()
+
         setEventConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración eventos', config)
+
         return config
       }, 'obtener configuración de eventos')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración de eventos cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -208,8 +232,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración eventos', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateEventConfiguration(eventData)
+
         setEventConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración eventos', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración de eventos')
 
@@ -227,14 +253,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración notificaciones', 'Iniciando carga')
         const config = await configurationService.getNotificationConfiguration()
+
         setNotificationConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración notificaciones', config)
+
         return config
       }, 'obtener configuración de notificaciones')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración de notificaciones cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -245,8 +274,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración notificaciones', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateNotificationConfiguration(notificationData)
+
         setNotificationConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración notificaciones', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración de notificaciones')
 
@@ -264,14 +295,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración sistema', 'Iniciando carga')
         const config = await configurationService.getSystemConfiguration()
+
         setSystemConfig(config)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración sistema', config)
+
         return config
       }, 'obtener configuración del sistema')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Configuración del sistema cargada.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -282,8 +316,10 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración sistema', 'Iniciando actualización')
         const updatedConfig = await configurationService.updateSystemConfiguration(systemData)
+
         setSystemConfig(updatedConfig)
         Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración sistema', 'Configuración actualizada exitosamente')
+
         return updatedConfig
       }, 'actualizar configuración del sistema')
 
@@ -301,7 +337,9 @@ const useConfiguration = () => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'crear backup', 'Iniciando creación de backup')
         const response = await configurationService.createSystemBackup()
+
         Logger.info(Logger.CATEGORIES.SYSTEM, 'crear backup', 'Backup creado exitosamente')
+
         return response
       }, 'crear backup del sistema')
 
@@ -315,14 +353,17 @@ const useConfiguration = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', 'Iniciando consulta')
         const response = await configurationService.getMaintenanceMode()
+
         setMaintenanceMode(response.enabled || false)
         Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', response)
+
         return response
       }, 'obtener estado de mantenimiento')
 
       if (showNotifications) {
         return handleApiResponse(result, 'Estado de mantenimiento cargado.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse]
@@ -337,12 +378,14 @@ const useConfiguration = () => {
           `${enabled ? 'Activando' : 'Desactivando'} modo de mantenimiento`
         )
         const response = await configurationService.toggleMaintenanceMode(enabled)
+
         setMaintenanceMode(enabled)
         Logger.info(
           Logger.CATEGORIES.SYSTEM,
           'cambiar modo mantenimiento',
           `Modo de mantenimiento ${enabled ? 'activado' : 'desactivado'} exitosamente`
         )
+
         return response
       }, 'cambiar modo de mantenimiento')
 

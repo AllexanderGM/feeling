@@ -40,6 +40,7 @@ export const convertTimestamp = timestamp => {
     // Validar que la fecha sea válida
     if (isNaN(date.getTime())) {
       Logger.warn(Logger.CATEGORIES.NETWORK, 'convertir timestamp', `Timestamp array inválido: ${JSON.stringify(timestamp)}`)
+
       return null
     }
 
@@ -53,6 +54,7 @@ export const convertTimestamp = timestamp => {
     // Validar que la fecha sea válida
     if (isNaN(date.getTime())) {
       Logger.warn(Logger.CATEGORIES.NETWORK, 'convertir timestamp', `Timestamp string inválido: ${timestamp}`)
+
       return null
     }
 
@@ -61,6 +63,7 @@ export const convertTimestamp = timestamp => {
     Logger.error(Logger.CATEGORIES.NETWORK, 'convertir timestamp', error, {
       context: { timestamp }
     })
+
     return null
   }
 }
@@ -144,6 +147,7 @@ export const formatTimestampForDisplay = (timestamp, options = {}) => {
   const { dateOnly = false, locale = 'es-ES' } = options
 
   const isoString = convertTimestamp(timestamp)
+
   if (!isoString) return 'Fecha inválida'
 
   const date = new Date(isoString)

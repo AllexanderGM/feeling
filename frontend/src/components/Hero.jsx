@@ -22,6 +22,7 @@ const Hero = () => {
 
   const handleInputChange = e => {
     const newValue = e.target.value
+
     setInputValue(newValue)
     setIsAutocompleteOpen(true)
     updateSearchTerm(newValue)
@@ -40,6 +41,7 @@ const Hero = () => {
 
     // Reset date range in context (handled by SearchContext)
     const event = new CustomEvent('reset-date-range')
+
     window.dispatchEvent(event)
   }
 
@@ -58,6 +60,7 @@ const Hero = () => {
     }
 
     document.addEventListener('click', handleClickOutside)
+
     return () => {
       document.removeEventListener('click', handleClickOutside)
     }
@@ -67,11 +70,11 @@ const Hero = () => {
     <div
       className='flex flex-col justify-center items-center h-auto py-12 text-center mb-6 hero_container relative'
       style={{ backgroundImage: `url("${image}")` }}>
-      <div className='pattern_overlay'></div>
+      <div className='pattern_overlay' />
       <h1 className={`text-4xl md:text-6xl font-bold tracking-tight p-6 relative`}>
         <span className='inline-block'>
           <span className='inline-block absolute top-7 -left-9 w-full h-full opacity-75'>
-            <Image src={pinIcon} alt='pin' width={53} className='-rotate-12 ' />
+            <Image alt='pin' className='-rotate-12 ' src={pinIcon} width={53} />
           </span>
           La búsqueda perfecta,
         </span>
@@ -89,15 +92,12 @@ const Hero = () => {
           <div className='grid grid-cols-1 md:grid-cols-12 gap-4'>
             {/* Destino input */}
             <div ref={searchContainerRef} className='md:col-span-5 search-container relative'>
-              <label className='block text-sm font-medium text-gray-700 text-left mb-1'>¿Dónde quieres ir?</label>
+              <label className='block text-sm font-medium text-gray-700 text-left mb-1' htmlFor='destination-input'>
+                ¿Dónde quieres ir?
+              </label>
               <Input
                 ref={inputRef}
                 isClearable
-                value={inputValue}
-                onChange={handleInputChange}
-                onClear={handleClear}
-                isDisabled={loading}
-                onFocus={() => setIsAutocompleteOpen(true)}
                 classNames={{
                   input: ['bg-transparent', 'text-black/90', 'placeholder:text-default-900/50'],
                   innerWrapper: 'bg-transparent',
@@ -111,25 +111,32 @@ const Hero = () => {
                     'h-12'
                   ]
                 }}
+                isDisabled={loading}
                 placeholder='Buscar destinos...'
                 radius='lg'
                 startContent={<SearchIcon className='text-black/50 mb-0.5 text-slate-500 pointer-events-none flex-shrink-0' />}
+                value={inputValue}
+                onChange={handleInputChange}
+                onClear={handleClear}
+                onFocus={() => setIsAutocompleteOpen(true)}
               />
               <SearchAutocomplete
+                inputRef={inputRef}
+                isOpen={isAutocompleteOpen}
                 suggestions={suggestions}
                 onSelect={handleSuggestionSelect}
-                isOpen={isAutocompleteOpen}
-                inputRef={inputRef}
               />
             </div>
 
             <div className='md:col-span-5'>
-              <label className='block text-sm font-medium text-gray-700 text-left mb-1'>¿Cuándo viajas?</label>
+              <label className='block text-sm font-medium text-gray-700 text-left mb-1' htmlFor='date-range-picker'>
+                ¿Cuándo viajas?
+              </label>
               <DateRangePicker />
             </div>
 
             <div className='md:col-span-2 flex items-end'>
-              <Button variant='flat' color='default' className='w-full h-12' onPress={handleReset}>
+              <Button className='w-full h-12' color='default' variant='flat' onPress={handleReset}>
                 <span className='text-md'>Limpiar</span>
               </Button>
             </div>

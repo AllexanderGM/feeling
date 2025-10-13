@@ -82,6 +82,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -126,12 +127,14 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
   const formatDateForInput = dateString => {
     if (!dateString) return ''
     const date = new Date(dateString)
+
     return date.toISOString().slice(0, 16)
   }
 
   // Obtener fecha mínima (ahora)
   const getMinDateTime = () => {
     const now = new Date()
+
     return now.toISOString().slice(0, 16)
   }
 
@@ -139,15 +142,15 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      placement='center'
-      size='4xl'
-      scrollBehavior='inside'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='4xl'
+      onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -172,45 +175,45 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                 </h3>
 
                 <Input
-                  label='Título del Evento'
-                  placeholder='Ej: Concierto de Jazz, Tour Cultural, Evento Deportivo'
-                  value={formData.title}
-                  onChange={e => handleInputChange('title', e.target.value)}
-                  isInvalid={!!errors.title}
-                  errorMessage={errors.title}
-                  maxLength={200}
-                  startContent={<Calendar className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  errorMessage={errors.title}
+                  isInvalid={!!errors.title}
+                  label='Título del Evento'
+                  maxLength={200}
+                  placeholder='Ej: Concierto de Jazz, Tour Cultural, Evento Deportivo'
+                  startContent={<Calendar className='w-4 h-4 text-gray-400' />}
+                  value={formData.title}
+                  onChange={e => handleInputChange('title', e.target.value)}
                 />
 
                 <Textarea
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
+                  errorMessage={errors.description}
+                  isInvalid={!!errors.description}
                   label='Descripción'
+                  maxRows={6}
+                  minRows={3}
                   placeholder='Describe el evento, actividades incluidas, lugar, qué esperar...'
                   value={formData.description}
                   onChange={e => handleInputChange('description', e.target.value)}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description}
-                  minRows={3}
-                  maxRows={6}
-                  classNames={{
-                    input: 'text-gray-200',
-                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-                  }}
                 />
 
                 <Input
-                  label='URL de Imagen Principal (Opcional)'
-                  placeholder='https://ejemplo.com/imagen.jpg'
-                  value={formData.mainImage}
-                  onChange={e => handleInputChange('mainImage', e.target.value)}
-                  startContent={<ImageIcon className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  label='URL de Imagen Principal (Opcional)'
+                  placeholder='https://ejemplo.com/imagen.jpg'
+                  startContent={<ImageIcon className='w-4 h-4 text-gray-400' />}
+                  value={formData.mainImage}
+                  onChange={e => handleInputChange('mainImage', e.target.value)}
                 />
               </CardBody>
             </Card>
@@ -225,32 +228,32 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Input
-                    type='datetime-local'
-                    label='Fecha y Hora del Evento'
-                    value={formData.eventDate}
-                    onChange={e => handleInputChange('eventDate', e.target.value)}
-                    isInvalid={!!errors.eventDate}
-                    errorMessage={errors.eventDate}
-                    min={getMinDateTime()}
-                    startContent={<Calendar className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                     }}
+                    errorMessage={errors.eventDate}
+                    isInvalid={!!errors.eventDate}
+                    label='Fecha y Hora del Evento'
+                    min={getMinDateTime()}
+                    startContent={<Calendar className='w-4 h-4 text-gray-400' />}
+                    type='datetime-local'
+                    value={formData.eventDate}
+                    onChange={e => handleInputChange('eventDate', e.target.value)}
                   />
 
                   <Select
-                    label='Categoría'
-                    placeholder='Selecciona una categoría'
-                    selectedKeys={formData.category ? [formData.category] : []}
-                    onSelectionChange={keys => handleInputChange('category', Array.from(keys)[0] || '')}
-                    isInvalid={!!errors.category}
-                    errorMessage={errors.category}
-                    startContent={<Tag className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                       value: 'text-gray-200'
-                    }}>
+                    }}
+                    errorMessage={errors.category}
+                    isInvalid={!!errors.category}
+                    label='Categoría'
+                    placeholder='Selecciona una categoría'
+                    selectedKeys={formData.category ? [formData.category] : []}
+                    startContent={<Tag className='w-4 h-4 text-gray-400' />}
+                    onSelectionChange={keys => handleInputChange('category', Array.from(keys)[0] || '')}>
                     {EVENT_CATEGORIES.map(category => (
                       <SelectItem key={category.key} value={category.key}>
                         {category.label}
@@ -261,36 +264,36 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Input
-                    type='number'
-                    label='Precio (USD)'
-                    placeholder='0.00, 25.00, 150.00...'
-                    value={formData.price}
-                    onChange={e => handleInputChange('price', e.target.value)}
-                    isInvalid={!!errors.price}
-                    errorMessage={errors.price}
-                    min='0'
-                    step='0.01'
-                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                     }}
+                    errorMessage={errors.price}
+                    isInvalid={!!errors.price}
+                    label='Precio (USD)'
+                    min='0'
+                    placeholder='0.00, 25.00, 150.00...'
+                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
+                    step='0.01'
+                    type='number'
+                    value={formData.price}
+                    onChange={e => handleInputChange('price', e.target.value)}
                   />
 
                   <Input
-                    type='number'
-                    label='Capacidad Máxima'
-                    placeholder='10, 50, 200...'
-                    value={formData.maxCapacity}
-                    onChange={e => handleInputChange('maxCapacity', e.target.value)}
-                    isInvalid={!!errors.maxCapacity}
-                    errorMessage={errors.maxCapacity}
-                    min='1'
-                    startContent={<Users className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                     }}
+                    errorMessage={errors.maxCapacity}
+                    isInvalid={!!errors.maxCapacity}
+                    label='Capacidad Máxima'
+                    min='1'
+                    placeholder='10, 50, 200...'
+                    startContent={<Users className='w-4 h-4 text-gray-400' />}
+                    type='number'
+                    value={formData.maxCapacity}
+                    onChange={e => handleInputChange('maxCapacity', e.target.value)}
                   />
                 </div>
               </CardBody>
@@ -306,7 +309,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                       <div className='flex-1'>
                         <h4 className='font-bold text-xl text-gray-100 mb-2'>{formData.title || 'Título del Evento'}</h4>
                         {selectedCategory && (
-                          <Chip size='sm' variant='flat' color='warning' className='mb-2'>
+                          <Chip className='mb-2' color='warning' size='sm' variant='flat'>
                             {selectedCategory.label}
                           </Chip>
                         )}
@@ -367,10 +370,10 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={handleClose} className='border-gray-600 text-gray-300' disabled={loading}>
+          <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='warning' onPress={handleSubmit} isLoading={loading} startContent={!loading && <Edit className='w-4 h-4' />}>
+          <Button color='warning' isLoading={loading} startContent={!loading && <Edit className='w-4 h-4' />} onPress={handleSubmit}>
             Guardar Cambios
           </Button>
         </ModalFooter>

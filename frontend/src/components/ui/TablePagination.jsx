@@ -6,7 +6,7 @@ const TablePagination = ({ selectedKeys, filteredItemsLength, page, pages, onPre
       <span className='w-[30%] text-small text-default-400'>
         {selectedKeys === 'all' ? 'All items selected' : `${selectedKeys?.size || 0} de ${filteredItemsLength} seleccionados`}
       </span>
-      <Pagination initialPage={1} isCompact showControls showShadow color='primary' page={page} total={pages} onChange={onPageChange} />
+      <Pagination isCompact showControls showShadow color='primary' initialPage={1} page={page} total={pages} onChange={onPageChange} />
       <div className='hidden sm:flex w-[30%] justify-end gap-2'>
         <Button isDisabled={pages === 1} size='sm' variant='flat' onPress={onPreviousPage}>
           Anterior

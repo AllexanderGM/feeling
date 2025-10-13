@@ -6,51 +6,24 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Card,
-  CardBody,
-  CardHeader,
   Chip,
   Avatar,
   Input,
   Textarea,
   Select,
-  SelectItem,
-  Divider
+  SelectItem
 } from '@heroui/react'
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Shield,
-  Star,
-  Eye,
-  Users,
-  CheckCircle,
-  AlertTriangle,
-  X,
-  UserX,
-  Send,
-  Globe,
-  Search,
-  MessageCircle,
-  Lock,
-  UserIcon,
-  Tags,
-  Clock,
-  Check,
-  Trash2
-} from 'lucide-react'
+import { User, Mail, MapPin, Calendar, Shield, Star, AlertTriangle, X, UserX, Send, MessageCircle, UserIcon } from 'lucide-react'
 import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
+import { Logger } from '@utils/logger'
 
 // Helper function to calculate age
 const calculateAge = birthDate => {
   if (!birthDate) return 'N/A'
   try {
     return calculateAgeFromJavaDate(birthDate)
-  } catch (error) {
+  } catch {
     return 'N/A'
   }
 }
@@ -68,7 +41,6 @@ const AdminUserModals = memo(
     selectedUser,
 
     // Actions
-    onSendEmail,
     onRejectUser,
     onDeactivateUser,
 
@@ -76,7 +48,7 @@ const AdminUserModals = memo(
     loading = false
   }) => {
     // Estados locales para los formularios
-    const [emailForm, setEmailForm] = useState({
+    const [setEmailForm] = useState({
       subject: '',
       message: '',
       template: 'custom'
@@ -144,43 +116,18 @@ const AdminUserModals = memo(
       { value: 'other', label: 'Otra razón (especificar)' }
     ]
 
-    // Handle template change
-    const handleTemplateChange = useCallback(template => {
-      setEmailForm(prev => ({
-        ...prev,
-        template,
-        subject: emailTemplates[template]?.subject || '',
-        message: emailTemplates[template]?.message || ''
-      }))
-    }, [])
-
-    // Handle form submissions
-    const handleSendEmail = useCallback(async () => {
-      if (!selectedUser || !emailForm.subject.trim() || !emailForm.message.trim()) return
-
-      try {
-        await onSendEmail(selectedUser.id, {
-          subject: emailForm.subject,
-          message: emailForm.message,
-          template: emailForm.template
-        })
-        handleCloseModals()
-      } catch (error) {
-        console.error('Error sending email:', error)
-      }
-    }, [selectedUser, emailForm, onSendEmail, handleCloseModals])
-
     const handleRejectUser = useCallback(async () => {
       if (!selectedUser || !rejectForm.reason) return
 
       const reason = rejectForm.reason === 'other' ? rejectForm.customReason : rejectForm.reason
+
       if (!reason.trim()) return
 
       try {
         await onRejectUser(selectedUser.id, reason)
         handleCloseModals()
       } catch (error) {
-        console.error('Error rejecting user:', error)
+        Logger.error('Error rejecting user:', error)
       }
     }, [selectedUser, rejectForm, onRejectUser, handleCloseModals])
 
@@ -188,13 +135,14 @@ const AdminUserModals = memo(
       if (!selectedUser || !deactivateForm.reason) return
 
       const reason = deactivateForm.reason === 'other' ? deactivateForm.customReason : deactivateForm.reason
+
       if (!reason.trim()) return
 
       try {
         await onDeactivateUser(selectedUser.id, reason)
         handleCloseModals()
       } catch (error) {
-        console.error('Error deactivating user:', error)
+        Logger.error('Error deactivating user:', error)
       }
     }, [selectedUser, deactivateForm, onDeactivateUser, handleCloseModals])
 
@@ -204,17 +152,17 @@ const AdminUserModals = memo(
       <>
         {/* Modal para ver perfil completo del usuario */}
         <Modal
-          isOpen={isViewModalOpen}
-          onClose={handleCloseModals}
-          size='5xl'
-          scrollBehavior='inside'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700 max-h-[90vh]',
             header: 'border-b border-gray-700 flex-shrink-0',
             body: 'py-4 px-6 overflow-y-auto',
             footer: 'border-t border-gray-700 flex-shrink-0'
-          }}>
+          }}
+          isOpen={isViewModalOpen}
+          scrollBehavior='inside'
+          size='5xl'
+          onClose={handleCloseModals}>
           <ModalContent className='max-h-[90vh]'>
             <ModalHeader className='flex flex-col gap-1 pb-4'>
               <div className='flex items-center gap-3'>
@@ -235,11 +183,11 @@ const AdminUserModals = memo(
                 <div className='flex items-start gap-4'>
                   <div className='flex flex-col items-center gap-2'>
                     <Avatar
-                      src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                       className='w-16 h-16'
                       icon={<UserIcon className='w-8 h-8 text-default-500' />}
+                      src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
                     />
-                    <Chip size='sm' color={selectedUser.status?.active ? 'success' : 'danger'} variant='flat'>
+                    <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                       {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
                     </Chip>
                   </div>
@@ -320,7 +268,7 @@ const AdminUserModals = memo(
                     </div>
                     <div>
                       <p className='text-xs text-gray-400'>Categoría de Interés</p>
-                      <Chip size='sm' color={USER_INTEREST_COLORS[selectedUser.profile?.categoryInterest] || 'default'} variant='flat'>
+                      <Chip color={USER_INTEREST_COLORS[selectedUser.profile?.categoryInterest] || 'default'} size='sm' variant='flat'>
                         {selectedUser.profile?.categoryInterest || 'No especificado'}
                       </Chip>
                     </div>
@@ -336,19 +284,19 @@ const AdminUserModals = memo(
                   <div className='space-y-2'>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Verificado:</span>
-                      <Chip size='sm' color={selectedUser.status?.verified ? 'success' : 'danger'} variant='flat'>
+                      <Chip color={selectedUser.status?.verified ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.verified ? 'Sí' : 'No'}
                       </Chip>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Aprobado:</span>
-                      <Chip size='sm' color={selectedUser.status?.approved ? 'success' : 'warning'} variant='flat'>
+                      <Chip color={selectedUser.status?.approved ? 'success' : 'warning'} size='sm' variant='flat'>
                         {selectedUser.status?.approved ? 'Sí' : 'Pendiente'}
                       </Chip>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-400'>Rol:</span>
-                      <Chip size='sm' color={USER_ROLE_COLORS[selectedUser.status?.role] || 'default'} variant='flat'>
+                      <Chip color={USER_ROLE_COLORS[selectedUser.status?.role] || 'default'} size='sm' variant='flat'>
                         {selectedUser.status?.role || 'CLIENT'}
                       </Chip>
                     </div>
@@ -388,7 +336,7 @@ const AdminUserModals = memo(
               )}
 
               {/* Espaciado adicional al final */}
-              <div className='h-4'></div>
+              <div className='h-4' />
             </ModalBody>
             <ModalFooter className='pt-4'>
               <Button color='danger' variant='light' onPress={handleCloseModals}>
@@ -400,16 +348,16 @@ const AdminUserModals = memo(
 
         {/* Modal para enviar correo electrónico */}
         <Modal
-          isOpen={isEmailModalOpen}
-          onClose={handleCloseModals}
-          size='2xl'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isEmailModalOpen}
+          size='2xl'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -445,14 +393,14 @@ const AdminUserModals = memo(
               {/* Formulario deshabilitado para vista previa */}
               <div className='opacity-50 pointer-events-none space-y-4'>
                 <Select
-                  label='Plantilla de correo'
-                  placeholder='Selecciona una plantilla'
                   isDisabled
                   classNames={{
                     base: 'max-w-full',
                     trigger: 'bg-gray-800 border-gray-700'
-                  }}>
-                  {Object.entries(emailTemplates).map(([key, template]) => (
+                  }}
+                  label='Plantilla de correo'
+                  placeholder='Selecciona una plantilla'>
+                  {Object.entries(emailTemplates).map(([key]) => (
                     <SelectItem key={key} value={key}>
                       {key === 'custom'
                         ? 'Personalizado'
@@ -466,24 +414,24 @@ const AdminUserModals = memo(
                 </Select>
 
                 <Input
-                  label='Asunto'
-                  placeholder='Ejemplo: Bienvenido a Feeling'
                   isDisabled
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700'
                   }}
+                  label='Asunto'
+                  placeholder='Ejemplo: Bienvenido a Feeling'
                 />
 
                 <Textarea
-                  label='Mensaje'
-                  placeholder='Ejemplo: Hola [Nombre], nos complace tenerte en nuestra plataforma...'
                   isDisabled
-                  minRows={6}
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700'
                   }}
+                  label='Mensaje'
+                  minRows={6}
+                  placeholder='Ejemplo: Hola [Nombre], nos complace tenerte en nuestra plataforma...'
                 />
               </div>
             </ModalBody>
@@ -491,7 +439,7 @@ const AdminUserModals = memo(
               <Button color='danger' variant='light' onPress={handleCloseModals}>
                 Cerrar
               </Button>
-              <Button color='primary' isDisabled startContent={<Send className='w-4 h-4' />}>
+              <Button isDisabled color='primary' startContent={<Send className='w-4 h-4' />}>
                 Enviar Correo (No disponible)
               </Button>
             </ModalFooter>
@@ -500,16 +448,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para desaprobar usuario */}
         <Modal
-          isOpen={isRejectModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isRejectModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -537,14 +485,14 @@ const AdminUserModals = memo(
               </div>
 
               <Select
-                label='Motivo de desaprobación'
-                placeholder='Selecciona un motivo'
-                value={rejectForm.reason}
-                onChange={e => setRejectForm(prev => ({ ...prev, reason: e.target.value }))}
                 classNames={{
                   base: 'max-w-full',
                   trigger: 'bg-gray-800 border-gray-700'
-                }}>
+                }}
+                label='Motivo de desaprobación'
+                placeholder='Selecciona un motivo'
+                value={rejectForm.reason}
+                onChange={e => setRejectForm(prev => ({ ...prev, reason: e.target.value }))}>
                 {rejectReasons.map(reason => (
                   <SelectItem key={reason.value} value={reason.value}>
                     {reason.label}
@@ -554,15 +502,15 @@ const AdminUserModals = memo(
 
               {rejectForm.reason === 'other' && (
                 <Textarea
-                  label='Especifica la razón'
-                  placeholder='Describe el motivo de desaprobación...'
-                  value={rejectForm.customReason}
-                  onChange={e => setRejectForm(prev => ({ ...prev, customReason: e.target.value }))}
-                  minRows={3}
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700'
                   }}
+                  label='Especifica la razón'
+                  minRows={3}
+                  placeholder='Describe el motivo de desaprobación...'
+                  value={rejectForm.customReason}
+                  onChange={e => setRejectForm(prev => ({ ...prev, customReason: e.target.value }))}
                 />
               )}
             </ModalBody>
@@ -572,10 +520,10 @@ const AdminUserModals = memo(
               </Button>
               <Button
                 color='warning'
-                onPress={handleRejectUser}
-                isLoading={loading}
                 isDisabled={!rejectForm.reason || (rejectForm.reason === 'other' && !rejectForm.customReason.trim())}
-                startContent={<X className='w-4 h-4' />}>
+                isLoading={loading}
+                startContent={<X className='w-4 h-4' />}
+                onPress={handleRejectUser}>
                 Desaprobar Usuario
               </Button>
             </ModalFooter>
@@ -584,16 +532,16 @@ const AdminUserModals = memo(
 
         {/* Modal de confirmación para desactivar usuario */}
         <Modal
-          isOpen={isDeactivateModalOpen}
-          onClose={handleCloseModals}
-          size='lg'
           classNames={{
             backdrop: 'bg-gray-900/50 backdrop-blur-sm',
             base: 'bg-gray-900 border border-gray-700',
             header: 'border-b border-gray-700',
             body: 'py-6',
             footer: 'border-t border-gray-700'
-          }}>
+          }}
+          isOpen={isDeactivateModalOpen}
+          size='lg'
+          onClose={handleCloseModals}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <div className='flex items-center gap-3'>
@@ -621,14 +569,14 @@ const AdminUserModals = memo(
               </div>
 
               <Select
-                label='Motivo de desactivación'
-                placeholder='Selecciona un motivo'
-                value={deactivateForm.reason}
-                onChange={e => setDeactivateForm(prev => ({ ...prev, reason: e.target.value }))}
                 classNames={{
                   base: 'max-w-full',
                   trigger: 'bg-gray-800 border-gray-700'
-                }}>
+                }}
+                label='Motivo de desactivación'
+                placeholder='Selecciona un motivo'
+                value={deactivateForm.reason}
+                onChange={e => setDeactivateForm(prev => ({ ...prev, reason: e.target.value }))}>
                 {deactivateReasons.map(reason => (
                   <SelectItem key={reason.value} value={reason.value}>
                     {reason.label}
@@ -638,15 +586,15 @@ const AdminUserModals = memo(
 
               {deactivateForm.reason === 'other' && (
                 <Textarea
-                  label='Especifica la razón'
-                  placeholder='Describe el motivo de desactivación...'
-                  value={deactivateForm.customReason}
-                  onChange={e => setDeactivateForm(prev => ({ ...prev, customReason: e.target.value }))}
-                  minRows={3}
                   classNames={{
                     input: 'bg-gray-800',
                     inputWrapper: 'border-gray-700'
                   }}
+                  label='Especifica la razón'
+                  minRows={3}
+                  placeholder='Describe el motivo de desactivación...'
+                  value={deactivateForm.customReason}
+                  onChange={e => setDeactivateForm(prev => ({ ...prev, customReason: e.target.value }))}
                 />
               )}
             </ModalBody>
@@ -656,10 +604,10 @@ const AdminUserModals = memo(
               </Button>
               <Button
                 color='danger'
-                onPress={handleDeactivateUser}
-                isLoading={loading}
                 isDisabled={!deactivateForm.reason || (deactivateForm.reason === 'other' && !deactivateForm.customReason.trim())}
-                startContent={<UserX className='w-4 h-4' />}>
+                isLoading={loading}
+                startContent={<UserX className='w-4 h-4' />}
+                onPress={handleDeactivateUser}>
                 Desactivar Usuario
               </Button>
             </ModalFooter>

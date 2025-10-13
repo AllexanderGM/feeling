@@ -24,18 +24,22 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
 
         // Cargar países
         const countriesResponse = await fetch('/data/countries.json')
+
         if (!countriesResponse.ok) {
           throw new Error('Error al cargar datos de países')
         }
         const countriesRawData = await countriesResponse.json()
+
         setCountriesData(countriesRawData)
 
         // Cargar ciudades
         const citiesResponse = await fetch('/data/cities.json')
+
         if (!citiesResponse.ok) {
           throw new Error('Error al cargar datos de ciudades')
         }
         const citiesRawData = await citiesResponse.json()
+
         setCitiesData(citiesRawData)
 
         setIsLoading(false)
@@ -56,9 +60,11 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
         .filter(([, countryData]) => countryData.region === selectedRegion)
         .reduce((acc, [code, data]) => {
           acc[code] = data
+
           return acc
         }, {})
     }
+
     return countriesData
   }, [countriesData, selectedRegion, isLoading])
 
@@ -106,6 +112,7 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
         }))
       }
     }
+
     return []
   }, [selectedCountry, countriesData, citiesData, isLoading])
 
@@ -113,6 +120,7 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
   useEffect(() => {
     if (initialCity && processedCities.length > 0 && !isLoading) {
       const cityEntry = processedCities.find(city => city.name === initialCity)
+
       if (cityEntry) {
         setSelectedCity(cityEntry.id)
       }
@@ -139,6 +147,7 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
   // Manejar cambio de país
   const handleCountryChange = e => {
     const countryCode = e.target.value
+
     setSelectedCity('') // Resetear ciudad al cambiar país
     setSelectedCountry(countryCode)
     onCountryChange && onCountryChange(countryCode)
@@ -147,14 +156,17 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
   // Manejar cambio de ciudad
   const handleCityChange = e => {
     const cityValue = e.target.value
+
     setSelectedCity(cityValue)
 
     // Si tenemos el valor seleccionado, buscar la ciudad completa en las disponibles
     if (cityValue && availableCities.length > 0) {
       const selectedCityObj = availableCities.find(city => city.id === cityValue)
+
       if (selectedCityObj) {
         // Pasar el nombre de la ciudad completo al callback
         onCityChange && onCityChange(selectedCityObj.name)
+
         return
       }
     }
@@ -174,15 +186,15 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
         <>
           {/* Selector de País - Usando select nativo */}
           <div>
-            <label htmlFor='country-select' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label className='block text-sm font-medium text-gray-700 mb-1' htmlFor='country-select'>
               País *
             </label>
             <select
+              required
+              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
               id='country-select'
               value={selectedCountry}
-              onChange={handleCountryChange}
-              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
-              required>
+              onChange={handleCountryChange}>
               <option value=''>Selecciona un país</option>
               {Object.entries(filteredCountries).map(([code, countryData]) => (
                 <option key={code} value={code}>
@@ -194,16 +206,16 @@ const CountryCitySelector = ({ initialCountry = '', initialCity = '', onCountryC
 
           {/* Selector de Ciudad - Usando select nativo */}
           <div>
-            <label htmlFor='city-select' className='block text-sm font-medium text-gray-700 mb-1'>
+            <label className='block text-sm font-medium text-gray-700 mb-1' htmlFor='city-select'>
               Ciudad *
             </label>
             <select
+              required
+              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
+              disabled={!selectedCountry || availableCities.length === 0}
               id='city-select'
               value={selectedCity}
-              onChange={handleCityChange}
-              disabled={!selectedCountry || availableCities.length === 0}
-              className='block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E86C6E] focus:border-[#E86C6E]'
-              required>
+              onChange={handleCityChange}>
               <option value=''>
                 {!selectedCountry
                   ? 'Primero selecciona un país'

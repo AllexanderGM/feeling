@@ -39,7 +39,6 @@ const useUserSearch = (fetchUsers, initialPage = 0, initialRowsPerPage = 10) => 
     })
 
     fetchUsers(page, rowsPerPage, debouncedQuery)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery, page, rowsPerPage])
 
   // Handlers

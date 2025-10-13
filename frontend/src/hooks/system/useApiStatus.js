@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiStatusService } from '@services'
-
 import { useError } from '@hooks/utils/useError.js'
 
 /**
@@ -122,6 +121,7 @@ const useApiStatus = (options = {}) => {
   // Efecto para manejar la actualización automática
   // Usar refs para evitar dependencias que cambian
   const refreshIntervalRef = useRef(refreshInterval)
+
   refreshIntervalRef.current = refreshInterval
 
   useEffect(() => {
@@ -156,7 +156,6 @@ const useApiStatus = (options = {}) => {
     if (!isAutoRefreshing) {
       fetchStatus(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Array vacío - solo al montar
 
   // Efecto de cleanup al desmontar
@@ -177,6 +176,7 @@ const useApiStatus = (options = {}) => {
     if (loading) return { status: 'checking', color: 'default', text: 'Verificando...' }
     if (error) return { status: 'error', color: 'danger', text: 'Error' }
     if (data?.health === 'OK') return { status: 'healthy', color: 'success', text: 'Operativo' }
+
     return { status: 'unknown', color: 'warning', text: 'Desconocido' }
   }, [loading, error, data?.health])
 
@@ -186,6 +186,7 @@ const useApiStatus = (options = {}) => {
    */
   const getServiceHealth = useCallback(() => {
     if (!data?.services) return {}
+
     return apiStatusService.analyzeServiceHealth(data.services)
   }, [data?.services])
 

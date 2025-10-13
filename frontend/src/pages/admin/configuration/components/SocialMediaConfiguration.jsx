@@ -47,6 +47,7 @@ const SocialMediaConfiguration = ({ config, loading }) => {
 
   const validateUrl = url => {
     if (!url) return true // URLs vacías son válidas
+
     return /^https?:\/\//.test(url)
   }
 
@@ -63,6 +64,7 @@ const SocialMediaConfiguration = ({ config, loading }) => {
     })
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -150,66 +152,66 @@ const SocialMediaConfiguration = ({ config, loading }) => {
             {socialNetworks.map(network => (
               <Input
                 key={network.key}
-                label={network.label}
-                placeholder={network.placeholder}
-                value={formData[network.key]}
-                onChange={e => handleInputChange(network.key, e.target.value)}
-                isInvalid={!!errors[network.key]}
-                errorMessage={errors[network.key]}
-                startContent={<div className={network.color}>{network.icon}</div>}
-                endContent={
-                  formData[network.key] && (
-                    <Button
-                      isIconOnly
-                      size='sm'
-                      variant='light'
-                      as='a'
-                      href={formData[network.key]}
-                      target='_blank'
-                      rel='noopener noreferrer'>
-                      <ExternalLink className='w-4 h-4 text-gray-400' />
-                    </Button>
-                  )
-                }
                 classNames={{
                   input: 'text-gray-200',
                   inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                 }}
+                endContent={
+                  formData[network.key] && (
+                    <Button
+                      isIconOnly
+                      as='a'
+                      href={formData[network.key]}
+                      rel='noopener noreferrer'
+                      size='sm'
+                      target='_blank'
+                      variant='light'>
+                      <ExternalLink className='w-4 h-4 text-gray-400' />
+                    </Button>
+                  )
+                }
+                errorMessage={errors[network.key]}
+                isInvalid={!!errors[network.key]}
+                label={network.label}
+                placeholder={network.placeholder}
+                startContent={<div className={network.color}>{network.icon}</div>}
+                value={formData[network.key]}
+                onChange={e => handleInputChange(network.key, e.target.value)}
               />
             ))}
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mt-4'>
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
               label='WhatsApp'
               placeholder='+57 300 123 4567'
-              value={formData.whatsapp}
-              onChange={e => handleInputChange('whatsapp', e.target.value)}
               startContent={
                 <div className='text-green-500'>
                   <Share2 className='w-4 h-4' />
                 </div>
               }
+              value={formData.whatsapp}
+              onChange={e => handleInputChange('whatsapp', e.target.value)}
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
-            />
-
-            <Input
               label='Telegram'
               placeholder='@feeling_oficial'
-              value={formData.telegram}
-              onChange={e => handleInputChange('telegram', e.target.value)}
               startContent={
                 <div className='text-blue-400'>
                   <Share2 className='w-4 h-4' />
                 </div>
               }
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
+              value={formData.telegram}
+              onChange={e => handleInputChange('telegram', e.target.value)}
             />
           </div>
         </CardBody>
@@ -233,14 +235,14 @@ const SocialMediaConfiguration = ({ config, loading }) => {
               <div className='flex items-center gap-3'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableSocialLogin}
-                    onValueChange={value => handleInputChange('enableSocialLogin', value)}
                     color='primary'
+                    isSelected={formData.enableSocialLogin}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableSocialLogin', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Login Social</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableSocialLogin ? 'primary' : 'default'}>
+                <Chip color={formData.enableSocialLogin ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableSocialLogin ? 'Habilitado' : 'Deshabilitado'}
                 </Chip>
               </div>
@@ -251,14 +253,14 @@ const SocialMediaConfiguration = ({ config, loading }) => {
               <div className='flex items-center gap-3'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableSocialSharing}
-                    onValueChange={value => handleInputChange('enableSocialSharing', value)}
                     color='success'
+                    isSelected={formData.enableSocialSharing}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableSocialSharing', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Compartir en Redes</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableSocialSharing ? 'success' : 'default'}>
+                <Chip color={formData.enableSocialSharing ? 'success' : 'default'} size='sm' variant='flat'>
                   {formData.enableSocialSharing ? 'Habilitado' : 'Deshabilitado'}
                 </Chip>
               </div>
@@ -269,14 +271,14 @@ const SocialMediaConfiguration = ({ config, loading }) => {
               <div className='flex items-center gap-3'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.showSocialLinksInFooter}
-                    onValueChange={value => handleInputChange('showSocialLinksInFooter', value)}
                     color='warning'
+                    isSelected={formData.showSocialLinksInFooter}
                     size='sm'
+                    onValueChange={value => handleInputChange('showSocialLinksInFooter', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Enlaces en Footer</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.showSocialLinksInFooter ? 'warning' : 'default'}>
+                <Chip color={formData.showSocialLinksInFooter ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.showSocialLinksInFooter ? 'Visible' : 'Oculto'}
                 </Chip>
               </div>
@@ -287,14 +289,14 @@ const SocialMediaConfiguration = ({ config, loading }) => {
               <div className='flex items-center gap-3'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableOpenGraph}
-                    onValueChange={value => handleInputChange('enableOpenGraph', value)}
                     color='secondary'
+                    isSelected={formData.enableOpenGraph}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableOpenGraph', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Open Graph</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableOpenGraph ? 'secondary' : 'default'}>
+                <Chip color={formData.enableOpenGraph ? 'secondary' : 'default'} size='sm' variant='flat'>
                   {formData.enableOpenGraph ? 'Habilitado' : 'Deshabilitado'}
                 </Chip>
               </div>
@@ -323,45 +325,46 @@ const SocialMediaConfiguration = ({ config, loading }) => {
             <div className='flex flex-wrap gap-2'>
               {socialNetworks.map(network => {
                 if (!formData[network.key]) return null
+
                 return (
                   <Chip
                     key={network.key}
-                    startContent={<div className={network.color}>{network.icon}</div>}
-                    variant='flat'
-                    color='primary'
-                    size='sm'
                     as='a'
+                    className='cursor-pointer'
+                    color='primary'
                     href={formData[network.key]}
-                    target='_blank'
                     rel='noopener noreferrer'
-                    className='cursor-pointer'>
+                    size='sm'
+                    startContent={<div className={network.color}>{network.icon}</div>}
+                    target='_blank'
+                    variant='flat'>
                     {network.label}
                   </Chip>
                 )
               })}
               {formData.whatsapp && (
                 <Chip
+                  color='success'
+                  size='sm'
                   startContent={
                     <div className='text-green-500'>
                       <Share2 className='w-4 h-4' />
                     </div>
                   }
-                  variant='flat'
-                  color='success'
-                  size='sm'>
+                  variant='flat'>
                   WhatsApp
                 </Chip>
               )}
               {formData.telegram && (
                 <Chip
+                  color='primary'
+                  size='sm'
                   startContent={
                     <div className='text-blue-400'>
                       <Share2 className='w-4 h-4' />
                     </div>
                   }
-                  variant='flat'
-                  color='primary'
-                  size='sm'>
+                  variant='flat'>
                   Telegram
                 </Chip>
               )}
@@ -374,10 +377,10 @@ const SocialMediaConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>

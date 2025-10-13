@@ -28,6 +28,7 @@ class EventRegistrationService extends ServiceREST {
       this.validateRegistrationData(registrationData)
 
       const result = await ServiceREST.post(API_ENDPOINTS.EVENTS.REGISTER, registrationData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -49,6 +50,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENTS.CANCEL_REGISTRATION}/${registrationId}/cancel`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -69,6 +71,7 @@ class EventRegistrationService extends ServiceREST {
     try {
       const params = this.buildQueryParams(filters)
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_REGISTRATIONS}${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -90,6 +93,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.IS_REGISTERED}/${eventId}/is-registered`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -111,6 +115,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_REGISTRATION}/${eventId}/my-registration`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -141,6 +146,7 @@ class EventRegistrationService extends ServiceREST {
         amount: paymentData.amount,
         currency: paymentData.currency || 'usd'
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -162,6 +168,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.post(`${API_ENDPOINTS.PAYMENTS.CONFIRM}/${paymentIntentId}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -187,6 +194,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.ATTENDEES}/${eventId}/attendees`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -208,6 +216,7 @@ class EventRegistrationService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.CONFIRMED_ATTENDEES}/${eventId}/confirmed-attendees`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)

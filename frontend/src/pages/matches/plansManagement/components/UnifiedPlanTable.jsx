@@ -3,17 +3,7 @@ import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell, Chip, 
 import { Edit2, Trash2, Package, DollarSign } from 'lucide-react'
 import { MATCH_PLAN_COLUMNS } from '@constants/tableConstants.js'
 
-const UnifiedPlanTable = ({
-  plans,
-  loading,
-  sortDescriptor,
-  onSortChange,
-  selectedKeys,
-  onSelectionChange,
-  visibleColumns,
-  onEdit,
-  onDelete
-}) => {
+const UnifiedPlanTable = ({ plans, loading, sortDescriptor, onSortChange, visibleColumns, onEdit, onDelete }) => {
   const renderCell = (plan, columnKey) => {
     const cellValue = plan[columnKey]
 
@@ -39,7 +29,7 @@ const UnifiedPlanTable = ({
 
       case 'attempts':
         return (
-          <Chip size='sm' variant='flat' color='primary' className='font-medium'>
+          <Chip className='font-medium' color='primary' size='sm' variant='flat'>
             {cellValue || 0} {(cellValue || 0) === 1 ? 'intento' : 'intentos'}
           </Chip>
         )
@@ -62,7 +52,7 @@ const UnifiedPlanTable = ({
       case 'sortOrder':
         return (
           <div className='text-center'>
-            <Chip size='sm' variant='flat' color='secondary' className='font-medium'>
+            <Chip className='font-medium' color='secondary' size='sm' variant='flat'>
               #{cellValue || 0}
             </Chip>
           </div>
@@ -70,7 +60,7 @@ const UnifiedPlanTable = ({
 
       case 'isActive':
         return (
-          <Chip size='sm' variant='flat' color={cellValue ? 'success' : 'default'}>
+          <Chip color={cellValue ? 'success' : 'default'} size='sm' variant='flat'>
             {cellValue ? 'Activo' : 'Inactivo'}
           </Chip>
         )
@@ -81,22 +71,22 @@ const UnifiedPlanTable = ({
             <Tooltip content='Editar plan'>
               <Button
                 isIconOnly
-                size='sm'
-                variant='flat'
                 className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                onPress={() => onEdit(plan)}
-                title='Editar plan'>
+                size='sm'
+                title='Editar plan'
+                variant='flat'
+                onPress={() => onEdit(plan)}>
                 <Edit2 className='w-4 h-4' />
               </Button>
             </Tooltip>
-            <Tooltip content='Eliminar plan' color='danger'>
+            <Tooltip color='danger' content='Eliminar plan'>
               <Button
                 isIconOnly
-                size='sm'
-                variant='flat'
                 className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                onPress={() => onDelete(plan)}
-                title='Eliminar plan'>
+                size='sm'
+                title='Eliminar plan'
+                variant='flat'
+                onPress={() => onDelete(plan)}>
                 <Trash2 className='w-4 h-4' />
               </Button>
             </Tooltip>
@@ -110,6 +100,7 @@ const UnifiedPlanTable = ({
 
   const headerColumns = useMemo(() => {
     if (visibleColumns === 'all') return MATCH_PLAN_COLUMNS
+
     return MATCH_PLAN_COLUMNS.filter(column => Array.from(visibleColumns).includes(column.uid))
   }, [visibleColumns])
 
@@ -117,18 +108,18 @@ const UnifiedPlanTable = ({
 
   return (
     <Table
-      aria-label='Tabla de planes de match'
       isHeaderSticky
-      color='primary'
-      selectionMode='none'
-      sortDescriptor={sortDescriptor}
-      onSortChange={onSortChange}
+      aria-label='Tabla de planes de match'
       classNames={{
         wrapper: 'bg-gray-800/40 backdrop-blur-sm border border-gray-700/50',
         th: 'bg-gray-700/50 border-b border-gray-600/50',
         td: 'border-b border-gray-700/30',
         tbody: '[&>tr:hover]:bg-gray-700/20'
-      }}>
+      }}
+      color='primary'
+      selectionMode='none'
+      sortDescriptor={sortDescriptor}
+      onSortChange={onSortChange}>
       <TableHeader columns={headerColumns}>
         {column => (
           <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'} allowsSorting={column.sortable}>
@@ -137,16 +128,16 @@ const UnifiedPlanTable = ({
         )}
       </TableHeader>
       <TableBody
-        items={plans}
-        loadingContent={<Skeleton className='w-full h-8 rounded-lg bg-gray-700/50' />}
-        loadingState={loadingState ? 'loading' : 'idle'}
         emptyContent={
           <div className='text-center py-8'>
             <Package className='w-12 h-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-400 mb-2'>No hay planes de match</h3>
             <p className='text-sm text-gray-500'>Crea tu primer plan de match para empezar</p>
           </div>
-        }>
+        }
+        items={plans}
+        loadingContent={<Skeleton className='w-full h-8 rounded-lg bg-gray-700/50' />}
+        loadingState={loadingState ? 'loading' : 'idle'}>
         {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
       </TableBody>
     </Table>

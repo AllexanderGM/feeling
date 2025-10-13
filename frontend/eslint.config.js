@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from 'eslint/config'
 import { fixupConfigRules, fixupPluginRules } from '@eslint/compat'
 import react from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
 import unusedImports from 'eslint-plugin-unused-imports'
 import _import from 'eslint-plugin-import'
 import typescriptEslint from '@typescript-eslint/eslint-plugin'
@@ -50,13 +51,13 @@ export default defineConfig([
         'plugin:react/recommended',
         'plugin:prettier/recommended',
         'plugin:react-hooks/recommended',
-        'plugin:jsx-a11y/recommended',
-        'plugin:@next/next/recommended'
+        'plugin:jsx-a11y/recommended'
       )
     ),
 
     plugins: {
       react: fixupPluginRules(react),
+      'react-hooks': fixupPluginRules(reactHooks),
       'unused-imports': unusedImports,
       import: fixupPluginRules(_import),
       '@typescript-eslint': typescriptEslint,
@@ -87,7 +88,7 @@ export default defineConfig([
       }
     },
 
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx'],
 
     rules: {
       'no-console': 'warn',
@@ -97,6 +98,7 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'off',
       'jsx-a11y/click-events-have-key-events': 'warn',
       'jsx-a11y/interactive-supports-focus': 'warn',
+      '@next/next/no-img-element': 'off',
       'prettier/prettier': 'warn',
       'no-unused-vars': 'off',
       'unused-imports/no-unused-vars': 'off',

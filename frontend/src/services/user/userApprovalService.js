@@ -32,6 +32,7 @@ class UserApprovalService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_APPROVAL.PENDING}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -56,6 +57,7 @@ class UserApprovalService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_APPROVAL.REJECTED}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -76,6 +78,7 @@ class UserApprovalService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_APPROVAL.APPROVE.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -92,6 +95,7 @@ class UserApprovalService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_APPROVAL.REJECT.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -108,6 +112,7 @@ class UserApprovalService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_APPROVAL.RESET_PENDING.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -127,6 +132,7 @@ class UserApprovalService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_APPROVAL.APPROVE_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -142,6 +148,7 @@ class UserApprovalService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_APPROVAL.REJECT_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

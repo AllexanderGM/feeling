@@ -12,8 +12,8 @@ import {
   Textarea,
   Switch
 } from '@heroui/react'
-import { Heart, Edit3, Trash2, Eye } from 'lucide-react'
-import { userInterestsService, userAnalyticsService } from '@services'
+import { Heart } from 'lucide-react'
+import { userInterestsService } from '@services'
 import { Logger } from '@utils/logger.js'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
@@ -31,9 +31,8 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
     totalPages: 0,
     totalElements: 0
   })
-  const [searchValue, setSearchValue] = useState('')
   const [selectedInterest, setSelectedInterest] = useState(null)
-  const [interestStats, setInterestStats] = useState({})
+  // const [interestStats, setInterestStats] = useState({})
 
   // Obtener acciones predefinidas del hook
   const { viewAction, editAction, deleteAction } = useTableActions()
@@ -74,7 +73,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   // Cargar datos iniciales
   useEffect(() => {
     loadInterests()
-    loadInterestStats()
+    // loadInterestStats()
   }, [])
 
   // Cargar categorías de interés
@@ -99,14 +98,15 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   }, [onError])
 
   // Cargar estadísticas
-  const loadInterestStats = useCallback(async () => {
-    try {
-      const stats = await userAnalyticsService.getInterestsStatistics()
-      setInterestStats(stats)
-    } catch (error) {
-      Logger.error('Error loading interest stats:', error, { category: Logger.CATEGORIES.USER })
-    }
-  }, [])
+  // const loadInterestStats = useCallback(async () => {
+  //   try {
+  //     const stats = await userAnalyticsService.getInterestsStatistics()
+  //
+  //     setInterestStats(stats)
+  //   } catch (error) {
+  //     Logger.error('Error loading interest stats:', error, { category: Logger.CATEGORIES.USER })
+  //   }
+  // }, [])
 
   // Renderizar celda
   const renderCell = useCallback(
@@ -127,7 +127,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
 
         case 'isActive':
           return (
-            <Chip size='sm' color={interest.isActive ? 'success' : 'default'} variant='flat'>
+            <Chip color={interest.isActive ? 'success' : 'default'} size='sm' variant='flat'>
               {interest.isActive ? 'Activa' : 'Inactiva'}
             </Chip>
           )
@@ -140,6 +140,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
 
         case 'popularity':
           const popularity = Math.min(((interest.userCount || 0) / 100) * 100, 100)
+
           return <span className='text-sm'>{popularity.toFixed(1)}%</span>
 
         case 'actions':
@@ -229,6 +230,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   const handleCreateSubmit = useCallback(async () => {
     if (!interestForm.name || !interestForm.description) {
       onError?.('Por favor completa los campos requeridos')
+
       return
     }
 
@@ -254,7 +256,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
       Logger.error('Error creating interest:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al crear categoría de interés')
     }
-  }, [interestForm, onSuccess, onError, onCreateClose, loadInterests, loadInterestStats])
+  }, [interestForm, onSuccess, onError, onCreateClose, loadInterests])
 
   const handleEditSubmit = useCallback(async () => {
     if (!selectedInterest || !interestForm.name) return
@@ -281,7 +283,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
       Logger.error('Error updating interest:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al actualizar categoría de interés')
     }
-  }, [selectedInterest, interestForm, onSuccess, onError, onEditClose, loadInterests, loadInterestStats])
+  }, [selectedInterest, interestForm, onSuccess, onError, onEditClose, loadInterests])
 
   const confirmDelete = useCallback(async () => {
     if (!selectedInterest) return
@@ -296,27 +298,26 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
       Logger.error('Error deleting interest:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al eliminar categoría de interés')
     }
-  }, [selectedInterest, onSuccess, onError, onDeleteClose, loadInterests, loadInterestStats])
+  }, [selectedInterest, onSuccess, onError, onDeleteClose, loadInterests])
 
   // Función de búsqueda
   const handleSearch = useCallback(
     searchQuery => {
-      setSearchValue(searchQuery)
       const filteredInterests = interests.filter(
         interest =>
           interest.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           interest.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+
       setInterests(filteredInterests)
     },
     [interests]
   )
-
   // Función de refresh
   const handleRefresh = useCallback(() => {
     loadInterests()
-    loadInterestStats()
-  }, [loadInterests, loadInterestStats])
+    // loadInterestStats()
+  }, [loadInterests])
 
   // Función de cambio de página
   const handlePageChange = useCallback(page => {
@@ -324,7 +325,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
   }, [])
 
   // Función de cambio de filas por página
-  const handleRowsPerPageChange = useCallback(size => {
+  const handleRowsPerPageChange = useCallback(() => {
     setPagination(prev => ({ ...prev, page: 1 }))
   }, [])
 
@@ -332,34 +333,34 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
     <div className='flex flex-col gap-6'>
       {/* Main Table */}
       <GenericDataTable
-        data={interests}
         columns={columns}
-        pagination={pagination}
-        loading={loading}
-        loadingMessage='Cargando categorías...'
-        emptyMessage='No se encontraron categorías de interés'
-        renderCell={renderCell}
-        onSearch={handleSearch}
-        onRefresh={handleRefresh}
-        onCreate={handleCreateInterest}
         createButtonLabel='Crear Categoría'
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        searchPlaceholder='Buscar categorías por nombre o descripción...'
-        rowsPerPageOptions={[10, 20, 30, 50]}
-        showColumnSelector={true}
-        showRowsPerPage={true}
-        showCreateButton={true}
-        showRefreshButton={true}
-        showSearch={true}
-        showPagination={true}
+        data={interests}
+        emptyMessage='No se encontraron categorías de interés'
         enableSelection={false}
         getItemKey={item => `interest-${item.id}`}
+        loading={loading}
+        loadingMessage='Cargando categorías...'
+        pagination={pagination}
+        renderCell={renderCell}
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        searchPlaceholder='Buscar categorías por nombre o descripción...'
+        showColumnSelector={true}
+        showCreateButton={true}
+        showPagination={true}
+        showRefreshButton={true}
+        showRowsPerPage={true}
+        showSearch={true}
         tableId={`interests-table`}
+        onCreate={handleCreateInterest}
+        onPageChange={handlePageChange}
+        onRefresh={handleRefresh}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        onSearch={handleSearch}
       />
 
       {/* View Interest Modal */}
-      <Modal isOpen={isViewOpen} onClose={onViewClose} size='2xl'>
+      <Modal isOpen={isViewOpen} size='2xl' onClose={onViewClose}>
         <ModalContent>
           <ModalHeader>Detalles de la Categoría</ModalHeader>
           <ModalBody>
@@ -428,18 +429,18 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
       </Modal>
 
       {/* Create Interest Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size='3xl' scrollBehavior='inside'>
+      <Modal isOpen={isCreateOpen} scrollBehavior='inside' size='3xl' onClose={onCreateClose}>
         <ModalContent>
           <ModalHeader>Crear Nueva Categoría de Interés</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <Input
+                  isRequired
                   label='Nombre'
                   placeholder='ej: Essence, Rouse, Spirit'
                   value={interestForm.name}
                   onValueChange={value => setInterestForm(prev => ({ ...prev, name: value }))}
-                  isRequired
                 />
                 <Input
                   label='Icono'
@@ -450,20 +451,20 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
               </div>
 
               <Textarea
+                isRequired
                 label='Descripción breve'
+                minRows={2}
                 placeholder='Descripción corta para mostrar en tarjetas'
                 value={interestForm.description}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, description: value }))}
-                isRequired
-                minRows={2}
               />
 
               <Textarea
                 label='Descripción completa'
+                minRows={3}
                 placeholder='Descripción detallada para la página de categoría'
                 value={interestForm.fullDescription}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, fullDescription: value }))}
-                minRows={3}
               />
 
               <Input
@@ -475,16 +476,16 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
 
               <Textarea
                 label='Características (una por línea)'
+                minRows={3}
                 placeholder='Conexiones basadas en compatibilidad real&#10;Algoritmos diseñados para relaciones heterosexuales&#10;Comunidad enfocada en relaciones serias'
                 value={interestForm.features.join('\n')}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, features: value.split('\n').filter(f => f.trim()) }))}
-                minRows={3}
               />
 
               <div className='grid grid-cols-2 gap-4'>
                 <Input
-                  type='number'
                   label='Orden de visualización'
+                  type='number'
                   value={interestForm.displayOrder.toString()}
                   onValueChange={value => setInterestForm(prev => ({ ...prev, displayOrder: parseInt(value) || 1 }))}
                 />
@@ -502,7 +503,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onCreateClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleCreateSubmit} isDisabled={!interestForm.name || !interestForm.description}>
+            <Button color='primary' isDisabled={!interestForm.name || !interestForm.description} onPress={handleCreateSubmit}>
               Crear Categoría
             </Button>
           </ModalFooter>
@@ -510,17 +511,17 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
       </Modal>
 
       {/* Edit Interest Modal */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} size='3xl' scrollBehavior='inside'>
+      <Modal isOpen={isEditOpen} scrollBehavior='inside' size='3xl' onClose={onEditClose}>
         <ModalContent>
           <ModalHeader>Editar Categoría de Interés</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <div className='grid grid-cols-2 gap-4'>
                 <Input
+                  isRequired
                   label='Nombre'
                   value={interestForm.name}
                   onValueChange={value => setInterestForm(prev => ({ ...prev, name: value }))}
-                  isRequired
                 />
                 <Input
                   label='Icono'
@@ -530,18 +531,18 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
               </div>
 
               <Textarea
+                isRequired
                 label='Descripción breve'
+                minRows={2}
                 value={interestForm.description}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, description: value }))}
-                isRequired
-                minRows={2}
               />
 
               <Textarea
                 label='Descripción completa'
+                minRows={3}
                 value={interestForm.fullDescription}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, fullDescription: value }))}
-                minRows={3}
               />
 
               <Input
@@ -552,15 +553,15 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
 
               <Textarea
                 label='Características (una por línea)'
+                minRows={3}
                 value={interestForm.features.join('\n')}
                 onValueChange={value => setInterestForm(prev => ({ ...prev, features: value.split('\n').filter(f => f.trim()) }))}
-                minRows={3}
               />
 
               <div className='grid grid-cols-2 gap-4'>
                 <Input
-                  type='number'
                   label='Orden de visualización'
+                  type='number'
                   value={interestForm.displayOrder.toString()}
                   onValueChange={value => setInterestForm(prev => ({ ...prev, displayOrder: parseInt(value) || 1 }))}
                 />
@@ -578,7 +579,7 @@ const UserInterestsSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onEditClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleEditSubmit} isDisabled={!interestForm.name}>
+            <Button color='primary' isDisabled={!interestForm.name} onPress={handleEditSubmit}>
               Actualizar
             </Button>
           </ModalFooter>

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Card,
   CardBody,
-  CardHeader,
   Button,
   Spinner,
   Table,
@@ -91,7 +90,7 @@ const TagAnalytics = () => {
     try {
       await loadTagsData()
       handleSuccess('Datos de tags actualizados')
-    } catch (error) {
+    } catch {
       handleError('Error al actualizar datos')
     } finally {
       setRefreshing(false)
@@ -103,6 +102,7 @@ const TagAnalytics = () => {
     // Verificar que tags sea un array antes de usar métodos de array
     if (!Array.isArray(tags)) {
       setFilteredTags([])
+
       return []
     }
 
@@ -121,6 +121,7 @@ const TagAnalytics = () => {
         if (statusFilter === 'pending') return !tag.approved
         if (statusFilter === 'approved') return tag.approved
         if (statusFilter === 'rejected') return tag.rejectionReason
+
         return true
       })
     }
@@ -143,7 +144,7 @@ const TagAnalytics = () => {
         await userTagsService.approveTag(tagId)
         handleSuccess('Tag aprobado correctamente')
         loadTagsData()
-      } catch (error) {
+      } catch {
         handleError('Error al aprobar tag')
       }
     },
@@ -160,7 +161,7 @@ const TagAnalytics = () => {
       setSelectedTag(null)
       onRejectModalOpenChange(false)
       loadTagsData()
-    } catch (error) {
+    } catch {
       handleError('Error al rechazar tag')
     }
   }, [selectedTag, rejectionReason, handleSuccess, handleError, loadTagsData, onRejectModalOpenChange])
@@ -170,11 +171,12 @@ const TagAnalytics = () => {
 
     try {
       const tagIds = Array.from(selectedTags).map(Number)
+
       await userTagsService.approveTagsBatch(tagIds)
       handleSuccess(`${tagIds.length} tags aprobados correctamente`)
       setSelectedTags(new Set())
       loadTagsData()
-    } catch (error) {
+    } catch {
       handleError('Error al aprobar tags en lote')
     }
   }, [selectedTags, handleSuccess, handleError, loadTagsData])
@@ -199,20 +201,21 @@ const TagAnalytics = () => {
   const getStatusChip = useCallback(tag => {
     if (tag.rejectionReason) {
       return (
-        <Chip color='danger' variant='flat' size='sm'>
+        <Chip color='danger' size='sm' variant='flat'>
           Rechazado
         </Chip>
       )
     }
     if (tag.approved) {
       return (
-        <Chip color='success' variant='flat' size='sm'>
+        <Chip color='success' size='sm' variant='flat'>
           Aprobado
         </Chip>
       )
     }
+
     return (
-      <Chip color='warning' variant='flat' size='sm'>
+      <Chip color='warning' size='sm' variant='flat'>
         Pendiente
       </Chip>
     )
@@ -221,7 +224,7 @@ const TagAnalytics = () => {
   if (loading) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <Spinner size='lg' color='primary' />
+        <Spinner color='primary' size='lg' />
       </div>
     )
   }
@@ -236,12 +239,12 @@ const TagAnalytics = () => {
         </div>
         <Button
           isIconOnly
-          variant='flat'
-          color='primary'
-          onPress={handleRefresh}
-          isLoading={refreshing}
+          aria-label='Actualizar datos de tags'
           className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-          aria-label='Actualizar datos de tags'>
+          color='primary'
+          isLoading={refreshing}
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -311,21 +314,21 @@ const TagAnalytics = () => {
           <div className='flex flex-col md:flex-row gap-4 items-start md:items-center justify-between'>
             <div className='flex flex-col sm:flex-row gap-4 flex-1'>
               <Input
+                aria-label='Buscar tags'
+                className='max-w-xs'
                 placeholder='Buscar tags...'
+                startContent={<Search className='w-4 h-4 text-default-400' />}
                 value={searchTerm}
                 onValueChange={setSearchTerm}
-                startContent={<Search className='w-4 h-4 text-default-400' />}
-                className='max-w-xs'
-                aria-label='Buscar tags'
               />
 
               <Select
+                aria-label='Filtrar tags por estado'
+                className='max-w-xs'
                 placeholder='Filtrar por estado'
                 selectedKeys={[statusFilter]}
-                onSelectionChange={keys => setStatusFilter(Array.from(keys)[0] || 'all')}
-                className='max-w-xs'
                 startContent={<Filter className='w-4 h-4 text-default-400' />}
-                aria-label='Filtrar tags por estado'>
+                onSelectionChange={keys => setStatusFilter(Array.from(keys)[0] || 'all')}>
                 <SelectItem key='all'>Todos</SelectItem>
                 <SelectItem key='pending'>Pendientes</SelectItem>
                 <SelectItem key='approved'>Aprobados</SelectItem>
@@ -334,7 +337,7 @@ const TagAnalytics = () => {
             </div>
 
             {selectedTags.size > 0 && (
-              <Button color='success' variant='flat' onPress={handleBatchApprove} startContent={<ThumbsUp className='w-4 h-4' />}>
+              <Button color='success' startContent={<ThumbsUp className='w-4 h-4' />} variant='flat' onPress={handleBatchApprove}>
                 Aprobar Seleccionados ({selectedTags.size})
               </Button>
             )}
@@ -346,10 +349,10 @@ const TagAnalytics = () => {
       <Card className='bg-gray-800/50 border border-gray-700/30'>
         <CardBody className='p-0'>
           <Table
-            selectionMode='multiple'
+            aria-label='Tabla de gestión de tags del sistema'
             selectedKeys={selectedTags}
-            onSelectionChange={setSelectedTags}
-            aria-label='Tabla de gestión de tags del sistema'>
+            selectionMode='multiple'
+            onSelectionChange={setSelectedTags}>
             <TableHeader>
               <TableColumn>TAG</TableColumn>
               <TableColumn>CREADO POR</TableColumn>
@@ -378,7 +381,7 @@ const TagAnalytics = () => {
                   <TableCell>
                     <div className='flex gap-1'>
                       <Tooltip content='Ver detalles'>
-                        <Button isIconOnly size='sm' variant='flat' onPress={() => openViewModal(tag)} aria-label='Ver detalles del tag'>
+                        <Button isIconOnly aria-label='Ver detalles del tag' size='sm' variant='flat' onPress={() => openViewModal(tag)}>
                           <Eye className='w-4 h-4' />
                         </Button>
                       </Tooltip>
@@ -388,11 +391,11 @@ const TagAnalytics = () => {
                           <Tooltip content='Aprobar'>
                             <Button
                               isIconOnly
-                              size='sm'
+                              aria-label='Aprobar tag'
                               color='success'
+                              size='sm'
                               variant='flat'
-                              onPress={() => handleApproveTag(tag.id)}
-                              aria-label='Aprobar tag'>
+                              onPress={() => handleApproveTag(tag.id)}>
                               <ThumbsUp className='w-4 h-4' />
                             </Button>
                           </Tooltip>
@@ -400,11 +403,11 @@ const TagAnalytics = () => {
                           <Tooltip content='Rechazar'>
                             <Button
                               isIconOnly
-                              size='sm'
+                              aria-label='Rechazar tag'
                               color='danger'
+                              size='sm'
                               variant='flat'
-                              onPress={() => openRejectModal(tag)}
-                              aria-label='Rechazar tag'>
+                              onPress={() => openRejectModal(tag)}>
                               <ThumbsDown className='w-4 h-4' />
                             </Button>
                           </Tooltip>
@@ -422,7 +425,7 @@ const TagAnalytics = () => {
       {/* Paginación */}
       {totalPages > 1 && (
         <div className='flex justify-center'>
-          <Pagination total={totalPages} page={currentPage} onChange={setCurrentPage} showControls />
+          <Pagination showControls page={currentPage} total={totalPages} onChange={setCurrentPage} />
         </div>
       )}
 
@@ -493,12 +496,12 @@ const TagAnalytics = () => {
                     </p>
 
                     <Textarea
+                      isRequired
                       label='Razón del rechazo'
+                      minRows={3}
                       placeholder='Explica por qué este tag no es apropiado...'
                       value={rejectionReason}
                       onValueChange={setRejectionReason}
-                      minRows={3}
-                      isRequired
                     />
                   </div>
                 )}
@@ -507,7 +510,7 @@ const TagAnalytics = () => {
                 <Button variant='flat' onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color='danger' onPress={handleRejectTag} isDisabled={!rejectionReason.trim()}>
+                <Button color='danger' isDisabled={!rejectionReason.trim()} onPress={handleRejectTag}>
                   Rechazar Tag
                 </Button>
               </ModalFooter>

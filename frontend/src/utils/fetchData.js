@@ -17,6 +17,7 @@ const fetchData = async (url, options = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: response.statusText }))
+
       throw new Error(errorData.message || `HTTP Error: ${response.status}`)
     }
 
@@ -25,6 +26,7 @@ const fetchData = async (url, options = {}) => {
     Logger.error(Logger.CATEGORIES.NETWORK, 'fetch data', error, {
       context: { url, options }
     })
+
     return { success: false, error: error.message }
   }
 }

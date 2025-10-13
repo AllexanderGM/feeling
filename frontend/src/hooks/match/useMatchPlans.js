@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { matchService } from '@services'
-
 import { useError } from '@hooks/utils/useError.js'
 
 export const useMatchPlans = () => {
@@ -23,10 +22,13 @@ export const useMatchPlans = () => {
     try {
       setLoading(true)
       const response = await matchService.getAvailablePlans()
+
       setPlans(response)
+
       return response
     } catch (error) {
       handleError('Error al cargar planes disponibles', error)
+
       return []
     } finally {
       setLoading(false)
@@ -62,10 +64,13 @@ export const useMatchPlans = () => {
       try {
         setLoading(true)
         const response = await matchService.getAllPlans(page, size)
+
         setPlans(response.content || response)
+
         return response
       } catch (error) {
         handleError('Error al cargar todos los planes', error)
+
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
@@ -137,10 +142,13 @@ export const useMatchPlans = () => {
   const fetchPlanStats = useCallback(async () => {
     try {
       const response = await matchService.getPlanStats()
+
       setPlanStats(response)
+
       return response
     } catch (error) {
       handleError('Error al cargar estadísticas de planes', error)
+
       return {}
     }
   }, [handleError])
@@ -166,6 +174,7 @@ export const useMatchPlans = () => {
 
   const calculatePlanValue = useCallback(plan => {
     if (!plan || !plan.price || !plan.attempts) return 0
+
     return (plan.price / plan.attempts).toFixed(2)
   }, [])
 

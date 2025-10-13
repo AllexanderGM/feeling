@@ -27,10 +27,13 @@ export const useMultiStepForm = (steps, schemas, defaultValues = {}) => {
 
     if (isStepValid) {
       const stepData = getValues()
+
       setFormData(prev => ({ ...prev, ...stepData }))
       setCurrentStep(prev => Math.min(prev + 1, steps.length - 1))
+
       return true
     }
+
     return false
   }, [trigger, getValues, steps.length])
 
@@ -50,10 +53,13 @@ export const useMultiStepForm = (steps, schemas, defaultValues = {}) => {
   const submitStep = useCallback(
     async onSubmit => {
       const isValid = await trigger()
+
       if (isValid) {
         const stepData = getValues()
         const completeData = { ...formData, ...stepData }
+
         setFormData(completeData)
+
         return onSubmit(completeData)
       }
     },

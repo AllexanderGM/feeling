@@ -13,13 +13,13 @@ import {
   ModalFooter,
   useDisclosure
 } from '@heroui/react'
-import { Users, Eye, Edit, Trash2, Check, X, Mail, UserIcon, Plus, Download, Filter } from 'lucide-react'
-
+import { Users, Check, X, Mail, UserIcon, Download, Filter } from 'lucide-react'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
 import { useError, useTableActions } from '@hooks'
 import { formatJavaDateForDisplay } from '@utils/dateUtils.js'
 import { USER_ROLE_COLORS } from '@constants/tableConstants.js'
+import { Logger } from '@utils/logger'
 
 // Datos de ejemplo para demostrar la tabla
 const generateExampleData = (count = 50) => {
@@ -89,6 +89,7 @@ const GenericTableExample = memo(() => {
   // Inicializar datos
   useEffect(() => {
     const exampleData = generateExampleData(50)
+
     setData(exampleData)
     setFilteredData(exampleData.slice(0, 10))
   }, [])
@@ -102,7 +103,7 @@ const GenericTableExample = memo(() => {
         case 'user':
           return (
             <div className='flex items-center gap-3'>
-              <Avatar radius='lg' src={item.avatar} className='w-10 h-10' icon={<UserIcon className='w-6 h-6 text-default-500' />} />
+              <Avatar className='w-10 h-10' icon={<UserIcon className='w-6 h-6 text-default-500' />} radius='lg' src={item.avatar} />
               <div className='flex flex-col'>
                 <p className='text-sm font-semibold text-foreground'>{`${item.name} ${item.lastName}`}</p>
                 <p className='text-xs text-default-500'>{item.email}</p>
@@ -132,6 +133,7 @@ const GenericTableExample = memo(() => {
             INACTIVE: 'default',
             BANNED: 'danger'
           }
+
           return (
             <Chip className='capitalize' color={statusColors[item.status] || 'default'} size='sm' variant='flat'>
               {item.status?.toLowerCase()}
@@ -149,13 +151,6 @@ const GenericTableExample = memo(() => {
           )
 
         case 'score':
-          const getScoreColor = score => {
-            if (score >= 80) return 'success'
-            if (score >= 60) return 'warning'
-            if (score >= 40) return 'primary'
-            return 'danger'
-          }
-
           return (
             <div className='flex flex-col items-center gap-1'>
               <div className='flex items-center gap-2'>
@@ -180,6 +175,7 @@ const GenericTableExample = memo(() => {
 
         case 'createdAt':
           const formattedDate = formatJavaDateForDisplay(item.createdAt)
+
           return (
             <div className='flex flex-col'>
               <p className='text-sm font-semibold'>{formattedDate}</p>
@@ -306,7 +302,7 @@ const GenericTableExample = memo(() => {
 
   // Callback para tracking de acciones
   const handleActionExecute = useCallback((actionKey, item, status, error) => {
-    console.log('Action executed:', { actionKey, item: item.id, status, error })
+    Logger.info('Action executed:', { actionKey, item: item.id, status, error }, { category: Logger.CATEGORIES.USER })
   }, [])
 
   // Simular búsqueda
@@ -326,6 +322,7 @@ const GenericTableExample = memo(() => {
 
         const startIndex = (pagination.page - 1) * pagination.size
         const endIndex = startIndex + pagination.size
+
         setFilteredData(filtered.slice(startIndex, endIndex))
 
         setPagination(prev => ({
@@ -372,6 +369,7 @@ const GenericTableExample = memo(() => {
         // Aplicar paginación a los datos filtrados
         const startIndex = (page - 1) * pagination.size
         const endIndex = startIndex + pagination.size
+
         setFilteredData(filtered.slice(startIndex, endIndex))
         setLoading(false)
       }, 300)
@@ -434,10 +432,10 @@ const GenericTableExample = memo(() => {
   // Acciones adicionales en el top
   const topActions = (
     <div className='flex items-center gap-2'>
-      <Button size='sm' variant='flat' startContent={<Download className='w-4 h-4' />}>
+      <Button size='sm' startContent={<Download className='w-4 h-4' />} variant='flat'>
         Exportar
       </Button>
-      <Button size='sm' variant='flat' startContent={<Filter className='w-4 h-4' />}>
+      <Button size='sm' startContent={<Filter className='w-4 h-4' />} variant='flat'>
         Filtros
       </Button>
     </div>
@@ -447,7 +445,7 @@ const GenericTableExample = memo(() => {
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Ejemplo de Tabla Genérica | Feeling</title>
-        <meta name='description' content='Demostración del componente GenericDataTable' />
+        <meta content='Demostración del componente GenericDataTable' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -506,37 +504,37 @@ const GenericTableExample = memo(() => {
 
       {/* Tabla Genérica */}
       <GenericDataTable
-        data={filteredData}
         columns={tableColumns}
-        pagination={pagination}
-        loading={loading}
-        loadingMessage='Cargando usuarios de ejemplo...'
-        emptyMessage='No se encontraron usuarios que coincidan con los criterios de búsqueda'
-        renderCell={renderCell}
-        onSearch={handleSearch}
-        onRefresh={handleRefresh}
-        onCreate={handleCreate}
         createButtonLabel='Crear Usuario'
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        onSort={handleSort}
-        sortDescriptor={sortDescriptor}
-        searchPlaceholder='Buscar por nombre, email o país...'
-        rowsPerPageOptions={[5, 10, 25, 50]}
-        showColumnSelector={true}
-        showRowsPerPage={true}
-        showCreateButton={true}
-        showRefreshButton={true}
-        showSearch={true}
-        showPagination={true}
+        data={filteredData}
+        emptyMessage='No se encontraron usuarios que coincidan con los criterios de búsqueda'
         enableSelection={false}
         getItemKey={item => `user-${item.id}`}
-        topActions={topActions}
+        loading={loading}
+        loadingMessage='Cargando usuarios de ejemplo...'
+        pagination={pagination}
+        renderCell={renderCell}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        searchPlaceholder='Buscar por nombre, email o país...'
+        showColumnSelector={true}
+        showCreateButton={true}
+        showPagination={true}
+        showRefreshButton={true}
+        showRowsPerPage={true}
+        showSearch={true}
+        sortDescriptor={sortDescriptor}
         tableId='example-users-table'
+        topActions={topActions}
+        onCreate={handleCreate}
+        onPageChange={handlePageChange}
+        onRefresh={handleRefresh}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        onSearch={handleSearch}
+        onSort={handleSort}
       />
 
       {/* Modal de detalles */}
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size='2xl' scrollBehavior='inside'>
+      <Modal isOpen={isOpen} scrollBehavior='inside' size='2xl' onOpenChange={onOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -552,7 +550,7 @@ const GenericTableExample = memo(() => {
                 {selectedItem && (
                   <div className='space-y-4'>
                     <div className='flex items-center gap-4'>
-                      <Avatar src={selectedItem.avatar} className='w-16 h-16' icon={<UserIcon className='w-8 h-8' />} />
+                      <Avatar className='w-16 h-16' icon={<UserIcon className='w-8 h-8' />} src={selectedItem.avatar} />
                       <div>
                         <h4 className='text-lg font-semibold'>
                           {selectedItem.name} {selectedItem.lastName}

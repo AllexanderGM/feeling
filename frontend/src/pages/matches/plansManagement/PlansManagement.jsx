@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
-import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { CreditCard, Package, TrendingUp } from 'lucide-react'
-
-import { useError, useAuth } from '@hooks'
+import { Package } from 'lucide-react'
+import { useError } from '@hooks'
 import { Logger } from '@utils/logger.js'
 import GenericTableControls from '@components/ui/GenericTableControls.jsx'
 import TablePagination from '@components/ui/TablePagination.jsx'
@@ -17,16 +15,12 @@ import PlanStatsCards from './components/PlanStatsCards.jsx'
 import UnifiedPlanTable from './components/UnifiedPlanTable.jsx'
 
 const PlansManagement = memo(() => {
-  const { user: currentUser } = useAuth()
   const { handleError, handleSuccess } = useError()
 
   // Estados para planes
   const [plans, setPlans] = useState([])
   const [planStats, setPlanStats] = useState(null)
   const [loading, setLoading] = useState(false)
-
-  // Estado para las tabs
-  const [selectedTab, setSelectedTab] = useState('active')
 
   // Table states
   const [filterValue, setFilterValue] = useState('')
@@ -71,6 +65,7 @@ const PlansManagement = memo(() => {
     const timer = setTimeout(() => {
       setDebouncedFilter(filterValue)
     }, 300)
+
     return () => clearTimeout(timer)
   }, [filterValue])
 
@@ -122,6 +117,7 @@ const PlansManagement = memo(() => {
 
     const start = (page - 1) * rowsPerPage
     const end = start + rowsPerPage
+
     return sortedPlans.slice(start, end)
   }, [sortedPlans, page, rowsPerPage])
 
@@ -219,7 +215,7 @@ const PlansManagement = memo(() => {
     <>
       <Helmet>
         <title>Gestión de Planes de Match - Feeling</title>
-        <meta name='description' content='Administra los planes de match disponibles en la plataforma' />
+        <meta content='Administra los planes de match disponibles en la plataforma' name='description' />
       </Helmet>
 
       <div className='w-full space-y-6'>
@@ -237,41 +233,41 @@ const PlansManagement = memo(() => {
         </div>
 
         {/* Stats Cards */}
-        <PlanStatsCards stats={computedStats} loading={loading} />
+        <PlanStatsCards loading={loading} stats={computedStats} />
 
         {/* Main Table */}
         <div className='space-y-4'>
           <GenericTableControls
-            filterValue={filterValue}
-            onFilterChange={setFilterValue}
-            visibleColumns={visibleColumns}
-            onVisibleColumnsChange={setVisibleColumns}
             columns={MATCH_PLAN_COLUMNS}
-            onCreateNew={() => setIsCreateModalOpen(true)}
-            createButtonText='Crear Plan'
             createButtonIcon={<Package className='w-4 h-4' />}
+            createButtonText='Crear Plan'
             filterPlaceholder='Buscar planes de match...'
+            filterValue={filterValue}
+            visibleColumns={visibleColumns}
+            onCreateNew={() => setIsCreateModalOpen(true)}
+            onFilterChange={setFilterValue}
+            onVisibleColumnsChange={setVisibleColumns}
           />
 
           <UnifiedPlanTable
-            plans={paginatedPlans}
             loading={loading}
-            sortDescriptor={sortDescriptor}
-            onSortChange={setSortDescriptor}
+            plans={paginatedPlans}
             selectedKeys={selectedKeys}
-            onSelectionChange={setSelectedKeys}
+            sortDescriptor={sortDescriptor}
             visibleColumns={visibleColumns}
-            onEdit={openEditModal}
             onDelete={openDeleteModal}
+            onEdit={openEditModal}
+            onSelectionChange={setSelectedKeys}
+            onSortChange={setSortDescriptor}
           />
 
           <TablePagination
             page={page}
             pages={pages}
             rowsPerPage={rowsPerPage}
+            total={sortedPlans.length}
             onPageChange={setPage}
             onRowsPerPageChange={setRowsPerPage}
-            total={sortedPlans.length}
           />
         </div>
       </div>
@@ -279,31 +275,31 @@ const PlansManagement = memo(() => {
       {/* Modals */}
       <CreatePlanForm
         isOpen={isCreateModalOpen}
+        loading={loading}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreatePlan}
-        loading={loading}
       />
 
       <EditPlanForm
         isOpen={isEditModalOpen}
+        loading={loading}
+        plan={selectedPlan}
         onClose={() => {
           setIsEditModalOpen(false)
           setSelectedPlan(null)
         }}
         onSubmit={handleEditPlan}
-        loading={loading}
-        plan={selectedPlan}
       />
 
       <DeletePlanModal
         isOpen={isDeleteModalOpen}
+        loading={loading}
+        plan={selectedPlan}
         onClose={() => {
           setIsDeleteModalOpen(false)
           setSelectedPlan(null)
         }}
         onConfirm={handleDeletePlan}
-        loading={loading}
-        plan={selectedPlan}
       />
     </>
   )

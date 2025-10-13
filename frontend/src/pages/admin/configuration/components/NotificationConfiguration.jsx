@@ -86,14 +86,14 @@ const NotificationConfiguration = ({ config, loading }) => {
                   <Mail className='w-5 h-5 text-blue-400' />
                   <div className='flex items-center gap-2'>
                     <Switch
-                      isSelected={formData.enableEmailNotifications}
-                      onValueChange={value => handleInputChange('enableEmailNotifications', value)}
                       color='primary'
+                      isSelected={formData.enableEmailNotifications}
                       size='sm'
+                      onValueChange={value => handleInputChange('enableEmailNotifications', value)}
                     />
                     <span className='text-sm font-medium text-gray-200'>Email</span>
                   </div>
-                  <Chip size='sm' variant='flat' color={formData.enableEmailNotifications ? 'primary' : 'default'}>
+                  <Chip color={formData.enableEmailNotifications ? 'primary' : 'default'} size='sm' variant='flat'>
                     {formData.enableEmailNotifications ? 'ON' : 'OFF'}
                   </Chip>
                 </div>
@@ -104,14 +104,14 @@ const NotificationConfiguration = ({ config, loading }) => {
                   <Smartphone className='w-5 h-5 text-green-400' />
                   <div className='flex items-center gap-2'>
                     <Switch
-                      isSelected={formData.enablePushNotifications}
-                      onValueChange={value => handleInputChange('enablePushNotifications', value)}
                       color='success'
+                      isSelected={formData.enablePushNotifications}
                       size='sm'
+                      onValueChange={value => handleInputChange('enablePushNotifications', value)}
                     />
                     <span className='text-sm font-medium text-gray-200'>Push</span>
                   </div>
-                  <Chip size='sm' variant='flat' color={formData.enablePushNotifications ? 'success' : 'default'}>
+                  <Chip color={formData.enablePushNotifications ? 'success' : 'default'} size='sm' variant='flat'>
                     {formData.enablePushNotifications ? 'ON' : 'OFF'}
                   </Chip>
                 </div>
@@ -124,14 +124,14 @@ const NotificationConfiguration = ({ config, loading }) => {
                   <Smartphone className='w-5 h-5 text-orange-400' />
                   <div className='flex items-center gap-2'>
                     <Switch
-                      isSelected={formData.enableSMSNotifications}
-                      onValueChange={value => handleInputChange('enableSMSNotifications', value)}
                       color='warning'
+                      isSelected={formData.enableSMSNotifications}
                       size='sm'
+                      onValueChange={value => handleInputChange('enableSMSNotifications', value)}
                     />
                     <span className='text-sm font-medium text-gray-200'>SMS</span>
                   </div>
-                  <Chip size='sm' variant='flat' color={formData.enableSMSNotifications ? 'warning' : 'default'}>
+                  <Chip color={formData.enableSMSNotifications ? 'warning' : 'default'} size='sm' variant='flat'>
                     {formData.enableSMSNotifications ? 'ON' : 'OFF'}
                   </Chip>
                 </div>
@@ -142,14 +142,14 @@ const NotificationConfiguration = ({ config, loading }) => {
                   <Bell className='w-5 h-5 text-purple-400' />
                   <div className='flex items-center gap-2'>
                     <Switch
-                      isSelected={formData.enableInAppNotifications}
-                      onValueChange={value => handleInputChange('enableInAppNotifications', value)}
                       color='secondary'
+                      isSelected={formData.enableInAppNotifications}
                       size='sm'
+                      onValueChange={value => handleInputChange('enableInAppNotifications', value)}
                     />
                     <span className='text-sm font-medium text-gray-200'>In-App</span>
                   </div>
-                  <Chip size='sm' variant='flat' color={formData.enableInAppNotifications ? 'secondary' : 'default'}>
+                  <Chip color={formData.enableInAppNotifications ? 'secondary' : 'default'} size='sm' variant='flat'>
                     {formData.enableInAppNotifications ? 'ON' : 'OFF'}
                   </Chip>
                 </div>
@@ -177,14 +177,14 @@ const NotificationConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableMatchNotifications}
-                    onValueChange={value => handleInputChange('enableMatchNotifications', value)}
                     color='danger'
+                    isSelected={formData.enableMatchNotifications}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableMatchNotifications', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Notificaciones de Matches</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableMatchNotifications ? 'danger' : 'default'}>
+                <Chip color={formData.enableMatchNotifications ? 'danger' : 'default'} size='sm' variant='flat'>
                   {formData.enableMatchNotifications ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -192,14 +192,14 @@ const NotificationConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableEventNotifications}
-                    onValueChange={value => handleInputChange('enableEventNotifications', value)}
                     color='primary'
+                    isSelected={formData.enableEventNotifications}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableEventNotifications', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Notificaciones de Eventos</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableEventNotifications ? 'primary' : 'default'}>
+                <Chip color={formData.enableEventNotifications ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableEventNotifications ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -209,14 +209,14 @@ const NotificationConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableMessageNotifications}
-                    onValueChange={value => handleInputChange('enableMessageNotifications', value)}
                     color='success'
+                    isSelected={formData.enableMessageNotifications}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableMessageNotifications', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Notificaciones de Mensajes</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableMessageNotifications ? 'success' : 'default'}>
+                <Chip color={formData.enableMessageNotifications ? 'success' : 'default'} size='sm' variant='flat'>
                   {formData.enableMessageNotifications ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -224,14 +224,14 @@ const NotificationConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableMarketingNotifications}
-                    onValueChange={value => handleInputChange('enableMarketingNotifications', value)}
                     color='warning'
+                    isSelected={formData.enableMarketingNotifications}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableMarketingNotifications', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Notificaciones de Marketing</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableMarketingNotifications ? 'warning' : 'default'}>
+                <Chip color={formData.enableMarketingNotifications ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.enableMarketingNotifications ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -256,14 +256,14 @@ const NotificationConfiguration = ({ config, loading }) => {
           <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
             <div className='flex items-center gap-2'>
               <Switch
-                isSelected={formData.enableQuietHours}
-                onValueChange={value => handleInputChange('enableQuietHours', value)}
                 color='primary'
+                isSelected={formData.enableQuietHours}
                 size='sm'
+                onValueChange={value => handleInputChange('enableQuietHours', value)}
               />
               <span className='text-sm font-medium text-gray-200'>Habilitar Horario de Silencio</span>
             </div>
-            <Chip size='sm' variant='flat' color={formData.enableQuietHours ? 'primary' : 'default'}>
+            <Chip color={formData.enableQuietHours ? 'primary' : 'default'} size='sm' variant='flat'>
               {formData.enableQuietHours ? 'ON' : 'OFF'}
             </Chip>
           </div>
@@ -273,34 +273,34 @@ const NotificationConfiguration = ({ config, loading }) => {
               <div>
                 <label className='text-sm font-medium text-gray-300 mb-2 block'>Inicio de Silencio: {formData.quietHoursStart}:00</label>
                 <Slider
-                  size='md'
-                  step={1}
-                  minValue={0}
-                  maxValue={23}
-                  value={formData.quietHoursStart}
-                  onChange={value => handleInputChange('quietHoursStart', value)}
                   className='max-w-md'
                   classNames={{
                     track: 'bg-gray-700',
                     filler: 'bg-orange-500'
                   }}
+                  maxValue={23}
+                  minValue={0}
+                  size='md'
+                  step={1}
+                  value={formData.quietHoursStart}
+                  onChange={value => handleInputChange('quietHoursStart', value)}
                 />
               </div>
 
               <div>
                 <label className='text-sm font-medium text-gray-300 mb-2 block'>Fin de Silencio: {formData.quietHoursEnd}:00</label>
                 <Slider
-                  size='md'
-                  step={1}
-                  minValue={0}
-                  maxValue={23}
-                  value={formData.quietHoursEnd}
-                  onChange={value => handleInputChange('quietHoursEnd', value)}
                   className='max-w-md'
                   classNames={{
                     track: 'bg-gray-700',
                     filler: 'bg-orange-500'
                   }}
+                  maxValue={23}
+                  minValue={0}
+                  size='md'
+                  step={1}
+                  value={formData.quietHoursEnd}
+                  onChange={value => handleInputChange('quietHoursEnd', value)}
                 />
               </div>
             </div>
@@ -311,17 +311,17 @@ const NotificationConfiguration = ({ config, loading }) => {
               Máximo de Notificaciones Diarias: {formData.maxDailyNotifications}
             </label>
             <Slider
-              size='md'
-              step={5}
-              minValue={5}
-              maxValue={50}
-              value={formData.maxDailyNotifications}
-              onChange={value => handleInputChange('maxDailyNotifications', value)}
               className='max-w-md'
               classNames={{
                 track: 'bg-gray-700',
                 filler: 'bg-purple-500'
               }}
+              maxValue={50}
+              minValue={5}
+              size='md'
+              step={5}
+              value={formData.maxDailyNotifications}
+              onChange={value => handleInputChange('maxDailyNotifications', value)}
             />
           </div>
         </CardBody>
@@ -331,10 +331,10 @@ const NotificationConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>

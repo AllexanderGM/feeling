@@ -19,14 +19,14 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement='center'
-      size='lg'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      size='lg'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -45,7 +45,7 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
           <Card className='bg-gray-700/30 border-gray-600/50 overflow-hidden'>
             <CardBody className='p-0'>
               <div className='relative'>
-                <img src={user.images?.[0] || '/api/placeholder/400/300'} alt={user.name} className='w-full h-48 object-cover' />
+                <img alt={user.name} className='w-full h-48 object-cover' src={user.images?.[0] || '/api/placeholder/400/300'} />
                 <div className='absolute top-3 right-3'>
                   <div className='w-10 h-10 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center'>
                     {getCategoryIcon(user.category)}
@@ -53,7 +53,7 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
                 </div>
                 {user.compatibility && (
                   <div className='absolute top-3 left-3'>
-                    <Chip size='sm' color='success' variant='solid'>
+                    <Chip color='success' size='sm' variant='solid'>
                       {user.compatibility}% compatible
                     </Chip>
                   </div>
@@ -74,7 +74,7 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
                   </div>
                   {user.isOnline && (
                     <div className='flex items-center gap-2'>
-                      <div className='w-2 h-2 bg-green-400 rounded-full'></div>
+                      <div className='w-2 h-2 bg-green-400 rounded-full' />
                       <span className='text-xs text-green-400'>En línea</span>
                     </div>
                   )}
@@ -92,12 +92,12 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
                 {user.interests && user.interests.length > 0 && (
                   <div className='flex items-center gap-2 flex-wrap'>
                     {user.interests.slice(0, 4).map((interest, index) => (
-                      <Chip key={index} size='sm' variant='bordered' className='text-xs'>
+                      <Chip key={index} className='text-xs' size='sm' variant='bordered'>
                         {interest}
                       </Chip>
                     ))}
                     {user.interests.length > 4 && (
-                      <Chip size='sm' variant='bordered' className='text-xs'>
+                      <Chip className='text-xs' size='sm' variant='bordered'>
                         +{user.interests.length - 4} más
                       </Chip>
                     )}
@@ -127,10 +127,10 @@ const MatchRequestModal = ({ isOpen, onClose, user, onConfirm }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={onClose} className='border-gray-600 text-gray-300'>
+          <Button className='border-gray-600 text-gray-300' variant='bordered' onPress={onClose}>
             Cancelar
           </Button>
-          <Button color='primary' onPress={onConfirm} startContent={<Heart className='w-4 h-4' />}>
+          <Button color='primary' startContent={<Heart className='w-4 h-4' />} onPress={onConfirm}>
             Enviar Match
           </Button>
         </ModalFooter>

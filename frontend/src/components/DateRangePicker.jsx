@@ -54,6 +54,7 @@ const DateRangePicker = () => {
     }
 
     window.addEventListener('reset-date-range', handleResetEvent)
+
     return () => {
       window.removeEventListener('reset-date-range', handleResetEvent)
     }
@@ -61,23 +62,17 @@ const DateRangePicker = () => {
 
   // Obtener la fecha actual y añadir un año
   const today = new Date()
+
   today.setHours(12, 0, 0, 0) // Establecer al mediodía para evitar problemas con zonas horarias
 
   const maxDate = new Date(today)
+
   maxDate.setFullYear(today.getFullYear() + 1)
 
   return (
     <HeroDateRangePicker
       key={resetKey} // Esto fuerza la re-renderización cuando cambia
       ref={pickerRef}
-      startDate={dateRange.startDate}
-      endDate={dateRange.endDate}
-      onChange={handleDateChange}
-      minDate={today}
-      maxDate={maxDate}
-      size='lg'
-      locale='es-ES' // Configurar la localización española
-      firstDayOfWeek='mon' // Establecer lunes como primer día de la semana
       classNames={{
         trigger: [
           'bg-default-100',
@@ -88,6 +83,14 @@ const DateRangePicker = () => {
           'h-12'
         ]
       }}
+      endDate={dateRange.endDate}
+      firstDayOfWeek='mon' // Establecer lunes como primer día de la semana
+      locale='es-ES' // Configurar la localización española
+      maxDate={maxDate}
+      minDate={today}
+      size='lg'
+      startDate={dateRange.startDate}
+      onChange={handleDateChange}
     />
   )
 }

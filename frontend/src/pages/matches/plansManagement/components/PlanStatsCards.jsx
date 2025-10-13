@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { Card, CardBody, Progress, Chip, Skeleton } from '@heroui/react'
-import { Package, DollarSign, TrendingUp, Users, BarChart3, Activity } from 'lucide-react'
+import { Card, CardBody, Chip, Skeleton } from '@heroui/react'
+import { Package, DollarSign, TrendingUp, Activity } from 'lucide-react'
 
 const PlanStatsCards = memo(({ stats, loading }) => {
   if (!stats && !loading) return null
@@ -86,6 +86,7 @@ const PlanStatsCards = memo(({ stats, loading }) => {
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                 {statsConfig.map((stat, index) => {
                   const Icon = stat.icon
+
                   return (
                     <div key={index} className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
                       <div className='flex items-center justify-between mb-2'>
@@ -138,7 +139,7 @@ const PlanStatsCards = memo(({ stats, loading }) => {
 
                   {/* Estado general */}
                   <div className='text-center'>
-                    <Chip variant='flat' color={totalPurchases > 50 ? 'success' : totalPurchases > 10 ? 'warning' : 'danger'} size='sm'>
+                    <Chip color={totalPurchases > 50 ? 'success' : totalPurchases > 10 ? 'warning' : 'danger'} size='sm' variant='flat'>
                       {totalPurchases > 50 ? 'Excelente' : totalPurchases > 10 ? 'Bueno' : 'Bajo'}
                     </Chip>
                     <div className='text-xs text-gray-400 mt-1'>Rendimiento</div>
@@ -152,5 +153,7 @@ const PlanStatsCards = memo(({ stats, loading }) => {
     </div>
   )
 })
+
+PlanStatsCards.displayName = 'PlanStatsCards'
 
 export default PlanStatsCards

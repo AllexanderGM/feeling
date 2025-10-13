@@ -16,28 +16,38 @@ const TableActionCell = ({
     <div className='relative flex items-center justify-center gap-2'>
       <Tooltip content={viewTooltip}>
         {viewPath ? (
-          <Link to={viewPath} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
+          <Link className='text-lg text-default-400 cursor-pointer active:opacity-50' to={viewPath}>
             <Eye />
           </Link>
         ) : (
-          <span onClick={() => onView?.(item)} className='text-lg text-default-400 cursor-pointer active:opacity-50'>
+          <button
+            aria-label={viewTooltip}
+            className='text-lg text-default-400 cursor-pointer active:opacity-50 bg-transparent border-none p-0'
+            type='button'
+            onClick={() => onView?.(item)}>
             <Eye />
-          </span>
+          </button>
         )}
       </Tooltip>
       <Tooltip content={editTooltip}>
-        <span
-          onClick={() => onEdit?.(item)}
-          className={`text-lg ${onEdit ? 'text-default-400 cursor-pointer active:opacity-50' : 'text-default-200 cursor-not-allowed opacity-50 line-through'}`}>
+        <button
+          aria-label={editTooltip}
+          className={`text-lg ${onEdit ? 'text-default-400 cursor-pointer active:opacity-50 bg-transparent border-none p-0' : 'text-default-200 cursor-not-allowed opacity-50 line-through bg-transparent border-none p-0'}`}
+          disabled={!onEdit}
+          type='button'
+          onClick={() => onEdit?.(item)}>
           <Edit />
-        </span>
+        </button>
       </Tooltip>
       <Tooltip color='danger' content={deleteTooltip}>
-        <span
-          className={`text-lg ${onDelete ? 'text-danger cursor-pointer active:opacity-50' : 'text-default-200 cursor-not-allowed opacity-50 line-through'}`}
+        <button
+          aria-label={deleteTooltip}
+          className={`text-lg ${onDelete ? 'text-danger cursor-pointer active:opacity-50 bg-transparent border-none p-0' : 'text-default-200 cursor-not-allowed opacity-50 line-through bg-transparent border-none p-0'}`}
+          disabled={!onDelete}
+          type='button'
           onClick={() => onDelete?.(item)}>
           <Trash2 />
-        </span>
+        </button>
       </Tooltip>
     </div>
   )

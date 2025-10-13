@@ -38,6 +38,7 @@ const registrationValidations = {
   registrationStartDate: yup.string().test('valid-date', 'Fecha de inicio inválida', function (value) {
     if (!value) return true
     const date = new Date(value)
+
     return !isNaN(date.getTime())
   }),
 
@@ -46,11 +47,14 @@ const registrationValidations = {
     .test('valid-date', 'Fecha de fin inválida', function (value) {
       if (!value) return true
       const date = new Date(value)
+
       return !isNaN(date.getTime())
     })
     .test('after-start', 'La fecha de fin debe ser posterior a la de inicio', function (value) {
       const { registrationStartDate } = this.parent
+
       if (!value || !registrationStartDate) return true
+
       return new Date(value) >= new Date(registrationStartDate)
     })
 }
@@ -140,12 +144,14 @@ export const canRegisterForEvent = (event, userRegistrations = []) => {
   // Verificar si el evento no ha pasado
   const eventDate = new Date(event.eventDate)
   const now = new Date()
+
   if (eventDate <= now) {
     return { canRegister: false, reason: 'El evento ya pasó' }
   }
 
   // Verificar si el usuario ya está registrado
   const existingRegistration = userRegistrations.find(reg => reg.eventId === event.id && reg.paymentStatus !== 'CANCELLED')
+
   if (existingRegistration) {
     return { canRegister: false, reason: 'Ya estás registrado en este evento' }
   }
@@ -184,6 +190,7 @@ export const canCancelRegistration = registration => {
  */
 export const getCancellationDeadline = eventDate => {
   const event = new Date(eventDate)
+
   return new Date(event.getTime() - 60 * 60 * 1000) // 1 hora antes
 }
 
@@ -245,6 +252,7 @@ export const getPaymentStatusColor = paymentStatus => {
     FAILED: 'error',
     CANCELLED: 'secondary'
   }
+
   return colors[paymentStatus] || 'default'
 }
 
@@ -258,6 +266,7 @@ export const getPaymentStatusText = paymentStatus => {
     FAILED: 'Fallido',
     CANCELLED: 'Cancelado'
   }
+
   return texts[paymentStatus] || paymentStatus
 }
 

@@ -112,6 +112,7 @@ export const useCategoryInterests = () => {
       setLoading(true)
       setError(null)
       const result = await getUserInterests()
+
       if (result && Array.isArray(result)) {
         setCategories(result)
       }

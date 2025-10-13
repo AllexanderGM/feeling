@@ -1,6 +1,5 @@
 import { useContext, useCallback, useMemo } from 'react'
 import { oauthService } from '@services'
-
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
@@ -42,8 +41,10 @@ export const useOAuth = () => {
     async (accessTokenGoogle, tokenType = 'Bearer', scope = '', showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithGoogle(accessTokenGoogle, tokenType, scope)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Registro con Google')
 
@@ -61,8 +62,10 @@ export const useOAuth = () => {
     async (accessTokenGoogle, tokenType = 'Bearer', scope = '', showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithGoogle(accessTokenGoogle, tokenType, scope)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Inicio de sesión con Google')
 
@@ -79,8 +82,10 @@ export const useOAuth = () => {
     async (accessTokenFacebook, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithFacebook(accessTokenFacebook)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Registro con Facebook')
 
@@ -98,8 +103,10 @@ export const useOAuth = () => {
     async (accessTokenFacebook, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithFacebook(accessTokenFacebook)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Inicio de sesión con Facebook')
 
@@ -116,8 +123,10 @@ export const useOAuth = () => {
     async (identityToken, authorizationCode, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithApple(identityToken, authorizationCode)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Registro con Apple')
 
@@ -135,8 +144,10 @@ export const useOAuth = () => {
     async (identityToken, authorizationCode, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithApple(identityToken, authorizationCode)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Inicio de sesión con Apple')
 
@@ -152,6 +163,7 @@ export const useOAuth = () => {
   const getAuthMethods = useCallback(
     async (email, showNotifications = false) => {
       const result = await withLoading(() => oauthService.getAuthMethods(email), 'Obtener métodos de autenticación')
+
       return handleApiResponse(result, 'Métodos de autenticación obtenidos', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -160,6 +172,7 @@ export const useOAuth = () => {
   const getAvailableProviders = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(() => oauthService.getAvailableProviders(), 'Obtener proveedores OAuth disponibles')
+
       return handleApiResponse(result, 'Proveedores obtenidos', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -171,6 +184,7 @@ export const useOAuth = () => {
         () => oauthService.unlinkProvider(provider, localPassword, confirmationText, accessToken),
         `Desvincular proveedor ${provider}`
       )
+
       return handleApiResponse(result, `Proveedor ${provider} desvinculado exitosamente`, { showNotifications })
     },
     [withLoading, handleApiResponse, accessToken]

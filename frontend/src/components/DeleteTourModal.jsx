@@ -2,7 +2,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from
 
 const DeleteTourModal = ({ isOpen, onClose, onConfirm, tourData, isLoading, error }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} backdrop='blur' size='sm'>
+    <Modal backdrop='blur' isOpen={isOpen} size='sm' onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>Confirmar eliminación</ModalHeader>
         <ModalBody>
@@ -14,10 +14,10 @@ const DeleteTourModal = ({ isOpen, onClose, onConfirm, tourData, isLoading, erro
           <p className='text-small text-default-500'>Esta acción no se puede deshacer.</p>
         </ModalBody>
         <ModalFooter>
-          <Button variant='flat' color='default' onPress={onClose}>
+          <Button color='default' variant='flat' onPress={onClose}>
             Cancelar
           </Button>
-          <Button color='danger' onPress={onConfirm} isLoading={isLoading}>
+          <Button color='danger' isLoading={isLoading} onPress={onConfirm}>
             Eliminar
           </Button>
         </ModalFooter>

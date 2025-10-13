@@ -23,6 +23,7 @@ class ComplaintService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.COMPLAINTS.CREATE, complaintData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -43,6 +44,7 @@ class ComplaintService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.MY_COMPLAINTS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -59,6 +61,7 @@ class ComplaintService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.COMPLAINTS.MY_COMPLAINT_BY_ID.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -78,6 +81,7 @@ class ComplaintService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.COMPLAINTS.STATS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -102,6 +106,7 @@ class ComplaintService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.ALL}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -122,6 +127,7 @@ class ComplaintService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.PENDING}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -142,6 +148,7 @@ class ComplaintService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.URGENT}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -162,6 +169,7 @@ class ComplaintService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.OVERDUE}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -182,6 +190,7 @@ class ComplaintService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.COMPLAINTS.RESOLVED}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -203,6 +212,7 @@ class ComplaintService extends ServiceREST {
 
       const url = API_ENDPOINTS.COMPLAINTS.BY_TYPE.replace('{complaintType}', encodeURIComponent(complaintType))
       const result = await ServiceREST.get(`${url}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -224,6 +234,7 @@ class ComplaintService extends ServiceREST {
 
       const url = API_ENDPOINTS.COMPLAINTS.BY_PRIORITY.replace('{complaintPriority}', encodeURIComponent(complaintPriority))
       const result = await ServiceREST.get(`${url}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -244,6 +255,7 @@ class ComplaintService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.COMPLAINTS.UPDATE.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.put(url, actionData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -260,6 +272,7 @@ class ComplaintService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.COMPLAINTS.DELETE.replace('{complaintId}', encodeURIComponent(complaintId))
       const result = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -324,6 +337,7 @@ class ComplaintService extends ServiceREST {
     if (!dateString) return 'N/A'
 
     const date = new Date(dateString)
+
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'short',
@@ -343,6 +357,7 @@ class ComplaintService extends ServiceREST {
       HIGH: 'danger',
       URGENT: 'danger'
     }
+
     return colors[priority] || 'default'
   }
 
@@ -358,6 +373,7 @@ class ComplaintService extends ServiceREST {
       CLOSED: 'default',
       ESCALATED: 'danger'
     }
+
     return colors[status] || 'default'
   }
 

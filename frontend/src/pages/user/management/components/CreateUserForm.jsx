@@ -6,11 +6,12 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { useUser, useUserAttributes, useUserTags, useUserInterests, useError, useLocation } from '@hooks'
 import { completeProfileSchema, getFieldsForStep, getDefaultValuesForStep } from '@schemas'
 
-import StepBasicRegistration from './StepBasicRegistration.jsx'
 import StepBasicInfo from '../../complete/components/StepBasicInfo.jsx'
 import StepCharacteristics from '../../complete/components/StepCharacteristics.jsx'
 import StepPreferences from '../../complete/components/StepPreferences.jsx'
 import StepConfiguration from '../../complete/components/StepConfiguration.jsx'
+
+import StepBasicRegistration from './StepBasicRegistration.jsx'
 
 const TOTAL_STEPS = 5
 
@@ -52,7 +53,7 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
   const {
     control,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
     trigger,
     watch,
     getValues,
@@ -95,6 +96,7 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
   // Información del paso actual
   const stepInfo = useMemo(() => {
     const progress = Math.round(((currentStep + 1) / TOTAL_STEPS) * 100)
+
     return {
       current: currentStep + 1,
       total: TOTAL_STEPS,
@@ -111,17 +113,21 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
         if (currentStep === 0) {
           // Validación para step básico
           const basicFields = ['email', 'password', 'confirmPassword', 'role']
+
           return await formMethods.trigger(basicFields)
         } else {
           // Validación para steps de ProfileComplete
           const fieldsToValidate = getFieldsForStep(currentStep)
+
           if (fieldsToValidate.length === 0) return true
+
           return await formMethods.trigger(fieldsToValidate)
         }
       },
 
       nextStep: async () => {
         const isValid = await stepActions.validateCurrentStep()
+
         if (isValid && currentStep < TOTAL_STEPS - 1) {
           setCurrentStep(prev => prev + 1)
         }
@@ -137,9 +143,11 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
         try {
           // Preparar datos para crear usuario
           const userData = { ...data }
+
           delete userData.confirmPassword
 
           const result = await createUser(userData)
+
           if (result.success) {
             handleSuccess('Usuario creado exitosamente')
             onSuccess?.()
@@ -173,13 +181,13 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
         return (
           <StepPreferences
             {...baseProps}
-            categoryOptions={hookData.userInterests.interestOptions}
-            categoriesLoading={hookData.userInterests.loading}
+            attributesLoading={hookData.userAttributes.loading}
             categoriesError={hookData.userInterests.error}
+            categoriesLoading={hookData.userInterests.loading}
+            categoryOptions={hookData.userInterests.interestOptions}
+            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
             religionOptions={hookData.userAttributes.religionOptions}
             sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
-            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
-            attributesLoading={hookData.userAttributes.loading}
           />
         )
       case 4:
@@ -207,18 +215,18 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
   if (isLoading) {
     return (
       <Modal
-        isOpen={isOpen}
-        onClose={handleClose}
-        size='2xl'
         classNames={{
           backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
           base: 'border-[#292f46] bg-white dark:bg-gray-800'
-        }}>
+        }}
+        isOpen={isOpen}
+        size='2xl'
+        onClose={handleClose}>
         <ModalContent>
           <ModalBody>
             <div className='flex items-center justify-center p-8'>
               <div className='text-center'>
-                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4'></div>
+                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4' />
                 <p className='text-gray-400'>Cargando datos necesarios...</p>
               </div>
             </div>
@@ -230,14 +238,14 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size='4xl'
-      scrollBehavior='inside'
       classNames={{
         backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
         base: 'border-[#292f46] bg-white dark:bg-gray-800'
-      }}>
+      }}
+      isOpen={isOpen}
+      scrollBehavior='inside'
+      size='4xl'
+      onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1'>
           <div className='flex items-center justify-between w-full'>
@@ -266,10 +274,10 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
         <ModalFooter>
           <div className='flex justify-between items-center w-full'>
             <Button
-              variant='bordered'
-              onPress={stepActions.prevStep}
               isDisabled={stepInfo.isFirst || submitting}
-              startContent={<ArrowLeft size={16} />}>
+              startContent={<ArrowLeft size={16} />}
+              variant='bordered'
+              onPress={stepActions.prevStep}>
               Anterior
             </Button>
 
@@ -286,21 +294,21 @@ const CreateUserForm = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             <div className='flex gap-2'>
-              <Button color='danger' variant='light' onPress={handleClose} isDisabled={submitting}>
+              <Button color='danger' isDisabled={submitting} variant='light' onPress={handleClose}>
                 Cancelar
               </Button>
 
               {stepInfo.isLast ? (
                 <Button
                   color='primary'
-                  onPress={handleFinalSubmit}
-                  isLoading={submitting}
+                  endContent={!submitting && <Check size={16} />}
                   isDisabled={submitting}
-                  endContent={!submitting && <Check size={16} />}>
+                  isLoading={submitting}
+                  onPress={handleFinalSubmit}>
                   {submitting ? 'Creando...' : 'Crear Usuario'}
                 </Button>
               ) : (
-                <Button color='primary' onPress={stepActions.nextStep} isDisabled={submitting} endContent={<ArrowRight size={16} />}>
+                <Button color='primary' endContent={<ArrowRight size={16} />} isDisabled={submitting} onPress={stepActions.nextStep}>
                   Siguiente
                 </Button>
               )}

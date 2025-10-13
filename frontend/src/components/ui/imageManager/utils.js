@@ -48,6 +48,7 @@ const validateFileSize = file => {
 
   if (file.size > MAX_FILE_SIZE) {
     const maxSizeMB = MAX_FILE_SIZE / (1024 * 1024)
+
     return {
       isValid: false,
       error: `El archivo es muy grande. Máximo ${maxSizeMB}MB`
@@ -72,6 +73,7 @@ const validateImageDimensions = file => {
           isValid: false,
           error: `Imagen muy pequeña. Mínimo ${MIN_DIMENSIONS.width}x${MIN_DIMENSIONS.height}px`
         })
+
         return
       }
 
@@ -80,6 +82,7 @@ const validateImageDimensions = file => {
           isValid: false,
           error: `Imagen muy grande. Máximo ${MAX_DIMENSIONS.width}x${MAX_DIMENSIONS.height}px`
         })
+
         return
       }
 
@@ -100,13 +103,16 @@ const validateImageDimensions = file => {
 export const validateImageFile = async file => {
   // Validaciones síncronas
   const typeValidation = validateFileType(file)
+
   if (!typeValidation.isValid) return typeValidation
 
   const sizeValidation = validateFileSize(file)
+
   if (!sizeValidation.isValid) return sizeValidation
 
   // Validación asíncrona de dimensiones
   const dimensionsValidation = await validateImageDimensions(file)
+
   if (!dimensionsValidation.isValid) return dimensionsValidation
 
   return {
@@ -160,6 +166,7 @@ export const cleanupPreviewUrls = urls => {
 export const createCroppedImage = (imageSrc, pixelCrop, outputFormat = 'image/jpeg', quality = 0.9) => {
   return new Promise((resolve, reject) => {
     const image = new Image()
+
     image.crossOrigin = 'anonymous'
 
     image.onload = () => {
@@ -175,6 +182,7 @@ export const createCroppedImage = (imageSrc, pixelCrop, outputFormat = 'image/jp
         blob => {
           if (!blob) {
             reject(new Error('Canvas is empty'))
+
             return
           }
           resolve(blob)

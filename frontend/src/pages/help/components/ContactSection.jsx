@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { Card, CardBody, Button, Input, Textarea, Select, SelectItem, Chip } from '@heroui/react'
 import {
   Mail,
-  Phone,
   MessageCircle,
   Clock,
   Send,
-  MapPin,
   Globe,
   AlertTriangle,
   Bug,
@@ -187,63 +185,63 @@ const ContactSection = () => {
             {/* Información personal */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <Input
-                label='Nombre completo'
-                placeholder='Tu nombre'
-                value={formData.name}
-                onChange={e => handleInputChange('name', e.target.value)}
                 isRequired
                 classNames={{
                   input: 'text-gray-200',
                   inputWrapper: 'bg-gray-700/50'
                 }}
+                label='Nombre completo'
+                placeholder='Tu nombre'
+                value={formData.name}
+                onChange={e => handleInputChange('name', e.target.value)}
               />
               <Input
+                isRequired
+                classNames={{
+                  input: 'text-gray-200',
+                  inputWrapper: 'bg-gray-700/50'
+                }}
                 label='Email'
                 placeholder='tu@email.com'
                 type='email'
                 value={formData.email}
                 onChange={e => handleInputChange('email', e.target.value)}
-                isRequired
-                classNames={{
-                  input: 'text-gray-200',
-                  inputWrapper: 'bg-gray-700/50'
-                }}
               />
             </div>
 
             {/* Asunto */}
             <Input
-              label='Asunto'
-              placeholder='Breve descripción del tema'
-              value={formData.subject}
-              onChange={e => handleInputChange('subject', e.target.value)}
               isRequired
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-700/50'
               }}
+              label='Asunto'
+              placeholder='Breve descripción del tema'
+              value={formData.subject}
+              onChange={e => handleInputChange('subject', e.target.value)}
             />
 
             {/* Categoría y prioridad */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <Select
-                label='Categoría'
-                placeholder='Selecciona el tipo de consulta'
-                selectedKeys={formData.category ? [formData.category] : []}
-                onSelectionChange={keys => handleInputChange('category', Array.from(keys)[0])}
                 isRequired
                 classNames={{
                   trigger: 'bg-gray-700/50',
                   value: 'text-gray-200'
-                }}>
+                }}
+                label='Categoría'
+                placeholder='Selecciona el tipo de consulta'
+                selectedKeys={formData.category ? [formData.category] : []}
+                onSelectionChange={keys => handleInputChange('category', Array.from(keys)[0])}>
                 {categories.map(category => (
                   <SelectItem
                     key={category.key}
-                    value={category.key}
-                    textValue={category.label}
                     classNames={{
                       base: 'text-gray-200 data-[hover=true]:bg-gray-700'
-                    }}>
+                    }}
+                    textValue={category.label}
+                    value={category.key}>
                     <div className='flex items-center gap-2'>
                       {category.icon}
                       <span>{category.label}</span>
@@ -253,24 +251,24 @@ const ContactSection = () => {
               </Select>
 
               <Select
-                label='Prioridad'
-                placeholder='Nivel de urgencia'
-                selectedKeys={[formData.priority]}
-                onSelectionChange={keys => handleInputChange('priority', Array.from(keys)[0])}
                 classNames={{
                   trigger: 'bg-gray-700/50',
                   value: 'text-gray-200'
-                }}>
+                }}
+                label='Prioridad'
+                placeholder='Nivel de urgencia'
+                selectedKeys={[formData.priority]}
+                onSelectionChange={keys => handleInputChange('priority', Array.from(keys)[0])}>
                 {priorities.map(priority => (
                   <SelectItem
                     key={priority.key}
-                    value={priority.key}
-                    textValue={priority.label}
                     classNames={{
                       base: 'text-gray-200 data-[hover=true]:bg-gray-700'
-                    }}>
+                    }}
+                    textValue={priority.label}
+                    value={priority.key}>
                     <div className='flex items-center gap-2'>
-                      <Chip size='sm' color={priority.color} variant='flat'>
+                      <Chip color={priority.color} size='sm' variant='flat'>
                         {priority.label}
                       </Chip>
                     </div>
@@ -281,17 +279,17 @@ const ContactSection = () => {
 
             {/* Mensaje */}
             <Textarea
-              label='Mensaje'
-              placeholder='Describe tu consulta o problema con el mayor detalle posible...'
-              value={formData.message}
-              onChange={e => handleInputChange('message', e.target.value)}
-              minRows={4}
-              maxRows={8}
               isRequired
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-700/50'
               }}
+              label='Mensaje'
+              maxRows={8}
+              minRows={4}
+              placeholder='Describe tu consulta o problema con el mayor detalle posible...'
+              value={formData.message}
+              onChange={e => handleInputChange('message', e.target.value)}
             />
 
             {/* Información adicional */}
@@ -311,13 +309,13 @@ const ContactSection = () => {
                 Al enviar este mensaje, aceptas que procesemos tu información para responder a tu consulta.
               </div>
               <Button
+                className='bg-primary-600 hover:bg-primary-700'
                 color='primary'
-                size='lg'
-                startContent={<Send className='w-4 h-4' />}
-                onPress={handleSubmit}
                 isDisabled={!isFormValid}
                 isLoading={isSubmitting}
-                className='bg-primary-600 hover:bg-primary-700'>
+                size='lg'
+                startContent={<Send className='w-4 h-4' />}
+                onPress={handleSubmit}>
                 {isSubmitting ? 'Enviando...' : 'Enviar Mensaje'}
               </Button>
             </div>

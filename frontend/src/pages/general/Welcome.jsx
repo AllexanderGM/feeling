@@ -9,6 +9,7 @@ const Welcome = () => {
   useEffect(() => {
     // Iniciar animación después de montar el componente
     const timer = setTimeout(() => setAnimateIn(true), 100)
+
     return () => clearTimeout(timer)
   }, [])
 
@@ -29,7 +30,7 @@ const Welcome = () => {
         {/* Logo y título */}
         <div className='mb-8 flex flex-col items-center'>
           <figure className='text-center mb-4'>
-            <img src={logo} alt='Logo Feeling' className='w-64 md:w-72 lg:w-80 mx-auto' />
+            <img alt='Logo Feeling' className='w-64 md:w-72 lg:w-80 mx-auto' src={logo} />
           </figure>
           <p className='text-xl text-gray-300 font-light'>Conexiones significativas</p>
         </div>
@@ -47,18 +48,18 @@ const Welcome = () => {
         {/* Botones de acción */}
         <div className='flex flex-col sm:flex-row w-full gap-4'>
           <Button
-            color='default'
-            size='lg'
-            radius='full'
             className='w-full transition-all duration-300 hover:scale-105'
+            color='default'
+            radius='full'
+            size='lg'
             onPress={handleLogin}>
             Iniciar Sesión
           </Button>
           <Button
-            color='primary'
-            size='lg'
-            radius='full'
             className='w-full transition-all duration-300 hover:scale-105'
+            color='primary'
+            radius='full'
+            size='lg'
             onPress={handleRegister}>
             Registrarme
           </Button>

@@ -47,13 +47,13 @@ const CardTour = ({ data }) => {
         {visibleTags.map((tag, index) => (
           <Chip
             key={index}
-            size='sm'
-            variant='dot'
-            color='primary'
             className='card_tour-tag'
-            onClick={e => handleTagClick(tag, e)}
+            color='primary'
+            size='sm'
+            startContent={<Bookmark className='icon' />}
             style={{ cursor: 'pointer' }}
-            startContent={<Bookmark className='icon' />}>
+            variant='dot'
+            onClick={e => handleTagClick(tag, e)}>
             {normalizeWords(tag)}
           </Chip>
         ))}
@@ -66,13 +66,13 @@ const CardTour = ({ data }) => {
                   {remainingTags.map((tag, index) => (
                     <Chip
                       key={index}
-                      size='sm'
-                      variant='dot'
-                      color='primary'
                       className='card_tour-tag'
-                      onClick={e => handleTagClick(tag, e)}
+                      color='primary'
+                      size='sm'
+                      startContent={<Bookmark className='text-primary text-base mr-1' />}
                       style={{ cursor: 'pointer' }}
-                      startContent={<Bookmark className='text-primary text-base mr-1' />}>
+                      variant='dot'
+                      onClick={e => handleTagClick(tag, e)}>
                       {normalizeWords(tag)}
                     </Chip>
                   ))}
@@ -80,7 +80,7 @@ const CardTour = ({ data }) => {
               </div>
             }
             placement='bottom'>
-            <Chip size='sm' variant='flat' color='default' className='card_tour-tag-more cursor-help'>
+            <Chip className='card_tour-tag-more cursor-help' color='default' size='sm' variant='flat'>
               +{remainingTags.length}
             </Chip>
           </Tooltip>
@@ -92,6 +92,7 @@ const CardTour = ({ data }) => {
   // Format date in a more readable way
   const formatDate = dateString => {
     const date = new Date(dateString)
+
     return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: '2-digit',
@@ -110,9 +111,9 @@ const CardTour = ({ data }) => {
                 isAuthenticated ? (isCurrentlyFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos') : 'Iniciar sesión para guardar'
               }>
               <button
-                onClick={handleFavoriteClick}
+                aria-label={isCurrentlyFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                 className='card_tour-favorite-btn'
-                aria-label={isCurrentlyFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}>
+                onClick={handleFavoriteClick}>
                 <Heart className={`icon ${isCurrentlyFavorite ? 'favorite-active' : ''}`} />
               </button>
             </Tooltip>
@@ -120,19 +121,19 @@ const CardTour = ({ data }) => {
         </div>
 
         <div className='flex w-full items-center'>
-          <Link to={URL} className='card_tour-title'>
+          <Link className='card_tour-title' to={URL}>
             {data.name}
           </Link>
         </div>
       </CardHeader>
 
       <CardBody className='card_tour-body'>
-        <Link to={URL} className='card_tour-image_container'>
-          <Image alt={data.destination.city.name} src={img} isZoomed />
+        <Link className='card_tour-image_container' to={URL}>
+          <Image isZoomed alt={data.destination.city.name} src={img} />
         </Link>
 
         <div className='card_tour-locations'>
-          <Chip className='card_tour-location' size='sm' variant='flat' color='primary'>
+          <Chip className='card_tour-location' color='primary' size='sm' variant='flat'>
             <div className='location-content'>
               <Globe className='icon' />
               <span className='location-text'>
@@ -141,7 +142,7 @@ const CardTour = ({ data }) => {
             </div>
           </Chip>
 
-          <Chip className='card_tour-location' size='sm' variant='flat' color='primary'>
+          <Chip className='card_tour-location' color='primary' size='sm' variant='flat'>
             <div className='location-content'>
               <MapPin className='icon' />
               <span className='location-text'>{data.destination.country}</span>
@@ -173,7 +174,7 @@ const CardTour = ({ data }) => {
             </div>
             <div className='card_tour-availability-dates'>
               {data.availability.map((item, index) => (
-                <Chip key={index} color='success' variant='flat' className='card_tour-availability-chip mr-2'>
+                <Chip key={index} className='card_tour-availability-chip mr-2' color='success' variant='flat'>
                   {formatDate(item.departureTime)}
                 </Chip>
               ))}
@@ -198,7 +199,7 @@ const CardTour = ({ data }) => {
         </div>
 
         <Link to={URL}>
-          <Button color='primary' className='card_tour-button'>
+          <Button className='card_tour-button' color='primary'>
             Ver más
           </Button>
         </Link>

@@ -1,18 +1,18 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody, Chip } from '@heroui/react'
-import { Package, DollarSign, Star, Check, CreditCard } from 'lucide-react'
+import { Package, Star, Check, CreditCard } from 'lucide-react'
 
 const PlanPurchaseModal = ({ isOpen, onClose, plans, onPurchase, currentAttempts }) => {
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement='center'
-      size='2xl'
-      scrollBehavior='inside'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='2xl'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -42,7 +42,7 @@ const PlanPurchaseModal = ({ isOpen, onClose, plans, onPurchase, currentAttempts
                       <div className='flex items-center gap-3 mb-2'>
                         <h3 className='text-lg font-bold text-gray-100'>{plan.name}</h3>
                         {plan.popular && (
-                          <Chip size='sm' color='primary' startContent={<Star className='w-3 h-3' />} className='text-xs'>
+                          <Chip className='text-xs' color='primary' size='sm' startContent={<Star className='w-3 h-3' />}>
                             Más Popular
                           </Chip>
                         )}
@@ -79,8 +79,8 @@ const PlanPurchaseModal = ({ isOpen, onClose, plans, onPurchase, currentAttempts
                       <div className='text-sm text-gray-400 mb-4'>COP</div>
 
                       <Button
-                        color={plan.popular ? 'primary' : 'secondary'}
                         className='w-full'
+                        color={plan.popular ? 'primary' : 'secondary'}
                         startContent={<CreditCard className='w-4 h-4' />}
                         onPress={() => onPurchase(plan)}>
                         Comprar
@@ -124,7 +124,7 @@ const PlanPurchaseModal = ({ isOpen, onClose, plans, onPurchase, currentAttempts
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={onClose} className='border-gray-600 text-gray-300'>
+          <Button className='border-gray-600 text-gray-300' variant='bordered' onPress={onClose}>
             Cancelar
           </Button>
         </ModalFooter>

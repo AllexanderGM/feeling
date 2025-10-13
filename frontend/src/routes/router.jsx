@@ -41,7 +41,6 @@ import { APP_PATHS } from '@constants/paths.js'
 // Componentes de protección
 import {
   RequireAuthOnly,
-  RequireVerifiedUser,
   RequireCompleteProfile,
   RequireAdmin,
   RedirectIfAuthenticated,

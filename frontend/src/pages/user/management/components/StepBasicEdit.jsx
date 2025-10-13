@@ -11,6 +11,7 @@ const StepBasicEdit = ({ control, errors, userData }) => {
   const handleSendPasswordReset = async () => {
     if (!userData?.email) {
       handleError('Email del usuario no disponible')
+
       return
     }
 
@@ -20,7 +21,7 @@ const StepBasicEdit = ({ control, errors, userData }) => {
       // Por ahora simulamos la acción
       await new Promise(resolve => setTimeout(resolve, 1500))
       handleSuccess(`Correo de recuperación enviado a ${userData.email}`)
-    } catch (error) {
+    } catch {
       handleError('Error al enviar el correo de recuperación')
     } finally {
       setSendingPasswordReset(false)
@@ -37,21 +38,21 @@ const StepBasicEdit = ({ control, errors, userData }) => {
       <div className='space-y-6'>
         {/* Email */}
         <Controller
-          name='email'
           control={control}
+          name='email'
           render={({ field }) => (
             <Input
               {...field}
-              variant='underlined'
+              isDisabled
               isRequired
+              description='El correo con el que el usuario inicia sesión'
+              errorMessage={errors.email?.message}
+              isInvalid={!!errors.email}
               label='Correo electrónico'
               placeholder='usuario@correo.com'
-              type='email'
-              isInvalid={!!errors.email}
-              errorMessage={errors.email?.message}
               startContent={<Mail className='text-gray-400 w-4 h-4' />}
-              description='El correo con el que el usuario inicia sesión'
-              isDisabled
+              type='email'
+              variant='underlined'
             />
           )}
         />
@@ -71,12 +72,12 @@ const StepBasicEdit = ({ control, errors, userData }) => {
               </div>
               <Button
                 color='primary'
-                variant='flat'
-                size='sm'
-                onPress={handleSendPasswordReset}
-                isLoading={sendingPasswordReset}
                 isDisabled={sendingPasswordReset}
-                startContent={!sendingPasswordReset && <Send className='w-4 h-4' />}>
+                isLoading={sendingPasswordReset}
+                size='sm'
+                startContent={!sendingPasswordReset && <Send className='w-4 h-4' />}
+                variant='flat'
+                onPress={handleSendPasswordReset}>
                 {sendingPasswordReset ? 'Enviando...' : 'Enviar Correo'}
               </Button>
             </div>
@@ -85,24 +86,25 @@ const StepBasicEdit = ({ control, errors, userData }) => {
 
         {/* Rol */}
         <Controller
-          name='role'
           control={control}
+          name='role'
           render={({ field }) => (
             <Select
               {...field}
-              variant='underlined'
               isRequired
+              description='Define los permisos y accesos del usuario'
+              errorMessage={errors.role?.message}
+              isInvalid={!!errors.role}
               label='Rol del Usuario'
               placeholder='Selecciona un rol'
               selectedKeys={field.value ? [field.value] : []}
+              startContent={<Shield className='text-gray-400 w-4 h-4' />}
+              variant='underlined'
               onSelectionChange={keys => {
                 const selectedKey = Array.from(keys)[0]
+
                 field.onChange(selectedKey)
-              }}
-              isInvalid={!!errors.role}
-              errorMessage={errors.role?.message}
-              startContent={<Shield className='text-gray-400 w-4 h-4' />}
-              description='Define los permisos y accesos del usuario'>
+              }}>
               <SelectItem key='CLIENT' value='CLIENT'>
                 Cliente
               </SelectItem>

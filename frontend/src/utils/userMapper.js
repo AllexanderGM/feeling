@@ -107,6 +107,7 @@ export const mapBackendUserToFrontend = backendUser => {
  */
 export const mapBackendUsersToFrontend = backendUsers => {
   if (!Array.isArray(backendUsers)) return []
+
   return backendUsers.map(mapBackendUserToFrontend).filter(Boolean)
 }
 

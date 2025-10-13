@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button, Divider } from '@heroui/react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { Logger } from '@utils/logger.js'
 // Hooks
 import { useAuth, useLocation, useUser, useUserAttributes, useUserTags, useUserInterests } from '@hooks'
 //Components
@@ -49,10 +50,13 @@ const ProfileComplete = () => {
   const defaultValues = useMemo(() => {
     // Obtener valores por defecto para todos los pasos, no solo el actual
     const allDefaultValues = {}
+
     for (let step = 1; step <= TOTAL_STEPS; step++) {
       const stepValues = getDefaultValuesForStep(step, user)
+
       Object.assign(allDefaultValues, stepValues)
     }
+
     return allDefaultValues
   }, [user])
 
@@ -103,6 +107,7 @@ const ProfileComplete = () => {
   // Información del paso actual
   const stepInfo = useMemo(() => {
     const progress = Math.round((currentStep / TOTAL_STEPS) * 100)
+
     return {
       current: currentStep,
       total: TOTAL_STEPS,
@@ -117,13 +122,16 @@ const ProfileComplete = () => {
     () => ({
       validateCurrentStep: async () => {
         const fieldsToValidate = getFieldsForStep(currentStep)
+
         if (fieldsToValidate.length === 0) return true
+
         return await formMethods.trigger(fieldsToValidate)
       },
 
       nextStep: async () => {
         const fieldsToValidate = getFieldsForStep(currentStep)
         const isValid = fieldsToValidate.length === 0 || (await formMethods.trigger(fieldsToValidate))
+
         if (isValid && currentStep < TOTAL_STEPS) {
           setCurrentStep(prev => prev + 1)
           window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -143,16 +151,17 @@ const ProfileComplete = () => {
           const { images, ...profileData } = data
 
           const result = await updateCurrentProfile(profileData, images)
+
           if (result.success) {
             navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
           } else {
             // Manejar errores específicos
             if (result.status === 404) {
-              console.error('Error 404: El endpoint PUT /user no está disponible. Verifica que el backend esté ejecutándose correctamente.')
+              Logger.error('Error 404: El endpoint PUT /user no está disponible. Verifica que el backend esté ejecutándose correctamente.')
             }
           }
         } catch (error) {
-          console.error('Error completando perfil:', error)
+          Logger.error('Error completando perfil:', error)
         }
       }
     }),
@@ -176,14 +185,14 @@ const ProfileComplete = () => {
         return (
           <StepPreferences
             {...baseProps}
-            categoryOptions={hookData.userInterests.interestOptions}
-            categoriesLoading={hookData.userInterests.loading}
-            categoriesError={hookData.userInterests.error}
-            religionOptions={hookData.userAttributes.religionOptions}
-            churchOptions={hookData.userAttributes.churchOptions}
-            sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
-            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
             attributesLoading={hookData.userAttributes.loading}
+            categoriesError={hookData.userInterests.error}
+            categoriesLoading={hookData.userInterests.loading}
+            categoryOptions={hookData.userInterests.interestOptions}
+            churchOptions={hookData.userAttributes.churchOptions}
+            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
+            religionOptions={hookData.userAttributes.religionOptions}
+            sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
           />
         )
       case 4:
@@ -258,11 +267,11 @@ const ProfileComplete = () => {
         {/* Navegación */}
         <div className='flex justify-between items-center'>
           <Button
-            variant='bordered'
-            onPress={stepActions.prevStep}
             isDisabled={stepInfo.isFirst}
             radius='full'
-            startContent={<ArrowLeft />}>
+            startContent={<ArrowLeft />}
+            variant='bordered'
+            onPress={stepActions.prevStep}>
             Anterior
           </Button>
 
@@ -281,15 +290,15 @@ const ProfileComplete = () => {
           {stepInfo.isLast ? (
             <Button
               color='primary'
-              onPress={handleFinalSubmit}
-              isLoading={submitting}
+              endContent={!submitting && <Check />}
               isDisabled={!isValid && import.meta.env.MODE === 'production'}
+              isLoading={submitting}
               radius='full'
-              endContent={!submitting && <Check />}>
+              onPress={handleFinalSubmit}>
               {submitting ? 'Completando...' : 'Completar'}
             </Button>
           ) : (
-            <Button color='default' onPress={stepActions.nextStep} radius='full' endContent={<ArrowRight />}>
+            <Button color='default' endContent={<ArrowRight />} radius='full' onPress={stepActions.nextStep}>
               Siguiente
             </Button>
           )}

@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress, Badge } from '@heroui/react'
+import { Card, CardBody, CardHeader, Button, Spinner, Progress, Badge } from '@heroui/react'
 import { Calendar, TrendingUp, MapPin, Users, DollarSign, RefreshCw, Clock, Star, Activity } from 'lucide-react'
 import { useError, useEvents } from '@hooks'
 
 const EventAnalytics = () => {
   const { handleSuccess, handleError } = useError()
-  const { allEvents, allEventsPagination, eventsByStatus, loading, fetchAllEvents, fetchEventsByStatus } = useEvents()
-
+  const { allEvents, eventsByStatus, loading, fetchAllEvents, fetchEventsByStatus } = useEvents()
   const [refreshing, setRefreshing] = useState(false)
 
   // Cargar datos iniciales
@@ -18,7 +17,7 @@ const EventAnalytics = () => {
           fetchEventsByStatus && fetchEventsByStatus('PUBLICADO'),
           fetchEventsByStatus && fetchEventsByStatus('EN_EDICION')
         ])
-      } catch (error) {
+      } catch {
         handleError('Error al cargar estadísticas de eventos')
       }
     }
@@ -35,7 +34,7 @@ const EventAnalytics = () => {
         fetchEventsByStatus && fetchEventsByStatus('EN_EDICION')
       ])
       handleSuccess('Estadísticas de eventos actualizadas')
-    } catch (error) {
+    } catch {
       handleError('Error al actualizar estadísticas')
     } finally {
       setRefreshing(false)
@@ -92,7 +91,7 @@ const EventAnalytics = () => {
   if (loading) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <Spinner size='lg' color='primary' />
+        <Spinner color='primary' size='lg' />
       </div>
     )
   }
@@ -107,12 +106,12 @@ const EventAnalytics = () => {
         </div>
         <Button
           isIconOnly
-          variant='flat'
-          color='primary'
-          onPress={handleRefresh}
-          isLoading={refreshing}
+          aria-label='Actualizar estadísticas de eventos'
           className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-          aria-label='Actualizar estadísticas de eventos'>
+          color='primary'
+          isLoading={refreshing}
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -262,10 +261,10 @@ const EventAnalytics = () => {
                   <span className='text-sm text-default-500'>{eventStats.performance.occupancyRate}%</span>
                 </div>
                 <Progress
-                  value={eventStats.performance.occupancyRate}
-                  color='success'
-                  className='max-w-full'
                   aria-label={`Tasa de ocupación: ${eventStats.performance.occupancyRate}%`}
+                  className='max-w-full'
+                  color='success'
+                  value={eventStats.performance.occupancyRate}
                 />
               </div>
               <div className='space-y-1'>
@@ -274,10 +273,10 @@ const EventAnalytics = () => {
                   <span className='text-sm text-default-500'>{eventStats.performance.cancellationRate}%</span>
                 </div>
                 <Progress
-                  value={eventStats.performance.cancellationRate}
-                  color='warning'
-                  className='max-w-full'
                   aria-label={`Tasa de cancelación: ${eventStats.performance.cancellationRate}%`}
+                  className='max-w-full'
+                  color='warning'
+                  value={eventStats.performance.cancellationRate}
                 />
               </div>
               <div className='space-y-1'>
@@ -286,10 +285,10 @@ const EventAnalytics = () => {
                   <span className='text-sm text-default-500'>{eventStats.performance.repeatAttendance}%</span>
                 </div>
                 <Progress
-                  value={eventStats.performance.repeatAttendance}
-                  color='primary'
-                  className='max-w-full'
                   aria-label={`Tasa de repetición: ${eventStats.performance.repeatAttendance}%`}
+                  className='max-w-full'
+                  color='primary'
+                  value={eventStats.performance.repeatAttendance}
                 />
               </div>
             </div>
@@ -311,7 +310,7 @@ const EventAnalytics = () => {
               {Object.entries(eventStats.locations).map(([location, count]) => (
                 <div key={location} className='flex justify-between items-center'>
                   <span className='text-sm text-foreground'>{location}</span>
-                  <Badge variant='flat' color='primary'>
+                  <Badge color='primary' variant='flat'>
                     {count}
                   </Badge>
                 </div>
@@ -339,11 +338,11 @@ const EventAnalytics = () => {
                     </span>
                   </div>
                   <Progress
-                    value={(event.participants / event.capacity) * 100}
-                    color='primary'
-                    className='max-w-full mt-2'
-                    size='sm'
                     aria-label={`Participantes del evento ${event.name}: ${event.participants} de ${event.capacity} (${((event.participants / event.capacity) * 100).toFixed(0)}%)`}
+                    className='max-w-full mt-2'
+                    color='primary'
+                    size='sm'
+                    value={(event.participants / event.capacity) * 100}
                   />
                 </div>
               ))}

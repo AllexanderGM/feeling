@@ -24,6 +24,7 @@ class UserNotificationService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.WELCOME.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -40,6 +41,7 @@ class UserNotificationService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.PROFILE_REMINDER.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -60,6 +62,7 @@ class UserNotificationService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.APPROVAL.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -77,6 +80,7 @@ class UserNotificationService extends ServiceREST {
       const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.REJECTION.replace('{userId}', userId)
       const result = await ServiceREST.post(`${url}${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -97,6 +101,7 @@ class UserNotificationService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.DEACTIVATION.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -113,6 +118,7 @@ class UserNotificationService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_NOTIFICATIONS.REACTIVATION.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -132,6 +138,7 @@ class UserNotificationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_NOTIFICATIONS.PROFILE_REMINDERS_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -147,6 +154,7 @@ class UserNotificationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_NOTIFICATIONS.BULK_EMAIL, emailData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

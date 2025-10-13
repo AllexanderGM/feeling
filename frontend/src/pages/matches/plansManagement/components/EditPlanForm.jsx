@@ -45,6 +45,7 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -81,15 +82,15 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      placement='center'
-      size='2xl'
-      scrollBehavior='inside'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='2xl'
+      onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -114,31 +115,31 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
                 </h3>
 
                 <Input
-                  label='Nombre del Plan'
-                  placeholder='Ej: Plan Básico, Plan Premium'
-                  value={formData.name}
-                  onChange={e => handleInputChange('name', e.target.value)}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name}
-                  startContent={<Package className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  errorMessage={errors.name}
+                  isInvalid={!!errors.name}
+                  label='Nombre del Plan'
+                  placeholder='Ej: Plan Básico, Plan Premium'
+                  startContent={<Package className='w-4 h-4 text-gray-400' />}
+                  value={formData.name}
+                  onChange={e => handleInputChange('name', e.target.value)}
                 />
 
                 <Textarea
-                  label='Descripción'
-                  placeholder='Describe las características y beneficios del plan'
-                  value={formData.description}
-                  onChange={e => handleInputChange('description', e.target.value)}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description}
-                  maxRows={3}
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  errorMessage={errors.description}
+                  isInvalid={!!errors.description}
+                  label='Descripción'
+                  maxRows={3}
+                  placeholder='Describe las características y beneficios del plan'
+                  value={formData.description}
+                  onChange={e => handleInputChange('description', e.target.value)}
                 />
               </CardBody>
             </Card>
@@ -153,36 +154,36 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Input
-                    type='number'
-                    label='Número de Intentos'
-                    placeholder='1, 5, 10...'
-                    value={formData.attempts}
-                    onChange={e => handleInputChange('attempts', e.target.value)}
-                    isInvalid={!!errors.attempts}
-                    errorMessage={errors.attempts}
-                    min='1'
-                    startContent={<Hash className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                     }}
+                    errorMessage={errors.attempts}
+                    isInvalid={!!errors.attempts}
+                    label='Número de Intentos'
+                    min='1'
+                    placeholder='1, 5, 10...'
+                    startContent={<Hash className='w-4 h-4 text-gray-400' />}
+                    type='number'
+                    value={formData.attempts}
+                    onChange={e => handleInputChange('attempts', e.target.value)}
                   />
 
                   <Input
-                    type='number'
-                    label='Precio (USD)'
-                    placeholder='2.99, 9.99, 16.99...'
-                    value={formData.price}
-                    onChange={e => handleInputChange('price', e.target.value)}
-                    isInvalid={!!errors.price}
-                    errorMessage={errors.price}
-                    min='0'
-                    step='0.01'
-                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                     }}
+                    errorMessage={errors.price}
+                    isInvalid={!!errors.price}
+                    label='Precio (USD)'
+                    min='0'
+                    placeholder='2.99, 9.99, 16.99...'
+                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
+                    step='0.01'
+                    type='number'
+                    value={formData.price}
+                    onChange={e => handleInputChange('price', e.target.value)}
                   />
                 </div>
 
@@ -191,7 +192,7 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
                     <p className='font-medium text-gray-200'>Plan Activo</p>
                     <p className='text-sm text-gray-400'>Los usuarios podrán comprar este plan</p>
                   </div>
-                  <Switch isSelected={formData.isActive} onValueChange={value => handleInputChange('isActive', value)} color='success' />
+                  <Switch color='success' isSelected={formData.isActive} onValueChange={value => handleInputChange('isActive', value)} />
                 </div>
               </CardBody>
             </Card>
@@ -253,10 +254,10 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={handleClose} className='border-gray-600 text-gray-300' disabled={loading}>
+          <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='primary' onPress={handleSubmit} isLoading={loading} startContent={!loading && <Package className='w-4 h-4' />}>
+          <Button color='primary' isLoading={loading} startContent={!loading && <Package className='w-4 h-4' />} onPress={handleSubmit}>
             Actualizar Plan
           </Button>
         </ModalFooter>

@@ -1,5 +1,7 @@
 import * as yup from 'yup'
+
 import { baseValidations, conditionalValidations } from '../validation/baseValidations'
+
 import { USER_DEFAULT_VALUES } from './userStructure'
 
 /**
@@ -30,6 +32,7 @@ export const stepBasicInfoSchema = yup.object().shape({
       if (!value || value.length === 0) return false
       // Verificar que al menos hay una imagen válida (no null/undefined)
       const validImages = value.filter(img => img != null && img !== '')
+
       return validImages.length >= 1
     })
     .required('Las imágenes son requeridas')
@@ -147,6 +150,7 @@ export const getFieldsForStep = step => {
     ],
     4: [] // No hay validaciones obligatorias en el paso 4
   }
+
   return stepFields[step] || []
 }
 
@@ -160,6 +164,7 @@ export const getSchemaForStep = step => {
     3: stepPreferencesSchema,
     4: stepConfigurationSchema
   }
+
   return schemas[step] || yup.object()
 }
 
@@ -177,6 +182,7 @@ export const validateCategoryRequiredFields = (categoryInterest, userData) => {
 
   return fieldsToCheck.every(field => {
     const value = userData[field]
+
     return value && value.toString().trim() !== ''
   })
 }

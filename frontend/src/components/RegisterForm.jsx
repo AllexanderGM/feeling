@@ -1,11 +1,12 @@
 import { Form, Input, Button, Card, CardBody, Image } from '@heroui/react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Logger } from '@utils/logger.js'
 
 import { register } from '../services/auth/authService.js'
 import walkingmanImage from '../assets/Backgrounds/walkingman.webp'
+
 import ModalToLogin from './ModalToLogin.jsx'
-import { Logger } from '@utils/logger.js'
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -25,6 +26,7 @@ const RegisterForm = () => {
 
     if (errors[field]) {
       const newErrors = { ...errors }
+
       delete newErrors[field]
       setErrors(newErrors)
     }
@@ -68,6 +70,7 @@ const RegisterForm = () => {
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
+
       return
     }
 
@@ -88,6 +91,7 @@ const RegisterForm = () => {
       }
 
       const result = await register(userData)
+
       Logger.info('Registro exitoso', Logger.CATEGORIES.USER, { userEmail: formData.email, userId: result?.user?.id })
 
       setIsRegisterSuccess(true)
@@ -122,9 +126,9 @@ const RegisterForm = () => {
           <div className='h-full flex items-end justify-end'>
             <Image
               removeWrapper
-              src={walkingmanImage}
               alt='Un hombre mirando el horizonte sobre un bosque montañoso'
               className='w-full h-full object-cover object-[13%_center] rounded-none'
+              src={walkingmanImage}
             />
           </div>
 
@@ -199,24 +203,24 @@ const RegisterForm = () => {
               />
 
               <div className='flex gap-4 mt-2'>
-                <Button className='w-full bg-[#E86C6E]' color='primary' type='submit' isLoading={isLoading} disabled={isLoading}>
+                <Button className='w-full bg-[#E86C6E]' color='primary' disabled={isLoading} isLoading={isLoading} type='submit'>
                   {isLoading ? 'Procesando...' : 'Registrarse'}
                 </Button>
-                <Button type='reset' variant='bordered' disabled={isLoading}>
+                <Button disabled={isLoading} type='reset' variant='bordered'>
                   Reset
                 </Button>
               </div>
             </div>
             <p className='text-sm text-gray-600 text-center mt-4'>
               ¿Ya tienes cuenta?{' '}
-              <Link to='/login' className='text-primary-500 hover:underline'>
+              <Link className='text-primary-500 hover:underline' to='/login'>
                 Inicia sesión aquí
               </Link>
             </p>
           </Form>
         </CardBody>
       </Card>
-      <ModalToLogin isRegisterSuccess={isRegisterSuccess} closeModal={closeModal} />
+      <ModalToLogin closeModal={closeModal} isRegisterSuccess={isRegisterSuccess} />
     </div>
   )
 }

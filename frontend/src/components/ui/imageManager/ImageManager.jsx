@@ -6,6 +6,7 @@
  */
 
 import { forwardRef, useImperativeHandle } from 'react'
+
 import useImageManager from './hooks/useImageManager'
 import ImageGrid from './components/ImageGrid'
 import CropModal from './components/CropModal'
@@ -44,7 +45,6 @@ const ImageManager = forwardRef(
       cropModalProps = {},
 
       // Callbacks adicionales
-      onImageAdd,
       onImageRemove,
       onImageReorder,
       onImageCrop,
@@ -108,6 +108,7 @@ const ImageManager = forwardRef(
 
     const handleImageRemove = index => {
       const removedImage = imageManager.images[index]
+
       imageManager.removeImage(index)
       onImageRemove?.(index, removedImage)
     }
@@ -139,39 +140,39 @@ const ImageManager = forwardRef(
         {/* Grid de imágenes - siempre visible para mostrar slots vacíos */}
         <div className='mb-6'>
           <ImageGrid
-            images={imageManager.images}
-            previewUrls={imageManager.previewUrls}
-            imageErrors={imageManager.imageErrors}
             animatingPositions={imageManager.animatingPositions}
-            maxImages={maxImages}
-            enableReorder={enableReorder}
+            canAddMore={imageManager.canAddMore}
+            dropzoneProps={imageManager.dropzoneProps}
             enableCrop={enableCrop}
-            onReorder={handleImageReorder}
-            onRemove={handleImageRemove}
-            onSetAsMain={imageManager.setAsMainImage}
+            enableReorder={enableReorder}
+            gridCols={gridCols}
+            imageErrors={imageManager.imageErrors}
+            images={imageManager.images}
+            layout={layout}
+            maxImages={maxImages}
+            previewUrls={imageManager.previewUrls}
+            showEmptySlots={showEmptySlots}
+            size={size}
             onOpenCrop={imageManager.openCropModal}
             onPreview={enablePreview ? handleImagePreview : undefined}
-            dropzoneProps={imageManager.dropzoneProps}
-            canAddMore={imageManager.canAddMore}
-            layout={layout}
-            size={size}
-            gridCols={gridCols}
-            showEmptySlots={showEmptySlots}
+            onRemove={handleImageRemove}
+            onReorder={handleImageReorder}
+            onSetAsMain={imageManager.setAsMainImage}
             {...imageGridProps}
           />
         </div>
 
         {/* Modal de crop */}
         <CropModal
-          isOpen={imageManager.cropModal.isOpen}
-          onClose={imageManager.closeCropModal}
           imageSrc={imageManager.cropModal.imageSrc}
-          onApplyCrop={handleApplyCrop}
           initialAspectRatio={cropAspectRatio}
+          isOpen={imageManager.cropModal.isOpen}
           outputFormat={cropOutputFormat}
           outputQuality={cropOutputQuality}
-          title='Ajustar imagen'
           showAspectRatioControls={false}
+          title='Ajustar imagen'
+          onApplyCrop={handleApplyCrop}
+          onClose={imageManager.closeCropModal}
           {...cropModalProps}
         />
       </div>

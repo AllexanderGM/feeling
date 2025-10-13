@@ -28,6 +28,7 @@ class UserRoleService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ROLES.ADMINS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -48,6 +49,7 @@ class UserRoleService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ROLES.CLIENTS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -67,6 +69,7 @@ class UserRoleService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ROLES.COUNT}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -87,6 +90,7 @@ class UserRoleService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ROLES.GRANT_ADMIN.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -102,6 +106,7 @@ class UserRoleService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_ROLES.GRANT_ADMIN_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -118,6 +123,7 @@ class UserRoleService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ROLES.REVOKE_ADMIN.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -133,6 +139,7 @@ class UserRoleService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_ROLES.REVOKE_ADMIN_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

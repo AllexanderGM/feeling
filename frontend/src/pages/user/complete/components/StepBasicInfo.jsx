@@ -3,8 +3,8 @@ import { Input, DatePicker, Autocomplete, AutocompleteItem, Accordion, Accordion
 import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 import { Controller, useController } from 'react-hook-form'
 import { Camera } from 'lucide-react'
-
 import ImageManager from '@components/ui/imageManager/ImageManager'
+
 import { usePersistentImages } from '../hooks/usePersistentImages'
 
 const MAX_IMAGES = 5
@@ -41,10 +41,12 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
   const countryLookup = useMemo(() => {
     const byPhone = new Map()
     const byName = new Map()
+
     formattedCountries.forEach(country => {
       byPhone.set(country.phone, country)
       byName.set(country.name, country)
     })
+
     return { byPhone, byName }
   }, [formattedCountries])
 
@@ -137,7 +139,9 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
     try {
       if (!value) return null
       const date = new Date(value)
+
       if (isNaN(date.getTime())) return null
+
       return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
     } catch {
       return null
@@ -152,17 +156,12 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
       <div className='space-y-2'>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name='phoneCode'
             control={control}
+            name='phoneCode'
             render={({ field }) => (
               <Autocomplete
                 isRequired
-                label='Código de teléfono'
-                variant='underlined'
-                selectedKey={field.value}
                 defaultItems={formattedCountries}
-                onSelectionChange={field.onChange}
-                isInvalid={!!errors.phoneCode}
                 errorMessage={errors.phoneCode?.message}
                 inputProps={{
                   id: 'phone-code-select',
@@ -170,22 +169,27 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                   'aria-label': 'Seleccionar código de país para teléfono',
                   autoComplete: 'tel-country-code'
                 }}
+                isInvalid={!!errors.phoneCode}
+                label='Código de teléfono'
+                selectedKey={field.value}
                 startContent={
                   field.value && (
                     <img
+                      alt={`Bandera de ${derivedData.phoneCountryData.name}`}
                       className='w-5 h-5 rounded-full object-cover'
                       src={derivedData.phoneCountryData.image}
-                      alt={`Bandera de ${derivedData.phoneCountryData.name}`}
                     />
                   )
-                }>
+                }
+                variant='underlined'
+                onSelectionChange={field.onChange}>
                 {country => (
                   <AutocompleteItem
                     key={country.phone}
-                    textValue={`${country.phone} ${country.name}`}
-                    className={country.priority && 'bg-blue-500/10'}>
+                    className={country.priority && 'bg-blue-500/10'}
+                    textValue={`${country.phone} ${country.name}`}>
                     <div className='flex items-center gap-2'>
-                      <img src={country.image} alt={`Bandera de ${country.name}`} className='w-5 h-5 rounded-full object-cover' />
+                      <img alt={`Bandera de ${country.name}`} className='w-5 h-5 rounded-full object-cover' src={country.image} />
                       <span className='font-medium'>{country.phone}</span>
                       <span className='text-gray-400 ml-1'>{country.name}</span>
                     </div>
@@ -196,23 +200,24 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
           />
 
           <Controller
-            name='phone'
             control={control}
+            name='phone'
             render={({ field }) => (
               <Input
                 {...field}
                 isRequired
-                label='Número de teléfono'
-                variant='underlined'
-                placeholder='123 456 789'
-                isInvalid={!!errors.phone}
-                errorMessage={errors.phone?.message}
-                id='phone-number'
-                type='tel'
                 aria-label='Número de teléfono'
                 autoComplete='tel-national'
+                errorMessage={errors.phone?.message}
+                id='phone-number'
+                isInvalid={!!errors.phone}
+                label='Número de teléfono'
+                placeholder='123 456 789'
+                type='tel'
+                variant='underlined'
                 onChange={e => {
                   const cleanedPhone = e.target.value.replace(/\D/g, '')
+
                   field.onChange(cleanedPhone)
                 }}
               />
@@ -239,7 +244,7 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
   return (
     <div className='space-y-4 md:space-y-6 px-2 md:px-0'>
       {/* Sección de imágenes */}
-      <section className='space-y-4 md:space-y-6' aria-labelledby='images-section'>
+      <section aria-labelledby='images-section' className='space-y-4 md:space-y-6'>
         {!hasInitialized ? (
           <div className='text-center py-8'>
             <p className='text-blue-400 text-sm'>Cargando imágenes...</p>
@@ -247,20 +252,20 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
         ) : (
           <ImageManager
             ref={imageManagerRef}
+            className=''
+            cropAspectRatio={3 / 4}
+            enableCrop={true}
+            enablePreview={false}
+            enableReorder={true}
+            gridCols={3}
             images={persistentFileObjects}
-            onImagesChange={handleImagesChange}
-            onValidationChange={handleImageValidationChange}
+            layout='dynamic'
             maxImages={MAX_IMAGES}
             required={true}
-            enableCrop={true}
-            enableReorder={true}
-            enablePreview={false}
-            cropAspectRatio={3 / 4}
-            layout='dynamic'
-            size='default'
-            gridCols={3}
             showEmptySlots={true}
-            className=''
+            size='default'
+            onImagesChange={handleImagesChange}
+            onValidationChange={handleImageValidationChange}
           />
         )}
 
@@ -274,18 +279,18 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
         )}
 
         {/* Tips para fotos */}
-        <Accordion variant='splitted' className='mt-6 px-0'>
+        <Accordion className='mt-6 px-0' variant='splitted'>
           <AccordionItem
             key='photo-tips'
             aria-label='Tips para mejores resultados'
-            startContent={<Camera className='text-blue-400 text-xl pt-1' aria-hidden='true' />}
-            title='Tips para mejores resultados'
             classNames={{
               trigger: 'p-1',
               base: 'bg-blue-500/10 border border-blue-500/20',
               title: 'text-blue-400 text-sm',
               content: 'text-sm'
-            }}>
+            }}
+            startContent={<Camera aria-hidden='true' className='text-blue-400 text-xl pt-1' />}
+            title='Tips para mejores resultados'>
             <ul className='text-blue-300/80 space-y-1 list-disc pl-5'>
               {PHOTO_TIPS.map((tip, index) => (
                 <li key={index}>
@@ -298,130 +303,120 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
       </section>
 
       {/* Información personal */}
-      <section className='space-y-4' aria-labelledby='personal-info-section'>
-        <h2 id='personal-info-section' className='sr-only'>
+      <section aria-labelledby='personal-info-section' className='space-y-4'>
+        <h2 className='sr-only' id='personal-info-section'>
           Información personal
         </h2>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name='name'
             control={control}
+            name='name'
             render={({ field }) => (
               <Input
                 {...field}
-                variant='underlined'
                 isRequired
-                label='Nombre(s)'
-                placeholder='Tus nombre(s)'
-                isInvalid={!!errors.name}
-                errorMessage={errors.name?.message}
-                id='first-name'
-                type='text'
                 aria-label='Nombres'
                 autoComplete='given-name'
+                errorMessage={errors.name?.message}
+                id='first-name'
+                isInvalid={!!errors.name}
+                label='Nombre(s)'
+                placeholder='Tus nombre(s)'
+                type='text'
+                variant='underlined'
               />
             )}
           />
 
           <Controller
-            name='lastName'
             control={control}
+            name='lastName'
             render={({ field }) => (
               <Input
                 {...field}
-                variant='underlined'
                 isRequired
-                label='Apellidos'
-                placeholder='Tus apellidos'
-                isInvalid={!!errors.lastName}
-                errorMessage={errors.lastName?.message}
-                id='last-name'
-                type='text'
                 aria-label='Apellidos'
                 autoComplete='family-name'
+                errorMessage={errors.lastName?.message}
+                id='last-name'
+                isInvalid={!!errors.lastName}
+                label='Apellidos'
+                placeholder='Tus apellidos'
+                type='text'
+                variant='underlined'
               />
             )}
           />
         </div>
 
         <Controller
-          name='document'
           control={control}
+          name='document'
           render={({ field }) => (
             <Input
               {...field}
-              variant='underlined'
               isRequired
-              label='Documento de identidad'
-              placeholder='Número de documento'
-              isInvalid={!!errors.document}
-              errorMessage={errors.document?.message}
-              id='document-id'
-              type='text'
               aria-label='Documento de identidad'
               autoComplete='off'
+              errorMessage={errors.document?.message}
+              id='document-id'
+              isInvalid={!!errors.document}
+              label='Documento de identidad'
+              placeholder='Número de documento'
+              type='text'
+              variant='underlined'
             />
           )}
         />
 
         <Controller
-          name='dateOfBirth'
           control={control}
+          name='dateOfBirth'
           render={({ field }) => (
             <DatePicker
+              showMonthAndYearPickers
+              aria-label='Fecha de nacimiento'
+              description='Debes ser mayor de 18 años'
+              errorMessage={errors.dateOfBirth?.message}
+              granularity='day'
+              id='birth-date'
+              isInvalid={!!errors.dateOfBirth}
+              maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
+              placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
               value={field.value ? getParsedDate(field.value) : null}
               onChange={date => {
                 const formattedDate = date ? `${date.year}-${String(date.month).padStart(2, '0')}-${String(date.day).padStart(2, '0')}` : ''
+
                 field.onChange(formattedDate)
               }}
-              isInvalid={!!errors.dateOfBirth}
-              errorMessage={errors.dateOfBirth?.message}
-              maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
-              showMonthAndYearPickers
-              granularity='day'
-              placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
-              description='Debes ser mayor de 18 años'
-              id='birth-date'
-              aria-label='Fecha de nacimiento'
             />
           )}
         />
       </section>
 
       {/* Contacto */}
-      <section className='space-y-4' aria-labelledby='contact-section'>
-        <h2 id='contact-section' className='sr-only'>
+      <section aria-labelledby='contact-section' className='space-y-4'>
+        <h2 className='sr-only' id='contact-section'>
           Información de contacto
         </h2>
         {renderPhoneSection}
       </section>
 
       {/* Ubicación */}
-      <section className='space-y-4' aria-labelledby='location-section'>
-        <h2 id='location-section' className='sr-only'>
+      <section aria-labelledby='location-section' className='space-y-4'>
+        <h2 className='sr-only' id='location-section'>
           Información de ubicación
         </h2>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           <Controller
-            name='country'
             control={control}
+            name='country'
             render={({ field }) => (
               <Autocomplete
-                variant='underlined'
                 isRequired
-                label='País'
-                placeholder='Buscar tu país...'
                 defaultItems={formattedCountries}
-                selectedKey={field.value}
-                onSelectionChange={key => {
-                  field.onChange(key)
-                  if (key) {
-                    locationHandlers.handleCountryChange(key)
-                  }
-                }}
-                isInvalid={!!errors.country}
                 errorMessage={errors.country?.message}
                 inputProps={{
                   id: 'country-select',
@@ -429,19 +424,30 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
                   'aria-label': 'Seleccionar país',
                   autoComplete: 'country-name'
                 }}
+                isInvalid={!!errors.country}
+                label='País'
+                placeholder='Buscar tu país...'
+                selectedKey={field.value}
                 startContent={
                   field.value && (
                     <img
+                      alt={`Bandera de ${derivedData.locationCountryData.name}`}
                       className='w-5 h-5 rounded-full object-cover'
                       src={derivedData.locationCountryData.image}
-                      alt={`Bandera de ${derivedData.locationCountryData.name}`}
                     />
                   )
-                }>
+                }
+                variant='underlined'
+                onSelectionChange={key => {
+                  field.onChange(key)
+                  if (key) {
+                    locationHandlers.handleCountryChange(key)
+                  }
+                }}>
                 {country => (
-                  <AutocompleteItem key={country.name} textValue={country.name} className={country.priority && 'bg-blue-500/10'}>
+                  <AutocompleteItem key={country.name} className={country.priority && 'bg-blue-500/10'} textValue={country.name}>
                     <div className='flex items-center gap-2'>
-                      <img className='w-5 h-5 rounded-full object-cover' src={country.image} alt={`Bandera de ${country.name}`} />
+                      <img alt={`Bandera de ${country.name}`} className='w-5 h-5 rounded-full object-cover' src={country.image} />
                       <span className={country.priority ? 'font-semibold' : ''}>{country.name}</span>
                     </div>
                   </AutocompleteItem>
@@ -452,32 +458,32 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
 
           {country && (
             <Controller
-              name='city'
               control={control}
+              name='city'
               render={({ field }) => (
                 <Autocomplete
-                  variant='underlined'
                   isRequired
-                  label='Ciudad'
-                  placeholder='Buscar tu ciudad...'
                   defaultItems={formattedCities}
-                  selectedKey={field.value}
-                  onSelectionChange={key => {
-                    field.onChange(key)
-                    if (key) {
-                      locationHandlers.handleCityChange(key)
-                    }
-                  }}
-                  isInvalid={!!errors.city}
                   errorMessage={errors.city?.message}
                   inputProps={{
                     id: 'city-select',
                     name: 'city',
                     'aria-label': 'Seleccionar ciudad',
                     autoComplete: 'address-level2'
+                  }}
+                  isInvalid={!!errors.city}
+                  label='Ciudad'
+                  placeholder='Buscar tu ciudad...'
+                  selectedKey={field.value}
+                  variant='underlined'
+                  onSelectionChange={key => {
+                    field.onChange(key)
+                    if (key) {
+                      locationHandlers.handleCityChange(key)
+                    }
                   }}>
                   {city => (
-                    <AutocompleteItem key={city.name} textValue={city.name} className={city.priority && 'bg-blue-500/10'}>
+                    <AutocompleteItem key={city.name} className={city.priority && 'bg-blue-500/10'} textValue={city.name}>
                       <span className={city.priority ? 'font-semibold' : ''}>{city.name}</span>
                     </AutocompleteItem>
                   )}
@@ -496,22 +502,22 @@ const StepBasicInfo = ({ user, control, errors, locationData, watch, setValue, s
             </div>
 
             <Controller
-              name='locality'
               control={control}
+              name='locality'
               render={({ field }) => (
                 <Autocomplete
-                  variant='underlined'
-                  label='Localidad (opcional)'
-                  placeholder='Buscar localidad...'
                   defaultItems={formattedLocalities}
-                  selectedKey={field.value || ''}
-                  onSelectionChange={key => field.onChange(key || '')}
                   inputProps={{
                     id: 'locality-select',
                     name: 'locality',
                     'aria-label': 'Seleccionar localidad (opcional)',
                     autoComplete: 'address-level3'
-                  }}>
+                  }}
+                  label='Localidad (opcional)'
+                  placeholder='Buscar localidad...'
+                  selectedKey={field.value || ''}
+                  variant='underlined'
+                  onSelectionChange={key => field.onChange(key || '')}>
                   {locality => (
                     <AutocompleteItem key={locality.name} textValue={locality.name}>
                       {locality.name}

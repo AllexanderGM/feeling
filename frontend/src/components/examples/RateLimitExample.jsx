@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import { Button } from '@heroui/react'
+import { Logger } from '@utils/logger'
+
 import api from '../../services/utils/api'
 
 /**
@@ -24,9 +26,9 @@ const RateLimitExample = () => {
       await api.get('/info/system-info')
 
       setResponseCount(prev => prev + 1)
-      console.log(`✅ Petición ${responseCount + 1} exitosa`)
+      Logger.info('Petición exitosa', Logger.CATEGORIES.API, { endpoint: '/info/system-info' })
     } catch (error) {
-      console.log('❌ Error en petición:', error)
+      Logger.error('Error en petición', Logger.CATEGORIES.API, { endpoint: '/info/system-info', error: error.message })
 
       // El modal de rate limiting se mostrará automáticamente
       // gracias al interceptor que configuramos
@@ -36,8 +38,7 @@ const RateLimitExample = () => {
   }
 
   const makeMultipleRequests = async () => {
-    console.log('🔄 Haciendo múltiples peticiones rápidas...')
-
+    Logger.info('Haciendo múltiples peticiones rápidas...', Logger.CATEGORIES.API)
     // Hacer 10 peticiones rápidas para activar rate limiting
     for (let i = 0; i < 10; i++) {
       makeRequest()
@@ -58,11 +59,11 @@ const RateLimitExample = () => {
         </div>
 
         <div className='flex flex-col gap-2'>
-          <Button color='primary' variant='solid' onPress={makeRequest} isLoading={isLoading} className='w-full'>
+          <Button className='w-full' color='primary' isLoading={isLoading} variant='solid' onPress={makeRequest}>
             Hacer 1 petición
           </Button>
 
-          <Button color='warning' variant='solid' onPress={makeMultipleRequests} isLoading={isLoading} className='w-full'>
+          <Button className='w-full' color='warning' isLoading={isLoading} variant='solid' onPress={makeMultipleRequests}>
             Hacer 10 peticiones rápidas (activar rate limit)
           </Button>
         </div>

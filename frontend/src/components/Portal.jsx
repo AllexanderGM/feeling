@@ -6,6 +6,7 @@ const Portal = ({ children }) => {
 
   useEffect(() => {
     document.body.appendChild(container)
+
     return () => {
       document.body.removeChild(container)
     }

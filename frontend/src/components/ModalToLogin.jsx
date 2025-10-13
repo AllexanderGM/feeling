@@ -23,7 +23,7 @@ const ModalToLogin = ({ isRegisterSuccess, closeModal }) => {
 
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} backdrop='blur' isDismissable={false} isKeyboardDismissDisabled={true}>
+      <Modal backdrop='blur' isDismissable={false} isKeyboardDismissDisabled={true} isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {onClose => (
             <>

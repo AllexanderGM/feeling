@@ -79,6 +79,7 @@ export const useAsyncOperation = (options = {}) => {
 
         // Si no se maneja automáticamente, solo formatear el error
         const errorMessage = extractErrorMessage(error)
+
         return {
           success: false,
           data: null,

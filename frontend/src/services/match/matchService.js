@@ -22,6 +22,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.PLANS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -37,6 +38,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PURCHASE_PLAN, { planId })
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -52,6 +54,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.ATTEMPTS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -71,6 +74,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.SEND, { targetUserId })
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -86,6 +90,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/accept`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -101,6 +106,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/reject`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -116,6 +122,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/contact`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -140,6 +147,7 @@ class MatchService extends ServiceREST {
       })
 
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.SENT}?${params}`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -160,6 +168,7 @@ class MatchService extends ServiceREST {
       })
 
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.RECEIVED}?${params}`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -180,6 +189,7 @@ class MatchService extends ServiceREST {
       })
 
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.ACCEPTED}?${params}`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -199,6 +209,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.FAVORITES, { userId })
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -214,6 +225,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.delete(`${API_ENDPOINTS.MATCHES.FAVORITES}/${encodeURIComponent(userId)}`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -234,6 +246,7 @@ class MatchService extends ServiceREST {
       })
 
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.FAVORITES}?${params}`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -253,6 +266,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.STATS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -268,6 +282,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.NOTIFICATIONS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -283,6 +298,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.patch(`${API_ENDPOINTS.MATCHES.NOTIFICATIONS}/${encodeURIComponent(notificationId)}/read`)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -302,6 +318,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.ADMIN_ALL_PLANS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -317,6 +334,7 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.get(API_ENDPOINTS.MATCHES.ADMIN_PLAN_STATS)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -333,6 +351,7 @@ class MatchService extends ServiceREST {
     try {
       // TODO: Implement this endpoint in backend
       const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.ADMIN_CREATE_PLAN, planData)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -350,6 +369,7 @@ class MatchService extends ServiceREST {
       // TODO: Implement this endpoint in backend
       const url = API_ENDPOINTS.MATCHES.ADMIN_UPDATE_PLAN.replace('{planId}', encodeURIComponent(planId))
       const response = await ServiceREST.put(url, planData)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
@@ -367,6 +387,7 @@ class MatchService extends ServiceREST {
       // TODO: Implement this endpoint in backend
       const url = API_ENDPOINTS.MATCHES.ADMIN_DELETE_PLAN.replace('{planId}', encodeURIComponent(planId))
       const response = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)

@@ -35,6 +35,7 @@ export class ErrorManager {
     if (!error.response) return this.ERROR_TYPES.NETWORK
 
     const status = error.response.status
+
     if (status === HTTP_STATUS.UNAUTHORIZED) return this.ERROR_TYPES.AUTH
     if (status === HTTP_STATUS.FORBIDDEN) return this.ERROR_TYPES.PERMISSION
     if (status === HTTP_STATUS.NOT_FOUND) return this.ERROR_TYPES.NOT_FOUND
@@ -156,8 +157,10 @@ export class ErrorManager {
   static extractBackendMessage(error) {
     if (error.response?.data) {
       const data = error.response.data
+
       return data.message || data.error || data.msg || null
     }
+
     return null
   }
 
@@ -208,6 +211,7 @@ export class ErrorManager {
   static extractRetryAfter(error) {
     // Intentar obtener del header Retry-After
     const retryAfter = error.response?.headers?.['retry-after']
+
     if (retryAfter) {
       return parseInt(retryAfter, 10)
     }
@@ -215,11 +219,13 @@ export class ErrorManager {
     // Intentar extraer del mensaje
     const message = error.response?.data?.message || ''
     const minuteMatch = message.match(/(\d+)\s*minuto/i)
+
     if (minuteMatch) {
       return parseInt(minuteMatch[1]) * 60
     }
 
     const secondMatch = message.match(/(\d+)\s*segundo/i)
+
     if (secondMatch) {
       return parseInt(secondMatch[1])
     }

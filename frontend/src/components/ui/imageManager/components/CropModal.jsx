@@ -7,10 +7,11 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Slider, Chip, Divider, Spinner } from '@heroui/react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Slider, Chip, Divider } from '@heroui/react'
 import { RotateCw, ZoomIn, ZoomOut, Square, Smartphone, Save, X, RotateCcw, Edit3 } from 'lucide-react'
-import { createCroppedImage } from '../utils'
 import { Logger } from '@utils/logger.js'
+
+import { createCroppedImage } from '../utils'
 
 const CropModal = ({
   isOpen,
@@ -96,14 +97,7 @@ const CropModal = ({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size='5xl'
-      placement='center'
       backdrop='blur'
-      isDismissable={!isProcessing}
-      isKeyboardDismissDisabled={isProcessing}
-      scrollBehavior='inside'
       classNames={{
         wrapper: 'z-[1000] p-0 md:p-4',
         backdrop: 'bg-black/80',
@@ -111,7 +105,14 @@ const CropModal = ({
         header: 'border-b border-gray-700 bg-gray-900/95 p-1 md:p-4',
         body: 'bg-gray-900 p-0 overflow-auto md:overflow-hidden',
         footer: 'border-t border-gray-700 bg-gray-900/95 p-1 md:p-4'
-      }}>
+      }}
+      isDismissable={!isProcessing}
+      isKeyboardDismissDisabled={isProcessing}
+      isOpen={isOpen}
+      placement='center'
+      scrollBehavior='inside'
+      size='5xl'
+      onClose={handleClose}>
       <ModalContent>
         {() => (
           <>
@@ -137,14 +138,10 @@ const CropModal = ({
                   maxHeight: '500px'
                 }}>
                 <Cropper
-                  image={imageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  rotation={rotation}
                   aspect={aspectRatio}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
+                  crop={crop}
+                  image={imageSrc}
+                  rotation={rotation}
                   showGrid={true}
                   style={{
                     containerStyle: {
@@ -155,6 +152,10 @@ const CropModal = ({
                       borderRadius: '8px'
                     }
                   }}
+                  zoom={zoom}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
                 />
               </div>
 
@@ -172,19 +173,19 @@ const CropModal = ({
                         return (
                           <Button
                             key={preset.label}
-                            size='sm'
-                            variant={isActive ? 'solid' : 'bordered'}
-                            color={isActive ? 'primary' : 'default'}
-                            startContent={<IconComponent className='w-4 h-4' />}
-                            onPress={() => handleAspectRatioChange(preset.value)}
-                            disabled={isProcessing}
                             className={`
                               ${
                                 isActive
                                   ? 'bg-primary-500 text-white border-primary-500'
                                   : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-500'
                               }
-                            `}>
+                            `}
+                            color={isActive ? 'primary' : 'default'}
+                            disabled={isProcessing}
+                            size='sm'
+                            startContent={<IconComponent className='w-4 h-4' />}
+                            variant={isActive ? 'solid' : 'bordered'}
+                            onPress={() => handleAspectRatioChange(preset.value)}>
                             {preset.label}
                           </Button>
                         )
@@ -200,7 +201,7 @@ const CropModal = ({
                   <div className='space-y-1 md:space-y-2'>
                     <div className='flex items-center justify-between'>
                       <h4 className='text-xs md:text-sm font-semibold text-gray-300'>Zoom</h4>
-                      <Chip size='sm' variant='flat' className='bg-gray-800 text-gray-300 text-xs'>
+                      <Chip className='bg-gray-800 text-gray-300 text-xs' size='sm' variant='flat'>
                         {Math.round(zoom * 100)}%
                       </Chip>
                     </div>
@@ -208,38 +209,38 @@ const CropModal = ({
                     <div className='flex items-center gap-3 md:gap-4'>
                       <Button
                         isIconOnly
+                        className='min-w-8 w-8 h-8'
+                        disabled={zoom <= minZoom || isProcessing}
                         size='sm'
                         variant='bordered'
-                        onPress={() => setZoom(Math.max(minZoom, zoom - 0.1))}
-                        disabled={zoom <= minZoom || isProcessing}
-                        className='min-w-8 w-8 h-8'>
+                        onPress={() => setZoom(Math.max(minZoom, zoom - 0.1))}>
                         <ZoomOut className='w-3 h-3 md:w-4 md:h-4' />
                       </Button>
 
                       <Slider
-                        size='sm'
-                        step={0.1}
-                        minValue={minZoom}
-                        maxValue={maxZoom}
-                        value={zoom}
-                        onChange={handleZoomChange}
-                        disabled={isProcessing}
-                        className='flex-1'
                         aria-label='Control de zoom de la imagen'
+                        className='flex-1'
                         classNames={{
                           track: 'bg-gray-700',
                           filler: 'bg-primary-500',
                           thumb: 'bg-primary-500 border-2 border-white shadow-lg'
                         }}
+                        disabled={isProcessing}
+                        maxValue={maxZoom}
+                        minValue={minZoom}
+                        size='sm'
+                        step={0.1}
+                        value={zoom}
+                        onChange={handleZoomChange}
                       />
 
                       <Button
                         isIconOnly
+                        className='min-w-8 w-8 h-8'
+                        disabled={zoom >= maxZoom || isProcessing}
                         size='sm'
                         variant='bordered'
-                        onPress={() => setZoom(Math.min(maxZoom, zoom + 0.1))}
-                        disabled={zoom >= maxZoom || isProcessing}
-                        className='min-w-8 w-8 h-8'>
+                        onPress={() => setZoom(Math.min(maxZoom, zoom + 0.1))}>
                         <ZoomIn className='w-3 h-3 md:w-4 md:h-4' />
                       </Button>
                     </div>
@@ -251,38 +252,38 @@ const CropModal = ({
                   <div className='space-y-1 md:space-y-2'>
                     <div className='flex items-center justify-between'>
                       <h4 className='text-xs md:text-sm font-semibold text-gray-300'>Rotación</h4>
-                      <Chip size='sm' variant='flat' className='bg-gray-800 text-gray-300 text-xs'>
+                      <Chip className='bg-gray-800 text-gray-300 text-xs' size='sm' variant='flat'>
                         {rotation}°
                       </Chip>
                     </div>
 
                     <div className='flex items-center gap-2 md:gap-3 justify-center flex-wrap'>
                       <Button
-                        size='sm'
-                        variant='bordered'
-                        startContent={<RotateCcw className='w-3 h-3 md:w-4 md:h-4' />}
-                        onPress={() => handleRotationChange(-90)}
+                        className='text-xs md:text-sm'
                         disabled={isProcessing}
-                        className='text-xs md:text-sm'>
+                        size='sm'
+                        startContent={<RotateCcw className='w-3 h-3 md:w-4 md:h-4' />}
+                        variant='bordered'
+                        onPress={() => handleRotationChange(-90)}>
                         -90°
                       </Button>
 
                       <Button
-                        size='sm'
-                        variant='bordered'
-                        startContent={<RotateCw className='w-3 h-3 md:w-4 md:h-4' />}
-                        onPress={() => handleRotationChange(90)}
+                        className='text-xs md:text-sm'
                         disabled={isProcessing}
-                        className='text-xs md:text-sm'>
+                        size='sm'
+                        startContent={<RotateCw className='w-3 h-3 md:w-4 md:h-4' />}
+                        variant='bordered'
+                        onPress={() => handleRotationChange(90)}>
                         +90°
                       </Button>
 
                       <Button
+                        className='text-xs md:text-sm'
+                        disabled={rotation === 0 || isProcessing}
                         size='sm'
                         variant='bordered'
-                        onPress={() => setRotation(0)}
-                        disabled={rotation === 0 || isProcessing}
-                        className='text-xs md:text-sm'>
+                        onPress={() => setRotation(0)}>
                         Restablecer
                       </Button>
                     </div>
@@ -293,21 +294,21 @@ const CropModal = ({
 
             <ModalFooter className='flex-col gap-3 md:flex-row md:justify-between'>
               <Button
-                variant='bordered'
-                onPress={handleClose}
-                disabled={isProcessing}
                 className='w-full md:w-auto'
-                startContent={<X className='w-4 h-4' />}>
+                disabled={isProcessing}
+                startContent={<X className='w-4 h-4' />}
+                variant='bordered'
+                onPress={handleClose}>
                 Cancelar
               </Button>
 
               <Button
+                className='w-full md:w-auto'
                 color='primary'
-                onPress={handleApplyCrop}
                 disabled={!croppedAreaPixels || isProcessing}
                 isLoading={isProcessing}
                 startContent={!isProcessing && <Save className='w-4 h-4' />}
-                className='w-full md:w-auto'>
+                onPress={handleApplyCrop}>
                 {isProcessing ? 'Procesando...' : 'Aplicar'}
               </Button>
             </ModalFooter>

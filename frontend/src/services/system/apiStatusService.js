@@ -18,9 +18,11 @@ class ApiStatusService extends ServiceREST {
    */
   getCachedData(key) {
     const cached = this.cache.get(key)
+
     if (cached && Date.now() - cached.timestamp < this.cacheExpiration) {
       return cached.data
     }
+
     return null
   }
 
@@ -52,6 +54,7 @@ class ApiStatusService extends ServiceREST {
     // Verificar cache si está habilitado
     if (useCache) {
       const cached = this.getCachedData(cacheKey)
+
       if (cached) {
         return cached
       }

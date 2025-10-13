@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Input, Switch, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip } from '@heroui/react'
-import { Shield, Key, Smartphone, AlertTriangle, Eye, EyeOff, CheckCircle, Clock, Save } from 'lucide-react'
+import { Shield, Key, Smartphone, Eye, EyeOff, CheckCircle, Clock, Save } from 'lucide-react'
 import { useUser } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -11,7 +11,6 @@ const SecuritySettingsSection = ({ user }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onOpenChange: onPasswordOpenChange } = useDisclosure()
-  const { isOpen: is2FAOpen, onOpen: on2FAOpen, onOpenChange: on2FAOpenChange } = useDisclosure()
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -31,6 +30,7 @@ const SecuritySettingsSection = ({ user }) => {
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Las contraseñas no coinciden')
+
       return
     }
 
@@ -106,13 +106,13 @@ const SecuritySettingsSection = ({ user }) => {
           <span className='text-sm font-medium text-gray-200'>Configuración de Seguridad</span>
         </div>
         <Button
-          size='sm'
-          variant='solid'
-          color='primary'
           className='bg-primary-600 hover:bg-primary-700'
+          color='primary'
+          isLoading={loading}
+          size='sm'
           startContent={<Save className='w-3 h-3' />}
-          onPress={handleSecurityUpdate}
-          isLoading={loading}>
+          variant='solid'
+          onPress={handleSecurityUpdate}>
           Guardar
         </Button>
       </div>
@@ -126,9 +126,9 @@ const SecuritySettingsSection = ({ user }) => {
               <span className='text-sm font-medium text-gray-200'>Contraseña</span>
             </div>
             <Button
+              className='border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/10'
               size='sm'
               variant='bordered'
-              className='border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/10'
               onPress={onPasswordOpen}>
               Cambiar contraseña
             </Button>
@@ -154,16 +154,16 @@ const SecuritySettingsSection = ({ user }) => {
             </div>
             <div className='flex items-center gap-2'>
               {securitySettings.twoFactorAuth && (
-                <Chip size='sm' color='success' variant='flat' className='text-xs'>
+                <Chip className='text-xs' color='success' size='sm' variant='flat'>
                   Activo
                 </Chip>
               )}
               <Switch
-                isSelected={securitySettings.twoFactorAuth}
-                onValueChange={handle2FAToggle}
                 color='success'
-                size='sm'
                 isDisabled={loading}
+                isSelected={securitySettings.twoFactorAuth}
+                size='sm'
+                onValueChange={handle2FAToggle}
               />
             </div>
           </div>
@@ -189,15 +189,15 @@ const SecuritySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Recibir alertas de nuevos accesos</p>
               </div>
               <Switch
+                color='primary'
                 isSelected={securitySettings.loginNotifications}
+                size='sm'
                 onValueChange={value =>
                   setSecuritySettings(prev => ({
                     ...prev,
                     loginNotifications: value
                   }))
                 }
-                color='primary'
-                size='sm'
               />
             </div>
 
@@ -207,15 +207,15 @@ const SecuritySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Solo permitir dispositivos autorizados</p>
               </div>
               <Switch
+                color='warning'
                 isSelected={securitySettings.deviceRestriction}
+                size='sm'
                 onValueChange={value =>
                   setSecuritySettings(prev => ({
                     ...prev,
                     deviceRestriction: value
                   }))
                 }
-                color='warning'
-                size='sm'
               />
             </div>
           </div>
@@ -237,7 +237,7 @@ const SecuritySettingsSection = ({ user }) => {
                       <div className='flex items-center gap-2'>
                         <span className='text-sm text-gray-300'>{session.device}</span>
                         {session.current && (
-                          <Chip size='sm' color='success' variant='flat' className='text-xs'>
+                          <Chip className='text-xs' color='success' size='sm' variant='flat'>
                             Actual
                           </Chip>
                         )}
@@ -248,7 +248,7 @@ const SecuritySettingsSection = ({ user }) => {
                     </div>
                   </div>
                   {!session.current && (
-                    <Button size='sm' color='danger' variant='light' className='text-xs'>
+                    <Button className='text-xs' color='danger' size='sm' variant='light'>
                       Cerrar
                     </Button>
                   )}
@@ -265,16 +265,16 @@ const SecuritySettingsSection = ({ user }) => {
             <span className='text-xs font-medium text-green-300'>Estado de seguridad</span>
           </div>
           <div className='flex flex-wrap gap-1'>
-            <Chip size='sm' variant='flat' color='success' className='text-xs'>
+            <Chip className='text-xs' color='success' size='sm' variant='flat'>
               Contraseña fuerte
             </Chip>
             {securitySettings.twoFactorAuth && (
-              <Chip size='sm' variant='flat' color='success' className='text-xs'>
+              <Chip className='text-xs' color='success' size='sm' variant='flat'>
                 2FA activado
               </Chip>
             )}
             {securitySettings.loginNotifications && (
-              <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+              <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                 Alertas activas
               </Chip>
             )}
@@ -284,13 +284,13 @@ const SecuritySettingsSection = ({ user }) => {
 
       {/* Modal para cambiar contraseña */}
       <Modal
-        isOpen={isPasswordOpen}
-        onOpenChange={onPasswordOpenChange}
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50'
-        }}>
+        }}
+        isOpen={isPasswordOpen}
+        onOpenChange={onPasswordOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -303,6 +303,15 @@ const SecuritySettingsSection = ({ user }) => {
               <ModalBody>
                 <div className='space-y-3'>
                   <Input
+                    classNames={{
+                      input: 'text-gray-200',
+                      inputWrapper: 'bg-gray-700/50'
+                    }}
+                    endContent={
+                      <button className='focus:outline-none' type='button' onClick={() => setShowCurrentPassword(!showCurrentPassword)}>
+                        {showCurrentPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
+                      </button>
+                    }
                     label='Contraseña actual'
                     type={showCurrentPassword ? 'text' : 'password'}
                     value={passwordData.currentPassword}
@@ -312,18 +321,18 @@ const SecuritySettingsSection = ({ user }) => {
                         currentPassword: e.target.value
                       }))
                     }
-                    endContent={
-                      <button type='button' onClick={() => setShowCurrentPassword(!showCurrentPassword)} className='focus:outline-none'>
-                        {showCurrentPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
-                      </button>
-                    }
+                  />
+
+                  <Input
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-700/50'
                     }}
-                  />
-
-                  <Input
+                    endContent={
+                      <button className='focus:outline-none' type='button' onClick={() => setShowNewPassword(!showNewPassword)}>
+                        {showNewPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
+                      </button>
+                    }
                     label='Nueva contraseña'
                     type={showNewPassword ? 'text' : 'password'}
                     value={passwordData.newPassword}
@@ -333,18 +342,18 @@ const SecuritySettingsSection = ({ user }) => {
                         newPassword: e.target.value
                       }))
                     }
-                    endContent={
-                      <button type='button' onClick={() => setShowNewPassword(!showNewPassword)} className='focus:outline-none'>
-                        {showNewPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
-                      </button>
-                    }
+                  />
+
+                  <Input
                     classNames={{
                       input: 'text-gray-200',
                       inputWrapper: 'bg-gray-700/50'
                     }}
-                  />
-
-                  <Input
+                    endContent={
+                      <button className='focus:outline-none' type='button' onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                        {showConfirmPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
+                      </button>
+                    }
                     label='Confirmar nueva contraseña'
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={passwordData.confirmPassword}
@@ -354,15 +363,6 @@ const SecuritySettingsSection = ({ user }) => {
                         confirmPassword: e.target.value
                       }))
                     }
-                    endContent={
-                      <button type='button' onClick={() => setShowConfirmPassword(!showConfirmPassword)} className='focus:outline-none'>
-                        {showConfirmPassword ? <EyeOff className='w-4 h-4 text-gray-400' /> : <Eye className='w-4 h-4 text-gray-400' />}
-                      </button>
-                    }
-                    classNames={{
-                      input: 'text-gray-200',
-                      inputWrapper: 'bg-gray-700/50'
-                    }}
                   />
 
                   <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-3'>
@@ -380,7 +380,7 @@ const SecuritySettingsSection = ({ user }) => {
                 <Button variant='light' onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color='primary' onPress={handlePasswordChange} isLoading={loading}>
+                <Button color='primary' isLoading={loading} onPress={handlePasswordChange}>
                   Cambiar contraseña
                 </Button>
               </ModalFooter>

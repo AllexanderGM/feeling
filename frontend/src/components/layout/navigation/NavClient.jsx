@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Heart, Search, Calendar, User, Star } from 'lucide-react'
 import { Button, Badge } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
+
 import UserProfileMenu from './UserProfileMenu.jsx'
 import { isProfileActive, isActive, getNavigationStyles } from './navigationUtils.js'
 
@@ -67,31 +68,31 @@ const NavClient = ({ user }) => {
     return (
       <Badge
         key={item.id}
-        content=''
+        classNames={{ badge: styles.badge }}
         color='secondary'
-        placement='top-right'
-        shape='circle'
+        content=''
         isInvisible={!active}
-        classNames={{ badge: styles.badge }}>
+        placement='top-right'
+        shape='circle'>
         {isProfileButton ? (
           <UserProfileMenu
-            user={user}
+            isActive={active}
             isAdmin={false}
             isOpen={isPopoverOpen}
-            onOpenChange={setIsPopoverOpen}
             placement='top'
-            isActive={active}
+            user={user}
+            onOpenChange={setIsPopoverOpen}
           />
         ) : (
           <Button
             isIconOnly
-            variant={active ? 'solid' : 'light'}
+            aria-label={item.description}
+            className={`${styles.button} ${active ? styles.activeButton : styles.inactiveButton}`}
             color={active ? 'primary' : 'default'}
             radius='lg'
             size='md'
-            className={`${styles.button} ${active ? styles.activeButton : styles.inactiveButton}`}
-            onPress={() => navigate(item.path)}
-            aria-label={item.description}>
+            variant={active ? 'solid' : 'light'}
+            onPress={() => navigate(item.path)}>
             <IconComponent size={20} />
           </Button>
         )}

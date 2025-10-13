@@ -14,6 +14,7 @@ export const useUserInterests = () => {
         setError(null)
 
         const result = await userInterestsService.getAllInterests()
+
         if (result.success && result.data) {
           setInterests(result.data)
         } else {
@@ -143,6 +144,7 @@ export const useUserInterestsAdmin = () => {
 
       if (result.success && result.data) {
         setInterests(prev => [...prev, result.data])
+
         return result.data
       } else {
         throw new Error(result.message || 'Error creando interés')
@@ -163,6 +165,7 @@ export const useUserInterestsAdmin = () => {
 
       if (result.success && result.data) {
         setInterests(prev => prev.map(interest => (interest.id === id ? result.data : interest)))
+
         return result.data
       } else {
         throw new Error(result.message || 'Error actualizando interés')
@@ -183,6 +186,7 @@ export const useUserInterestsAdmin = () => {
 
       if (result.success) {
         setInterests(prev => prev.filter(interest => interest.id !== id))
+
         return true
       } else {
         throw new Error(result.message || 'Error eliminando interés')

@@ -8,9 +8,11 @@ const SearchContext = createContext()
 
 export const useSearch = () => {
   const context = useContext(SearchContext)
+
   if (!context) {
     throw new Error('useSearch must be used within a SearchProvider')
   }
+
   return context
 }
 
@@ -20,7 +22,7 @@ export const SearchProvider = ({ children }) => {
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
   const [allTours, setAllTours] = useState(null)
-  const [toursAvailability, setToursAvailability] = useState({})
+  // const [toursAvailability, setToursAvailability] = useState({})
   const [advancedSearchParams, setAdvancedSearchParams] = useState({
     dateRange: null
   })
@@ -31,6 +33,7 @@ export const SearchProvider = ({ children }) => {
       setLoading(true)
       Logger.debug(Logger.CATEGORIES.USER, 'carga tours', { type: 'all' })
       const response = await getAllTours()
+
       Logger.debug(Logger.CATEGORIES.USER, 'respuesta carga tours', { type: 'all', count: response?.data?.length || 0 })
 
       setAllTours(response)
@@ -49,6 +52,7 @@ export const SearchProvider = ({ children }) => {
       setLoading(true)
       Logger.debug(Logger.CATEGORIES.USER, 'carga tours', { type: 'random' })
       const response = await toursAllRandom()
+
       Logger.debug(Logger.CATEGORIES.USER, 'respuesta carga tours', { type: 'random', count: response?.data?.length || 0 })
 
       setAllTours(response)
@@ -70,6 +74,7 @@ export const SearchProvider = ({ children }) => {
     }
 
     window.addEventListener('reset-date-range', handleResetEvent)
+
     return () => window.removeEventListener('reset-date-range', handleResetEvent)
   }, [])
 
@@ -85,7 +90,9 @@ export const SearchProvider = ({ children }) => {
         ...prev,
         ...params
       }
+
       Logger.debug(Logger.CATEGORIES.USER, 'nuevos parámetros búsqueda', { newParams })
+
       return newParams
     })
   }, [])
@@ -97,12 +104,14 @@ export const SearchProvider = ({ children }) => {
     try {
       if (!allTours) {
         await loadAllTours()
+
         return
       }
 
       if (!searchTerm.trim() && !(advancedSearchParams.dateRange?.startDate || advancedSearchParams.dateRange?.start)) {
         setSearchResults(allTours)
         setLoading(false)
+
         return
       }
 
@@ -110,6 +119,7 @@ export const SearchProvider = ({ children }) => {
         Logger.error(Logger.CATEGORIES.USER, 'estructura datos inesperada', { allTours })
         setSearchResults({ success: false, error: 'Formato de datos inesperado' })
         setLoading(false)
+
         return
       }
 
@@ -118,6 +128,7 @@ export const SearchProvider = ({ children }) => {
       // Filtrar por término de búsqueda
       if (searchTerm.trim()) {
         const lowercaseSearchTerm = searchTerm.toLowerCase().trim()
+
         filteredResults = filteredResults.filter(tour => {
           return (
             (tour.name && tour.name.toLowerCase().includes(lowercaseSearchTerm)) ||
@@ -143,6 +154,7 @@ export const SearchProvider = ({ children }) => {
             startDate = new Date(advancedSearchParams.dateRange.startDate)
           } else if (advancedSearchParams.dateRange?.start) {
             const { day, month, year } = advancedSearchParams.dateRange.start
+
             startDate = new Date(year, month - 1, day, 0, 0, 0, 0)
           }
 
@@ -150,6 +162,7 @@ export const SearchProvider = ({ children }) => {
             endDate = new Date(advancedSearchParams.dateRange.endDate)
           } else if (advancedSearchParams.dateRange?.end) {
             const { day, month, year } = advancedSearchParams.dateRange.end
+
             // Crear la fecha de fin a las 23:59:59 para incluir todo el día
             endDate = new Date(year, month - 1, day, 23, 59, 59, 999)
           }
@@ -180,12 +193,15 @@ export const SearchProvider = ({ children }) => {
                 const departureDate = new Date(avail.departureTime)
 
                 const departureDateNormalized = new Date(departureDate)
+
                 departureDateNormalized.setHours(0, 0, 0, 0)
 
                 const startDateNormalized = new Date(startDate)
+
                 startDateNormalized.setHours(0, 0, 0, 0)
 
                 const endDateNormalized = new Date(endDate)
+
                 endDateNormalized.setHours(23, 59, 59, 999)
 
                 Logger.debug(Logger.CATEGORIES.USER, 'evaluación fecha tour', {
@@ -199,6 +215,7 @@ export const SearchProvider = ({ children }) => {
                 return departureDateNormalized >= startDateNormalized && departureDateNormalized <= endDateNormalized
               } catch (e) {
                 Logger.error(Logger.CATEGORIES.USER, 'error procesando fecha tour', { error: e, availability: avail })
+
                 return false
               }
             })
@@ -238,6 +255,7 @@ export const SearchProvider = ({ children }) => {
     searchTerm => {
       if (!allTours?.data || !searchTerm.trim()) {
         setSuggestions([])
+
         return
       }
 
@@ -322,7 +340,7 @@ export const SearchProvider = ({ children }) => {
     loading,
     suggestions,
     advancedSearchParams,
-    toursAvailability,
+    // toursAvailability,
     updateSearchTerm,
     updateAdvancedSearchParams,
     searchTours,
@@ -362,6 +380,7 @@ export const SearchProvider = ({ children }) => {
     }
 
     window.addEventListener('tour-created', handleTourCreated)
+
     return () => window.removeEventListener('tour-created', handleTourCreated)
   }, [allTours]) // Ya no depende de loadAllTours
 

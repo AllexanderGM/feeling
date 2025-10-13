@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Switch, Select, SelectItem, Chip } from '@heroui/react'
-import { Shield, Eye, Users, Globe, MapPin, Calendar, Lock, Save, Settings } from 'lucide-react'
+import { Shield, Eye, Users, Globe, Lock, Save, Settings } from 'lucide-react'
 import { useUser } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -52,13 +52,13 @@ const PrivacySettingsSection = ({ user }) => {
           <span className='text-sm font-medium text-gray-200'>Configuración de Privacidad</span>
         </div>
         <Button
-          size='sm'
-          variant='solid'
-          color='primary'
           className='bg-primary-600 hover:bg-primary-700'
+          color='primary'
+          isLoading={loading}
+          size='sm'
           startContent={<Save className='w-3 h-3' />}
-          onPress={handleSave}
-          isLoading={loading}>
+          variant='solid'
+          onPress={handleSave}>
           Guardar
         </Button>
       </div>
@@ -71,23 +71,23 @@ const PrivacySettingsSection = ({ user }) => {
             <span className='text-sm font-medium text-gray-200'>Visibilidad del perfil</span>
           </div>
           <Select
-            size='sm'
-            label='¿Quién puede ver tu perfil?'
-            selectedKeys={[settings.profilePrivacy]}
-            onSelectionChange={keys => handleSettingChange('profilePrivacy', Array.from(keys)[0])}
             className='max-w-xs'
             classNames={{
               trigger: 'bg-gray-700/50 border-gray-600',
               value: 'text-gray-200'
-            }}>
+            }}
+            label='¿Quién puede ver tu perfil?'
+            selectedKeys={[settings.profilePrivacy]}
+            size='sm'
+            onSelectionChange={keys => handleSettingChange('profilePrivacy', Array.from(keys)[0])}>
             {privacyOptions.map(option => (
               <SelectItem
                 key={option.key}
-                value={option.key}
-                textValue={option.label}
                 classNames={{
                   base: 'text-gray-200 data-[hover=true]:bg-gray-700'
-                }}>
+                }}
+                textValue={option.label}
+                value={option.key}>
                 <div className='flex flex-col'>
                   <span className='text-sm font-medium'>{option.label}</span>
                   <span className='text-xs text-gray-400'>{option.description}</span>
@@ -111,10 +111,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Permite que otros usuarios te encuentren</p>
               </div>
               <Switch
-                isSelected={settings.searchable}
-                onValueChange={value => handleSettingChange('searchable', value)}
                 color='primary'
+                isSelected={settings.searchable}
                 size='sm'
+                onValueChange={value => handleSettingChange('searchable', value)}
               />
             </div>
 
@@ -124,10 +124,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Mostrar tu ciudad en el perfil</p>
               </div>
               <Switch
-                isSelected={settings.shareLocation}
-                onValueChange={value => handleSettingChange('shareLocation', value)}
                 color='primary'
+                isSelected={settings.shareLocation}
                 size='sm'
+                onValueChange={value => handleSettingChange('shareLocation', value)}
               />
             </div>
 
@@ -137,10 +137,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Filtrar búsquedas a usuarios verificados</p>
               </div>
               <Switch
-                isSelected={settings.requireVerification}
-                onValueChange={value => handleSettingChange('requireVerification', value)}
                 color='success'
+                isSelected={settings.requireVerification}
                 size='sm'
+                onValueChange={value => handleSettingChange('requireVerification', value)}
               />
             </div>
           </div>
@@ -160,10 +160,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Otros pueden ver la distancia hasta ti</p>
               </div>
               <Switch
-                isSelected={settings.showDistance}
-                onValueChange={value => handleSettingChange('showDistance', value)}
                 color='primary'
+                isSelected={settings.showDistance}
                 size='sm'
+                onValueChange={value => handleSettingChange('showDistance', value)}
               />
             </div>
 
@@ -173,10 +173,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Mostrar tu edad en el perfil</p>
               </div>
               <Switch
-                isSelected={settings.showAge}
-                onValueChange={value => handleSettingChange('showAge', value)}
                 color='primary'
+                isSelected={settings.showAge}
                 size='sm'
+                onValueChange={value => handleSettingChange('showAge', value)}
               />
             </div>
 
@@ -186,10 +186,10 @@ const PrivacySettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Mostrar cuándo estuviste activo</p>
               </div>
               <Switch
-                isSelected={settings.showLastSeen}
-                onValueChange={value => handleSettingChange('showLastSeen', value)}
                 color='primary'
+                isSelected={settings.showLastSeen}
                 size='sm'
+                onValueChange={value => handleSettingChange('showLastSeen', value)}
               />
             </div>
           </div>
@@ -208,10 +208,10 @@ const PrivacySettingsSection = ({ user }) => {
               <p className='text-xs text-gray-400'>Recibir mensajes de otros usuarios</p>
             </div>
             <Switch
-              isSelected={settings.allowMessages}
-              onValueChange={value => handleSettingChange('allowMessages', value)}
               color='primary'
+              isSelected={settings.allowMessages}
               size='sm'
+              onValueChange={value => handleSettingChange('allowMessages', value)}
             />
           </div>
         </div>
@@ -223,16 +223,16 @@ const PrivacySettingsSection = ({ user }) => {
             <span className='text-xs font-medium text-blue-300'>Estado actual de privacidad</span>
           </div>
           <div className='flex flex-wrap gap-1'>
-            <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+            <Chip className='text-xs' color='primary' size='sm' variant='flat'>
               Perfil: {privacyOptions.find(opt => opt.key === settings.profilePrivacy)?.label}
             </Chip>
             {settings.searchable && (
-              <Chip size='sm' variant='flat' color='success' className='text-xs'>
+              <Chip className='text-xs' color='success' size='sm' variant='flat'>
                 Visible en búsquedas
               </Chip>
             )}
             {settings.requireVerification && (
-              <Chip size='sm' variant='flat' color='warning' className='text-xs'>
+              <Chip className='text-xs' color='warning' size='sm' variant='flat'>
                 Solo verificados
               </Chip>
             )}

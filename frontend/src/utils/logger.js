@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Sistema de logging unificado para la aplicación
  *
@@ -6,6 +7,8 @@
  * - Información general
  * - Debugging
  * - Tracking de eventos
+ *
+ * Nota: console.* está permitido en este archivo ya que es el módulo de logging
  */
 export class Logger {
   // Niveles de logging
@@ -275,13 +278,16 @@ export class Logger {
     try {
       // Intentar obtener del localStorage o contexto
       const userString = localStorage.getItem('user')
+
       if (userString) {
         const user = JSON.parse(userString)
+
         return user.id || user.userId || null
       }
-    } catch (e) {
+    } catch {
       // Si falla, no es crítico
     }
+
     return null
   }
 
@@ -326,6 +332,7 @@ export class Logger {
 
     if (logData.error) {
       const errorDetails = []
+
       errorDetails.push(`Message: "${logData.error.message}"`)
       if (logData.error.status) errorDetails.push(`Status: ${logData.error.status}`)
       if (logData.error.code) errorDetails.push(`Code: ${logData.error.code}`)
@@ -373,14 +380,17 @@ export class Logger {
     if (Array.isArray(obj)) {
       if (obj.length === 0) return '[]'
       const items = obj.map(item => this.objectToText(item))
+
       return `[${items.join(', ')}]`
     }
 
     if (typeof obj === 'object') {
       const entries = Object.entries(obj)
+
       if (entries.length === 0) return '{}'
 
       const pairs = entries.map(([key, value]) => `${key}: ${this.objectToText(value)}`)
+
       return `{${pairs.join(', ')}}`
     }
 
@@ -400,6 +410,7 @@ export class Logger {
       [this.LEVELS.INFO]: 'ℹ️',
       [this.LEVELS.DEBUG]: '🐛'
     }
+
     return icons[level] || 'ℹ️'
   }
 

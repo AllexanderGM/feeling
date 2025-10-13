@@ -20,10 +20,11 @@ import {
   Eye
 } from 'lucide-react'
 import { useAuth, useLocation, useUser, useUserInterests, useProfileData } from '@hooks'
-
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
+import { Logger } from '@utils/logger.js'
+
 import ProfileHeader from './components/ProfileHeader.jsx'
 import MatchSection from './components/MatchSection.jsx'
 
@@ -44,7 +45,6 @@ const Profile = () => {
     getUserName,
     getUserLastName,
     getUserEmail,
-    getUserImages,
     getUserCountry,
     getUserCity,
     getUserId,
@@ -75,18 +75,10 @@ const Profile = () => {
     getUserTags,
     getUserAgePreferenceMin,
     getUserAgePreferenceMax,
-    getUserPhone,
-    getUserPhoneCode,
-    getUserDescription,
-    getUserDocument,
     getProfileViews,
     getLikesReceived,
     getPopularityScore,
     getProfileCompletenessPercentage,
-    getAuthProvider,
-    getExternalAvatarUrl,
-    isEmailNotificationsEnabled,
-    isMatchNotificationsEnabled,
     showAge,
     showPhone
   } = useProfileData(user)
@@ -110,16 +102,20 @@ const Profile = () => {
   const categoryInterestDetails = useMemo(() => {
     // Verificar múltiples formas de obtener la categoría
     const categoryEnum = user?.profile?.categoryInterest || user?.categoryInterest
+
     if (!categoryEnum) return null
 
     const categoryDetails = getInterestByEnum(categoryEnum)
+
     return categoryDetails
   }, [user?.profile?.categoryInterest, user?.categoryInterest, getInterestByEnum])
 
   // Obtener datos del país con bandera
   const getCountryData = useMemo(() => {
     const country = getUserCountry()
+
     if (!country || !formattedCountries) return null
+
     return formattedCountries.find(c => c.name === country)
   }, [getUserCountry(), formattedCountries])
 
@@ -130,19 +126,16 @@ const Profile = () => {
       setIsLoadingUser(true)
 
       try {
-        console.log('🔄 [Profile] Cargando usuario completo...')
-
         // Cargar usuario completo (ya incluye métricas de matches desde el backend)
         const userData = await getCurrentUser()
 
         if (userData?.success) {
           updateUser(userData.data)
-          console.log('✅ [Profile] Usuario cargado con métricas de matches:', userData.data.matches)
         }
 
         setHasLoadedUser(true)
       } catch (error) {
-        console.error('❌ [Profile] Error cargando datos:', error)
+        Logger.error(Logger.CATEGORIES.USER, 'load_current_user', 'Error cargando datos del usuario', { error })
       } finally {
         setIsLoadingUser(false)
       }
@@ -165,42 +158,42 @@ const Profile = () => {
   if (interestError) return <LoadDataError>Error al cargar intereses de usuario</LoadDataError>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de perfil de usuario'>
+    <LiteContainer ariaLabel='Página de perfil de usuario' className='gap-4'>
       {/* Profile Header */}
       <ProfileHeader
-        profileData={profileData}
-        getUserName={getUserName}
-        getUserLastName={getUserLastName}
-        getUserEmail={getUserEmail}
-        getUserCreatedAt={getUserCreatedAt}
-        getUserLastActive={getUserLastActive}
-        getUserId={getUserId}
-        getAccountType={getAccountType}
-        getRegion={getRegion}
-        profileStats={profileStats}
         categoryInterestDetails={categoryInterestDetails}
+        getAccountType={getAccountType}
         getCountryData={getCountryData}
+        getProfilePrivacy={getProfilePrivacy}
+        getRegion={getRegion}
         getUserCity={getUserCity}
         getUserCountry={getUserCountry}
-        getProfilePrivacy={getProfilePrivacy}
-        isSearchable={isSearchable}
-        isLocationShared={isLocationShared}
-        isUserVerified={isUserVerified}
-        isProfileComplete={isProfileComplete}
+        getUserCreatedAt={getUserCreatedAt}
+        getUserEmail={getUserEmail}
+        getUserId={getUserId}
+        getUserLastActive={getUserLastActive}
+        getUserLastName={getUserLastName}
+        getUserName={getUserName}
         isAccountActive={isAccountActive}
+        isLocationShared={isLocationShared}
+        isProfileComplete={isProfileComplete}
+        isSearchable={isSearchable}
+        isUserVerified={isUserVerified}
+        profileData={profileData}
+        profileStats={profileStats}
       />
 
       {/* Match Section */}
       <MatchSection
-        getMatchAttempts={getMatchAttempts}
-        getTodayMatches={getTodayMatches}
-        getTotalMatches={getTotalMatches}
-        getMaxDailyAttempts={getMaxDailyAttempts}
-        getPendingSentMatches={getPendingSentMatches}
-        getPendingReceivedMatches={getPendingReceivedMatches}
         getAcceptedMatches={getAcceptedMatches}
         getFavoritesCount={getFavoritesCount}
+        getMatchAttempts={getMatchAttempts}
+        getMaxDailyAttempts={getMaxDailyAttempts}
+        getPendingReceivedMatches={getPendingReceivedMatches}
+        getPendingSentMatches={getPendingSentMatches}
         getRemainingAttempts={getRemainingAttempts}
+        getTodayMatches={getTodayMatches}
+        getTotalMatches={getTotalMatches}
       />
 
       {/* Profile Metrics Section */}
@@ -306,7 +299,7 @@ const Profile = () => {
               <h4 className='text-sm font-medium text-gray-300'>Intereses</h4>
               <div className='flex flex-wrap gap-2'>
                 {getUserTags().map((tag, index) => (
-                  <Chip key={index} size='sm' variant='flat' className='bg-purple-500/20 text-purple-300 border border-purple-500/30'>
+                  <Chip key={index} className='bg-purple-500/20 text-purple-300 border border-purple-500/30' size='sm' variant='flat'>
                     {tag}
                   </Chip>
                 ))}
@@ -381,12 +374,12 @@ const Profile = () => {
                   <h4 className='font-medium text-red-300 mb-1'>Reportar Error</h4>
                   <p className='text-xs text-gray-400 mb-3'>¿Encontraste un problema? Ayúdanos a solucionarlo</p>
                   <Button
-                    size='sm'
-                    color='danger'
-                    variant='bordered'
+                    aria-label='Reportar un error o problema técnico'
                     className='border-red-500/50 text-red-400 hover:bg-red-500/10'
+                    color='danger'
+                    size='sm'
                     startContent={<AlertTriangle className='w-3 h-3' />}
-                    aria-label='Reportar un error o problema técnico'>
+                    variant='bordered'>
                     Reportar
                   </Button>
                 </div>
@@ -403,12 +396,12 @@ const Profile = () => {
                   <h4 className='font-medium text-blue-300 mb-1'>Sugerir Mejora</h4>
                   <p className='text-xs text-gray-400 mb-3'>¿Tienes una idea genial? Compártela con nosotros</p>
                   <Button
-                    size='sm'
-                    color='primary'
-                    variant='bordered'
+                    aria-label='Sugerir una mejora o nueva funcionalidad'
                     className='border-blue-500/50 text-blue-400 hover:bg-blue-500/10'
+                    color='primary'
+                    size='sm'
                     startContent={<Send className='w-3 h-3' />}
-                    aria-label='Sugerir una mejora o nueva funcionalidad'>
+                    variant='bordered'>
                     Sugerir
                   </Button>
                 </div>
@@ -425,12 +418,12 @@ const Profile = () => {
                   <h4 className='font-medium text-green-300 mb-1'>Contactar Soporte</h4>
                   <p className='text-xs text-gray-400 mb-3'>¿Necesitas ayuda personal? Escríbenos directamente</p>
                   <Button
-                    size='sm'
-                    color='success'
-                    variant='bordered'
+                    aria-label='Contactar con el equipo de soporte'
                     className='border-green-500/50 text-green-400 hover:bg-green-500/10'
+                    color='success'
+                    size='sm'
                     startContent={<MessageCircle className='w-3 h-3' />}
-                    aria-label='Contactar con el equipo de soporte'>
+                    variant='bordered'>
                     Contactar
                   </Button>
                 </div>
@@ -475,14 +468,14 @@ const Profile = () => {
                 </div>
                 <div className='space-y-2'>
                   <Chip
-                    size='sm'
-                    color={isUserVerified() ? 'success' : 'warning'}
-                    variant='flat'
                     className={
                       isUserVerified()
                         ? 'bg-green-500/20 text-green-300 border border-green-500/30'
                         : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                    }>
+                    }
+                    color={isUserVerified() ? 'success' : 'warning'}
+                    size='sm'
+                    variant='flat'>
                     {isUserVerified() ? 'Verificado' : 'No verificado'}
                   </Chip>
                   {!isUserVerified() && <p className='text-xs text-gray-400'>Verifica tu cuenta para acceder a más funciones</p>}
@@ -497,14 +490,14 @@ const Profile = () => {
                 </div>
                 <div className='space-y-2'>
                   <Chip
-                    size='sm'
-                    color={isUserApproved() ? 'primary' : 'warning'}
-                    variant='flat'
                     className={
                       isUserApproved()
                         ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                         : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
-                    }>
+                    }
+                    color={isUserApproved() ? 'primary' : 'warning'}
+                    size='sm'
+                    variant='flat'>
                     {isUserApproved() ? 'Aprobado' : 'Pendiente de aprobación'}
                   </Chip>
                   {!isUserApproved() && <p className='text-xs text-orange-300'>Tu perfil será revisado y aprobado pronto</p>}
@@ -525,10 +518,10 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      size='sm'
+                      className={getProfilePrivacy() === 'Público' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                       color={getProfilePrivacy() === 'Público' ? 'success' : 'default'}
-                      variant='flat'
-                      className={getProfilePrivacy() === 'Público' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                      size='sm'
+                      variant='flat'>
                       {getProfilePrivacy() || 'Privado'}
                     </Chip>
                     {!isUserApproved() && getProfilePrivacy() === 'Público' && <span className='text-orange-300 text-xs'>*</span>}
@@ -543,10 +536,10 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      size='sm'
+                      className={isSearchable() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                       color={isSearchable() ? 'success' : 'default'}
-                      variant='flat'
-                      className={isSearchable() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                      size='sm'
+                      variant='flat'>
                       {isSearchable() ? 'Sí' : 'No'}
                     </Chip>
                     {!isUserApproved() && isSearchable() && <span className='text-orange-300 text-xs'>*</span>}
@@ -560,10 +553,10 @@ const Profile = () => {
                     <span className='text-gray-400'>Compartir ubicación:</span>
                   </div>
                   <Chip
-                    size='sm'
+                    className={isLocationShared() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                     color={isLocationShared() ? 'success' : 'default'}
-                    variant='flat'
-                    className={isLocationShared() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                    size='sm'
+                    variant='flat'>
                     {isLocationShared() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
@@ -576,10 +569,10 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      size='sm'
+                      className={showInSearch() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                       color={showInSearch() ? 'success' : 'default'}
-                      variant='flat'
-                      className={showInSearch() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                      size='sm'
+                      variant='flat'>
                       {showInSearch() ? 'Sí' : 'No'}
                     </Chip>
                     {!isUserApproved() && showInSearch() && <span className='text-orange-300 text-xs'>*</span>}
@@ -593,10 +586,10 @@ const Profile = () => {
                     <span className='text-gray-400'>Mostrar edad:</span>
                   </div>
                   <Chip
-                    size='sm'
+                    className={showAge() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                     color={showAge() ? 'success' : 'default'}
-                    variant='flat'
-                    className={showAge() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                    size='sm'
+                    variant='flat'>
                     {showAge() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
@@ -608,10 +601,10 @@ const Profile = () => {
                     <span className='text-gray-400'>Mostrar teléfono:</span>
                   </div>
                   <Chip
-                    size='sm'
+                    className={showPhone() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
                     color={showPhone() ? 'success' : 'default'}
-                    variant='flat'
-                    className={showPhone() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}>
+                    size='sm'
+                    variant='flat'>
                     {showPhone() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
@@ -688,21 +681,21 @@ const Profile = () => {
             {/* Enlaces a políticas */}
             <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 max-w-lg mx-auto'>
               <Button
-                size='sm'
-                variant='bordered'
+                aria-label='Ver política de privacidad completa'
                 className='border-blue-500/30 text-blue-300 hover:bg-blue-500/10'
-                startContent={<FileText className='w-4 h-4' />}
                 endContent={<ExternalLink className='w-3 h-3' />}
-                aria-label='Ver política de privacidad completa'>
+                size='sm'
+                startContent={<FileText className='w-4 h-4' />}
+                variant='bordered'>
                 Política de Privacidad
               </Button>
               <Button
-                size='sm'
-                variant='bordered'
+                aria-label='Ver tratamiento de datos personales'
                 className='border-purple-500/30 text-purple-300 hover:bg-purple-500/10'
-                startContent={<Shield className='w-4 h-4' />}
                 endContent={<ExternalLink className='w-3 h-3' />}
-                aria-label='Ver tratamiento de datos personales'>
+                size='sm'
+                startContent={<Shield className='w-4 h-4' />}
+                variant='bordered'>
                 Tratamiento de Datos
               </Button>
             </div>

@@ -20,6 +20,7 @@ class UserAttributesService extends ServiceREST {
   async getAllAttributesGrouped() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.ALL_GROUPED)
+
       return ServiceREST.handleServiceResponse(result, 'obtener atributos agrupados')
     } catch (error) {
       this.logError('obtener atributos agrupados', error)
@@ -33,6 +34,7 @@ class UserAttributesService extends ServiceREST {
   async getAttributeTypes() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.TYPES)
+
       return ServiceREST.handleServiceResponse(result, 'obtener tipos de atributos')
     } catch (error) {
       this.logError('obtener tipos de atributos', error)
@@ -47,6 +49,7 @@ class UserAttributesService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ATTRIBUTES.BY_TYPE.replace('{attributeType}', attributeType)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, `obtener atributos de tipo ${attributeType}`)
     } catch (error) {
       this.logError(`obtener atributos de tipo ${attributeType}`, error)
@@ -64,6 +67,7 @@ class UserAttributesService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ATTRIBUTES.MULTIPLE_TYPES}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener atributos por múltiples tipos')
     } catch (error) {
       this.logError('obtener atributos por múltiples tipos', error)
@@ -83,6 +87,7 @@ class UserAttributesService extends ServiceREST {
 
       const url = API_ENDPOINTS.USER_ATTRIBUTES.USERS_BY_ATTRIBUTE.replace('{attributeId}', attributeId)
       const result = await ServiceREST.get(`${url}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener usuarios por atributo')
     } catch (error) {
       this.logError('obtener usuarios por atributo', error)
@@ -105,6 +110,7 @@ class UserAttributesService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ATTRIBUTES.ALL_PAGINATED}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener atributos paginados')
     } catch (error) {
       this.logError('obtener atributos paginados', error)
@@ -118,6 +124,7 @@ class UserAttributesService extends ServiceREST {
   async getInactiveAttributes() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.INACTIVE)
+
       return ServiceREST.handleServiceResponse(result, 'obtener atributos inactivos')
     } catch (error) {
       this.logError('obtener atributos inactivos', error)
@@ -131,6 +138,7 @@ class UserAttributesService extends ServiceREST {
   async getInactiveAttributesCount() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ATTRIBUTES.INACTIVE_COUNT)
+
       return ServiceREST.handleServiceResponse(result, 'contar atributos inactivos')
     } catch (error) {
       this.logError('contar atributos inactivos', error)
@@ -145,6 +153,7 @@ class UserAttributesService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ATTRIBUTES.CREATE.replace('{attributeType}', attributeType)
       const result = await ServiceREST.post(url, attributeData)
+
       return ServiceREST.handleServiceResponse(result, `crear atributo de tipo ${attributeType}`)
     } catch (error) {
       // Enriquecer mensaje de error para casos específicos
@@ -152,6 +161,7 @@ class UserAttributesService extends ServiceREST {
         const validationMessages = Object.entries(error.fieldErrors)
           .map(([field, message]) => `${field}: ${message}`)
           .join(', ')
+
         error.message = `Error de validación: ${validationMessages}`
       }
 
@@ -167,6 +177,7 @@ class UserAttributesService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ATTRIBUTES.UPDATE.replace('{attributeId}', attributeId)
       const result = await ServiceREST.put(url, attributeData)
+
       return ServiceREST.handleServiceResponse(result, 'actualizar atributo')
     } catch (error) {
       this.logError('actualizar atributo', error)
@@ -181,6 +192,7 @@ class UserAttributesService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ATTRIBUTES.DELETE.replace('{attributeId}', attributeId)
       const result = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(result, 'eliminar atributo')
     } catch (error) {
       this.logError('eliminar atributo', error)
@@ -201,6 +213,7 @@ class UserAttributesService extends ServiceREST {
 
       return attributeTypes.reduce((acc, type, index) => {
         acc[type] = results[index]
+
         return acc
       }, {})
     } catch (error) {
@@ -215,9 +228,11 @@ class UserAttributesService extends ServiceREST {
   async validateAttributeType(attributeType) {
     try {
       const types = await this.getAttributeTypes()
+
       return types.includes(attributeType.toUpperCase())
     } catch (error) {
       this.logError('validar tipo de atributo', error)
+
       return false
     }
   }

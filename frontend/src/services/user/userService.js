@@ -1,5 +1,4 @@
 import { ServiceREST } from '@services/utils/serviceREST.js'
-import { ErrorManager } from '@utils/errorManager.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
 
 /**
@@ -27,6 +26,7 @@ class UserService extends ServiceREST {
         include: include
       })
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER.CURRENT}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener usuario actual')
     } catch (error) {
       this.logError('obtener usuario actual', error)
@@ -46,6 +46,7 @@ class UserService extends ServiceREST {
         include: include
       })
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER.CURRENT}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener perfil de usuario')
     } catch (error) {
       this.logError('obtener perfil de usuario', error)
@@ -61,6 +62,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.PUBLIC_PROFILE.replace('{email}', email)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, 'obtener perfil público')
     } catch (error) {
       this.logError('obtener perfil público', error)
@@ -76,6 +78,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.COMPLETE_PROFILE.replace('{email}', email)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, 'obtener perfil completo')
     } catch (error) {
       this.logError('obtener perfil completo', error)
@@ -90,6 +93,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.COMPATIBILITY.replace('{otherUserEmail}', otherUserEmail)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, 'calcular compatibilidad')
     } catch (error) {
       this.logError('calcular compatibilidad', error)
@@ -111,6 +115,7 @@ class UserService extends ServiceREST {
         size: size.toString()
       })
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER.SUGGESTIONS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener sugerencias')
     } catch (error) {
       this.logError('obtener sugerencias', error)
@@ -124,15 +129,17 @@ class UserService extends ServiceREST {
   async updateCurrentProfile(profileData, profileImages = null) {
     try {
       const formData = new FormData()
+
       formData.append('profileData', JSON.stringify(profileData))
 
       if (profileImages && profileImages.length > 0) {
-        profileImages.forEach((image, index) => {
+        profileImages.forEach(image => {
           formData.append('profileImages', image)
         })
       }
 
       const result = await ServiceREST.patch(API_ENDPOINTS.USER.UPDATE_PROFILE, formData)
+
       return ServiceREST.handleServiceResponse(result, 'actualizar perfil')
     } catch (error) {
       this.logError('actualizar perfil', error)
@@ -147,6 +154,7 @@ class UserService extends ServiceREST {
     try {
       const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
       const result = await ServiceREST.put(`${API_ENDPOINTS.USER.DEACTIVATE}${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'desactivar cuenta')
     } catch (error) {
       this.logError('desactivar cuenta', error)
@@ -173,6 +181,7 @@ class UserService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER.ALL}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener todos los usuarios')
     } catch (error) {
       this.logError('obtener todos los usuarios', error)
@@ -187,6 +196,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.BY_EMAIL.replace('{email}', email)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, 'obtener usuario por email')
     } catch (error) {
       this.logError('obtener usuario por email', error)
@@ -211,6 +221,7 @@ class UserService extends ServiceREST {
 
       const url = API_ENDPOINTS.USER.BY_STATUS.replace('{status}', status)
       const result = await ServiceREST.get(`${url}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'obtener usuarios por estatus')
     } catch (error) {
       this.logError('obtener usuarios por estatus', error)
@@ -224,10 +235,11 @@ class UserService extends ServiceREST {
   async updateUserProfileByAdmin(userId, profileData, profileImages = null) {
     try {
       const formData = new FormData()
+
       formData.append('profileData', JSON.stringify(profileData))
 
       if (profileImages && profileImages.length > 0) {
-        profileImages.forEach((image, index) => {
+        profileImages.forEach(image => {
           formData.append('profileImages', image)
         })
       }
@@ -236,6 +248,7 @@ class UserService extends ServiceREST {
       const result = await ServiceREST.put(url, formData, {
         'Content-Type': 'multipart/form-data'
       })
+
       return ServiceREST.handleServiceResponse(result, 'actualizar perfil por admin')
     } catch (error) {
       this.logError('actualizar perfil por admin', error)
@@ -250,6 +263,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.APPROVE.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'aprobar usuario')
     } catch (error) {
       this.logError('aprobar usuario', error)
@@ -263,6 +277,7 @@ class UserService extends ServiceREST {
   async approveUsersBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.APPROVE_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'aprobar usuarios en lote')
     } catch (error) {
       this.logError('aprobar usuarios en lote', error)
@@ -277,6 +292,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.REJECT.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'rechazar usuario')
     } catch (error) {
       this.logError('rechazar usuario', error)
@@ -290,6 +306,7 @@ class UserService extends ServiceREST {
   async rejectUsersBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.REJECT_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'rechazar usuarios en lote')
     } catch (error) {
       this.logError('rechazar usuarios en lote', error)
@@ -304,6 +321,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.RESET_PENDING.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'resetear usuario a pendiente')
     } catch (error) {
       this.logError('resetear usuario a pendiente', error)
@@ -318,6 +336,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.ASSIGN_ADMIN.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'asignar rol admin')
     } catch (error) {
       this.logError('asignar rol admin', error)
@@ -331,6 +350,7 @@ class UserService extends ServiceREST {
   async assignAdminRoleBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.ASSIGN_ADMIN_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'asignar rol admin en lote')
     } catch (error) {
       this.logError('asignar rol admin en lote', error)
@@ -345,6 +365,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.REVOKE_ADMIN.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'revocar rol admin')
     } catch (error) {
       this.logError('revocar rol admin', error)
@@ -358,6 +379,7 @@ class UserService extends ServiceREST {
   async revokeAdminRoleBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.REVOKE_ADMIN_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'revocar rol admin en lote')
     } catch (error) {
       this.logError('revocar rol admin en lote', error)
@@ -373,6 +395,7 @@ class UserService extends ServiceREST {
       const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
       const url = API_ENDPOINTS.USER.ADMIN_DEACTIVATE.replace('{userId}', userId)
       const result = await ServiceREST.put(`${url}${params}`)
+
       return ServiceREST.handleServiceResponse(result, 'desactivar cuenta')
     } catch (error) {
       this.logError('desactivar cuenta', error)
@@ -387,6 +410,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.REACTIVATE.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
+
       return ServiceREST.handleServiceResponse(result, 'reactivar cuenta')
     } catch (error) {
       this.logError('reactivar cuenta', error)
@@ -401,6 +425,7 @@ class UserService extends ServiceREST {
     try {
       const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
       const result = await ServiceREST.post(`${API_ENDPOINTS.USER.DEACTIVATE_BATCH}${params}`, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'desactivar cuentas en lote')
     } catch (error) {
       this.logError('desactivar cuentas en lote', error)
@@ -414,6 +439,7 @@ class UserService extends ServiceREST {
   async reactivateAccountsBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.REACTIVATE_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'reactivar cuentas en lote')
     } catch (error) {
       this.logError('reactivar cuentas en lote', error)
@@ -428,6 +454,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.SEND_EMAIL.replace('{userId}', userId)
       const result = await ServiceREST.post(url)
+
       return ServiceREST.handleServiceResponse(result, 'enviar email')
     } catch (error) {
       this.logError('enviar email', error)
@@ -441,6 +468,7 @@ class UserService extends ServiceREST {
   async sendEmailsBatch(userIds) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER.SEND_EMAIL_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'enviar emails en lote')
     } catch (error) {
       this.logError('enviar emails en lote', error)
@@ -455,6 +483,7 @@ class UserService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER.DELETE.replace('{userId}', userId)
       const result = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(result, 'eliminar usuario')
     } catch (error) {
       this.logError('eliminar usuario', error)
@@ -468,6 +497,7 @@ class UserService extends ServiceREST {
   async deleteUsersBatch(userIds) {
     try {
       const result = await ServiceREST.delete(API_ENDPOINTS.USER.DELETE_BATCH, userIds)
+
       return ServiceREST.handleServiceResponse(result, 'eliminar usuarios en lote')
     } catch (error) {
       this.logError('eliminar usuarios en lote', error)

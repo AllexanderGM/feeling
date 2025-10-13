@@ -7,6 +7,7 @@
 
 import { memo, useMemo } from 'react'
 import { ReactSortable } from 'react-sortablejs'
+
 import ImageCard from './ImageCard'
 import ImageProgress from './ImageProgress'
 
@@ -101,23 +102,23 @@ const ImageGrid = memo(
                   {existingImages.map(item => (
                     <div key={item.id} className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                       <ImageCard
-                        image={item.image}
-                        previewUrl={item.url}
-                        error={item.error}
-                        index={item.index}
-                        isMain={item.index === 0} // Primera imagen es principal
-                        isAnimating={item.isAnimating}
+                        canAddMore={canAddMore}
+                        className='w-full aspect-[3/4]'
+                        dropzoneProps={dropzoneProps}
                         enableCrop={enableCrop}
                         enableReorder={enableReorder}
-                        onRemove={onRemove}
-                        onSetAsMain={onSetAsMain}
+                        error={item.error}
+                        image={item.image}
+                        index={item.index}
+                        isAnimating={item.isAnimating}
+                        isMain={item.index === 0} // Primera imagen es principal
+                        previewUrl={item.url}
+                        size={size}
+                        variant='portrait'
                         onOpenCrop={onOpenCrop}
                         onPreview={onPreview}
-                        dropzoneProps={dropzoneProps}
-                        canAddMore={canAddMore}
-                        variant='portrait'
-                        size={size}
-                        className='w-full aspect-[3/4]'
+                        onRemove={onRemove}
+                        onSetAsMain={onSetAsMain}
                       />
                     </div>
                   ))}
@@ -128,23 +129,23 @@ const ImageGrid = memo(
               {canAddMore && imageCount < maxImages && (
                 <div className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                   <ImageCard
-                    image={null}
-                    previewUrl={null}
-                    error={null}
-                    index={imageCount} // Siguiente posición disponible
-                    isMain={imageCount === 0}
-                    isAnimating={false}
+                    canAddMore={canAddMore}
+                    className='w-full aspect-[3/4]'
+                    dropzoneProps={dropzoneProps}
                     enableCrop={enableCrop}
                     enableReorder={false}
-                    onRemove={onRemove}
-                    onSetAsMain={onSetAsMain}
+                    error={null}
+                    image={null}
+                    index={imageCount} // Siguiente posición disponible
+                    isAnimating={false}
+                    isMain={imageCount === 0}
+                    previewUrl={null}
+                    size={size}
+                    variant='portrait'
                     onOpenCrop={onOpenCrop}
                     onPreview={onPreview}
-                    dropzoneProps={dropzoneProps}
-                    canAddMore={canAddMore}
-                    variant='portrait'
-                    size={size}
-                    className='w-full aspect-[3/4]'
+                    onRemove={onRemove}
+                    onSetAsMain={onSetAsMain}
                   />
                 </div>
               )}
@@ -176,23 +177,23 @@ const ImageGrid = memo(
             return (
               <div key={`slot-${index}`} className='w-full'>
                 <ImageCard
-                  image={item?.image || null}
-                  previewUrl={item?.url || null}
-                  error={item?.error || null}
-                  index={index}
-                  isMain={index === 0}
-                  isAnimating={item?.isAnimating || false}
+                  canAddMore={canAddMore}
+                  className='w-full aspect-[3/4]'
+                  dropzoneProps={dropzoneProps}
                   enableCrop={enableCrop}
                   enableReorder={enableReorder}
-                  onRemove={onRemove}
-                  onSetAsMain={onSetAsMain}
+                  error={item?.error || null}
+                  image={item?.image || null}
+                  index={index}
+                  isAnimating={item?.isAnimating || false}
+                  isMain={index === 0}
+                  previewUrl={item?.url || null}
+                  size={size}
+                  variant='portrait'
                   onOpenCrop={onOpenCrop}
                   onPreview={onPreview}
-                  dropzoneProps={dropzoneProps}
-                  canAddMore={canAddMore}
-                  variant='portrait'
-                  size={size}
-                  className='w-full aspect-[3/4]'
+                  onRemove={onRemove}
+                  onSetAsMain={onSetAsMain}
                 />
               </div>
             )

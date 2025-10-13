@@ -423,6 +423,7 @@ export const extractErrorMessage = response => {
   if (response.error.validationErrors) {
     // Si hay errores de validación, tomar el primero
     const firstError = Object.values(response.error.validationErrors)[0]
+
     return Array.isArray(firstError) ? firstError[0] : firstError
   }
 
@@ -434,6 +435,7 @@ export const extractErrorMessage = response => {
  */
 export const extractResponseData = response => {
   if (!isSuccessResponse(response)) return null
+
   return response.data || response
 }
 

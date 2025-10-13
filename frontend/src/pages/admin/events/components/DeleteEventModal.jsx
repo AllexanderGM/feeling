@@ -20,14 +20,14 @@ const DeleteEventModal = ({ isOpen, onClose, onConfirm, loading, eventData }) =>
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      placement='center'
-      size='2xl'
       classNames={{
         base: 'bg-gray-800 border border-red-700/50',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      size='2xl'
+      onClose={handleClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -68,7 +68,7 @@ const DeleteEventModal = ({ isOpen, onClose, onConfirm, loading, eventData }) =>
                   {eventData.category && (
                     <div className='flex items-center justify-between'>
                       <span className='text-sm text-gray-400'>Categoría:</span>
-                      <Chip size='sm' variant='flat' color='primary'>
+                      <Chip color='primary' size='sm' variant='flat'>
                         {eventData.category}
                       </Chip>
                     </div>
@@ -135,7 +135,7 @@ const DeleteEventModal = ({ isOpen, onClose, onConfirm, loading, eventData }) =>
                           <p className='font-medium text-orange-200'>Eliminación Forzada</p>
                           <p className='text-xs text-orange-300/80'>Eliminar aunque tenga registraciones</p>
                         </div>
-                        <Switch isSelected={forceDelete} onValueChange={setForceDelete} color='warning' size='sm' />
+                        <Switch color='warning' isSelected={forceDelete} size='sm' onValueChange={setForceDelete} />
                       </div>
                     </div>
                   </div>
@@ -158,15 +158,15 @@ const DeleteEventModal = ({ isOpen, onClose, onConfirm, loading, eventData }) =>
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={handleClose} className='border-gray-600 text-gray-300' disabled={loading}>
+          <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={handleClose}>
             Cancelar
           </Button>
           <Button
             color='danger'
-            onPress={handleConfirm}
-            isLoading={loading}
             isDisabled={hasRegistrations && !forceDelete}
-            startContent={!loading && <Trash2 className='w-4 h-4' />}>
+            isLoading={loading}
+            startContent={!loading && <Trash2 className='w-4 h-4' />}
+            onPress={handleConfirm}>
             {hasRegistrations && forceDelete ? 'Forzar Eliminación' : 'Eliminar Evento'}
           </Button>
         </ModalFooter>

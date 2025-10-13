@@ -1,10 +1,7 @@
 import { useMemo } from 'react'
 import { Card, CardBody, Avatar, Chip, Progress } from '@heroui/react'
 import { Settings as SettingsIcon, Shield, CheckCircle } from 'lucide-react'
-
-// Hooks
 import { useAuth, useLocation, useUser, useUserInterests } from '@hooks'
-
 // Components
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
@@ -44,6 +41,7 @@ const Settings = () => {
     const getMainImage = () => {
       if (!user?.images || user.images.length === 0) return null
       const selectedIndex = user.selectedProfileImageIndex || 0
+
       return user.images[selectedIndex] || user.images[0]
     }
 
@@ -58,6 +56,7 @@ const Settings = () => {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
         age--
       }
+
       return age
     }
 
@@ -70,15 +69,18 @@ const Settings = () => {
   // Obtener categoría de interés con icono
   const userInterestDetails = useMemo(() => {
     const interestEnum = user?.categoryInterest || user?.userCategoryInterest?.categoryInterestEnum
+
     if (!interestEnum) return null
 
     const interestDetails = getInterestByEnum(interestEnum)
+
     return interestDetails
   }, [user?.categoryInterest, user?.userCategoryInterest?.categoryInterestEnum, getInterestByEnum])
 
   // Obtener datos del país con bandera
   const getCountryData = useMemo(() => {
     if (!user?.country || !formattedCountries) return null
+
     return formattedCountries.find(country => country.name === user.country)
   }, [user?.country, formattedCountries])
 
@@ -90,7 +92,7 @@ const Settings = () => {
   if (interestError) return <LoadDataError>Error al cargar categorías de interés</LoadDataError>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de configuración'>
+    <LiteContainer ariaLabel='Página de configuración' className='gap-4'>
       {/* Header de configuración */}
       <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 sm:p-6'>
         {/* Header principal */}
@@ -109,19 +111,19 @@ const Settings = () => {
           {/* Avatar */}
           <div className='relative shrink-0'>
             <Avatar
-              src={profileData?.mainImage}
               alt={`${user.name} ${user.lastName}`}
               className='w-20 h-20 sm:w-24 sm:h-24 text-large border-2 border-gray-600'
+              src={profileData?.mainImage}
             />
             {/* Mostrar chip de categoría solo si existe */}
             {userInterestDetails && (
               <div className='absolute -bottom-1 -right-1 rounded-full'>
                 <Chip
-                  size='sm'
-                  variant='flat'
-                  color='primary'
                   className='bg-primary-900/90 text-primary-300 border border-primary-500/30'
-                  startContent={userInterestDetails.icon && <span className='text-sm'>{userInterestDetails.icon}</span>}>
+                  color='primary'
+                  size='sm'
+                  startContent={userInterestDetails.icon && <span className='text-sm'>{userInterestDetails.icon}</span>}
+                  variant='flat'>
                   {userInterestDetails.name || 'Sin categoría'}
                 </Chip>
               </div>
@@ -140,9 +142,9 @@ const Settings = () => {
                 <div className='flex items-center gap-2'>
                   {getCountryData && (
                     <img
-                      src={getCountryData.image}
                       alt={`Bandera de ${getCountryData.name}`}
                       className='w-4 h-4 rounded-full object-cover'
+                      src={getCountryData.image}
                     />
                   )}
                   <span className='truncate'>
@@ -166,14 +168,14 @@ const Settings = () => {
                   <span className='text-gray-300 font-medium'>{profileStats?.completionPercentage || 0}%</span>
                 </div>
                 <Progress
-                  value={profileStats?.completionPercentage || 0}
-                  className='h-1.5'
-                  color='primary'
                   aria-label={`Completitud del perfil: ${profileStats?.completionPercentage || 0}%`}
+                  className='h-1.5'
                   classNames={{
                     indicator: 'bg-gradient-to-r from-primary-400 to-primary-600',
                     track: 'bg-gray-700'
                   }}
+                  color='primary'
+                  value={profileStats?.completionPercentage || 0}
                 />
               </div>
             </div>

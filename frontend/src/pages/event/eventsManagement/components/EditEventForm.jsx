@@ -95,6 +95,7 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
   const addTag = tag => {
     if (tag && !tags.includes(tag)) {
       const newTags = [...tags, tag]
+
       setTags(newTags)
       setValue('tags', newTags)
     }
@@ -102,23 +103,9 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
   const removeTag = tagToRemove => {
     const newTags = tags.filter(tag => tag !== tagToRemove)
+
     setTags(newTags)
     setValue('tags', newTags)
-  }
-
-  // Funciones para manejar includes
-  const addInclude = include => {
-    if (include && !includes.includes(include)) {
-      const newIncludes = [...includes, include]
-      setIncludes(newIncludes)
-      setValue('includes', newIncludes)
-    }
-  }
-
-  const removeInclude = includeToRemove => {
-    const newIncludes = includes.filter(include => include !== includeToRemove)
-    setIncludes(newIncludes)
-    setValue('includes', newIncludes)
   }
 
   // Funciones para manejar imágenes
@@ -128,6 +115,7 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
   const updateImage = (index, value) => {
     const newImages = [...images]
+
     newImages[index] = value
     setImages(newImages)
     setValue(
@@ -138,6 +126,7 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
   const removeImage = index => {
     const newImages = images.filter((_, i) => i !== index)
+
     setImages(newImages.length === 0 ? [''] : newImages)
     setValue(
       'images',
@@ -151,15 +140,15 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size='3xl'
-      scrollBehavior='inside'
       classNames={{
         modal: 'bg-background',
         header: 'border-b border-divider',
         footer: 'border-t border-divider'
-      }}>
+      }}
+      isOpen={isOpen}
+      scrollBehavior='inside'
+      size='3xl'
+      onClose={handleClose}>
       <ModalContent>
         <form onSubmit={handleSubmit(onSubmit)}>
           <ModalHeader className='flex flex-col gap-1'>
@@ -178,32 +167,32 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Controller
-                    name='name'
                     control={control}
+                    name='name'
                     render={({ field }) => (
                       <Input
                         {...field}
+                        isRequired
+                        errorMessage={errors.name?.message}
+                        isInvalid={!!errors.name}
                         label='Nombre del Evento'
                         placeholder='Ej: Tour por Cartagena'
-                        isInvalid={!!errors.name}
-                        errorMessage={errors.name?.message}
-                        isRequired
                       />
                     )}
                   />
 
                   <Controller
-                    name='status'
                     control={control}
+                    name='status'
                     render={({ field }) => (
                       <Select
                         {...field}
+                        errorMessage={errors.status?.message}
+                        isInvalid={!!errors.status}
                         label='Estado'
                         placeholder='Seleccionar estado'
                         selectedKeys={field.value ? [field.value] : []}
-                        onSelectionChange={keys => field.onChange(Array.from(keys)[0])}
-                        isInvalid={!!errors.status}
-                        errorMessage={errors.status?.message}>
+                        onSelectionChange={keys => field.onChange(Array.from(keys)[0])}>
                         {Object.values(EVENT_STATUS).map(status => (
                           <SelectItem key={status} value={status}>
                             {status}
@@ -215,18 +204,18 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                 </div>
 
                 <Controller
-                  name='description'
                   control={control}
+                  name='description'
                   render={({ field }) => (
                     <Textarea
                       {...field}
-                      label='Descripción'
-                      placeholder='Describe el evento o tour en detalle...'
-                      minRows={3}
-                      maxRows={5}
-                      isInvalid={!!errors.description}
-                      errorMessage={errors.description?.message}
                       isRequired
+                      errorMessage={errors.description?.message}
+                      isInvalid={!!errors.description}
+                      label='Descripción'
+                      maxRows={5}
+                      minRows={3}
+                      placeholder='Describe el evento o tour en detalle...'
                     />
                   )}
                 />
@@ -243,31 +232,31 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Controller
-                    name='destination.country'
                     control={control}
+                    name='destination.country'
                     render={({ field }) => (
                       <Input
                         {...field}
+                        isRequired
+                        errorMessage={errors.destination?.country?.message}
+                        isInvalid={!!errors.destination?.country}
                         label='País'
                         placeholder='Ej: Colombia'
-                        isInvalid={!!errors.destination?.country}
-                        errorMessage={errors.destination?.country?.message}
-                        isRequired
                       />
                     )}
                   />
 
                   <Controller
-                    name='destination.city'
                     control={control}
+                    name='destination.city'
                     render={({ field }) => (
                       <Input
                         {...field}
+                        isRequired
+                        errorMessage={errors.destination?.city?.message}
+                        isInvalid={!!errors.destination?.city}
                         label='Ciudad'
                         placeholder='Ej: Cartagena'
-                        isInvalid={!!errors.destination?.city}
-                        errorMessage={errors.destination?.city?.message}
-                        isRequired
                       />
                     )}
                   />
@@ -285,34 +274,34 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Controller
-                    name='adultPrice'
                     control={control}
+                    name='adultPrice'
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type='number'
+                        isRequired
+                        errorMessage={errors.adultPrice?.message}
+                        isInvalid={!!errors.adultPrice}
                         label='Precio Adultos'
                         placeholder='0'
                         startContent={<span className='text-default-400'>$</span>}
-                        isInvalid={!!errors.adultPrice}
-                        errorMessage={errors.adultPrice?.message}
-                        isRequired
+                        type='number'
                       />
                     )}
                   />
 
                   <Controller
-                    name='childPrice'
                     control={control}
+                    name='childPrice'
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type='number'
+                        errorMessage={errors.childPrice?.message}
+                        isInvalid={!!errors.childPrice}
                         label='Precio Niños'
                         placeholder='0'
                         startContent={<span className='text-default-400'>$</span>}
-                        isInvalid={!!errors.childPrice}
-                        errorMessage={errors.childPrice?.message}
+                        type='number'
                       />
                     )}
                   />
@@ -327,37 +316,37 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
 
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                   <Controller
-                    name='availability.0.availableDate'
                     control={control}
+                    name='availability.0.availableDate'
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type='date'
-                        label='Fecha Disponible'
-                        isInvalid={!!errors.availability?.[0]?.availableDate}
                         errorMessage={errors.availability?.[0]?.availableDate?.message}
+                        isInvalid={!!errors.availability?.[0]?.availableDate}
+                        label='Fecha Disponible'
+                        type='date'
                       />
                     )}
                   />
 
                   <Controller
-                    name='availability.0.availableSlots'
                     control={control}
+                    name='availability.0.availableSlots'
                     render={({ field }) => (
                       <Input
                         {...field}
-                        type='number'
+                        errorMessage={errors.availability?.[0]?.availableSlots?.message}
+                        isInvalid={!!errors.availability?.[0]?.availableSlots}
                         label='Plazas Disponibles'
                         placeholder='10'
-                        isInvalid={!!errors.availability?.[0]?.availableSlots}
-                        errorMessage={errors.availability?.[0]?.availableSlots?.message}
+                        type='number'
                       />
                     )}
                   />
 
                   <Controller
-                    name='hotel'
                     control={control}
+                    name='hotel'
                     render={({ field }) => (
                       <Select
                         {...field}
@@ -389,9 +378,9 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                   {Object.values(EVENT_CATEGORIES).map(category => (
                     <Button
                       key={category}
+                      color={tags.includes(category) ? 'primary' : 'default'}
                       size='sm'
                       variant={tags.includes(category) ? 'solid' : 'bordered'}
-                      color={tags.includes(category) ? 'primary' : 'default'}
                       onPress={() => {
                         if (tags.includes(category)) {
                           removeTag(category)
@@ -408,12 +397,21 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                   <div className='flex flex-wrap gap-2'>
                     <span className='text-sm text-default-500'>Seleccionadas:</span>
                     {tags.map(tag => (
-                      <span
+                      <button
                         key={tag}
-                        className='bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs cursor-pointer'
-                        onClick={() => removeTag(tag)}>
+                        aria-label={`Eliminar etiqueta ${tag}`}
+                        className='bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500'
+                        tabIndex={0}
+                        type='button'
+                        onClick={() => removeTag(tag)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            removeTag(tag)
+                          }
+                        }}>
                         {tag} ×
-                      </span>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -428,7 +426,7 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                     <ImageIcon className='w-5 h-5' />
                     Imágenes
                   </h3>
-                  <Button size='sm' variant='bordered' onPress={addImage} startContent={<Plus className='w-4 h-4' />}>
+                  <Button size='sm' startContent={<Plus className='w-4 h-4' />} variant='bordered' onPress={addImage}>
                     Agregar Imagen
                   </Button>
                 </div>
@@ -437,13 +435,13 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
                   {images.map((image, index) => (
                     <div key={index} className='flex gap-2'>
                       <Input
+                        className='flex-1'
+                        placeholder='URL de la imagen'
                         value={image}
                         onChange={e => updateImage(index, e.target.value)}
-                        placeholder='URL de la imagen'
-                        className='flex-1'
                       />
                       {images.length > 1 && (
-                        <Button size='sm' variant='light' color='danger' onPress={() => removeImage(index)}>
+                        <Button color='danger' size='sm' variant='light' onPress={() => removeImage(index)}>
                           ×
                         </Button>
                       )}
@@ -455,10 +453,10 @@ const EditEventForm = memo(({ isOpen, onClose, onSuccess, eventData }) => {
           </ModalBody>
 
           <ModalFooter>
-            <Button variant='light' onPress={handleClose} isDisabled={isSubmitting}>
+            <Button isDisabled={isSubmitting} variant='light' onPress={handleClose}>
               Cancelar
             </Button>
-            <Button type='submit' color='primary' isLoading={isSubmitting} isDisabled={isSubmitting}>
+            <Button color='primary' isDisabled={isSubmitting} isLoading={isSubmitting} type='submit'>
               {isSubmitting ? 'Actualizando...' : 'Actualizar Evento'}
             </Button>
           </ModalFooter>

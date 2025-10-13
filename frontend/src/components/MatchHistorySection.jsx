@@ -12,21 +12,7 @@ import {
   ModalFooter,
   useDisclosure
 } from '@heroui/react'
-import {
-  Archive,
-  Clock,
-  MessageCircle,
-  Eye,
-  Trash2,
-  RotateCcw,
-  Calendar,
-  MapPin,
-  Star,
-  Users,
-  Search,
-  TrendingUp,
-  Filter
-} from 'lucide-react'
+import { Archive, Clock, MessageCircle, Eye, Trash2, RotateCcw, Calendar, MapPin, Users, Search, TrendingUp } from 'lucide-react'
 import { Logger } from '@utils/logger.js'
 
 const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
@@ -41,6 +27,7 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
     // Filtrar por término de búsqueda
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
+
       filtered = filtered.filter(
         match => match.name.toLowerCase().includes(searchLower) || match.location.toLowerCase().includes(searchLower)
       )
@@ -62,6 +49,7 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
     if (diffInDays === 1) return 'Ayer'
     if (diffInDays < 7) return `Hace ${diffInDays} días`
     if (diffInDays < 30) return `Hace ${Math.floor(diffInDays / 7)} sem`
+
     return `Hace ${Math.floor(diffInDays / 30)} meses`
   }
 
@@ -127,8 +115,8 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
             <h3 className='text-lg font-medium text-gray-400 mb-2'>No se encontraron resultados</h3>
             <p className='text-gray-500 mb-4'>Intenta ajustar los filtros o términos de búsqueda</p>
             <Button
-              variant='bordered'
               className='border-gray-600 text-gray-300'
+              variant='bordered'
               onPress={() => {
                 setFilterStatus('all')
               }}>
@@ -141,9 +129,9 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
             <h3 className='text-lg font-medium text-gray-400 mb-2'>¡Aún no tienes historial de matches!</h3>
             <p className='text-gray-500 mb-4'>Cuando tengas conversaciones que terminen o se vuelvan inactivas, aparecerán aquí</p>
             <Button
+              className='bg-gradient-to-r from-primary-500 to-purple-500'
               color='primary'
-              startContent={<Users className='w-4 h-4' />}
-              className='bg-gradient-to-r from-primary-500 to-purple-500'>
+              startContent={<Users className='w-4 h-4' />}>
               Ver Matches Activos
             </Button>
           </>
@@ -163,14 +151,14 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
           {statusFilters.map(filter => (
             <Button
               key={filter.id}
+              className={filterStatus === filter.id ? '' : 'border-gray-600 text-gray-300 hover:bg-gray-700/30'}
+              color={filterStatus === filter.id ? 'primary' : 'default'}
               size='sm'
               variant={filterStatus === filter.id ? 'solid' : 'bordered'}
-              color={filterStatus === filter.id ? 'primary' : 'default'}
-              className={filterStatus === filter.id ? '' : 'border-gray-600 text-gray-300 hover:bg-gray-700/30'}
               onPress={() => setFilterStatus(filter.id)}>
               {filter.label}
               {filter.count > 0 && (
-                <Chip size='sm' variant='flat' className='ml-1'>
+                <Chip className='ml-1' size='sm' variant='flat'>
                   {filter.count}
                 </Chip>
               )}
@@ -183,15 +171,16 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
       <div className='space-y-3'>
         {filteredHistory.map(match => {
           const statusInfo = getStatusInfo(match.status)
+
           return (
             <Card key={match.id} className='bg-gray-700/20 border-gray-600/20 hover:bg-gray-700/30 transition-all duration-200'>
               <CardBody className='p-4'>
                 <div className='flex items-center gap-4'>
                   {/* Avatar */}
                   <div className='relative shrink-0'>
-                    <Avatar src={match.image} alt={match.name} className='w-14 h-14 opacity-80' />
+                    <Avatar alt={match.name} className='w-14 h-14 opacity-80' src={match.image} />
                     <div className='absolute -top-1 -right-1'>
-                      <Chip size='sm' color={statusInfo.color} variant='flat' className='text-xs'>
+                      <Chip className='text-xs' color={statusInfo.color} size='sm' variant='flat'>
                         {statusInfo.label}
                       </Chip>
                     </div>
@@ -226,20 +215,20 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
                       {/* Acciones */}
                       <div className='flex items-center gap-2'>
                         <Button
-                          size='sm'
-                          variant='bordered'
                           className='border-gray-600 text-gray-300 hover:bg-gray-700/30'
+                          size='sm'
                           startContent={<Eye className='w-3 h-3' />}
+                          variant='bordered'
                           onPress={() => handleViewHistory(match)}>
                           Ver Detalles
                         </Button>
 
                         {match.status === 'inactive' && (
                           <Button
-                            size='sm'
                             color='success'
-                            variant='flat'
+                            size='sm'
                             startContent={<RotateCcw className='w-3 h-3' />}
+                            variant='flat'
                             onPress={() => handleRestoreConversation(match)}>
                             Restaurar
                           </Button>
@@ -247,10 +236,10 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
 
                         {match.status !== 'archived' && (
                           <Button
-                            size='sm'
-                            variant='flat'
                             className='text-warning-400 hover:bg-warning-400/10'
+                            size='sm'
                             startContent={<Archive className='w-3 h-3' />}
+                            variant='flat'
                             onPress={() => handleArchiveMatch(match)}>
                             Archivar
                           </Button>
@@ -267,28 +256,28 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
 
       {/* Modal de detalles del historial */}
       <Modal
-        isOpen={isHistoryOpen}
-        onOpenChange={onHistoryOpenChange}
-        size='2xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isHistoryOpen}
+        size='2xl'
+        onOpenChange={onHistoryOpenChange}>
         <ModalContent>
           {onClose => (
             <>
               <ModalHeader className='flex flex-col gap-1'>
                 {selectedMatch && (
                   <div className='flex items-center gap-3'>
-                    <Avatar src={selectedMatch.image} alt={selectedMatch.name} className='w-16 h-16' />
+                    <Avatar alt={selectedMatch.name} className='w-16 h-16' src={selectedMatch.image} />
                     <div>
                       <h3 className='text-xl font-bold text-gray-200'>{selectedMatch.name}</h3>
                       <p className='text-gray-400'>
                         {selectedMatch.age} años • {selectedMatch.location}
                       </p>
-                      <Chip size='sm' color={getStatusInfo(selectedMatch.status).color} variant='flat' className='mt-1'>
+                      <Chip className='mt-1' color={getStatusInfo(selectedMatch.status).color} size='sm' variant='flat'>
                         {getStatusInfo(selectedMatch.status).label}
                       </Chip>
                     </div>
@@ -381,8 +370,8 @@ const MatchHistorySection = ({ history, searchTerm, getCategoryIcon }) => {
                 )}
                 <Button
                   color='danger'
-                  variant='flat'
                   startContent={<Trash2 className='w-4 h-4' />}
+                  variant='flat'
                   onPress={() => {
                     handleDeleteForever(selectedMatch)
                     onClose()

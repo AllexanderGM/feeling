@@ -1,45 +1,23 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Card, CardBody, Chip, Button, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@heroui/react'
-import {
-  Heart,
-  MessageCircle,
-  Users,
-  Search,
-  Filter,
-  Clock,
-  Zap,
-  Star,
-  Calendar,
-  Sparkles,
-  Flame,
-  Eye,
-  CreditCard,
-  Package,
-  Check,
-  X,
-  Phone,
-  Mail,
-  ShoppingCart
-} from 'lucide-react'
-
+import { Card, CardBody, Chip, Button, Input } from '@heroui/react'
+import { Heart, MessageCircle, Users, Search, Star, Sparkles, Flame, Check, X, Phone, ShoppingCart, Send, RotateCcw } from 'lucide-react'
 // Hooks
 import { useAuth, useUser, useUserInterests, useError, useMatches } from '@hooks'
+import { Logger } from '@utils/logger.js'
 // Components
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
-import UserCard from '@components/ui/UserCard.jsx'
 import AdvancedFilters from '@pages/home/components/AdvancedFilters.jsx'
 
 // New components for the enhanced experience
 import PlanPurchaseModal from './components/PlanPurchaseModal.jsx'
 import MatchRequestModal from './components/MatchRequestModal.jsx'
-import MatchNotificationModal from './components/MatchNotificationModal.jsx'
 import ContactInfoModal from './components/ContactInfoModal.jsx'
 
 const MatchesNew = () => {
   const { user, loading: authLoading } = useAuth()
-  const { suggestions, suggestionsPagination, fetchUserSuggestions, loading: userLoading } = useUser()
+  const { suggestions, fetchUserSuggestions, loading: userLoading } = useUser()
   const {
     matches,
     matchStats,
@@ -48,11 +26,10 @@ const MatchesNew = () => {
     acceptMatch,
     rejectMatch,
     addToFavorites,
-    removeFromFavorites,
     getMatchContact,
     refreshAllMatches
   } = useMatches()
-  const { getInterestByEnum, loading: interestLoading } = useUserInterests()
+  const { loading: interestLoading } = useUserInterests()
   const { handleError, handleSuccess } = useError()
 
   const [activeSection, setActiveSection] = useState('discover')
@@ -61,13 +38,11 @@ const MatchesNew = () => {
   // Modals state
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isMatchRequestModalOpen, setIsMatchRequestModalOpen] = useState(false)
-  const [isMatchNotificationModalOpen, setIsMatchNotificationModalOpen] = useState(false)
   const [isContactModalOpen, setIsContactModalOpen] = useState(false)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
 
   // Selected data
   const [selectedUser, setSelectedUser] = useState(null)
-  const [selectedMatch, setSelectedMatch] = useState(null)
   const [selectedContact, setSelectedContact] = useState(null)
 
   // Filtros state
@@ -132,6 +107,7 @@ const MatchesNew = () => {
   useEffect(() => {
     const handleMatchFiltersAction = event => {
       const { action } = event.detail
+
       switch (action) {
         case 'openFilters':
           setIsFiltersOpen(true)
@@ -146,6 +122,7 @@ const MatchesNew = () => {
     }
 
     window.addEventListener('matchFiltersAction', handleMatchFiltersAction)
+
     return () => window.removeEventListener('matchFiltersAction', handleMatchFiltersAction)
   }, [])
 
@@ -153,19 +130,20 @@ const MatchesNew = () => {
   const handleApplyFilters = newFilters => {
     setAppliedFilters(newFilters)
     // Aquí se aplicarían los filtros a los datos reales
-    console.log('Filtros aplicados en Matches:', newFilters)
+    Logger.info('Aplicando filtros en Matches', newFilters, { category: Logger.CATEGORIES.UI })
   }
 
   const handleRefreshData = () => {
     // Recargar sugerencias y matches
     fetchUserSuggestions(0, 10)
     refreshAllMatches()
-    console.log('Refrescando datos de matches')
+    Logger.info('Refrescando datos de matches')
   }
 
   // Contar filtros activos
   const activeFiltersCount = useMemo(() => {
     let count = 0
+
     if (appliedFilters.categoryInterest !== 'all') count++
     if (appliedFilters.ageMin !== 18 || appliedFilters.ageMax !== 65) count++
     if (appliedFilters.distance !== 50) count++
@@ -180,6 +158,7 @@ const MatchesNew = () => {
     if (appliedFilters.smokingPreference !== 'all') count++
     if (appliedFilters.drinkingPreference !== 'all') count++
     if (appliedFilters.sortBy !== 'compatibility') count++
+
     return count
   }, [appliedFilters])
 
@@ -188,27 +167,29 @@ const MatchesNew = () => {
     const event = new CustomEvent('updateFiltersCount', {
       detail: { filtersCount: activeFiltersCount }
     })
+
     window.dispatchEvent(event)
   }, [activeFiltersCount])
 
   // Cargar datos iniciales
   useEffect(() => {
-    console.log('🔥 useEffect - user:', user, 'userLoading:', userLoading)
+    Logger.info('🔥 useEffect - user:', user, 'userLoading:', userLoading)
     if (user && !userLoading) {
-      console.log('✅ Calling fetchUserSuggestions')
+      Logger.info('✅ Calling fetchUserSuggestions')
       fetchUserSuggestions(0, 10)
     }
   }, [user, userLoading, fetchUserSuggestions])
 
   // Debug suggestions
   useEffect(() => {
-    console.log('📋 Suggestions updated:', suggestions)
-    console.log('📊 Suggestions length:', suggestions?.length)
+    Logger.info('📋 Suggestions updated:', suggestions)
+    Logger.info('📊 Suggestions length:', suggestions?.length)
   }, [suggestions])
 
   // Get category icon - usando la estructura estándar
   const getCategoryIcon = user => {
     const category = user?.status?.categoryInterest || user?.profile?.categoryInterest
+
     switch (category?.toUpperCase()) {
       case 'ESSENCE':
         return <Sparkles className='w-4 h-4 text-blue-400' />
@@ -264,6 +245,7 @@ const MatchesNew = () => {
   const handleSendMatch = targetUser => {
     if (userMatchData.availableAttempts <= 0) {
       setIsPlanModalOpen(true)
+
       return
     }
 
@@ -288,6 +270,7 @@ const MatchesNew = () => {
   const handleAcceptMatch = async match => {
     if (userMatchData.availableAttempts <= 0) {
       setIsPlanModalOpen(true)
+
       return
     }
 
@@ -321,11 +304,13 @@ const MatchesNew = () => {
   const handleViewContact = async match => {
     if (!match.contactUnlocked) {
       handleError('Información de contacto no disponible')
+
       return
     }
 
     try {
       const contactInfo = await getMatchContact(match.id)
+
       setSelectedContact(contactInfo)
       setIsContactModalOpen(true)
     } catch (error) {
@@ -355,11 +340,11 @@ const MatchesNew = () => {
           <h3 className='text-xl font-bold text-gray-300 mb-2'>¡No hay más perfiles!</h3>
           <p className='text-gray-500 mb-6'>No hay perfiles que coincidan con tus filtros actuales.</p>
           <Button
+            className=''
             color='primary'
-            variant='bordered'
             startContent={<RotateCcw className='w-4 h-4' />}
-            onPress={() => fetchUserSuggestions(0, 10)}
-            className=''>
+            variant='bordered'
+            onPress={() => fetchUserSuggestions(0, 10)}>
             Cargar nuevas sugerencias
           </Button>
         </div>
@@ -372,14 +357,14 @@ const MatchesNew = () => {
               <CardBody className='p-0'>
                 <div className='relative'>
                   <img
-                    src={user.profile?.images?.[0] || user.profile?.mainImage || '/api/placeholder/300/400'}
                     alt={user.profile?.name}
                     className='w-full h-64 object-cover'
+                    src={user.profile?.images?.[0] || user.profile?.mainImage || '/api/placeholder/300/400'}
                   />
                   <div className='absolute top-2 right-2'>{getCategoryIcon(user)}</div>
                   {user.status?.verified && (
                     <div className='absolute top-2 left-2'>
-                      <div className='w-3 h-3 bg-green-400 rounded-full border-2 border-white'></div>
+                      <div className='w-3 h-3 bg-green-400 rounded-full border-2 border-white' />
                     </div>
                   )}
                 </div>
@@ -394,7 +379,7 @@ const MatchesNew = () => {
                         {user.profile?.city} • {user.profile?.department}
                       </p>
                     </div>
-                    <Chip size='sm' color='success' variant='flat'>
+                    <Chip color='success' size='sm' variant='flat'>
                       95%
                     </Chip>
                   </div>
@@ -403,7 +388,7 @@ const MatchesNew = () => {
 
                   <div className='flex items-center gap-2 flex-wrap'>
                     {user.profile?.tags?.slice(0, 3).map((tag, index) => (
-                      <Chip key={index} size='sm' variant='bordered' className='text-xs'>
+                      <Chip key={index} className='text-xs' size='sm' variant='bordered'>
                         {tag}
                       </Chip>
                     ))}
@@ -411,14 +396,14 @@ const MatchesNew = () => {
 
                   <div className='flex items-center gap-2 pt-2'>
                     <Button
+                      className='flex-1'
                       color='primary'
                       size='sm'
-                      className='flex-1'
                       startContent={<Heart className='w-4 h-4' />}
                       onPress={() => handleSendMatch(user)}>
                       Match
                     </Button>
-                    <Button color='secondary' size='sm' variant='bordered' isIconOnly onPress={() => handleAddToFavorites(user)}>
+                    <Button isIconOnly color='secondary' size='sm' variant='bordered' onPress={() => handleAddToFavorites(user)}>
                       <Star className='w-4 h-4' />
                     </Button>
                   </div>
@@ -443,7 +428,7 @@ const MatchesNew = () => {
           <Card key={match.id} className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
             <CardBody className='p-4'>
               <div className='flex items-center gap-4'>
-                <img src={match.targetUser.images[0]} alt={match.targetUser.name} className='w-16 h-16 rounded-lg object-cover' />
+                <img alt={match.targetUser.name} className='w-16 h-16 rounded-lg object-cover' src={match.targetUser.images[0]} />
                 <div className='flex-1'>
                   <h3 className='font-bold text-gray-100'>
                     {match.targetUser.name}, {match.targetUser.age}
@@ -452,7 +437,7 @@ const MatchesNew = () => {
                 </div>
                 <div className='flex items-center gap-2'>
                   {getCategoryIcon(match.targetUser.category)}
-                  <Chip size='sm' color='warning' variant='flat'>
+                  <Chip color='warning' size='sm' variant='flat'>
                     Pendiente
                   </Chip>
                 </div>
@@ -476,7 +461,7 @@ const MatchesNew = () => {
           <Card key={match.id} className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
             <CardBody className='p-4'>
               <div className='flex items-center gap-4'>
-                <img src={match.initiatorUser.images[0]} alt={match.initiatorUser.name} className='w-16 h-16 rounded-lg object-cover' />
+                <img alt={match.initiatorUser.name} className='w-16 h-16 rounded-lg object-cover' src={match.initiatorUser.images[0]} />
                 <div className='flex-1'>
                   <h3 className='font-bold text-gray-100'>
                     {match.initiatorUser.name}, {match.initiatorUser.age}
@@ -488,7 +473,7 @@ const MatchesNew = () => {
                   <Button color='success' size='sm' startContent={<Check className='w-4 h-4' />} onPress={() => handleAcceptMatch(match)}>
                     Aceptar
                   </Button>
-                  <Button color='danger' size='sm' variant='bordered' isIconOnly onPress={() => handleRejectMatch(match)}>
+                  <Button isIconOnly color='danger' size='sm' variant='bordered' onPress={() => handleRejectMatch(match)}>
                     <X className='w-4 h-4' />
                   </Button>
                 </div>
@@ -512,7 +497,7 @@ const MatchesNew = () => {
           <Card key={match.id} className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
             <CardBody className='p-4'>
               <div className='flex items-center gap-4'>
-                <img src={match.otherUser.images[0]} alt={match.otherUser.name} className='w-16 h-16 rounded-lg object-cover' />
+                <img alt={match.otherUser.name} className='w-16 h-16 rounded-lg object-cover' src={match.otherUser.images[0]} />
                 <div className='flex-1'>
                   <h3 className='font-bold text-gray-100'>
                     {match.otherUser.name}, {match.otherUser.age}
@@ -526,7 +511,7 @@ const MatchesNew = () => {
                       Contacto
                     </Button>
                   )}
-                  <Chip size='sm' color='success' variant='flat'>
+                  <Chip color='success' size='sm' variant='flat'>
                     Conectados
                   </Chip>
                 </div>
@@ -551,7 +536,7 @@ const MatchesNew = () => {
             <Card key={user.id} className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
               <CardBody className='p-4'>
                 <div className='flex items-center gap-3'>
-                  <img src={user.images[0]} alt={user.name} className='w-12 h-12 rounded-lg object-cover' />
+                  <img alt={user.name} className='w-12 h-12 rounded-lg object-cover' src={user.images[0]} />
                   <div className='flex-1'>
                     <h3 className='font-medium text-gray-100'>
                       {user.name}, {user.age}
@@ -596,7 +581,7 @@ const MatchesNew = () => {
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de matches'>
+    <LiteContainer ariaLabel='Página de matches' className='gap-4'>
       {/* Header with user match status */}
       <div className='w-full bg-gradient-to-br from-red-900/20 via-pink-800/10 to-purple-900/20 backdrop-blur-sm rounded-xl border border-red-700/50 p-4 sm:p-6'>
         <div className='flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4'>
@@ -626,14 +611,14 @@ const MatchesNew = () => {
         {/* Search bar */}
         <div className='mt-4'>
           <Input
-            placeholder='Buscar usuarios...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            startContent={<Search className='w-4 h-4 text-gray-400' />}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-800/50 backdrop-blur-sm border-gray-600'
             }}
+            placeholder='Buscar usuarios...'
+            startContent={<Search className='w-4 h-4 text-gray-400' />}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
@@ -646,17 +631,17 @@ const MatchesNew = () => {
               {sectionTabs.map(tab => (
                 <Button
                   key={tab.id}
-                  variant={activeSection === tab.id ? 'solid' : 'bordered'}
-                  color={activeSection === tab.id ? tab.color : 'default'}
-                  size='sm'
                   className={`flex items-center gap-2 ${
                     activeSection === tab.id ? '' : 'border-gray-600 text-gray-300 hover:bg-gray-700/30'
                   }`}
+                  color={activeSection === tab.id ? tab.color : 'default'}
+                  size='sm'
+                  variant={activeSection === tab.id ? 'solid' : 'bordered'}
                   onPress={() => setActiveSection(tab.id)}>
                   {tab.icon}
                   <span>{tab.title}</span>
                   {tab.count > 0 && (
-                    <Chip size='sm' variant='flat' className='ml-1'>
+                    <Chip className='ml-1' size='sm' variant='flat'>
                       {tab.count}
                     </Chip>
                   )}
@@ -674,28 +659,28 @@ const MatchesNew = () => {
 
       {/* Modals */}
       <PlanPurchaseModal
-        isOpen={isPlanModalOpen}
-        onClose={() => setIsPlanModalOpen(false)}
-        plans={mockPlans}
-        onPurchase={handlePurchasePlan}
         currentAttempts={userMatchData.availableAttempts}
+        isOpen={isPlanModalOpen}
+        plans={mockPlans}
+        onClose={() => setIsPlanModalOpen(false)}
+        onPurchase={handlePurchasePlan}
       />
 
       <MatchRequestModal
         isOpen={isMatchRequestModalOpen}
-        onClose={() => setIsMatchRequestModalOpen(false)}
         user={selectedUser}
+        onClose={() => setIsMatchRequestModalOpen(false)}
         onConfirm={confirmSendMatch}
       />
 
-      <ContactInfoModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} contact={selectedContact} />
+      <ContactInfoModal contact={selectedContact} isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
 
       {/* Panel de filtros avanzados */}
       <AdvancedFilters
-        isOpen={isFiltersOpen}
-        onOpenChange={setIsFiltersOpen}
-        onApplyFilters={handleApplyFilters}
         currentFilters={appliedFilters}
+        isOpen={isFiltersOpen}
+        onApplyFilters={handleApplyFilters}
+        onOpenChange={setIsFiltersOpen}
       />
     </LiteContainer>
   )

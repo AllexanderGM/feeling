@@ -23,6 +23,7 @@ export const useNotification = () => {
       })
     } catch (error) {
       Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing success toast', error)
+
       return null
     }
   }, [])
@@ -43,6 +44,7 @@ export const useNotification = () => {
       })
     } catch (error) {
       Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing error toast', error)
+
       return null
     }
   }, [])
@@ -63,6 +65,7 @@ export const useNotification = () => {
       })
     } catch (error) {
       Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing warning toast', error)
+
       return null
     }
   }, [])
@@ -83,6 +86,7 @@ export const useNotification = () => {
       })
     } catch (error) {
       Logger.error(Logger.CATEGORIES.SYSTEM, 'Error showing info toast', error)
+
       return null
     }
   }, [])
@@ -105,6 +109,7 @@ export const useNotification = () => {
       }
 
       const handler = notificationMap[type] || notificationMap.info
+
       return handler()
     },
     [showSuccess, showError, showWarning, showInfo]

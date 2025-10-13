@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, Image } from '@heroui/react'
+import { Logger } from '@utils/logger.js'
 
 import authService from '../services/auth/authService.js'
 import loginImg from '../assets/Backgrounds/forestwoman.webp'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Logger } from '@utils/logger.js'
 
 const LoginForm = ({ loginMessage }) => {
   const [password, setPassword] = useState('')
@@ -23,12 +23,15 @@ const LoginForm = ({ loginMessage }) => {
 
   useEffect(() => {
     let redirectTimer
+
     if (loginSuccess) {
       redirectTimer = setTimeout(() => {
         const redirectTo = location.state?.from || '/'
+
         navigate(redirectTo, { replace: true })
       }, 1000)
     }
+
     return () => {
       if (redirectTimer) clearTimeout(redirectTimer)
     }
@@ -41,12 +44,14 @@ const LoginForm = ({ loginMessage }) => {
     if (value.length < 8) {
       return 'La contraseña debe tener 8 caracteres o más'
     }
+
     return null
   }
 
   const handlePasswordChange = value => {
     setPassword(value)
     const error = getPasswordError(value)
+
     setIsInvalid(!!error)
     setErrorMessage(error)
   }
@@ -55,6 +60,7 @@ const LoginForm = ({ loginMessage }) => {
     setEmail(value)
     if (errors.email) {
       const newErrors = { ...errors }
+
       delete newErrors.email
       setErrors(newErrors)
     }
@@ -81,6 +87,7 @@ const LoginForm = ({ loginMessage }) => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+
       return
     }
 
@@ -91,6 +98,7 @@ const LoginForm = ({ loginMessage }) => {
 
     try {
       const result = await authService.login(email, password)
+
       Logger.info('Login exitoso', Logger.CATEGORIES.USER, { userEmail: email, userId: result?.user?.id })
 
       setUser(result.user)
@@ -119,9 +127,9 @@ const LoginForm = ({ loginMessage }) => {
         <CardBody className='grid grid-cols-1 md:grid-cols-2 gap-0 p-0 '>
           <div className='h-full relative flex'>
             <Image
-              src={loginImg}
               alt='Un hombre mirando el horizonte sobre un bosque montañoso'
               className='w-full h-full min-h-full object-cover rounded-none'
+              src={loginImg}
             />
           </div>
 
@@ -145,6 +153,7 @@ const LoginForm = ({ loginMessage }) => {
             <div className='flex flex-col gap-5 max-w-md w-full px-12 py-0'>
               <Input
                 isRequired
+                disabled={loginSuccess}
                 errorMessage={errors.email}
                 isInvalid={!!errors.email}
                 label='Correo electrónico'
@@ -152,12 +161,12 @@ const LoginForm = ({ loginMessage }) => {
                 name='email'
                 placeholder='correo@ejemplo.com'
                 type='email'
-                onValueChange={handleEmailChange}
                 value={email}
-                disabled={loginSuccess}
+                onValueChange={handleEmailChange}
               />
               <Input
                 isRequired
+                disabled={loginSuccess}
                 errorMessage={errorMessage}
                 isInvalid={isInvalid}
                 label='Contraseña'
@@ -167,19 +176,18 @@ const LoginForm = ({ loginMessage }) => {
                 type='password'
                 value={password}
                 onValueChange={handlePasswordChange}
-                disabled={loginSuccess}
               />
 
               <div className='flex gap-4'>
                 <Button
                   className='w-full bg-[#E86C6E]'
                   color='primary'
-                  type='submit'
+                  disabled={isLoading || loginSuccess}
                   isLoading={isLoading}
-                  disabled={isLoading || loginSuccess}>
+                  type='submit'>
                   {isLoading ? 'Procesando...' : 'Iniciar sesión'}
                 </Button>
-                <Button type='reset' variant='bordered' disabled={isLoading || loginSuccess}>
+                <Button disabled={isLoading || loginSuccess} type='reset' variant='bordered'>
                   Reset
                 </Button>
               </div>
@@ -187,7 +195,7 @@ const LoginForm = ({ loginMessage }) => {
 
             <p className='text-sm text-gray-600 text-center mt-4'>
               ¿No tienes cuenta?{' '}
-              <Link to='/register' className='text-primary-500 hover:underline'>
+              <Link className='text-primary-500 hover:underline' to='/register'>
                 Registrate aquí
               </Link>
             </p>

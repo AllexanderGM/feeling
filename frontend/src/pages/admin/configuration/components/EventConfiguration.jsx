@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, CardBody, CardHeader, Input, Button, Switch, Select, SelectItem, Divider, Chip, Slider } from '@heroui/react'
-import { Calendar, Save, MapPin, DollarSign, Users, Clock } from 'lucide-react'
+import { Card, CardBody, CardHeader, Input, Button, Switch, Select, SelectItem, Divider, Chip } from '@heroui/react'
+import { Calendar, Save, DollarSign, Users, Clock } from 'lucide-react'
 import { useConfiguration } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -91,65 +91,65 @@ const EventConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <Input
-              type='number'
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
               label='Capacidad Máxima'
+              startContent={<Users className='w-4 h-4 text-gray-400' />}
+              type='number'
               value={formData.maxEventCapacity.toString()}
               onChange={e => handleInputChange('maxEventCapacity', parseInt(e.target.value) || 0)}
-              startContent={<Users className='w-4 h-4 text-gray-400' />}
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
-            />
-
-            <Input
-              type='number'
               label='Duración Mínima (horas)'
+              startContent={<Clock className='w-4 h-4 text-gray-400' />}
+              type='number'
               value={formData.minEventDuration.toString()}
               onChange={e => handleInputChange('minEventDuration', parseInt(e.target.value) || 0)}
-              startContent={<Clock className='w-4 h-4 text-gray-400' />}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
 
             <Input
-              type='number'
-              label='Duración Máxima (horas)'
-              value={formData.maxEventDuration.toString()}
-              onChange={e => handleInputChange('maxEventDuration', parseInt(e.target.value) || 0)}
-              startContent={<Clock className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Duración Máxima (horas)'
+              startContent={<Clock className='w-4 h-4 text-gray-400' />}
+              type='number'
+              value={formData.maxEventDuration.toString()}
+              onChange={e => handleInputChange('maxEventDuration', parseInt(e.target.value) || 0)}
             />
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              type='number'
-              label='Reserva Anticipada (días)'
-              value={formData.advanceBookingDays.toString()}
-              onChange={e => handleInputChange('advanceBookingDays', parseInt(e.target.value) || 0)}
-              description='Días máximos para reservar con anticipación'
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              description='Días máximos para reservar con anticipación'
+              label='Reserva Anticipada (días)'
+              type='number'
+              value={formData.advanceBookingDays.toString()}
+              onChange={e => handleInputChange('advanceBookingDays', parseInt(e.target.value) || 0)}
             />
 
             <Input
-              type='number'
-              label='Límite de Cancelación (horas)'
-              value={formData.cancellationDeadlineHours.toString()}
-              onChange={e => handleInputChange('cancellationDeadlineHours', parseInt(e.target.value) || 0)}
-              description='Horas antes del evento para cancelar'
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              description='Horas antes del evento para cancelar'
+              label='Límite de Cancelación (horas)'
+              type='number'
+              value={formData.cancellationDeadlineHours.toString()}
+              onChange={e => handleInputChange('cancellationDeadlineHours', parseInt(e.target.value) || 0)}
             />
           </div>
         </CardBody>
@@ -171,13 +171,13 @@ const EventConfiguration = ({ config, loading }) => {
           <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
             <div className='flex items-center gap-3'>
               <Switch
-                isSelected={formData.enablePayments}
-                onValueChange={value => handleInputChange('enablePayments', value)}
                 color='success'
+                isSelected={formData.enablePayments}
                 size='sm'
+                onValueChange={value => handleInputChange('enablePayments', value)}
               />
               <span className='text-sm font-medium text-gray-200'>Habilitar Pagos</span>
-              <Chip size='sm' variant='flat' color={formData.enablePayments ? 'success' : 'default'}>
+              <Chip color={formData.enablePayments ? 'success' : 'default'} size='sm' variant='flat'>
                 {formData.enablePayments ? 'Activo' : 'Inactivo'}
               </Chip>
             </div>
@@ -185,13 +185,13 @@ const EventConfiguration = ({ config, loading }) => {
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Select
-              label='Moneda por Defecto'
-              selectedKeys={formData.defaultEventCurrency ? [formData.defaultEventCurrency] : []}
-              onSelectionChange={keys => handleInputChange('defaultEventCurrency', Array.from(keys)[0] || '')}
               classNames={{
                 trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                 value: 'text-gray-200'
-              }}>
+              }}
+              label='Moneda por Defecto'
+              selectedKeys={formData.defaultEventCurrency ? [formData.defaultEventCurrency] : []}
+              onSelectionChange={keys => handleInputChange('defaultEventCurrency', Array.from(keys)[0] || '')}>
               <SelectItem key='USD' value='USD'>
                 USD - Dólar
               </SelectItem>
@@ -204,16 +204,16 @@ const EventConfiguration = ({ config, loading }) => {
             </Select>
 
             <Input
-              type='number'
-              label='Precio Máximo'
-              value={formData.maxEventPrice.toString()}
-              onChange={e => handleInputChange('maxEventPrice', parseInt(e.target.value) || 0)}
-              startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
-              isDisabled={!formData.enablePayments}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              isDisabled={!formData.enablePayments}
+              label='Precio Máximo'
+              startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
+              type='number'
+              value={formData.maxEventPrice.toString()}
+              onChange={e => handleInputChange('maxEventPrice', parseInt(e.target.value) || 0)}
             />
           </div>
         </CardBody>
@@ -237,10 +237,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableAutoApproval}
-                    onValueChange={value => handleInputChange('enableAutoApproval', value)}
                     color='primary'
+                    isSelected={formData.enableAutoApproval}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableAutoApproval', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Aprobación Automática</span>
                 </div>
@@ -249,10 +249,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableEventRatings}
-                    onValueChange={value => handleInputChange('enableEventRatings', value)}
                     color='warning'
+                    isSelected={formData.enableEventRatings}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableEventRatings', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Calificaciones</span>
                 </div>
@@ -261,10 +261,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableEventComments}
-                    onValueChange={value => handleInputChange('enableEventComments', value)}
                     color='success'
+                    isSelected={formData.enableEventComments}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableEventComments', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Comentarios</span>
                 </div>
@@ -273,10 +273,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableWaitingList}
-                    onValueChange={value => handleInputChange('enableWaitingList', value)}
                     color='secondary'
+                    isSelected={formData.enableWaitingList}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableWaitingList', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Lista de Espera</span>
                 </div>
@@ -287,10 +287,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableEventReminders}
-                    onValueChange={value => handleInputChange('enableEventReminders', value)}
                     color='primary'
+                    isSelected={formData.enableEventReminders}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableEventReminders', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Recordatorios</span>
                 </div>
@@ -299,10 +299,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableEventImages}
-                    onValueChange={value => handleInputChange('enableEventImages', value)}
                     color='warning'
+                    isSelected={formData.enableEventImages}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableEventImages', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Imágenes de Eventos</span>
                 </div>
@@ -311,10 +311,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enablePrivateEvents}
-                    onValueChange={value => handleInputChange('enablePrivateEvents', value)}
                     color='danger'
+                    isSelected={formData.enablePrivateEvents}
                     size='sm'
+                    onValueChange={value => handleInputChange('enablePrivateEvents', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Eventos Privados</span>
                 </div>
@@ -323,10 +323,10 @@ const EventConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableRecurringEvents}
-                    onValueChange={value => handleInputChange('enableRecurringEvents', value)}
                     color='success'
+                    isSelected={formData.enableRecurringEvents}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableRecurringEvents', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Eventos Recurrentes</span>
                 </div>
@@ -340,10 +340,10 @@ const EventConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>

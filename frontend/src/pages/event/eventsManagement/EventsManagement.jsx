@@ -75,17 +75,11 @@ const EventsManagement = memo(() => {
   // Load events when parameters change
   useEffect(() => {
     refreshEvents()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage, debouncedFilter])
 
   // ========================================
   // COLUMNS AND FILTERS CONFIGURATION
   // ========================================
-
-  const headerColumns = useMemo(() => {
-    if (visibleColumns === 'all') return EVENT_COLUMNS
-    return EVENT_COLUMNS.filter(column => Array.from(visibleColumns).includes(column.uid))
-  }, [visibleColumns])
 
   // Filter events based on search
   const filteredEvents = useMemo(() => {
@@ -112,18 +106,21 @@ const EventsManagement = memo(() => {
       const first = a[sortDescriptor.column] || ''
       const second = b[sortDescriptor.column] || ''
       const cmp = first < second ? -1 : first > second ? 1 : 0
+
       return sortDescriptor.direction === 'descending' ? -cmp : cmp
     })
   }, [sortDescriptor, filteredEvents])
 
   const paginatedEvents = useMemo(() => {
     const start = (page - 1) * rowsPerPage
+
     return sortedEvents.slice(start, start + rowsPerPage)
   }, [sortedEvents, page, rowsPerPage])
 
   // Filtered and paginated pending events
   const filteredPendingEvents = useMemo(() => {
     if (!pendingDebouncedFilter) return pendingEvents
+
     return pendingEvents.filter(
       event =>
         event.name?.toLowerCase().includes(pendingDebouncedFilter.toLowerCase()) ||
@@ -137,6 +134,7 @@ const EventsManagement = memo(() => {
   const pendingPages = Math.ceil(filteredPendingEvents.length / pendingRowsPerPage)
   const paginatedPendingEvents = useMemo(() => {
     const start = (pendingPage - 1) * pendingRowsPerPage
+
     return filteredPendingEvents.slice(start, start + pendingRowsPerPage)
   }, [filteredPendingEvents, pendingPage, pendingRowsPerPage])
 
@@ -166,6 +164,7 @@ const EventsManagement = memo(() => {
       if (!event || !event.id) {
         Logger.error('Incomplete event data for deletion', { event }, { category: Logger.CATEGORIES.UI })
         handleError('No se puede eliminar el evento: datos incompletos')
+
         return
       }
 
@@ -231,8 +230,9 @@ const EventsManagement = memo(() => {
           createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
         }
       ]
+
       setPendingEvents(mockPendingEvents)
-    } catch (error) {
+    } catch {
       handleError('Error al cargar eventos pendientes')
     } finally {
       setLoadingPending(false)
@@ -246,7 +246,7 @@ const EventsManagement = memo(() => {
         await new Promise(resolve => setTimeout(resolve, 1000))
         setPendingEvents(prev => prev.filter(event => event.id !== eventId))
         handleSuccess('Evento aprobado correctamente')
-      } catch (error) {
+      } catch {
         handleError('Error al aprobar evento')
       }
     },
@@ -260,7 +260,7 @@ const EventsManagement = memo(() => {
         await new Promise(resolve => setTimeout(resolve, 1000))
         setPendingEvents(prev => prev.filter(event => event.id !== eventId))
         handleSuccess('Evento rechazado correctamente')
-      } catch (error) {
+      } catch {
         handleError('Error al rechazar evento')
       }
     },
@@ -344,22 +344,22 @@ const EventsManagement = memo(() => {
   const topContent = useMemo(
     () => (
       <GenericTableControls
-        filterValue={filterValue}
-        onClear={onClear}
-        onSearchChange={onSearchChange}
-        filterPlaceholder='Buscar por nombre, destino, etiquetas o estado...'
         columns={EVENT_COLUMNS}
-        visibleColumns={visibleColumns}
-        setVisibleColumns={setVisibleColumns}
-        onCreateItem={handleOpenCreateModal}
         createButtonLabel='Crear Evento'
-        onRefresh={handleRefreshActiveEvents}
-        loading={loading}
         error={null}
-        totalItems={totalItems}
+        filterPlaceholder='Buscar por nombre, destino, etiquetas o estado...'
+        filterValue={filterValue}
         itemsLabel='eventos'
+        loading={loading}
         rowsPerPage={rowsPerPage}
+        setVisibleColumns={setVisibleColumns}
+        totalItems={totalItems}
+        visibleColumns={visibleColumns}
+        onClear={onClear}
+        onCreateItem={handleOpenCreateModal}
+        onRefresh={handleRefreshActiveEvents}
         onRowsPerPageChange={onRowsPerPageChange}
+        onSearchChange={onSearchChange}
       />
     ),
     [
@@ -379,13 +379,13 @@ const EventsManagement = memo(() => {
   const bottomContent = useMemo(
     () => (
       <TablePagination
-        selectedKeys={selectedKeys}
         filteredItemsLength={totalItems}
         page={page}
         pages={pages}
-        onPreviousPage={onPreviousPage}
+        selectedKeys={selectedKeys}
         onNextPage={onNextPage}
         onPageChange={setPage}
+        onPreviousPage={onPreviousPage}
       />
     ),
     [selectedKeys, totalItems, page, pages, onPreviousPage, onNextPage]
@@ -395,21 +395,21 @@ const EventsManagement = memo(() => {
   const pendingTopContent = useMemo(
     () => (
       <GenericTableControls
-        filterValue={pendingFilterValue}
-        onClear={onPendingClear}
-        onSearchChange={onPendingSearchChange}
-        filterPlaceholder='Buscar eventos pendientes...'
         columns={EVENT_COLUMNS}
-        visibleColumns={visibleColumns}
-        setVisibleColumns={setVisibleColumns}
-        loading={loadingPending}
         error={null}
-        totalItems={filteredPendingEvents.length}
-        itemsLabel='eventos pendientes'
-        rowsPerPage={pendingRowsPerPage}
-        onRowsPerPageChange={onPendingRowsPerPageChange}
+        filterPlaceholder='Buscar eventos pendientes...'
+        filterValue={pendingFilterValue}
         hideCreateButton={true}
+        itemsLabel='eventos pendientes'
+        loading={loadingPending}
+        rowsPerPage={pendingRowsPerPage}
+        setVisibleColumns={setVisibleColumns}
+        totalItems={filteredPendingEvents.length}
+        visibleColumns={visibleColumns}
+        onClear={onPendingClear}
         onRefresh={handleRefreshPendingEvents}
+        onRowsPerPageChange={onPendingRowsPerPageChange}
+        onSearchChange={onPendingSearchChange}
       />
     ),
     [
@@ -428,13 +428,13 @@ const EventsManagement = memo(() => {
   const pendingBottomContent = useMemo(
     () => (
       <TablePagination
-        selectedKeys={new Set([])}
         filteredItemsLength={filteredPendingEvents.length}
         page={pendingPage}
         pages={pendingPages}
-        onPreviousPage={onPendingPreviousPage}
+        selectedKeys={new Set([])}
         onNextPage={onPendingNextPage}
         onPageChange={setPendingPage}
+        onPreviousPage={onPendingPreviousPage}
       />
     ),
     [filteredPendingEvents.length, pendingPage, pendingPages, onPendingPreviousPage, onPendingNextPage]
@@ -451,9 +451,11 @@ const EventsManagement = memo(() => {
     const popularDestinations =
       events?.reduce((acc, event) => {
         const city = event.destination?.city
+
         if (city) {
           acc[city] = (acc[city] || 0) + 1
         }
+
         return acc
       }, {}) || {}
 
@@ -472,7 +474,7 @@ const EventsManagement = memo(() => {
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Gestión de Eventos | Admin</title>
-        <meta name='description' content='Panel de administración para gestionar eventos del sistema' />
+        <meta content='Panel de administración para gestionar eventos del sistema' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -486,11 +488,11 @@ const EventsManagement = memo(() => {
       {/* Pestañas para eventos activos y pendientes */}
       <div className='flex w-full flex-col'>
         <Tabs
-          selectedKey={selectedTab}
-          onSelectionChange={setSelectedTab}
           aria-label='Gestión de eventos'
           color='primary'
-          variant='bordered'>
+          selectedKey={selectedTab}
+          variant='bordered'
+          onSelectionChange={setSelectedTab}>
           <Tab
             key='active'
             title={
@@ -504,19 +506,19 @@ const EventsManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={bottomContent}
+                currentUser={currentUser}
                 events={paginatedEvents}
                 loading={loading}
-                tableType='active'
-                currentUser={currentUser}
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
                 selectedKeys={selectedKeys}
                 setSelectedKeys={setSelectedKeys}
-                sortDescriptor={sortDescriptor}
                 setSortDescriptor={setSortDescriptor}
+                sortDescriptor={sortDescriptor}
+                tableType='active'
                 topContent={topContent}
-                bottomContent={bottomContent}
                 visibleColumns={visibleColumns}
+                onDelete={handleOpenDeleteModal}
+                onEdit={handleOpenEditModal}
               />
             </div>
           </Tab>
@@ -534,14 +536,14 @@ const EventsManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedEventTable
+                bottomContent={pendingBottomContent}
                 events={paginatedPendingEvents}
                 loading={loadingPending}
                 tableType='pending'
+                topContent={pendingTopContent}
+                visibleColumns={visibleColumns}
                 onApprove={handleApproveEvent}
                 onReject={handleRejectEvent}
-                visibleColumns={visibleColumns}
-                topContent={pendingTopContent}
-                bottomContent={pendingBottomContent}
               />
             </div>
           </Tab>
@@ -555,15 +557,15 @@ const EventsManagement = memo(() => {
       <CreateEventForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />
 
       {selectedEvent && (
-        <EditEventForm isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} eventData={selectedEvent} />
+        <EditEventForm eventData={selectedEvent} isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleOperationSuccess} />
       )}
 
       {selectedEvent && (
         <DeleteEventModal
+          eventData={selectedEvent}
           isOpen={isDeleteModalOpen}
           onClose={handleCloseModals}
           onSuccess={handleOperationSuccess}
-          eventData={selectedEvent}
         />
       )}
     </div>

@@ -21,9 +21,9 @@ import {
   Tooltip,
   User
 } from '@heroui/react'
-import { Check, X, Eye, Edit, Trash2, ToggleLeft, ToggleRight, Calendar, MapPin, Users, DollarSign, Tag } from 'lucide-react'
+import { Eye, Edit, Trash2, ToggleLeft, ToggleRight, Calendar, MapPin, Users, DollarSign } from 'lucide-react'
 import { useError } from '@hooks'
-import { EVENT_CATEGORY_COLORS, EVENT_STATUS_COLORS } from '@constants/tableConstants.js'
+import { EVENT_CATEGORY_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate } from '@utils/dateUtils.js'
 
 const UnifiedEventTable = memo(
@@ -35,15 +35,10 @@ const UnifiedEventTable = memo(
     onEdit,
     onDelete,
     onToggleStatus,
-    onView,
-    selectedKeys,
-    setSelectedKeys,
-    disabledKeys,
     sortDescriptor,
     setSortDescriptor,
     topContent,
     bottomContent,
-    visibleColumns,
     headerColumns
   }) => {
     const { handleError, handleSuccess } = useError()
@@ -65,7 +60,7 @@ const UnifiedEventTable = memo(
         try {
           await onToggleStatus?.(event.id)
           handleSuccess(`Estado del evento "${event.title}" cambiado correctamente`)
-        } catch (error) {
+        } catch {
           handleError('Error al cambiar el estado del evento')
         } finally {
           setActionLoading(false)
@@ -86,16 +81,16 @@ const UnifiedEventTable = memo(
               <div className='flex items-center gap-3'>
                 {hasImage ? (
                   <Avatar
-                    radius='lg'
-                    src={hasImage}
                     alt={`${event.title || 'Evento'}`}
                     className='w-12 h-12'
+                    radius='lg'
+                    src={hasImage}
                     onError={() => {
                       // Imagen de placeholder fallará silenciosamente
                     }}
                   />
                 ) : (
-                  <Avatar radius='lg' className='w-12 h-12 bg-default-100' icon={<Calendar className='w-6 h-6 text-default-500' />} />
+                  <Avatar className='w-12 h-12 bg-default-100' icon={<Calendar className='w-6 h-6 text-default-500' />} radius='lg' />
                 )}
                 <div className='flex flex-col'>
                   <p className='text-sm font-semibold text-foreground'>{event.title || event.name || 'Sin título'}</p>
@@ -110,8 +105,6 @@ const UnifiedEventTable = memo(
             return (
               <div className='flex flex-col'>
                 <User
-                  name={event.creatorName || 'Usuario desconocido'}
-                  description={event.creatorEmail || ''}
                   avatarProps={{
                     src: event.creatorImage,
                     size: 'sm'
@@ -120,6 +113,8 @@ const UnifiedEventTable = memo(
                     name: 'text-sm font-medium',
                     description: 'text-xs text-default-500'
                   }}
+                  description={event.creatorEmail || ''}
+                  name={event.creatorName || 'Usuario desconocido'}
                 />
               </div>
             )
@@ -214,6 +209,7 @@ const UnifiedEventTable = memo(
 
           case 'tags':
             const tags = event.tags || []
+
             if (!tags.length) {
               return <span className='text-xs text-default-400'>Sin etiquetas</span>
             }
@@ -221,7 +217,7 @@ const UnifiedEventTable = memo(
             return (
               <div className='flex flex-wrap gap-1'>
                 {tags.slice(0, 2).map((tag, index) => (
-                  <Chip key={index} size='sm' variant='flat' color='secondary'>
+                  <Chip key={index} color='secondary' size='sm' variant='flat'>
                     {tag}
                   </Chip>
                 ))}
@@ -236,12 +232,12 @@ const UnifiedEventTable = memo(
                 <Tooltip content='Ver detalles'>
                   <Button
                     isIconOnly
-                    size='sm'
-                    variant='flat'
                     className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                    onPress={() => handleViewDetails(event)}
                     isDisabled={loading || actionLoading}
-                    title='Ver detalles'>
+                    size='sm'
+                    title='Ver detalles'
+                    variant='flat'
+                    onPress={() => handleViewDetails(event)}>
                     <Eye className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -250,12 +246,12 @@ const UnifiedEventTable = memo(
                 <Tooltip content='Editar evento'>
                   <Button
                     isIconOnly
-                    size='sm'
-                    variant='flat'
                     className='bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 border border-gray-500/20'
-                    onPress={() => onEdit?.(event)}
                     isDisabled={loading || actionLoading}
-                    title='Editar evento'>
+                    size='sm'
+                    title='Editar evento'
+                    variant='flat'
+                    onPress={() => onEdit?.(event)}>
                     <Edit className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -264,26 +260,26 @@ const UnifiedEventTable = memo(
                 <Tooltip content={event.isActive ? 'Desactivar evento' : 'Activar evento'}>
                   <Button
                     isIconOnly
-                    size='sm'
-                    variant='flat'
                     className={`${event.isActive ? 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'}`}
-                    onPress={() => handleToggleStatus(event)}
                     isDisabled={loading || actionLoading}
-                    title={event.isActive ? 'Desactivar evento' : 'Activar evento'}>
+                    size='sm'
+                    title={event.isActive ? 'Desactivar evento' : 'Activar evento'}
+                    variant='flat'
+                    onPress={() => handleToggleStatus(event)}>
                     {event.isActive ? <ToggleLeft className='w-4 h-4' /> : <ToggleRight className='w-4 h-4' />}
                   </Button>
                 </Tooltip>
 
                 {/* Eliminar evento */}
-                <Tooltip content='Eliminar evento' color='danger'>
+                <Tooltip color='danger' content='Eliminar evento'>
                   <Button
                     isIconOnly
-                    size='sm'
-                    variant='flat'
                     className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                    onPress={() => onDelete?.(event)}
                     isDisabled={loading || actionLoading}
-                    title='Eliminar evento'>
+                    size='sm'
+                    title='Eliminar evento'
+                    variant='flat'
+                    onPress={() => onDelete?.(event)}>
                     <Trash2 className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -302,12 +298,14 @@ const UnifiedEventTable = memo(
     // Función para generar key única para cada evento
     const getEventKey = (event, index) => {
       if (!event) return `event-empty-${index}`
+
       return event.id || event.eventId || `event-${index}-${Math.random().toString(36).substr(2, 9)}`
     }
 
     // Crear array de eventos con keys garantizadas
     const eventsWithKeys = useMemo(() => {
       if (!events) return []
+
       return events.map((event, index) => ({
         ...event,
         _key: getEventKey(event, index)
@@ -336,23 +334,23 @@ const UnifiedEventTable = memo(
       <>
         <Table
           aria-label={`Tabla de eventos ${tableType === 'upcoming' ? 'próximos' : tableType === 'all' ? 'todos' : 'activos'}`}
-          className='min-h-[400px]'
-          removeWrapper={false}
-          isHeaderSticky={true}
-          color='primary'
           bottomContent={bottomContent}
           bottomContentPlacement='outside'
-          selectionMode='none'
-          sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement='outside'
-          onSortChange={setSortDescriptor}
+          className='min-h-[400px]'
           classNames={{
             wrapper: 'bg-gray-800/40 backdrop-blur-sm border border-gray-700/50',
             th: 'bg-gray-700/50 border-b border-gray-600/50',
             td: 'border-b border-gray-700/30',
             tbody: '[&>tr:hover]:bg-gray-700/20'
-          }}>
+          }}
+          color='primary'
+          isHeaderSticky={true}
+          removeWrapper={false}
+          selectionMode='none'
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement='outside'
+          onSortChange={setSortDescriptor}>
           <TableHeader columns={displayColumns}>
             {column => (
               <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'} allowsSorting={column.uid !== 'actions'}>
@@ -361,18 +359,18 @@ const UnifiedEventTable = memo(
             )}
           </TableHeader>
           <TableBody
-            items={eventsWithKeys}
-            loadingContent={`Cargando eventos ${tableType === 'upcoming' ? 'próximos' : tableType === 'all' ? 'todos' : 'activos'}...`}
             emptyContent={
               emptyContent || `No hay eventos ${tableType === 'upcoming' ? 'próximos' : tableType === 'all' ? 'en el sistema' : 'activos'}`
             }
+            items={eventsWithKeys}
+            loadingContent={`Cargando eventos ${tableType === 'upcoming' ? 'próximos' : tableType === 'all' ? 'todos' : 'activos'}...`}
             loadingState={loading ? 'loading' : 'idle'}>
             {item => <TableRow key={item._key}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
           </TableBody>
         </Table>
 
         {/* Modal de detalles del evento */}
-        <Modal isOpen={isOpen} onClose={onClose} size='4xl' scrollBehavior='inside'>
+        <Modal isOpen={isOpen} scrollBehavior='inside' size='4xl' onClose={onClose}>
           <ModalContent>
             <ModalHeader className='flex flex-col gap-1'>
               <h3 className='text-xl font-semibold'>Detalles del Evento</h3>
@@ -386,11 +384,11 @@ const UnifiedEventTable = memo(
                     <CardBody className='flex flex-row items-center gap-6 p-6'>
                       <div className='flex flex-col items-center gap-3'>
                         <Avatar
-                          src={selectedEvent.mainImageUrl || selectedEvent.imageUrl}
                           className='w-20 h-20'
                           icon={<Calendar className='w-10 h-10 text-default-500' />}
+                          src={selectedEvent.mainImageUrl || selectedEvent.imageUrl}
                         />
-                        <Chip size='sm' color={selectedEvent.isActive ? 'success' : 'danger'} variant='flat'>
+                        <Chip color={selectedEvent.isActive ? 'success' : 'danger'} size='sm' variant='flat'>
                           {selectedEvent.isActive ? 'Activo' : 'Inactivo'}
                         </Chip>
                       </div>
@@ -471,7 +469,7 @@ const UnifiedEventTable = memo(
                       <CardBody className='pt-0'>
                         <div className='flex flex-wrap gap-2'>
                           {selectedEvent.tags.map((tag, index) => (
-                            <Chip key={index} size='sm' variant='flat' color='primary'>
+                            <Chip key={index} color='primary' size='sm' variant='flat'>
                               {tag}
                             </Chip>
                           ))}

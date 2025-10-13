@@ -34,7 +34,9 @@ export const useUserAnalytics = () => {
   const getUserOverview = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getAnalyticsOverview())
+
       if (result?.data) setOverview(result.data)
+
       return handleApiResponse(result, 'Contador de usuarios obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -43,7 +45,9 @@ export const useUserAnalytics = () => {
   const getUserMetrics = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getUserMetrics())
+
       if (result?.data) setUserMetrics(result.data)
+
       return handleApiResponse(result, 'Métricas de usuarios obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -52,10 +56,12 @@ export const useUserAnalytics = () => {
   const getUserDetailedMetrics = useCallback(
     async (userId, showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getUserDetailedMetrics(userId))
+
       if (result?.data) {
         // Caso especial: actualizar objeto anidado con clave específica
         setUserDetailedMetrics(prev => ({ ...prev, [userId]: result.data }))
       }
+
       return handleApiResponse(result, 'Métricas detalladas obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -64,7 +70,9 @@ export const useUserAnalytics = () => {
   const getTopUsers = useCallback(
     async (limit = 10, showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getTopUsers(limit))
+
       if (result?.data) setTopUsers(result.data)
+
       return handleApiResponse(result, 'Rankings de usuarios obtenidos', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -73,7 +81,9 @@ export const useUserAnalytics = () => {
   const getAttributeStatistics = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getAttributeStatistics())
+
       if (result?.data) setAttributeStatistics(result.data)
+
       return handleApiResponse(result, 'Estadísticas de atributos obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -82,7 +92,9 @@ export const useUserAnalytics = () => {
   const getInterestsStatistics = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getInterestsStatistics())
+
       if (result?.data) setInterestsStatistics(result.data)
+
       return handleApiResponse(result, 'Estadísticas de intereses obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -91,7 +103,9 @@ export const useUserAnalytics = () => {
   const getTagsStatistics = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getTagsStatistics())
+
       if (result?.data) setTagsStatistics(result.data)
+
       return handleApiResponse(result, 'Estadísticas de tags obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -100,7 +114,9 @@ export const useUserAnalytics = () => {
   const getCompleteAnalytics = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userAnalyticsService.getCompleteAnalytics())
+
       if (result?.data) setCompleteAnalytics(result.data)
+
       return handleApiResponse(result, 'Estadísticas completas obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -128,6 +144,7 @@ export const useUserAnalytics = () => {
 
         // Verificar si alguna promesa falló
         const failures = results.filter(result => result.status === 'rejected')
+
         if (failures.length > 0) {
           Logger.warn(Logger.CATEGORIES.USER, 'Algunas estadísticas fallaron al actualizarse', {
             failures: failures.length,

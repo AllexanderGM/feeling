@@ -19,6 +19,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.BASIC)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -31,6 +32,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.BASIC, configData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -47,6 +49,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.SOCIAL_MEDIA)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -59,6 +62,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.SOCIAL_MEDIA, socialData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -75,6 +79,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.EMAIL)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -87,6 +92,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.EMAIL, emailData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -99,6 +105,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.ADMIN.CONFIGURATION.MASS_EMAIL, emailData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -115,6 +122,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.MATCHING)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -127,6 +135,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.MATCHING, matchingData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -139,6 +148,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.EVENTS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -151,6 +161,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.EVENTS, eventData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -167,6 +178,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.NOTIFICATIONS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -179,6 +191,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.NOTIFICATIONS, notificationData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -195,6 +208,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.SYSTEM)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -207,6 +221,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.SYSTEM, systemData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -223,6 +238,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.ADMIN.CONFIGURATION.BACKUP)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -235,6 +251,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.ADMIN.CONFIGURATION.MAINTENANCE)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -247,6 +264,7 @@ class ConfigurationService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(API_ENDPOINTS.ADMIN.CONFIGURATION.MAINTENANCE, { enabled })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

@@ -1,6 +1,5 @@
 import { useContext, useCallback, useMemo } from 'react'
 import { passwordService } from '@services'
-
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
@@ -40,6 +39,7 @@ export const usePassword = () => {
   const forgotPassword = useCallback(
     async (email, showNotifications = true) => {
       const result = await withLoading(() => passwordService.forgotPassword(email), 'Recuperación de contraseña')
+
       return handleApiResponse(result, 'Enlace de recuperación enviado. Revisa tu email.', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -51,7 +51,9 @@ export const usePassword = () => {
         () => passwordService.resetPassword(token, password, confirmPassword),
         'Restablecimiento de contraseña'
       )
+
       if (result.success) clearAllAuth()
+
       return handleApiResponse(result, '¡Contraseña restablecida exitosamente! Ya puedes iniciar sesión.', {
         showNotifications
       })
@@ -62,6 +64,7 @@ export const usePassword = () => {
   const validateResetToken = useCallback(
     async (token, showNotifications = false) => {
       const result = await withLoading(() => passwordService.validateResetToken(token), 'Validación de token de recuperación')
+
       return handleApiResponse(result, 'Token válido', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -77,6 +80,7 @@ export const usePassword = () => {
         () => passwordService.changePassword(currentPassword, newPassword, confirmPassword, accessToken),
         'Cambio de contraseña'
       )
+
       return handleApiResponse(result, '¡Contraseña cambiada exitosamente!', { showNotifications })
     },
     [withLoading, handleApiResponse, accessToken]
@@ -89,6 +93,7 @@ export const usePassword = () => {
   const validatePassword = useCallback(
     async (password, email = null, showNotifications = false) => {
       const result = await withLoading(() => passwordService.validatePassword(password, email), 'Validación de contraseña')
+
       return handleApiResponse(result, 'Contraseña válida', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -97,6 +102,7 @@ export const usePassword = () => {
   const getPasswordSuggestions = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(() => passwordService.getPasswordSuggestions(), 'Sugerencias de contraseñas')
+
       return handleApiResponse(result, 'Sugerencias obtenidas', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -105,6 +111,7 @@ export const usePassword = () => {
   const getPasswordPolicy = useCallback(
     async (showNotifications = false) => {
       const result = await withLoading(() => passwordService.getPasswordPolicy(), 'Política de contraseñas')
+
       return handleApiResponse(result, 'Política obtenida', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -113,6 +120,7 @@ export const usePassword = () => {
   const checkCompromised = useCallback(
     async (password, showNotifications = true) => {
       const result = await withLoading(() => passwordService.checkCompromised(password), 'Verificación de contraseña comprometida')
+
       return handleApiResponse(result, 'Contraseña verificada', { showNotifications })
     },
     [withLoading, handleApiResponse]

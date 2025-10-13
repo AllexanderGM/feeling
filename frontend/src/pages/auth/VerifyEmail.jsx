@@ -76,12 +76,14 @@ const VerifyEmail = () => {
         const autoResendCode = async () => {
           setMessage('Enviando nuevo código de verificación...')
           const result = await resendCode(stateEmail)
+
           if (result.success) {
             setMessage('Se ha enviado un nuevo código de verificación a tu correo electrónico.')
             startResendCountdown()
           } else if (result.status === 429) {
             // Manejar rate limiting en auto-resend
             const waitTime = extractWaitTimeFromMessage(result.message || '')
+
             setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
             setCanResend(false)
             setResendCountdown(waitTime)
@@ -92,8 +94,10 @@ const VerifyEmail = () => {
                 if (prev <= 1) {
                   setCanResend(true)
                   clearInterval(interval)
+
                   return 0
                 }
+
                 return prev - 1
               })
             }, 1000)
@@ -117,8 +121,10 @@ const VerifyEmail = () => {
         if (prev <= 1) {
           setCanResend(true)
           clearInterval(interval)
+
           return 0
         }
+
         return prev - 1
       })
     }, 1000)
@@ -129,6 +135,7 @@ const VerifyEmail = () => {
   const formatCountdown = seconds => {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
+
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
@@ -162,12 +169,14 @@ const VerifyEmail = () => {
   const extractWaitTimeFromMessage = message => {
     // Busca patrones como "2 minuto(s)" o "1 minuto" en el mensaje
     const minuteMatch = message.match(/(\d+)\s*minuto/i)
+
     if (minuteMatch) {
       return parseInt(minuteMatch[1]) * 60 // Convertir a segundos
     }
 
     // Busca patrones como "30 segundo(s)"
     const secondMatch = message.match(/(\d+)\s*segundo/i)
+
     if (secondMatch) {
       return parseInt(secondMatch[1])
     }
@@ -178,6 +187,7 @@ const VerifyEmail = () => {
 
   const handleResendCode = async () => {
     const email = getValues('email')
+
     if (!email) return
 
     setResendLoading(true)
@@ -190,6 +200,7 @@ const VerifyEmail = () => {
     } else if (result.status === 429) {
       // Manejar error de demasiadas solicitudes
       const waitTime = extractWaitTimeFromMessage(result.message || '')
+
       setMessage(result.message || 'Debes esperar antes de solicitar un nuevo código')
       setCanResend(false)
       setResendCountdown(waitTime)
@@ -200,8 +211,10 @@ const VerifyEmail = () => {
           if (prev <= 1) {
             setCanResend(true)
             clearInterval(interval)
+
             return 0
           }
+
           return prev - 1
         })
       }, 1000)
@@ -215,7 +228,7 @@ const VerifyEmail = () => {
     return (
       <LiteContainer ariaLabel='Verificación de email automática'>
         <figure className='text-center pb-8'>
-          <img src={logo} alt='Logo Feeling' className='w-52' />
+          <img alt='Logo Feeling' className='w-52' src={logo} />
         </figure>
 
         <div className='flex flex-col w-full space-y-6 max-w-md'>
@@ -228,7 +241,7 @@ const VerifyEmail = () => {
             <p className='text-sm text-gray-400 mb-4'>Redirigiendo para completar tu perfil...</p>
 
             <div className='w-full bg-gray-700 rounded-full h-2 overflow-hidden'>
-              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse'></div>
+              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse' />
             </div>
           </div>
         </div>
@@ -239,7 +252,7 @@ const VerifyEmail = () => {
   return (
     <LiteContainer ariaLabel='Página de verificación de email'>
       <figure className='text-center pb-8'>
-        <img src={logo} alt='Logo Feeling' className='w-52' />
+        <img alt='Logo Feeling' className='w-52' src={logo} />
       </figure>
 
       {status === 'success' ? (
@@ -253,7 +266,7 @@ const VerifyEmail = () => {
             <p className='text-sm text-gray-400 mb-4'>Redirigiendo...</p>
 
             <div className='w-full bg-gray-700 rounded-full h-2 overflow-hidden'>
-              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse'></div>
+              <div className='bg-gradient-to-r from-primary-500 to-primary-400 h-2 rounded-full animate-pulse' />
             </div>
           </div>
         </div>
@@ -283,20 +296,20 @@ const VerifyEmail = () => {
 
           {!stateEmail && (
             <Controller
-              name='email'
               control={control}
+              name='email'
               render={({ field }) => (
                 <Input
                   {...field}
-                  variant='underlined'
                   isRequired
+                  autoComplete='email'
+                  errorMessage={errors.email?.message}
+                  isDisabled={loading}
+                  isInvalid={!!errors.email}
                   label='Correo electrónico'
                   placeholder='usuario@correo.com'
                   type='email'
-                  autoComplete='email'
-                  isInvalid={!!errors.email}
-                  errorMessage={errors.email?.message}
-                  isDisabled={loading}
+                  variant='underlined'
                 />
               )}
             />
@@ -315,24 +328,25 @@ const VerifyEmail = () => {
           )}
 
           <Controller
-            name='code'
             control={control}
+            name='code'
             render={({ field }) => (
               <Input
                 {...field}
-                variant='underlined'
                 isRequired
-                label='Código de verificación'
-                placeholder='123456'
-                type='text'
-                maxLength={6}
-                isInvalid={!!errors.code}
+                description='Código de 6 dígitos numéricos'
                 errorMessage={errors.code?.message}
                 isDisabled={loading}
-                description='Código de 6 dígitos numéricos'
+                isInvalid={!!errors.code}
+                label='Código de verificación'
+                maxLength={6}
+                placeholder='123456'
                 startContent={<ShieldCheck className='text-gray-400 text-sm' />}
+                type='text'
+                variant='underlined'
                 onChange={e => {
                   const value = e.target.value.replace(/\D/g, '')
+
                   field.onChange(value)
                 }}
               />
@@ -340,33 +354,33 @@ const VerifyEmail = () => {
           />
 
           <Button
-            type='submit'
-            radius='full'
-            color='default'
             className='w-full py-3 mt-4 font-semibold shadow-md transition-all hover:shadow-lg'
+            color='default'
+            isDisabled={loading || !isValid}
             isLoading={loading}
-            isDisabled={loading || !isValid}>
+            radius='full'
+            type='submit'>
             {loading ? 'Verificando...' : 'Verificar Código'}
           </Button>
 
           <div className='space-y-4 w-full'>
             <div className='relative flex items-center py-2'>
-              <div className='flex-grow border-t border-gray-700'></div>
+              <div className='flex-grow border-t border-gray-700' />
               <span className='flex-shrink mx-4 text-xs text-gray-500'>¿No recibiste el código?</span>
-              <div className='flex-grow border-t border-gray-700'></div>
+              <div className='flex-grow border-t border-gray-700' />
             </div>
 
             <div className='text-center'>
               {canResend ? (
                 <Button
-                  variant='flat'
-                  color='primary'
-                  radius='full'
                   className='transition-all duration-300 hover:scale-105'
-                  onPress={handleResendCode}
-                  isLoading={resendLoading}
+                  color='primary'
                   isDisabled={resendLoading}
-                  startContent={!resendLoading && <RefreshCw />}>
+                  isLoading={resendLoading}
+                  radius='full'
+                  startContent={!resendLoading && <RefreshCw />}
+                  variant='flat'
+                  onPress={handleResendCode}>
                   {resendLoading ? 'Enviando...' : 'Reenviar código'}
                 </Button>
               ) : (
@@ -385,11 +399,11 @@ const VerifyEmail = () => {
             <div className='text-center text-xs text-gray-500'>
               <p className='mb-3'>¿Problemas con la verificación?</p>
               <div className='flex flex-col sm:flex-row gap-2 justify-center'>
-                <Link href={APP_PATHS.AUTH.LOGIN} className='text-gray-400 hover:text-gray-300 underline transition-colors'>
+                <Link className='text-gray-400 hover:text-gray-300 underline transition-colors' href={APP_PATHS.AUTH.LOGIN}>
                   Volver al inicio de sesión
                 </Link>
                 <span className='hidden sm:inline text-gray-600'>•</span>
-                <Link href={APP_PATHS.AUTH.REGISTER} className='text-gray-400 hover:text-gray-300 underline transition-colors'>
+                <Link className='text-gray-400 hover:text-gray-300 underline transition-colors' href={APP_PATHS.AUTH.REGISTER}>
                   Crear nueva cuenta
                 </Link>
               </div>

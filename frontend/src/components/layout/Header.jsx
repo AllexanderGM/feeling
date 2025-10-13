@@ -1,11 +1,10 @@
 import { Filter, RotateCcw } from 'lucide-react'
 import { Button } from '@heroui/react'
-import { getNavigationStyles } from './navigation/navigationUtils.js'
-
-// Importar logos (solo versiones dark)
 import logoGreyDark from '@assets/logo/logo-grey-dark.svg'
 import logoPrimaryDark from '@assets/logo/logo-primary-dark.svg'
 import logoSecondaryDark from '@assets/logo/logo-secondary-dark.svg'
+
+import { getNavigationStyles } from './navigation/navigationUtils.js'
 
 const Header = ({ onOpenFilters, onRefresh, activeFiltersCount = 0, user }) => {
   const styles = getNavigationStyles()
@@ -29,7 +28,7 @@ const Header = ({ onOpenFilters, onRefresh, activeFiltersCount = 0, user }) => {
       <div className='flex items-center justify-between'>
         {/* Logo */}
         <div className={styles.container}>
-          <img src={getLogo()} alt='Feeling Logo' className='h-5 w-auto object-contain' />
+          <img alt='Feeling Logo' className='h-5 w-auto object-contain' src={getLogo()} />
         </div>
 
         {/* Botones sin contenedor */}
@@ -37,11 +36,11 @@ const Header = ({ onOpenFilters, onRefresh, activeFiltersCount = 0, user }) => {
           {/* Botón Filtros */}
           <Button
             isIconOnly
-            variant='flat'
+            className={`${styles.button} ${styles.inactiveButton} bg-background/75 backdrop-blur-xl border border-gray-600/30 shadow-2xl ring-1 ring-primary-500/10 h-12 w-12`}
             color='default'
             radius='full'
             size='lg'
-            className={`${styles.button} ${styles.inactiveButton} bg-background/75 backdrop-blur-xl border border-gray-600/30 shadow-2xl ring-1 ring-primary-500/10 h-12 w-12`}
+            variant='flat'
             onPress={onOpenFilters}>
             <div className='relative'>
               <Filter size={18} />
@@ -56,11 +55,11 @@ const Header = ({ onOpenFilters, onRefresh, activeFiltersCount = 0, user }) => {
           {/* Botón Recargar */}
           <Button
             isIconOnly
-            variant='flat'
+            className={`${styles.button} ${styles.inactiveButton} bg-background/75 backdrop-blur-xl border border-gray-600/30 shadow-2xl ring-1 ring-primary-500/10 h-12 w-12`}
             color='default'
             radius='full'
             size='lg'
-            className={`${styles.button} ${styles.inactiveButton} bg-background/75 backdrop-blur-xl border border-gray-600/30 shadow-2xl ring-1 ring-primary-500/10 h-12 w-12`}
+            variant='flat'
             onPress={onRefresh}>
             <RotateCcw size={18} />
           </Button>

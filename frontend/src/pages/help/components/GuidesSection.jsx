@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Card, CardBody, Button, Chip, Progress, Input } from '@heroui/react'
-import { BookOpen, Users, Heart, Shield, Settings, Camera, MessageCircle, Search, Clock, ArrowRight, CheckCircle, Play } from 'lucide-react'
+import { BookOpen, Users, Heart, Shield, Camera, MessageCircle, Search, Clock, ArrowRight, CheckCircle, Play } from 'lucide-react'
 
 const GuidesSection = ({ searchTerm = '' }) => {
   const [localSearch, setLocalSearch] = useState('')
@@ -210,15 +210,16 @@ const GuidesSection = ({ searchTerm = '' }) => {
 
   if (selectedGuide) {
     const guide = guides.find(g => g.id === selectedGuide)
+
     return (
       <div className='space-y-6'>
         {/* Header de la guía */}
         <div className='flex items-center gap-4 pb-4 border-b border-gray-700/50'>
           <Button
-            variant='light'
             size='sm'
-            onPress={() => setSelectedGuide(null)}
-            startContent={<ArrowRight className='w-4 h-4 rotate-180' />}>
+            startContent={<ArrowRight className='w-4 h-4 rotate-180' />}
+            variant='light'
+            onPress={() => setSelectedGuide(null)}>
             Volver a guías
           </Button>
           <div className='flex items-center gap-3'>
@@ -232,10 +233,10 @@ const GuidesSection = ({ searchTerm = '' }) => {
 
         {/* Información de la guía */}
         <div className='flex flex-wrap items-center gap-3'>
-          <Chip color={guide.color} variant='flat' size='sm'>
+          <Chip color={guide.color} size='sm' variant='flat'>
             {guide.category}
           </Chip>
-          <Chip color={getDifficultyColor(guide.difficulty)} variant='flat' size='sm'>
+          <Chip color={getDifficultyColor(guide.difficulty)} size='sm' variant='flat'>
             {guide.difficulty}
           </Chip>
           <div className='flex items-center gap-1 text-sm text-gray-400'>
@@ -244,11 +245,11 @@ const GuidesSection = ({ searchTerm = '' }) => {
           </div>
           <div className='flex items-center gap-2'>
             <Progress
+              aria-label={`Guía completada por ${guide.completionRate}% de usuarios`}
+              className='w-20'
+              color='success'
               size='sm'
               value={guide.completionRate}
-              color='success'
-              className='w-20'
-              aria-label={`Guía completada por ${guide.completionRate}% de usuarios`}
             />
             <span className='text-xs text-gray-400'>{guide.completionRate}% completado por usuarios</span>
           </div>
@@ -299,14 +300,14 @@ const GuidesSection = ({ searchTerm = '' }) => {
       {!searchTerm && (
         <div className='max-w-md mx-auto'>
           <Input
-            placeholder='Buscar guías...'
-            value={localSearch}
-            onChange={e => setLocalSearch(e.target.value)}
-            startContent={<Search className='w-4 h-4 text-gray-400' />}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-700/50'
             }}
+            placeholder='Buscar guías...'
+            startContent={<Search className='w-4 h-4 text-gray-400' />}
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
           />
         </div>
       )}
@@ -314,8 +315,8 @@ const GuidesSection = ({ searchTerm = '' }) => {
       {/* Estadísticas de búsqueda */}
       {currentSearchTerm && (
         <div className='text-center'>
-          <Chip color='primary' variant='flat' size='sm'>
-            {filteredGuides.length} guía(s) encontrada(s) para "{currentSearchTerm}"
+          <Chip color='primary' size='sm' variant='flat'>
+            {filteredGuides.length} guía(s) encontrada(s) para &quot;{currentSearchTerm}&quot;
           </Chip>
         </div>
       )}
@@ -327,8 +328,8 @@ const GuidesSection = ({ searchTerm = '' }) => {
             <Card
               key={guide.id}
               isPressable
-              onPress={() => setSelectedGuide(guide.id)}
-              className='bg-gray-700/30 border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200'>
+              className='bg-gray-700/30 border-gray-600/30 hover:bg-gray-700/50 transition-all duration-200'
+              onPress={() => setSelectedGuide(guide.id)}>
               <CardBody className='p-4'>
                 <div className='flex items-start gap-3 mb-3'>
                   <div className={`w-10 h-10 rounded-lg bg-${guide.color}-500/20 flex items-center justify-center shrink-0`}>
@@ -341,10 +342,10 @@ const GuidesSection = ({ searchTerm = '' }) => {
                 </div>
 
                 <div className='flex flex-wrap items-center gap-2 mb-3'>
-                  <Chip color={guide.color} variant='flat' size='sm'>
+                  <Chip color={guide.color} size='sm' variant='flat'>
                     {guide.category}
                   </Chip>
-                  <Chip color={getDifficultyColor(guide.difficulty)} variant='flat' size='sm'>
+                  <Chip color={getDifficultyColor(guide.difficulty)} size='sm' variant='flat'>
                     {guide.difficulty}
                   </Chip>
                 </div>
@@ -362,11 +363,11 @@ const GuidesSection = ({ searchTerm = '' }) => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Progress
+                      aria-label={`Progreso de guía: ${guide.completionRate}%`}
+                      className='w-16'
+                      color='success'
                       size='sm'
                       value={guide.completionRate}
-                      color='success'
-                      className='w-16'
-                      aria-label={`Progreso de guía: ${guide.completionRate}%`}
                     />
                     <span className='text-xs text-gray-400'>{guide.completionRate}%</span>
                   </div>

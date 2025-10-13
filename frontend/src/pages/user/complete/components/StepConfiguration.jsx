@@ -4,10 +4,8 @@ import { Controller } from 'react-hook-form'
 import {
   User,
   MapPin,
-  Images,
   Briefcase,
   Ruler,
-  Building,
   Calendar,
   Heart,
   MessageCircle,
@@ -15,23 +13,19 @@ import {
   Info,
   Shield,
   Eye,
-  Globe,
   Users,
   Phone,
   Bell,
   Mail,
   Smartphone,
-  Lock,
   Settings,
   Zap,
-  CreditCard,
   Camera,
   Sparkles,
   GraduationCap,
   UserCheck,
   Palette,
-  Church,
-  CreditCard as IdCard
+  Church
 } from 'lucide-react'
 
 const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, categoryOptions, userAttributes }) => {
@@ -48,9 +42,11 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
       if (!userAttributes || !id) return 'Por completar'
 
       const options = userAttributes[`${type}Options`]
+
       if (!options) return 'Por completar'
 
       const option = options.find(opt => opt.value === id || opt.id === id)
+
       return option ? option.label : 'Por completar'
     },
     [userAttributes]
@@ -61,15 +57,12 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     showPhone,
     publicAccount,
     searchVisibility,
-    locationPublic,
     showMeInSearch,
     allowNotifications,
     notificationsEmailEnabled,
     notificationsPhoneEnabled,
     notificationsMatchesEnabled,
     notificationsEventsEnabled,
-    notificationsLoginEnabled,
-    notificationsPaymentsEnabled,
     categoryInterest,
     agePreferenceMin,
     agePreferenceMax,
@@ -96,7 +89,6 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     hairColorId,
     phone,
     phoneCode,
-    document,
     // Campos específicos por categoría
     religionId,
     sexualRoleId,
@@ -224,15 +216,15 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           </div>
           <div className='shrink-0 ml-2'>
             <Controller
-              name={fieldName}
               control={control}
+              name={fieldName}
               render={({ field }) => (
                 <Switch
-                  isSelected={field.value ?? defaultValue}
-                  onValueChange={value => formHandlers.handleInputChange(fieldName, value)}
                   color='primary'
-                  size='sm'
                   isDisabled={isDisabled}
+                  isSelected={field.value ?? defaultValue}
+                  size='sm'
+                  onValueChange={value => formHandlers.handleInputChange(fieldName, value)}
                 />
               )}
             />
@@ -250,9 +242,11 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
       if (selectedProfileImageIndex !== undefined && images[selectedProfileImageIndex]) {
         return imageUtils.getImageUrl(images[selectedProfileImageIndex])
       }
+
       // Si no, usar la primera imagen
       return imageUtils.getImageUrl(images[0])
     }
+
     return null
   }, [images, selectedProfileImageIndex, imageUtils])
 
@@ -277,9 +271,11 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
+
     return age
   }, [])
 
@@ -288,6 +284,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
     if (!categoryInterest || !categoryOptions || categoryOptions.length === 0) {
       return null
     }
+
     return categoryOptions.find(item => item.key === categoryInterest)
   }, [categoryInterest, categoryOptions])
 
@@ -301,6 +298,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           ROUSE: 'Rouse',
           SPIRIT: 'Spirit'
         }
+
         return categories[categoryKey] || categoryKey
       },
 
@@ -311,6 +309,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
           ROUSE: '🏳️‍🌈',
           SPIRIT: '✝️'
         }
+
         return icons[categoryKey] || '💫'
       }
     }),
@@ -350,32 +349,32 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
             </div>
             <div className='flex flex-wrap gap-1.5 justify-center sm:justify-start'>
               {(showAge ?? true) && (
-                <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+                <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                   Edad visible
                 </Chip>
               )}
               {(showLocation ?? true) && (
-                <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+                <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                   Ubicación visible
                 </Chip>
               )}
               {(publicAccount ?? true) && (
-                <Chip size='sm' variant='flat' color='success' className='text-xs'>
+                <Chip className='text-xs' color='success' size='sm' variant='flat'>
                   Perfil público
                 </Chip>
               )}
               {(searchVisibility ?? true) && (
-                <Chip size='sm' variant='flat' color='secondary' className='text-xs'>
+                <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                   Visible en búsquedas
                 </Chip>
               )}
               {(showMeInSearch ?? true) && (
-                <Chip size='sm' variant='flat' color='secondary' className='text-xs'>
+                <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                   En recomendaciones
                 </Chip>
               )}
               {!(showAge ?? true) && !(showLocation ?? true) && !(publicAccount ?? true) && (
-                <Chip size='sm' variant='flat' color='default' className='text-xs'>
+                <Chip className='text-xs' color='default' size='sm' variant='flat'>
                   Perfil privado
                 </Chip>
               )}
@@ -394,14 +393,14 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               </div>
               <div className='shrink-0 ml-2'>
                 <Controller
-                  name='publicAccount'
                   control={control}
+                  name='publicAccount'
                   render={({ field }) => (
                     <Switch
-                      isSelected={field.value ?? true}
-                      onValueChange={formHandlers.handlePublicAccountChange}
                       color='primary'
+                      isSelected={field.value ?? true}
                       size='sm'
+                      onValueChange={formHandlers.handlePublicAccountChange}
                     />
                   )}
                 />
@@ -470,14 +469,14 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               </div>
               <div className='shrink-0 ml-2'>
                 <Controller
-                  name='allowNotifications'
                   control={control}
+                  name='allowNotifications'
                   render={({ field }) => (
                     <Switch
-                      isSelected={field.value ?? true}
-                      onValueChange={formHandlers.handleAllowNotificationsChange}
                       color='primary'
+                      isSelected={field.value ?? true}
                       size='sm'
+                      onValueChange={formHandlers.handleAllowNotificationsChange}
                     />
                   )}
                 />
@@ -497,28 +496,28 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               {(allowNotifications ?? true) ? (
                 <>
                   {(notificationsEmailEnabled ?? true) && (
-                    <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+                    <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                       Email
                     </Chip>
                   )}
                   {(notificationsPhoneEnabled ?? false) && (
-                    <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+                    <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                       SMS
                     </Chip>
                   )}
                   {(notificationsMatchesEnabled ?? true) && (
-                    <Chip size='sm' variant='flat' color='danger' className='text-xs'>
+                    <Chip className='text-xs' color='danger' size='sm' variant='flat'>
                       Matches
                     </Chip>
                   )}
                   {(notificationsEventsEnabled ?? true) && (
-                    <Chip size='sm' variant='flat' color='success' className='text-xs'>
+                    <Chip className='text-xs' color='success' size='sm' variant='flat'>
                       Eventos
                     </Chip>
                   )}
                 </>
               ) : (
-                <Chip size='sm' variant='flat' color='default' className='text-xs'>
+                <Chip className='text-xs' color='default' size='sm' variant='flat'>
                   Todas deshabilitadas
                 </Chip>
               )}
@@ -588,19 +587,19 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
         <div className='flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6'>
           <div className='relative shrink-0'>
             <Avatar
-              src={profileImageUrl}
-              className='w-24 h-24 sm:w-28 sm:h-28 text-large border-2 border-gray-600'
               isBordered
+              className='w-24 h-24 sm:w-28 sm:h-28 text-large border-2 border-gray-600'
               fallback={<User className='text-4xl text-gray-400' />}
+              src={profileImageUrl}
             />
             {categoryInterest && selectedCategory && (
               <div className='absolute -bottom-1 -right-1 rounded-full'>
                 <Chip
-                  size='sm'
-                  variant='flat'
-                  color='primary'
                   className='bg-primary-900/90 text-primary-300 border border-primary-500/30'
-                  startContent={<span>{selectedCategory.icon || categoryUtils.getCategoryIcon(categoryInterest)}</span>}>
+                  color='primary'
+                  size='sm'
+                  startContent={<span>{selectedCategory.icon || categoryUtils.getCategoryIcon(categoryInterest)}</span>}
+                  variant='flat'>
                   {selectedCategory.label || categoryUtils.getCategoryName(categoryInterest)}
                 </Chip>
               </div>
@@ -613,7 +612,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
                 {name} {lastName}
               </h4>
               {showAge && userAge && (
-                <Chip size='sm' variant='flat' color='secondary' className='bg-blue-500/20 text-blue-300 border border-blue-500/30'>
+                <Chip className='bg-blue-500/20 text-blue-300 border border-blue-500/30' color='secondary' size='sm' variant='flat'>
                   {userAge} años
                 </Chip>
               )}
@@ -684,9 +683,9 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               {allImages.slice(1, 5).map((image, index) => (
                 <div key={index} className='relative group aspect-[3/4]'>
                   <img
-                    src={image.url}
                     alt={`Foto ${index + 2}`}
                     className='w-full h-full object-cover rounded-lg border border-gray-700/50 hover:border-primary-500 transition-all cursor-pointer'
+                    src={image.url}
                   />
                   <div className='absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg' />
                 </div>
@@ -729,15 +728,15 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
               {tags.slice(0, 6).map((tag, index) => (
                 <Chip
                   key={index}
-                  size='sm'
-                  variant='flat'
+                  className='bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs'
                   color='secondary'
-                  className='bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs'>
+                  size='sm'
+                  variant='flat'>
                   {tag}
                 </Chip>
               ))}
               {tags.length > 6 && (
-                <Chip size='sm' variant='flat' color='default' className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs'>
+                <Chip className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs' color='default' size='sm' variant='flat'>
                   +{tags.length - 6} más
                 </Chip>
               )}
@@ -916,7 +915,7 @@ const StepConfiguration = ({ control, errors, watch, setValue, clearErrors, cate
         {/* Footer del perfil */}
         <div className='flex justify-between items-center text-xs text-gray-500'>
           <div className='flex items-center gap-2'>
-            <div className='w-2 h-2 bg-green-400 rounded-full'></div>
+            <div className='w-2 h-2 bg-green-400 rounded-full' />
             <span>Activo recientemente</span>
           </div>
           <div className='flex gap-3'>

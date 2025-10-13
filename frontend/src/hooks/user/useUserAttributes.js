@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getUserAttributes, getUserAttributesByType, createUserAttribute } from '@services'
 import { Logger } from '@utils/logger.js'
-
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 
 export default function useUserAttributes() {
@@ -28,6 +27,7 @@ export default function useUserAttributes() {
       try {
         setError(null)
         const data = await getUserAttributes()
+
         setAttributes(data || {})
       } catch (err) {
         Logger.error(Logger.CATEGORIES.USER, 'Error loading user attributes', err)
@@ -127,12 +127,14 @@ export default function useUserAttributes() {
     // Buscar en atributos oficiales
     for (const attributeType in attributes) {
       const found = attributes[attributeType].find(attr => attr.id === parseInt(attributeId))
+
       if (found) return found
     }
 
     // Buscar en atributos temporales
     for (const attributeType in tempAttributes) {
       const found = tempAttributes[attributeType].find(attr => attr.id === parseInt(attributeId))
+
       if (found) return found
     }
 
@@ -152,6 +154,7 @@ export default function useUserAttributes() {
   const getAttributesByType = attributeType => {
     const typeAttributes = attributes[attributeType] || []
     const tempTypeAttributes = tempAttributes[attributeType] || []
+
     return [...typeAttributes, ...tempTypeAttributes]
   }
 
@@ -223,6 +226,7 @@ export const useAttributesByType = attributeType => {
     const fetchAttributes = async () => {
       const result = await withLoading(async () => {
         const data = await getUserAttributesByType(attributeType)
+
         return data
       }, `obtener atributos de tipo ${attributeType}`)
 

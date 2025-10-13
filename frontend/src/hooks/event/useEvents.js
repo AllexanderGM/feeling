@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react'
 import { eventService } from '@services'
 import { Logger } from '@utils/logger.js'
-
 import { useError } from '@hooks/utils/useError.js'
 import useAsyncOperation from '@hooks/utils/useAsyncOperation.js'
-
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
 const useEvents = () => {
@@ -133,10 +131,12 @@ const useEvents = () => {
               totalElements: mappedResponse.totalElements
             }
           })
+
           return mappedResponse.content
         } else {
           // Fallback para respuesta no paginada
           const mappedEvents = Array.isArray(mappedResponse) ? mappedResponse : [mappedResponse].filter(Boolean)
+
           setActiveEvents(mappedEvents)
           setActiveEventsPagination({
             page: 0,
@@ -147,6 +147,7 @@ const useEvents = () => {
             hasPrevious: false
           })
           Logger.info(Logger.CATEGORIES.SERVICE, 'obtener eventos activos', 'Eventos cargados exitosamente (respuesta no paginada)')
+
           return mappedEvents
         }
       }, 'obtener eventos activos')
@@ -178,9 +179,11 @@ const useEvents = () => {
             hasNext: !mappedResponse.last,
             hasPrevious: !mappedResponse.first
           })
+
           return mappedResponse.content
         } else {
           const mappedEvents = Array.isArray(mappedResponse) ? mappedResponse : [mappedResponse].filter(Boolean)
+
           setUpcomingEvents(mappedEvents)
           setUpcomingEventsPagination({
             page: 0,
@@ -190,6 +193,7 @@ const useEvents = () => {
             hasNext: false,
             hasPrevious: false
           })
+
           return mappedEvents
         }
       }, 'obtener eventos próximos')
@@ -197,6 +201,7 @@ const useEvents = () => {
       if (showNotifications) {
         return handleApiResponse(result, 'Eventos próximos cargados correctamente.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse, mapBackendEventsPaginatedResponse]
@@ -220,9 +225,11 @@ const useEvents = () => {
             hasNext: !mappedResponse.last,
             hasPrevious: !mappedResponse.first
           })
+
           return mappedResponse.content
         } else {
           const mappedEvents = Array.isArray(mappedResponse) ? mappedResponse : [mappedResponse].filter(Boolean)
+
           setAllEvents(mappedEvents)
           setAllEventsPagination({
             page: 0,
@@ -232,6 +239,7 @@ const useEvents = () => {
             hasNext: false,
             hasPrevious: false
           })
+
           return mappedEvents
         }
       }, 'obtener todos los eventos')
@@ -239,6 +247,7 @@ const useEvents = () => {
       if (showNotifications) {
         return handleApiResponse(result, 'Todos los eventos cargados correctamente.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse, mapBackendEventsPaginatedResponse]
@@ -264,9 +273,11 @@ const useEvents = () => {
             hasNext: !mappedResponse.last,
             hasPrevious: !mappedResponse.first
           })
+
           return mappedResponse.content
         } else {
           const mappedEvents = Array.isArray(mappedResponse) ? mappedResponse : [mappedResponse].filter(Boolean)
+
           setEventsByCategory(mappedEvents)
           setEventsByCategoryPagination({
             page: 0,
@@ -276,6 +287,7 @@ const useEvents = () => {
             hasNext: false,
             hasPrevious: false
           })
+
           return mappedEvents
         }
       }, 'obtener eventos por categoría')
@@ -283,6 +295,7 @@ const useEvents = () => {
       if (showNotifications) {
         return handleApiResponse(result, 'Eventos por categoría cargados correctamente.', { showNotifications: true })
       }
+
       return result
     },
     [withLoading, handleApiResponse, mapBackendEventsPaginatedResponse]
@@ -293,7 +306,9 @@ const useEvents = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'obtener evento por ID', `Cargando evento: ${eventId}`)
         const eventData = await eventService.getEventById(eventId)
+
         Logger.info(Logger.CATEGORIES.SERVICE, 'obtener evento por ID', 'Evento obtenido exitosamente')
+
         return eventData
       }, 'obtener evento')
 
@@ -313,6 +328,7 @@ const useEvents = () => {
         setAllEvents(prevEvents => [newEvent, ...prevEvents])
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', 'Evento creado exitosamente', { context: { eventId: newEvent.id } })
+
         return newEvent
       }, 'crear evento')
 
@@ -336,6 +352,7 @@ const useEvents = () => {
         setEventsByCategory(updateEventInList)
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', 'Evento actualizado exitosamente', { context: { eventId } })
+
         return updatedEvent
       }, 'actualizar evento')
 
@@ -359,6 +376,7 @@ const useEvents = () => {
         setEventsByCategory(removeEventFromList)
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'eliminar evento', 'Evento eliminado exitosamente', { context: { eventId } })
+
         return { eventId }
       }, 'eliminar evento')
 
@@ -384,6 +402,7 @@ const useEvents = () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'cambiar estado evento', 'Estado cambiado exitosamente', {
           context: { eventId, newStatus: updatedEvent.status }
         })
+
         return updatedEvent
       }, 'cambiar estado del evento')
 
@@ -409,6 +428,7 @@ const useEvents = () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'eliminar evento forzado', 'Evento eliminado forzadamente exitosamente', {
           context: { eventId }
         })
+
         return { eventId }
       }, 'eliminar evento forzado')
 
@@ -454,6 +474,7 @@ const useEvents = () => {
               totalElements: mappedResponse.totalElements
             }
           })
+
           return mappedResponse.content
         } else {
           Logger.serviceError('obtener eventos por estado', new Error('Formato de respuesta inválido del servidor'), 'EventService')
@@ -475,8 +496,10 @@ const useEvents = () => {
       const result = await withLoading(async () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'obtener estadísticas eventos', 'Iniciando carga')
         const stats = await eventService.getEventDashboardStats()
+
         setEventStats(stats)
         Logger.debug(Logger.CATEGORIES.SERVICE, 'obtener estadísticas eventos', stats)
+
         return stats
       }, 'obtener estadísticas de eventos')
 

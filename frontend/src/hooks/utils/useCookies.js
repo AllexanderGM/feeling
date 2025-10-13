@@ -27,10 +27,12 @@ export const useCookies = () => {
         if (name === 'user' && typeof value === 'string') {
           try {
             const parsed = JSON.parse(value)
+
             return parsed && typeof parsed === 'object' ? parsed : null
           } catch (error) {
             Logger.warn(Logger.CATEGORIES.SYSTEM, `Corrupted cookie '${name}', removing`, { name, error: error.message })
             removeCookie(name, { path: '/' })
+
             return null
           }
         }
@@ -39,6 +41,7 @@ export const useCookies = () => {
         if (typeof value === 'string') {
           try {
             const parsed = JSON.parse(value)
+
             return typeof parsed === 'object' && parsed !== null ? parsed : value
           } catch {
             return value
@@ -48,6 +51,7 @@ export const useCookies = () => {
         return value
       } catch (error) {
         Logger.warn(Logger.CATEGORIES.SYSTEM, `Error getting cookie '${name}'`, { name, error: error.message })
+
         return null
       }
     },
@@ -61,9 +65,11 @@ export const useCookies = () => {
         const valueToSave = typeof value === 'object' && value !== null ? JSON.stringify(value) : value
 
         setCookie(name, valueToSave, cookieOptions)
+
         return true
       } catch (error) {
         Logger.error(Logger.CATEGORIES.SYSTEM, `Error saving cookie '${name}'`, { name, error: error.message })
+
         return false
       }
     },
@@ -74,10 +80,13 @@ export const useCookies = () => {
     (name, options = null) => {
       try {
         const removeOptions = options || { path: '/' }
+
         removeCookie(name, removeOptions)
+
         return true
       } catch (error) {
         Logger.error(Logger.CATEGORIES.SYSTEM, `Error removing cookie '${name}'`, { name, error: error.message })
+
         return false
       }
     },
@@ -87,6 +96,7 @@ export const useCookies = () => {
   const exists = useCallback(
     name => {
       const value = cookies[name]
+
       return value !== undefined && value !== null && value !== 'undefined'
     },
     [cookies]
@@ -99,13 +109,16 @@ export const useCookies = () => {
 
         if (currentValue && typeof currentValue === 'object') {
           const updatedValue = { ...currentValue, ...updates }
+
           return set(name, updatedValue)
         } else {
           Logger.warn(Logger.CATEGORIES.SYSTEM, `Cannot update cookie '${name}': not an object or doesn't exist`, { name })
+
           return false
         }
       } catch (error) {
         Logger.error(Logger.CATEGORIES.SYSTEM, `Error updating cookie '${name}'`, { name, error: error.message })
+
         return false
       }
     },
@@ -115,6 +128,7 @@ export const useCookies = () => {
   const getWithDefault = useCallback(
     (name, defaultValue) => {
       const value = get(name)
+
       return value !== null ? value : defaultValue
     },
     [get]
@@ -163,6 +177,7 @@ export const useCookies = () => {
         return getWithDefault(cookieName, defaultValue)
       } catch (error) {
         Logger.warn(Logger.CATEGORIES.SYSTEM, `Error getting cookie value '${cookieName}'`, { cookieName, error: error.message })
+
         return defaultValue
       }
     },

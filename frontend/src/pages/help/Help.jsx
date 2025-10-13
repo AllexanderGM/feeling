@@ -1,24 +1,9 @@
 import { useState } from 'react'
-import { Card, CardBody, Input, Button, Chip } from '@heroui/react'
-import {
-  HelpCircle,
-  Search,
-  BookOpen,
-  MessageCircle,
-  Video,
-  FileText,
-  Phone,
-  Mail,
-  Clock,
-  Users,
-  Shield,
-  Heart,
-  Zap,
-  Settings
-} from 'lucide-react'
-
+import { Card, CardBody, Input, Button } from '@heroui/react'
+import { HelpCircle, Search, BookOpen, MessageCircle, Video, Phone, Mail, Clock, Users, Shield, Heart, Zap } from 'lucide-react'
 // Components
 import LiteContainer from '@components/layout/LiteContainer.jsx'
+
 import FAQSection from './components/FAQSection.jsx'
 import GuidesSection from './components/GuidesSection.jsx'
 import ContactSection from './components/ContactSection.jsx'
@@ -102,7 +87,7 @@ const Help = () => {
   }
 
   return (
-    <LiteContainer className='gap-6' ariaLabel='Página de ayuda y soporte'>
+    <LiteContainer ariaLabel='Página de ayuda y soporte' className='gap-6'>
       {/* Header de ayuda */}
       <div className='w-full bg-gradient-to-br from-blue-900/20 via-blue-800/10 to-purple-900/20 backdrop-blur-sm rounded-xl border border-blue-700/50 p-6'>
         <div className='text-center'>
@@ -118,14 +103,14 @@ const Help = () => {
         {/* Buscador */}
         <div className='mt-6 max-w-md mx-auto'>
           <Input
-            placeholder='Buscar ayuda...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            startContent={<Search className='w-4 h-4 text-gray-400' />}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-800/50 backdrop-blur-sm border-gray-600'
             }}
+            placeholder='Buscar ayuda...'
+            startContent={<Search className='w-4 h-4 text-gray-400' />}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
@@ -137,11 +122,11 @@ const Help = () => {
             {helpSections.map(section => (
               <Button
                 key={section.id}
-                variant={activeSection === section.id ? 'solid' : 'bordered'}
-                color={activeSection === section.id ? section.color : 'default'}
                 className={`h-auto p-4 flex-col gap-2 ${
                   activeSection === section.id ? '' : 'border-gray-600 text-gray-300 hover:bg-gray-700/30'
                 }`}
+                color={activeSection === section.id ? section.color : 'default'}
+                variant={activeSection === section.id ? 'solid' : 'bordered'}
                 onPress={() => setActiveSection(section.id)}>
                 <div className='flex items-center gap-2'>
                   {section.icon}
@@ -166,8 +151,16 @@ const Help = () => {
             {quickActions.map((action, index) => (
               <div
                 key={index}
+                className='bg-gray-700/30 hover:bg-gray-700/50 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:scale-105 border border-gray-600/30 hover:border-gray-500/50'
+                role='button'
+                tabIndex={0}
                 onClick={action.action}
-                className='bg-gray-700/30 hover:bg-gray-700/50 rounded-lg p-4 cursor-pointer transition-all duration-200 hover:scale-105 border border-gray-600/30 hover:border-gray-500/50'>
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    action.action()
+                  }
+                }}>
                 <div className='flex items-center gap-3 mb-2'>
                   {action.icon}
                   <span className='font-medium text-gray-200 text-sm'>{action.title}</span>
@@ -219,9 +212,9 @@ const Help = () => {
                 Contactar Soporte
               </Button>
               <Button
-                variant='bordered'
                 className='border-green-500/30 text-green-300 hover:bg-green-500/10'
-                startContent={<Phone className='w-4 h-4' />}>
+                startContent={<Phone className='w-4 h-4' />}
+                variant='bordered'>
                 Ver Contactos
               </Button>
             </div>

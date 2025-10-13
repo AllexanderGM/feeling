@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Card, CardBody, Progress } from '@heroui/react'
-import { Calendar, Clock, DollarSign, MapPin, TrendingUp, Users } from 'lucide-react'
+import { Calendar, Clock, DollarSign, MapPin, TrendingUp } from 'lucide-react'
 
 const EventStatsCards = memo(({ eventStats = {} }) => {
   const { totalEvents = 0, totalPending = 0, totalRevenue = 0, popularDestinations = [] } = eventStats
@@ -51,6 +51,7 @@ const EventStatsCards = memo(({ eventStats = {} }) => {
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
         {statsCards.map((stat, index) => {
           const IconComponent = stat.icon
+
           return (
             <Card key={index} className='bg-default-50 border border-default-200'>
               <CardBody className='p-6'>
@@ -104,7 +105,7 @@ const EventStatsCards = memo(({ eventStats = {} }) => {
                       </div>
                     </div>
                     <div className='flex items-center gap-2'>
-                      <Progress size='sm' value={(destination.count / totalEvents) * 100} color='primary' className='max-w-[60px]' />
+                      <Progress className='max-w-[60px]' color='primary' size='sm' value={(destination.count / totalEvents) * 100} />
                       <span className='text-xs text-default-500 min-w-[30px]'>{Math.round((destination.count / totalEvents) * 100)}%</span>
                     </div>
                   </div>
@@ -136,7 +137,7 @@ const EventStatsCards = memo(({ eventStats = {} }) => {
                   <p className='text-sm font-medium text-default-700'>Eventos Activos</p>
                   <span className='text-sm font-semibold text-success-600'>{completionRate}%</span>
                 </div>
-                <Progress value={completionRate} color='success' size='sm' className='mb-1' />
+                <Progress className='mb-1' color='success' size='sm' value={completionRate} />
                 <p className='text-xs text-default-500'>
                   {activeEvents} de {totalEvents} eventos están activos
                 </p>
@@ -150,7 +151,7 @@ const EventStatsCards = memo(({ eventStats = {} }) => {
                     {totalEvents > 0 ? Math.round((totalPending / totalEvents) * 100) : 0}%
                   </span>
                 </div>
-                <Progress value={totalEvents > 0 ? (totalPending / totalEvents) * 100 : 0} color='warning' size='sm' className='mb-1' />
+                <Progress className='mb-1' color='warning' size='sm' value={totalEvents > 0 ? (totalPending / totalEvents) * 100 : 0} />
                 <p className='text-xs text-default-500'>{totalPending} eventos esperando aprobación</p>
               </div>
 

@@ -37,6 +37,7 @@ const GenericTableControls = ({
 }) => {
   const handleRowsPerPageChange = e => {
     const newValue = Number(e.target.value)
+
     onRowsPerPageChange(newValue)
   }
 
@@ -46,12 +47,6 @@ const GenericTableControls = ({
         <Input
           isClearable
           className='w-full sm:max-w-[44%]'
-          placeholder={filterPlaceholder}
-          startContent={<Search />}
-          value={filterValue}
-          onClear={onClear}
-          onValueChange={onSearchChange}
-          variant='underlined'
           classNames={{
             inputWrapper: [
               'data-[focus=true]:after:bg-[#E86C6E]',
@@ -59,6 +54,12 @@ const GenericTableControls = ({
               'after:bg-[#E86C6E]'
             ]
           }}
+          placeholder={filterPlaceholder}
+          startContent={<Search />}
+          value={filterValue}
+          variant='underlined'
+          onClear={onClear}
+          onValueChange={onSearchChange}
         />
         <div className='flex gap-3'>
           {showFilters && (
@@ -106,7 +107,7 @@ const GenericTableControls = ({
             </DropdownMenu>
           </Dropdown>
           {!hideRefreshButton && (
-            <Button color='default' variant='flat' isIconOnly onPress={onRefresh} isLoading={loading} className='min-w-10'>
+            <Button isIconOnly className='min-w-10' color='default' isLoading={loading} variant='flat' onPress={onRefresh}>
               <RefreshCw className='w-4 h-4' />
             </Button>
           )}
@@ -125,8 +126,8 @@ const GenericTableControls = ({
           Filas por página:
           <select
             className='bg-transparent outline-none text-default-400 text-small ml-2'
-            onChange={handleRowsPerPageChange}
-            value={rowsPerPage}>
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}>
             {ROWS_PER_PAGE_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}

@@ -8,7 +8,7 @@ const PrivacyRow = ({ icon: Icon, label, value, showIndicator = false, indicator
         <span className='text-gray-400'>{label}:</span>
       </div>
       <div className='flex items-center gap-2'>
-        <StatusChip status={value} trueText='Sí' falseText='No' trueColor='success' falseColor='default' />
+        <StatusChip falseColor='default' falseText='No' status={value} trueColor='success' trueText='Sí' />
         {showIndicator && value && <span className='text-orange-300 text-xs'>{indicatorText}</span>}
       </div>
     </div>

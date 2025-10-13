@@ -12,21 +12,7 @@ import {
   ModalFooter,
   useDisclosure
 } from '@heroui/react'
-import {
-  Heart,
-  HeartOff,
-  MessageCircle,
-  MapPin,
-  Eye,
-  Star,
-  Sparkles,
-  Flame,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  X,
-  Bookmark
-} from 'lucide-react'
+import { Heart, HeartOff, MapPin, Eye, Star, Sparkles, Flame, ChevronLeft, ChevronRight, X, Bookmark } from 'lucide-react'
 import { Logger } from '@utils/logger.js'
 
 const UserCard = ({
@@ -40,7 +26,6 @@ const UserCard = ({
   isFavorite = false,
   showCompatibility = true,
   showDistance = true,
-  showLastActivity = false,
   showMatchControls = false,
   variant = 'default' // 'default', 'compact', 'discovery'
 }) => {
@@ -66,6 +51,7 @@ const UserCard = ({
         images: user.images || [user.mainImage || user.image].filter(Boolean)
       }
     }
+
     // Si el usuario tiene estructura anidada (profile)
     return {
       name: user.profile?.name,
@@ -92,17 +78,6 @@ const UserCard = ({
       default:
         return <Heart className='w-4 h-4 text-gray-400' />
     }
-  }
-
-  const getTimeAgo = date => {
-    const now = new Date()
-    const diffInDays = Math.floor((now - new Date(date)) / (1000 * 60 * 60 * 24))
-
-    if (diffInDays === 0) return 'Hoy'
-    if (diffInDays === 1) return 'Ayer'
-    if (diffInDays < 7) return `Hace ${diffInDays} días`
-    if (diffInDays < 30) return `Hace ${Math.floor(diffInDays / 7)} sem`
-    return `Hace ${Math.floor(diffInDays / 30)} meses`
   }
 
   const nextPhoto = () => {
@@ -155,9 +130,9 @@ const UserCard = ({
           {/* Galería de imágenes */}
           <div className='relative h-96 group'>
             <img
-              src={images[currentPhotoIndex]}
               alt={`${userData.name} - Foto ${currentPhotoIndex + 1}`}
               className='w-full h-full object-cover'
+              src={images[currentPhotoIndex]}
             />
 
             {/* Indicadores de fotos */}
@@ -176,13 +151,13 @@ const UserCard = ({
             {hasMultipleimages && (
               <>
                 <button
-                  onClick={prevPhoto}
-                  className='absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'>
+                  className='absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'
+                  onClick={prevPhoto}>
                   <ChevronLeft className='w-4 h-4' />
                 </button>
                 <button
-                  onClick={nextPhoto}
-                  className='absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'>
+                  className='absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'
+                  onClick={nextPhoto}>
                   <ChevronRight className='w-4 h-4' />
                 </button>
               </>
@@ -192,12 +167,12 @@ const UserCard = ({
             <div className='absolute top-4 left-4 right-4 flex justify-between items-start'>
               <div className='flex items-center gap-2'>
                 {user.isOnline && (
-                  <Chip size='sm' color='success' variant='flat'>
+                  <Chip color='success' size='sm' variant='flat'>
                     En línea
                   </Chip>
                 )}
                 {showCompatibility && user.compatibility && (
-                  <Chip size='sm' color='danger' variant='flat'>
+                  <Chip color='danger' size='sm' variant='flat'>
                     {user.compatibility}% match
                   </Chip>
                 )}
@@ -206,9 +181,9 @@ const UserCard = ({
               {onToggleFavorite && (
                 <Button
                   isIconOnly
+                  className={`${isFavorite ? 'text-pink-400 bg-pink-400/20' : 'text-gray-400 bg-gray-800/50'}`}
                   size='sm'
                   variant='flat'
-                  className={`${isFavorite ? 'text-pink-400 bg-pink-400/20' : 'text-gray-400 bg-gray-800/50'}`}
                   onPress={() => onToggleFavorite(user.id)}>
                   {isFavorite ? <Heart className='w-4 h-4 fill-current' /> : <HeartOff className='w-4 h-4' />}
                 </Button>
@@ -236,10 +211,10 @@ const UserCard = ({
                 </div>
 
                 <Button
-                  size='sm'
-                  variant='flat'
                   className='bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white border-white/20'
+                  size='sm'
                   startContent={<Eye className='w-3 h-3' />}
+                  variant='flat'
                   onPress={handleViewProfile}>
                   Ver más
                 </Button>
@@ -262,12 +237,12 @@ const UserCard = ({
                 <h4 className='text-gray-200 text-sm font-medium mb-2'>Intereses</h4>
                 <div className='flex flex-wrap gap-2'>
                   {userData.tags.slice(0, 4).map((tag, index) => (
-                    <Chip key={index} size='sm' variant='bordered' className='text-gray-300 border-gray-600 bg-gray-800/30'>
+                    <Chip key={index} className='text-gray-300 border-gray-600 bg-gray-800/30' size='sm' variant='bordered'>
                       {tag}
                     </Chip>
                   ))}
                   {userData.tags.length > 4 && (
-                    <Chip size='sm' variant='bordered' className='text-gray-400 border-gray-600'>
+                    <Chip className='text-gray-400 border-gray-600' size='sm' variant='bordered'>
                       +{userData.tags.length - 4}
                     </Chip>
                   )}
@@ -279,21 +254,21 @@ const UserCard = ({
             <div className='space-y-2 text-sm'>
               {user.status?.verified && (
                 <div className='flex items-center gap-2 text-primary-400'>
-                  <div className='w-2 h-2 bg-primary-500 rounded-full'></div>
+                  <div className='w-2 h-2 bg-primary-500 rounded-full' />
                   <span>Perfil verificado</span>
                 </div>
               )}
 
               {userData.church && (
                 <div className='flex items-center gap-2 text-gray-400'>
-                  <div className='w-2 h-2 bg-gray-500 rounded-full'></div>
+                  <div className='w-2 h-2 bg-gray-500 rounded-full' />
                   <span>{userData.church}</span>
                 </div>
               )}
 
               {userData.phone && (
                 <div className='flex items-center gap-2 text-gray-400'>
-                  <div className='w-2 h-2 bg-gray-500 rounded-full'></div>
+                  <div className='w-2 h-2 bg-gray-500 rounded-full' />
                   <span>Contacto disponible</span>
                 </div>
               )}
@@ -306,29 +281,29 @@ const UserCard = ({
               <div className='flex items-center justify-center gap-4'>
                 <Button
                   isIconOnly
-                  variant='solid'
-                  size='md'
-                  color='default'
                   className='bg-gray-700 hover:bg-gray-600 transition-all duration-200'
+                  color='default'
+                  size='md'
+                  variant='solid'
                   onPress={handlePass}>
                   <X className='w-4 h-4' />
                 </Button>
 
                 <Button
                   isIconOnly
-                  variant='solid'
-                  size='md'
                   className='bg-gradient-to-br from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 transition-all duration-200'
+                  size='md'
+                  variant='solid'
                   onPress={handleSuperLike}>
                   <Bookmark className='w-4 h-4 text-white' />
                 </Button>
 
                 <Button
                   isIconOnly
-                  variant='solid'
-                  size='md'
-                  color='danger'
                   className='bg-gradient-to-br from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 transition-all duration-200'
+                  color='danger'
+                  size='md'
+                  variant='solid'
                   onPress={handleLike}>
                   <Heart className='w-4 h-4 text-white' />
                 </Button>
@@ -349,21 +324,21 @@ const UserCard = ({
       {/* Modal de perfil si no se maneja externamente */}
       {!onViewProfile && (
         <Modal
-          isOpen={isProfileOpen}
-          onOpenChange={onProfileOpenChange}
-          size='3xl'
           classNames={{
             base: 'bg-gray-900/95 backdrop-blur-sm',
             header: 'border-b border-gray-700/50',
             footer: 'border-t border-gray-700/50',
             closeButton: 'hover:bg-gray-800/50'
-          }}>
+          }}
+          isOpen={isProfileOpen}
+          size='3xl'
+          onOpenChange={onProfileOpenChange}>
           <ModalContent>
             {onClose => (
               <>
                 <ModalHeader>
                   <div className='flex items-center gap-3'>
-                    <Avatar src={userData.mainImage} alt={userData.name} className='w-12 h-12' />
+                    <Avatar alt={userData.name} className='w-12 h-12' src={userData.mainImage} />
                     <div>
                       <h3 className='text-lg font-bold text-gray-200'>{userData.name}</h3>
                       <p className='text-gray-400'>
@@ -386,7 +361,7 @@ const UserCard = ({
                         <h4 className='font-semibold text-gray-200 mb-2'>Intereses</h4>
                         <div className='flex flex-wrap gap-2'>
                           {user.interests.map((interest, index) => (
-                            <Chip key={index} size='sm' variant='flat' color='primary'>
+                            <Chip key={index} color='primary' size='sm' variant='flat'>
                               {interest}
                             </Chip>
                           ))}

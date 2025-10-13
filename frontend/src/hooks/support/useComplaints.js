@@ -84,7 +84,9 @@ const useComplaints = () => {
   const handleError = useCallback((error, customMessage = null) => {
     Logger.error(Logger.CATEGORIES.USER, 'manejo error quejas', error)
     const errorMessage = customMessage || error?.response?.data?.message || error.message || 'Error desconocido'
+
     setError(errorMessage)
+
     return { success: false, error: errorMessage }
   }, [])
 
@@ -113,6 +115,7 @@ const useComplaints = () => {
         }
 
         Logger.info(Logger.CATEGORIES.USER, 'crear queja', 'Queja creada exitosamente', { context: { complaintId: response.id } })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al crear la queja')
@@ -156,6 +159,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar tus quejas')
@@ -176,9 +180,11 @@ const useComplaints = () => {
         clearError()
 
         const response = await complaintService.getMyComplaint(complaintId)
+
         setSelectedComplaint(response)
 
         Logger.info(Logger.CATEGORIES.USER, 'cargar queja específica', 'Queja cargada exitosamente', { context: { complaintId } })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar la queja')
@@ -226,6 +232,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar las quejas')
@@ -266,6 +273,7 @@ const useComplaints = () => {
         Logger.info(Logger.CATEGORIES.USER, 'cargar quejas pendientes', 'Quejas pendientes cargadas exitosamente', {
           context: { totalElements: response.totalElements }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar quejas pendientes')
@@ -309,6 +317,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar quejas urgentes')
@@ -352,6 +361,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar quejas vencidas')
@@ -395,6 +405,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al cargar quejas resueltas')
@@ -427,6 +438,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, `Error al cargar quejas de tipo ${complaintType}`)
@@ -459,6 +471,7 @@ const useComplaints = () => {
             currentPage: page + 1
           }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, `Error al cargar quejas de prioridad ${complaintPriority}`)
@@ -500,6 +513,7 @@ const useComplaints = () => {
         Logger.info(Logger.CATEGORIES.USER, 'actualizar estado queja', 'Estado actualizado exitosamente', {
           context: { complaintId, newStatus: response.status }
         })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al actualizar la queja')
@@ -549,6 +563,7 @@ const useComplaints = () => {
         }
 
         Logger.info(Logger.CATEGORIES.USER, 'eliminar queja', 'Queja eliminada exitosamente', { context: { complaintId } })
+
         return { success: true, data: response }
       } catch (error) {
         return handleError(error, 'Error al eliminar la queja')
@@ -578,9 +593,11 @@ const useComplaints = () => {
 
       Logger.info(Logger.CATEGORIES.USER, 'cargar estadísticas quejas', 'Iniciando carga de estadísticas')
       const response = await complaintService.getComplaintStats()
+
       setComplaintStats(response || {})
 
       Logger.debug(Logger.CATEGORIES.USER, 'cargar estadísticas quejas', response)
+
       return { success: true, data: response }
     } catch (error) {
       return handleError(error, 'Error al cargar estadísticas')
@@ -605,6 +622,7 @@ const useComplaints = () => {
         await new Promise(resolve => setTimeout(resolve, 1000))
 
         Logger.info(Logger.CATEGORIES.USER, 'enviar mensaje queja', 'Mensaje enviado correctamente')
+
         return { success: true, data: { message: 'Mensaje enviado' } }
       } catch (error) {
         return handleError(error, 'Error al enviar mensaje')
@@ -650,6 +668,7 @@ const useComplaints = () => {
       const timer = setTimeout(() => {
         setError(null)
       }, 5000)
+
       return () => clearTimeout(timer)
     }
   }, [error])

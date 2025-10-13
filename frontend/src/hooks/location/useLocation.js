@@ -55,6 +55,7 @@ const useLocation = (options = {}) => {
         } else {
           // Solo cargar países inicialmente
           const countriesData = await geographicService.getAllCountries()
+
           setCountries(countriesData)
 
           // Si hay país por defecto, cargar sus ciudades
@@ -78,6 +79,7 @@ const useLocation = (options = {}) => {
     if (!countryName) {
       setCities([])
       setLocalities([])
+
       return
     }
 
@@ -87,6 +89,7 @@ const useLocation = (options = {}) => {
       setLocalities([]) // Limpiar localidades al cambiar país
 
       const citiesData = await geographicService.getCitiesByCountry(countryName)
+
       setCities(citiesData || [])
     } catch (err) {
       Logger.error(Logger.CATEGORIES.NETWORK, `Error loading cities for ${countryName}`, { countryName, error: err })
@@ -101,6 +104,7 @@ const useLocation = (options = {}) => {
   const loadLocalitiesByCity = useCallback(async cityName => {
     if (!cityName) {
       setLocalities([])
+
       return
     }
 
@@ -109,6 +113,7 @@ const useLocation = (options = {}) => {
       setLocalitiesError(null)
 
       const localitiesData = await geographicService.getLocalitiesByCity(cityName)
+
       setLocalities(localitiesData || [])
     } catch (err) {
       Logger.error(Logger.CATEGORIES.NETWORK, `Error loading localities for ${cityName}`, { cityName, error: err })
@@ -130,6 +135,7 @@ const useLocation = (options = {}) => {
   const getCountryByCode = useCallback(
     countryCode => {
       if (!countryCode) return null
+
       return countries.find(country => country.code === countryCode)
     },
     [countries]
@@ -139,6 +145,7 @@ const useLocation = (options = {}) => {
   const getCountryByName = useCallback(
     countryName => {
       if (!countryName) return null
+
       return countries.find(country => country.name === countryName)
     },
     [countries]
@@ -148,6 +155,7 @@ const useLocation = (options = {}) => {
   const getCityByName = useCallback(
     cityName => {
       if (!cityName) return null
+
       return cities.find(city => city.name === cityName)
     },
     [cities]
@@ -157,6 +165,7 @@ const useLocation = (options = {}) => {
   const cityHasLocalities = useCallback(
     cityName => {
       const city = getCityByName(cityName)
+
       return city && city.localities && city.localities.length > 0
     },
     [getCityByName]

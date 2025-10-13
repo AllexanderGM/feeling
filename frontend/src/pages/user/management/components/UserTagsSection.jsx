@@ -13,8 +13,8 @@ import {
   Select,
   SelectItem
 } from '@heroui/react'
-import { Edit3, Trash2, CheckCircle, XCircle, Zap, TrendingUp } from 'lucide-react'
-import { userTagsService, userAnalyticsService } from '@services'
+import { Zap, TrendingUp } from 'lucide-react'
+import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
@@ -34,7 +34,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const [searchValue, setSearchValue] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedTag, setSelectedTag] = useState(null)
-  const [tagStats, setTagStats] = useState({})
+  // const [tagStats, setTagStats] = useState({})
 
   // Obtener acciones predefinidas del hook
   const { editAction, deleteAction, approveAction, rejectAction } = useTableActions()
@@ -101,7 +101,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   // Cargar datos iniciales
   useEffect(() => {
     loadTags()
-    loadTagStats()
+    // loadTagStats()
   }, [statusFilter])
 
   // Cargar tags
@@ -145,14 +145,15 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   }, [statusFilter, searchValue, onError])
 
   // Cargar estadísticas
-  const loadTagStats = useCallback(async () => {
-    try {
-      const stats = await userAnalyticsService.getTagsStatistics()
-      setTagStats(stats)
-    } catch (error) {
-      Logger.error('Error loading tag stats:', error, { category: Logger.CATEGORIES.USER })
-    }
-  }, [])
+  // const loadTagStats = useCallback(async () => {
+  //   try {
+  //     const stats = await userAnalyticsService.getTagsStatistics()
+  //
+  //     setTagStats(stats)
+  //   } catch (error) {
+  //     Logger.error('Error loading tag stats:', error, { category: Logger.CATEGORIES.USER })
+  //   }
+  // }, [])
 
   // Renderizar celda
   const renderCell = useCallback(
@@ -171,6 +172,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
             if (tag.approved === true) return 'success'
             if (tag.approved === false || tag.rejectionReason) return 'danger'
             if (tag.isTrending) return 'secondary'
+
             return 'warning'
           }
 
@@ -178,18 +180,19 @@ const UserTagsSection = ({ onError, onSuccess }) => {
             if (tag.approved === true) return 'Aprobado'
             if (tag.approved === false || tag.rejectionReason) return 'Rechazado'
             if (tag.isTrending) return 'Tendencia'
+
             return 'Pendiente'
           }
 
           return (
-            <Chip size='sm' color={getStatusColor(tag)} variant='flat'>
+            <Chip color={getStatusColor(tag)} size='sm' variant='flat'>
               {getStatusLabel(tag)}
             </Chip>
           )
 
         case 'category':
           return (
-            <Chip size='sm' variant='dot' color='primary'>
+            <Chip color='primary' size='sm' variant='dot'>
               {tagCategories.find(cat => cat.key === tag.category)?.label || tag.category || 'Sin categoría'}
             </Chip>
           )
@@ -199,6 +202,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
 
         case 'popularity':
           const popularity = Math.min(((tag.usageCount || 0) / 10) * 100, 100)
+
           return (
             <div className='flex items-center gap-2'>
               {tag.isTrending && <TrendingUp className='w-3 h-3 text-success-500' />}
@@ -307,6 +311,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const handleCreateSubmit = useCallback(async () => {
     if (!tagForm.name) {
       onError?.('Por favor ingresa el nombre del tag')
+
       return
     }
 
@@ -368,6 +373,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const confirmReject = useCallback(async () => {
     if (!selectedTag || !rejectionReason.trim()) {
       onError?.('Por favor ingresa una razón para el rechazo')
+
       return
     }
 
@@ -386,6 +392,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   const handleCleanupTags = useCallback(async () => {
     try {
       const result = await userTagsService.cleanupUnusedTags()
+
       onSuccess?.(`Limpieza completada: ${result.deletedCount || 0} tags eliminados`)
       loadTags()
       loadTagStats()
@@ -404,6 +411,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
           (tag.name || tag.tagName)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           tag.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
+
       setTags(filteredTags)
     },
     [tags]
@@ -421,7 +429,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   }, [])
 
   // Función de cambio de filas por página
-  const handleRowsPerPageChange = useCallback(size => {
+  const handleRowsPerPageChange = useCallback(_size => {
     setPagination(prev => ({ ...prev, page: 1 }))
   }, [])
 
@@ -431,69 +439,69 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       <div className='flex justify-between items-center'>
         <div className='flex items-center gap-4'>
           <Select
+            className='w-48'
             label='Estado del Tag'
             placeholder='Filtrar por estado'
             selectedKeys={statusFilter ? [statusFilter] : []}
-            onSelectionChange={keys => setStatusFilter(Array.from(keys)[0] || 'all')}
-            className='w-48'>
+            onSelectionChange={keys => setStatusFilter(Array.from(keys)[0] || 'all')}>
             {statusOptions.map(option => (
               <SelectItem key={option.key}>{option.label}</SelectItem>
             ))}
           </Select>
         </div>
-        <Button variant='flat' color='secondary' startContent={<Zap className='h-4 w-4' />} onPress={handleCleanupTags}>
+        <Button color='secondary' startContent={<Zap className='h-4 w-4' />} variant='flat' onPress={handleCleanupTags}>
           Limpiar tags sin uso
         </Button>
       </div>
 
       {/* Main Table */}
       <GenericDataTable
-        data={tags}
         columns={columns}
-        pagination={pagination}
-        loading={loading}
-        loadingMessage='Cargando tags...'
-        emptyMessage='No se encontraron tags'
-        renderCell={renderCell}
-        onSearch={handleSearch}
-        onRefresh={handleRefresh}
-        onCreate={handleCreateTag}
         createButtonLabel='Crear Tag'
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        searchPlaceholder='Buscar tags por nombre o descripción...'
-        rowsPerPageOptions={[10, 20, 30, 50]}
-        showColumnSelector={true}
-        showRowsPerPage={true}
-        showCreateButton={true}
-        showRefreshButton={true}
-        showSearch={true}
-        showPagination={true}
+        data={tags}
+        emptyMessage='No se encontraron tags'
         enableSelection={false}
         getItemKey={item => `tag-${item.id}`}
+        loading={loading}
+        loadingMessage='Cargando tags...'
+        pagination={pagination}
+        renderCell={renderCell}
+        rowsPerPageOptions={[10, 20, 30, 50]}
+        searchPlaceholder='Buscar tags por nombre o descripción...'
+        showColumnSelector={true}
+        showCreateButton={true}
+        showPagination={true}
+        showRefreshButton={true}
+        showRowsPerPage={true}
+        showSearch={true}
         tableId={`tags-table`}
+        onCreate={handleCreateTag}
+        onPageChange={handlePageChange}
+        onRefresh={handleRefresh}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        onSearch={handleSearch}
       />
 
       {/* Create Tag Modal */}
-      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size='2xl'>
+      <Modal isOpen={isCreateOpen} size='2xl' onClose={onCreateClose}>
         <ModalContent>
           <ModalHeader>Crear Nuevo Tag</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <Input
+                isRequired
                 label='Nombre del tag'
                 placeholder='ej: música, viajes, cocina'
                 value={tagForm.name}
                 onValueChange={value => setTagForm(prev => ({ ...prev, name: value }))}
-                isRequired
               />
 
               <Textarea
                 label='Descripción'
+                minRows={2}
                 placeholder='Describe el propósito o contexto del tag'
                 value={tagForm.description}
                 onValueChange={value => setTagForm(prev => ({ ...prev, description: value }))}
-                minRows={2}
               />
 
               <Select
@@ -513,7 +521,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onCreateClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleCreateSubmit} isDisabled={!tagForm.name}>
+            <Button color='primary' isDisabled={!tagForm.name} onPress={handleCreateSubmit}>
               Crear Tag
             </Button>
           </ModalFooter>
@@ -521,23 +529,23 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       </Modal>
 
       {/* Edit Tag Modal */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} size='2xl'>
+      <Modal isOpen={isEditOpen} size='2xl' onClose={onEditClose}>
         <ModalContent>
           <ModalHeader>Editar Tag</ModalHeader>
           <ModalBody>
             <div className='flex flex-col gap-4'>
               <Input
+                isRequired
                 label='Nombre del tag'
                 value={tagForm.name}
                 onValueChange={value => setTagForm(prev => ({ ...prev, name: value }))}
-                isRequired
               />
 
               <Textarea
                 label='Descripción'
+                minRows={2}
                 value={tagForm.description}
                 onValueChange={value => setTagForm(prev => ({ ...prev, description: value }))}
-                minRows={2}
               />
 
               <Select
@@ -556,7 +564,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onEditClose}>
               Cancelar
             </Button>
-            <Button color='primary' onPress={handleEditSubmit} isDisabled={!tagForm.name}>
+            <Button color='primary' isDisabled={!tagForm.name} onPress={handleEditSubmit}>
               Actualizar
             </Button>
           </ModalFooter>
@@ -573,12 +581,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
                 ¿Estás seguro de que deseas rechazar el tag <strong>{selectedTag?.name || selectedTag?.tagName}</strong>?
               </p>
               <Textarea
+                isRequired
                 label='Razón del rechazo'
+                minRows={3}
                 placeholder='Explica por qué se rechaza este tag'
                 value={rejectionReason}
                 onValueChange={setRejectionReason}
-                isRequired
-                minRows={3}
               />
             </div>
           </ModalBody>
@@ -586,7 +594,7 @@ const UserTagsSection = ({ onError, onSuccess }) => {
             <Button variant='light' onPress={onRejectClose}>
               Cancelar
             </Button>
-            <Button color='danger' onPress={confirmReject} isDisabled={!rejectionReason.trim()}>
+            <Button color='danger' isDisabled={!rejectionReason.trim()} onPress={confirmReject}>
               Rechazar
             </Button>
           </ModalFooter>

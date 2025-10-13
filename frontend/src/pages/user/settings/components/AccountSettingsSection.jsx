@@ -62,13 +62,13 @@ const AccountSettingsSection = ({ user }) => {
           <span className='text-sm font-medium text-gray-200'>Configuración de Cuenta</span>
         </div>
         <Button
-          size='sm'
-          variant='solid'
-          color='primary'
           className='bg-primary-600 hover:bg-primary-700'
+          color='primary'
+          isLoading={loading}
+          size='sm'
           startContent={<Save className='w-3 h-3' />}
-          onPress={handleAccountUpdate}
-          isLoading={loading}>
+          variant='solid'
+          onPress={handleAccountUpdate}>
           Guardar
         </Button>
       </div>
@@ -83,39 +83,39 @@ const AccountSettingsSection = ({ user }) => {
 
           <div className='space-y-3'>
             <Input
-              size='sm'
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-700/50'
+              }}
               label='Email'
+              size='sm'
+              startContent={<Mail className='w-4 h-4 text-gray-400' />}
               value={accountData.email}
               onChange={e => setAccountData(prev => ({ ...prev, email: e.target.value }))}
-              startContent={<Mail className='w-4 h-4 text-gray-400' />}
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-700/50'
               }}
-            />
-
-            <Input
-              size='sm'
               label='Teléfono (opcional)'
+              size='sm'
+              startContent={<Phone className='w-4 h-4 text-gray-400' />}
               value={accountData.phone}
               onChange={e => setAccountData(prev => ({ ...prev, phone: e.target.value }))}
-              startContent={<Phone className='w-4 h-4 text-gray-400' />}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-700/50'
-              }}
             />
 
             <Input
-              size='sm'
-              label='Contacto de emergencia (opcional)'
-              value={accountData.emergencyContact}
-              onChange={e => setAccountData(prev => ({ ...prev, emergencyContact: e.target.value }))}
-              startContent={<User className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-700/50'
               }}
+              label='Contacto de emergencia (opcional)'
+              size='sm'
+              startContent={<User className='w-4 h-4 text-gray-400' />}
+              value={accountData.emergencyContact}
+              onChange={e => setAccountData(prev => ({ ...prev, emergencyContact: e.target.value }))}
             />
           </div>
         </div>
@@ -163,7 +163,7 @@ const AccountSettingsSection = ({ user }) => {
 
             <div className='flex items-center gap-2'>
               <span>Estado: </span>
-              <Chip size='sm' color={user?.verified ? 'success' : 'warning'} variant='flat' className='text-xs'>
+              <Chip className='text-xs' color={user?.verified ? 'success' : 'warning'} size='sm' variant='flat'>
                 {user?.verified ? 'Verificado' : 'Sin verificar'}
               </Chip>
             </div>
@@ -180,10 +180,10 @@ const AccountSettingsSection = ({ user }) => {
           <div className='space-y-3'>
             <div>
               <Button
-                size='sm'
-                variant='bordered'
                 className='border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10'
+                size='sm'
                 startContent={<Download className='w-3 h-3' />}
+                variant='bordered'
                 onPress={onDataOpen}>
                 Descargar mis datos
               </Button>
@@ -202,11 +202,11 @@ const AccountSettingsSection = ({ user }) => {
           <div className='space-y-3'>
             <div>
               <Button
-                size='sm'
-                color='danger'
-                variant='bordered'
                 className='border-red-500/50 text-red-400 hover:bg-red-500/10'
+                color='danger'
+                size='sm'
                 startContent={<Trash2 className='w-3 h-3' />}
+                variant='bordered'
                 onPress={onDeleteOpen}>
                 Eliminar cuenta
               </Button>
@@ -218,13 +218,13 @@ const AccountSettingsSection = ({ user }) => {
 
       {/* Modal de confirmación para eliminar cuenta */}
       <Modal
-        isOpen={isDeleteOpen}
-        onOpenChange={onDeleteOpenChange}
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50'
-        }}>
+        }}
+        isOpen={isDeleteOpen}
+        onOpenChange={onDeleteOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -253,7 +253,7 @@ const AccountSettingsSection = ({ user }) => {
                 <Button variant='light' onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color='danger' onPress={handleDeleteAccount} isLoading={loading}>
+                <Button color='danger' isLoading={loading} onPress={handleDeleteAccount}>
                   Sí, eliminar mi cuenta
                 </Button>
               </ModalFooter>
@@ -264,13 +264,13 @@ const AccountSettingsSection = ({ user }) => {
 
       {/* Modal para descarga de datos */}
       <Modal
-        isOpen={isDataOpen}
-        onOpenChange={onDataOpenChange}
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50'
-        }}>
+        }}
+        isOpen={isDataOpen}
+        onOpenChange={onDataOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -299,7 +299,7 @@ const AccountSettingsSection = ({ user }) => {
                 <Button variant='light' onPress={onClose}>
                   Cancelar
                 </Button>
-                <Button color='primary' onPress={handleExportData} isLoading={loading} startContent={<Download className='w-4 h-4' />}>
+                <Button color='primary' isLoading={loading} startContent={<Download className='w-4 h-4' />} onPress={handleExportData}>
                   Descargar
                 </Button>
               </ModalFooter>

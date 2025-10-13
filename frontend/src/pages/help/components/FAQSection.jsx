@@ -223,14 +223,14 @@ const FAQSection = ({ searchTerm = '' }) => {
       {!searchTerm && (
         <div className='max-w-md mx-auto'>
           <Input
-            placeholder='Buscar en preguntas frecuentes...'
-            value={localSearch}
-            onChange={e => setLocalSearch(e.target.value)}
-            startContent={<Search className='w-4 h-4 text-gray-400' />}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-700/50'
             }}
+            placeholder='Buscar en preguntas frecuentes...'
+            startContent={<Search className='w-4 h-4 text-gray-400' />}
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
           />
         </div>
       )}
@@ -238,8 +238,9 @@ const FAQSection = ({ searchTerm = '' }) => {
       {/* Estadísticas de búsqueda */}
       {currentSearchTerm && (
         <div className='text-center'>
-          <Chip color='primary' variant='flat' size='sm'>
-            {filteredFAQ.reduce((total, category) => total + category.questions.length, 0)} resultado(s) para "{currentSearchTerm}"
+          <Chip color='primary' size='sm' variant='flat'>
+            {filteredFAQ.reduce((total, category) => total + category.questions.length, 0)} resultado(s) para &quot;{currentSearchTerm}
+            &quot;
           </Chip>
         </div>
       )}
@@ -253,14 +254,13 @@ const FAQSection = ({ searchTerm = '' }) => {
               <div className='flex items-center gap-2 pb-2 border-b border-gray-700/50'>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-${category.color}-500/20`}>{category.icon}</div>
                 <h3 className='text-lg font-semibold text-gray-200'>{category.category}</h3>
-                <Chip size='sm' color={category.color} variant='flat'>
+                <Chip color={category.color} size='sm' variant='flat'>
                   {category.questions.length}
                 </Chip>
               </div>
 
               {/* Accordion de preguntas */}
               <Accordion
-                variant='splitted'
                 className='px-0'
                 itemClasses={{
                   base: 'bg-gray-700/30 border border-gray-600/30',
@@ -268,13 +268,14 @@ const FAQSection = ({ searchTerm = '' }) => {
                   content: 'text-gray-300 text-sm pb-4',
                   trigger: 'hover:bg-gray-600/30',
                   indicator: 'text-gray-400'
-                }}>
+                }}
+                variant='splitted'>
                 {category.questions.map(faq => (
                   <AccordionItem
                     key={faq.id}
                     aria-label={faq.question}
-                    title={faq.question}
-                    indicator={<ChevronDown className='w-4 h-4' />}>
+                    indicator={<ChevronDown className='w-4 h-4' />}
+                    title={faq.question}>
                     <div className='text-gray-300 leading-relaxed'>{faq.answer}</div>
                   </AccordionItem>
                 ))}

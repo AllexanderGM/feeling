@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Switch, Chip } from '@heroui/react'
-import { Bell, Mail, Smartphone, Heart, MessageCircle, Calendar, Users, Zap, Save } from 'lucide-react'
+import { Bell, Mail, Smartphone, Heart, MessageCircle, Calendar, Zap, Save } from 'lucide-react'
 import { useUser } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
@@ -76,13 +76,13 @@ const NotificationSettingsSection = ({ user }) => {
           <span className='text-sm font-medium text-gray-200'>Configuración de Notificaciones</span>
         </div>
         <Button
-          size='sm'
-          variant='solid'
-          color='primary'
           className='bg-primary-600 hover:bg-primary-700'
+          color='primary'
+          isLoading={loading}
+          size='sm'
           startContent={<Save className='w-3 h-3' />}
-          onPress={handleSave}
-          isLoading={loading}>
+          variant='solid'
+          onPress={handleSave}>
           Guardar
         </Button>
       </div>
@@ -105,10 +105,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.emailMatches}
-                onValueChange={value => handleNotificationChange('emailMatches', value)}
                 color='primary'
+                isSelected={notifications.emailMatches}
                 size='sm'
+                onValueChange={value => handleNotificationChange('emailMatches', value)}
               />
             </div>
 
@@ -121,10 +121,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.emailMessages}
-                onValueChange={value => handleNotificationChange('emailMessages', value)}
                 color='primary'
+                isSelected={notifications.emailMessages}
                 size='sm'
+                onValueChange={value => handleNotificationChange('emailMessages', value)}
               />
             </div>
 
@@ -137,10 +137,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.emailEvents}
-                onValueChange={value => handleNotificationChange('emailEvents', value)}
                 color='primary'
+                isSelected={notifications.emailEvents}
                 size='sm'
+                onValueChange={value => handleNotificationChange('emailEvents', value)}
               />
             </div>
 
@@ -153,10 +153,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.emailMarketing}
-                onValueChange={value => handleNotificationChange('emailMarketing', value)}
                 color='primary'
+                isSelected={notifications.emailMarketing}
                 size='sm'
+                onValueChange={value => handleNotificationChange('emailMarketing', value)}
               />
             </div>
           </div>
@@ -179,10 +179,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.pushMatches}
-                onValueChange={value => handleNotificationChange('pushMatches', value)}
                 color='success'
+                isSelected={notifications.pushMatches}
                 size='sm'
+                onValueChange={value => handleNotificationChange('pushMatches', value)}
               />
             </div>
 
@@ -195,10 +195,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.pushMessages}
-                onValueChange={value => handleNotificationChange('pushMessages', value)}
                 color='success'
+                isSelected={notifications.pushMessages}
                 size='sm'
+                onValueChange={value => handleNotificationChange('pushMessages', value)}
               />
             </div>
 
@@ -211,10 +211,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.pushEvents}
-                onValueChange={value => handleNotificationChange('pushEvents', value)}
                 color='success'
+                isSelected={notifications.pushEvents}
                 size='sm'
+                onValueChange={value => handleNotificationChange('pushEvents', value)}
               />
             </div>
 
@@ -227,10 +227,10 @@ const NotificationSettingsSection = ({ user }) => {
                 </div>
               </div>
               <Switch
-                isSelected={notifications.pushReminders}
-                onValueChange={value => handleNotificationChange('pushReminders', value)}
                 color='success'
+                isSelected={notifications.pushReminders}
                 size='sm'
+                onValueChange={value => handleNotificationChange('pushReminders', value)}
               />
             </div>
           </div>
@@ -250,10 +250,10 @@ const NotificationSettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Reproducir sonidos para notificaciones</p>
               </div>
               <Switch
-                isSelected={notifications.inAppSounds}
-                onValueChange={value => handleNotificationChange('inAppSounds', value)}
                 color='primary'
+                isSelected={notifications.inAppSounds}
                 size='sm'
+                onValueChange={value => handleNotificationChange('inAppSounds', value)}
               />
             </div>
 
@@ -263,10 +263,10 @@ const NotificationSettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Vibrar al recibir notificaciones</p>
               </div>
               <Switch
-                isSelected={notifications.inAppVibration}
-                onValueChange={value => handleNotificationChange('inAppVibration', value)}
                 color='primary'
+                isSelected={notifications.inAppVibration}
                 size='sm'
+                onValueChange={value => handleNotificationChange('inAppVibration', value)}
               />
             </div>
 
@@ -276,10 +276,10 @@ const NotificationSettingsSection = ({ user }) => {
                 <p className='text-xs text-gray-400'>Ver mensajes instantáneamente</p>
               </div>
               <Switch
-                isSelected={notifications.inAppMessages}
-                onValueChange={value => handleNotificationChange('inAppMessages', value)}
                 color='primary'
+                isSelected={notifications.inAppMessages}
                 size='sm'
+                onValueChange={value => handleNotificationChange('inAppMessages', value)}
               />
             </div>
           </div>
@@ -293,17 +293,17 @@ const NotificationSettingsSection = ({ user }) => {
           </div>
           <div className='flex flex-wrap gap-1'>
             {notifications.emailMatches && (
-              <Chip size='sm' variant='flat' color='primary' className='text-xs'>
+              <Chip className='text-xs' color='primary' size='sm' variant='flat'>
                 Email: Matches
               </Chip>
             )}
             {notifications.pushMessages && (
-              <Chip size='sm' variant='flat' color='success' className='text-xs'>
+              <Chip className='text-xs' color='success' size='sm' variant='flat'>
                 Push: Mensajes
               </Chip>
             )}
             {notifications.inAppSounds && (
-              <Chip size='sm' variant='flat' color='secondary' className='text-xs'>
+              <Chip className='text-xs' color='secondary' size='sm' variant='flat'>
                 Sonidos
               </Chip>
             )}

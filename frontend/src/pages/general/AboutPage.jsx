@@ -95,7 +95,7 @@ const AboutPage = () => {
           {teamMembers.map((member, index) => (
             <Card key={index} className='hover:shadow-lg transition-shadow duration-300'>
               <CardHeader className='flex flex-col items-center pb-0'>
-                <Avatar src={member.image} size='lg' isBordered color='primary' className='w-24 h-24' />
+                <Avatar isBordered className='w-24 h-24' color='primary' size='lg' src={member.image} />
                 <h3 className='text-xl font-semibold mt-4'>{member.name}</h3>
                 <p className='text-sm text-gray-500'>{member.role}</p>
               </CardHeader>
@@ -104,26 +104,26 @@ const AboutPage = () => {
                 <div className='flex justify-center gap-2'>
                   <Button
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='GitHub'
                     as='a'
+                    className='p-2'
+                    color='primary'
                     href={member.github}
-                    target='_blank'
                     rel='noopener noreferrer'
-                    className='p-2'>
+                    target='_blank'
+                    variant='light'>
                     <Github className='text-lg' />
                   </Button>
                   <Button
                     isIconOnly
-                    color='primary'
-                    variant='light'
                     aria-label='LinkedIn'
                     as='a'
+                    className='p-2'
+                    color='primary'
                     href={member.linkedin}
-                    target='_blank'
                     rel='noopener noreferrer'
-                    className='p-2'>
+                    target='_blank'
+                    variant='light'>
                     <Linkedin className='text-lg' />
                   </Button>
                 </div>

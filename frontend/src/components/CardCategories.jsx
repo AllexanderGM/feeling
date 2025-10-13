@@ -49,7 +49,7 @@ const CardCategories = ({ item }) => {
 
   // Versión con diseño original
   return (
-    <Card className='card-categories' isPressable shadow='sm' onPress={handleCardClick}>
+    <Card isPressable className='card-categories' shadow='sm' onPress={handleCardClick}>
       <CardBody className='card-categories-body'>
         <span className='material-symbols-outlined'>{item.icon}</span>
       </CardBody>

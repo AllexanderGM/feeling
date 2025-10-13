@@ -44,6 +44,7 @@ const Login = () => {
   const onSubmit = async formData => {
     const data = extractLoginData(formData)
     const result = await login(data.email, data.password)
+
     if (result.success) navigate(fromPath, { replace: true })
   }
 
@@ -53,6 +54,7 @@ const Login = () => {
       setIsGoogleAuthenticating(true)
       try {
         const result = await loginWithGoogle(tokenResponse)
+
         if (result.success) navigate(fromPath, { replace: true })
       } finally {
         setIsGoogleAuthenticating(false)
@@ -81,7 +83,7 @@ const Login = () => {
   return (
     <LiteContainer ariaLabel='Página de inicio de sesión'>
       <figure className='text-center pb-8'>
-        <img src={logo} alt='Logo Feeling' className='w-52' />
+        <img alt='Logo Feeling' className='w-52' src={logo} />
       </figure>
 
       {successMessage && (
@@ -94,89 +96,90 @@ const Login = () => {
         <h2 className='text-xl font-medium text-white mb-6'>Acceder</h2>
 
         <Controller
-          name='email'
           control={control}
+          name='email'
           render={({ field }) => (
             <Input
               {...field}
-              variant='underlined'
               isRequired
-              label='Correo electrónico'
-              placeholder='usuario@correo.com'
-              type='email'
               autoComplete='email'
-              isInvalid={!!errors.email}
               errorMessage={errors.email?.message}
               isDisabled={isLoading || isGoogleAuthenticating}
+              isInvalid={!!errors.email}
+              label='Correo electrónico'
+              placeholder='usuario@correo.com'
               startContent={<Mail className='text-gray-400 w-4 h-5' />}
+              type='email'
+              variant='underlined'
             />
           )}
         />
 
         <Controller
-          name='password'
           control={control}
+          name='password'
           render={({ field }) => (
             <Input
               {...field}
-              variant='underlined'
               isRequired
-              label='Contraseña'
-              placeholder='••••••••'
-              type='password'
               autoComplete='current-password'
-              isInvalid={!!errors.password}
               errorMessage={errors.password?.message}
               isDisabled={isLoading || isGoogleAuthenticating}
+              isInvalid={!!errors.password}
+              label='Contraseña'
+              placeholder='••••••••'
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
+              type='password'
+              variant='underlined'
             />
           )}
         />
 
         <div className='flex items-center justify-between w-full pt-2'>
-          <label className='flex items-center cursor-pointer'>
+          <label className='flex items-center cursor-pointer' htmlFor='rememberMe'>
             <Checkbox
               color='primary'
+              id='rememberMe'
+              isDisabled={isLoading || isGoogleAuthenticating}
               isSelected={rememberMe}
               onValueChange={setRememberMe}
-              isDisabled={isLoading || isGoogleAuthenticating}
             />
             <span className='text-xs text-gray-500 ml-2'>Recordar sesión</span>
           </label>
 
-          <Link href={APP_PATHS.AUTH.FORGOT_PASSWORD} className='text-xs text-gray-500 hover:text-gray-200 transition-colors'>
+          <Link className='text-xs text-gray-500 hover:text-gray-200 transition-colors' href={APP_PATHS.AUTH.FORGOT_PASSWORD}>
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
         <div className='pt-6 space-y-6 w-full'>
           <Button
-            type='submit'
-            radius='full'
-            color='default'
             className='w-full py-3 transition-colors'
+            color='default'
+            isDisabled={isLoading || isGoogleAuthenticating || !isValid}
             isLoading={loading}
-            isDisabled={isLoading || isGoogleAuthenticating || !isValid}>
+            radius='full'
+            type='submit'>
             {loading ? 'Iniciando sesión...' : 'Acceder'}
           </Button>
 
           {isGoogleAvailable && (
             <>
               <div className='relative flex items-center py-2'>
-                <div className='flex-grow border-t border-gray-700'></div>
+                <div className='flex-grow border-t border-gray-700' />
                 <span className='flex-shrink mx-4 text-xs text-gray-500'>o</span>
-                <div className='flex-grow border-t border-gray-700'></div>
+                <div className='flex-grow border-t border-gray-700' />
               </div>
 
               <Button
+                className='w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors'
+                color='primary'
+                isDisabled={isGoogleAuthenticating || isLoading}
+                isLoading={isGoogleAuthenticating}
+                radius='full'
+                startContent={<img alt='Google' className='w-5 h-5' src={googleIcon} />}
                 type='button'
                 variant='flat'
-                radius='full'
-                color='primary'
-                startContent={<img src={googleIcon} alt='Google' className='w-5 h-5' />}
-                className='w-full py-2 mt-0 bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors'
-                isLoading={isGoogleAuthenticating}
-                isDisabled={isGoogleAuthenticating || isLoading}
                 onPress={handleGoogleSignIn}>
                 {isGoogleAuthenticating ? 'Conectando...' : 'Continuar con Google'}
               </Button>
@@ -188,11 +191,11 @@ const Login = () => {
           ¿No tienes una cuenta?
           <Button
             as={Link}
-            href={APP_PATHS.AUTH.REGISTER}
-            variant='bordered'
+            className='w-full mt-4 transition-colors'
             color='default'
+            href={APP_PATHS.AUTH.REGISTER}
             radius='full'
-            className='w-full mt-4 transition-colors'>
+            variant='bordered'>
             Regístrate
           </Button>
         </div>

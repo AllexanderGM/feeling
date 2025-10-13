@@ -29,6 +29,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
             if (!departureDateTime || isNaN(departureDateTime.getTime()) || !returnDateTime || isNaN(returnDateTime.getTime())) {
               Logger.warn('Fechas inválidas en disponibilidad de tour', Logger.CATEGORIES.SYSTEM, { availId: avail.id, tourId: tour?.id })
+
               return null
             }
 
@@ -51,6 +52,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
             }
           } catch (error) {
             Logger.error('Error procesando fecha de disponibilidad', Logger.CATEGORIES.SYSTEM, { error: error.message, tourId: tour?.id })
+
             return null
           }
         })
@@ -76,6 +78,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
             firstDate.getMonth() + 1, // Los meses en CalendarDate son 1-indexed
             1 // Primer día del mes
           )
+
           setFocusedDate(calendarDate)
         }
       }
@@ -103,6 +106,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
     // Buscar la disponibilidad para esta fecha
     const availability = availabilities.find(avail => {
       const isInRange = date >= avail.departureDate && date <= avail.returnDate
+
       return isInRange
     })
 
@@ -119,6 +123,7 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
     if (availability) {
       const selectedDate = new Date(dateObj.year, dateObj.month - 1, dateObj.day)
+
       setSelectedDateRange({
         start: availability.departureDate,
         end: availability.returnDate
@@ -174,14 +179,11 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
         <div className='mb-4 flex justify-center'>
           <Calendar
             aria-label='Calendario de disponibilidad'
-            isDateUnavailable={isDateUnavailable}
-            onChange={handleDateSelect}
-            focusedValue={focusedDate || defaultCalendarValue}
-            onFocusChange={setFocusedDate}
             calendarWidth={340}
-            visibleMonths={1}
-            locale='es-ES'
             firstDayOfWeek='mon'
+            focusedValue={focusedDate || defaultCalendarValue}
+            isDateUnavailable={isDateUnavailable}
+            locale='es-ES'
             renderCell={date => {
               const isAvailable = !isDateUnavailable(date)
               const availability = isAvailable ? getAvailabilityForDate(date) : null
@@ -193,12 +195,16 @@ const DisponibilidadCalendario = ({ tour, onSelectDate }) => {
 
               // Destacar fechas de inicio y fin con colores diferentes
               let cellStyle = ''
+
               if (isStart) cellStyle = 'bg-red-500 text-white rounded-l-full'
               else if (isEnd) cellStyle = 'bg-red-500 text-white rounded-r-full'
               else if (isAvailable) cellStyle = 'bg-red-100'
 
               return <div className={`w-10 h-10 flex items-center justify-center ${cellStyle}`}>{date.day}</div>
             }}
+            visibleMonths={1}
+            onChange={handleDateSelect}
+            onFocusChange={setFocusedDate}
           />
         </div>
 

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import { registerRateLimitCallback } from '../../services/utils/api'
 import { useRateLimit } from '../../contexts/RateLimitContext'
 

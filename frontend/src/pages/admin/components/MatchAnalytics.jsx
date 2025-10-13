@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress, Badge } from '@heroui/react'
-import { Heart, TrendingUp, DollarSign, Users, Calendar, RefreshCw, Package, Star, Activity } from 'lucide-react'
+import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress } from '@heroui/react'
+import { Heart, TrendingUp, DollarSign, Users, RefreshCw, Package, Activity } from 'lucide-react'
 import { useError, useMatches, useMatchPlans } from '@hooks'
 
 const MatchAnalytics = () => {
@@ -15,7 +15,7 @@ const MatchAnalytics = () => {
     const loadInitialData = async () => {
       try {
         await Promise.all([fetchMatchStats && fetchMatchStats(), fetchPlans && fetchPlans()])
-      } catch (error) {
+      } catch {
         handleError('Error al cargar estadísticas de matches')
       }
     }
@@ -28,7 +28,7 @@ const MatchAnalytics = () => {
     try {
       await Promise.all([fetchMatchStats && fetchMatchStats(), fetchPlans && fetchPlans()])
       handleSuccess('Estadísticas de matches actualizadas')
-    } catch (error) {
+    } catch {
       handleError('Error al actualizar estadísticas')
     } finally {
       setRefreshing(false)
@@ -72,7 +72,7 @@ const MatchAnalytics = () => {
   if ((matchesLoading || plansLoading) && !matchStats && plans.length === 0) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <Spinner size='lg' color='primary' />
+        <Spinner color='primary' size='lg' />
       </div>
     )
   }
@@ -87,12 +87,12 @@ const MatchAnalytics = () => {
         </div>
         <Button
           isIconOnly
-          variant='flat'
-          color='primary'
-          onPress={handleRefresh}
-          isLoading={refreshing}
+          aria-label='Actualizar estadísticas de matches'
           className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-          aria-label='Actualizar estadísticas de matches'>
+          color='primary'
+          isLoading={refreshing}
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -169,7 +169,7 @@ const MatchAnalytics = () => {
             {/* Plan Básico */}
             <div className='space-y-3'>
               <div className='flex items-center gap-2 mb-3'>
-                <Chip variant='flat' color='default' size='sm'>
+                <Chip color='default' size='sm' variant='flat'>
                   Básico
                 </Chip>
               </div>
@@ -194,7 +194,7 @@ const MatchAnalytics = () => {
             {/* Plan Premium */}
             <div className='space-y-3'>
               <div className='flex items-center gap-2 mb-3'>
-                <Chip variant='flat' color='primary' size='sm'>
+                <Chip color='primary' size='sm' variant='flat'>
                   Premium
                 </Chip>
               </div>
@@ -219,7 +219,7 @@ const MatchAnalytics = () => {
             {/* Plan Gold */}
             <div className='space-y-3'>
               <div className='flex items-center gap-2 mb-3'>
-                <Chip variant='flat' color='warning' size='sm'>
+                <Chip color='warning' size='sm' variant='flat'>
                   Gold
                 </Chip>
               </div>
@@ -289,10 +289,10 @@ const MatchAnalytics = () => {
                     <span className='text-sm text-default-500'>{percentage}%</span>
                   </div>
                   <Progress
-                    value={percentage}
-                    color='primary'
-                    className='max-w-full'
                     aria-label={`Distribución de matches por edad ${age} años: ${percentage}%`}
+                    className='max-w-full'
+                    color='primary'
+                    value={percentage}
                   />
                 </div>
               ))}
@@ -313,10 +313,10 @@ const MatchAnalytics = () => {
                     <span className='text-sm text-default-500'>{percentage}%</span>
                   </div>
                   <Progress
-                    value={percentage}
-                    color={plan === 'Básico' ? 'default' : plan === 'Premium' ? 'primary' : 'warning'}
-                    className='max-w-full'
                     aria-label={`Popularidad del plan ${plan}: ${percentage}%`}
+                    className='max-w-full'
+                    color={plan === 'Básico' ? 'default' : plan === 'Premium' ? 'primary' : 'warning'}
+                    value={percentage}
                   />
                 </div>
               ))}

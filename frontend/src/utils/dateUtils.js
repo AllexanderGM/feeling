@@ -35,12 +35,15 @@ export const toISOString = date => {
 
     // Ajustar la fecha para mantener el día correcto en la zona horaria local
     const offset = jsDate.getTimezoneOffset()
+
     jsDate = new Date(jsDate.getTime() - offset * 60 * 1000)
+
     return jsDate.toISOString()
   } catch (e) {
     Logger.error(Logger.CATEGORIES.NETWORK, 'convertir fecha ISO', e, {
       context: { inputDate: date }
     })
+
     return null
   }
 }
@@ -69,6 +72,7 @@ export const formatDateForDisplay = (dateString, options = {}) => {
     Logger.error(Logger.CATEGORIES.NETWORK, 'formatear fecha', e, {
       context: { inputDate: dateString, options }
     })
+
     return 'Fecha inválida'
   }
 }
@@ -83,6 +87,7 @@ export const formatTimeForDisplay = dateString => {
 
   try {
     const date = new Date(dateString)
+
     return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit',
@@ -92,6 +97,7 @@ export const formatTimeForDisplay = dateString => {
     Logger.error(Logger.CATEGORIES.NETWORK, 'formatear hora', e, {
       context: { inputDate: dateString }
     })
+
     return ''
   }
 }
@@ -102,7 +108,9 @@ export const formatTimeForDisplay = dateString => {
  */
 export const getCurrentDateTimeISO = () => {
   const now = new Date()
+
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+
   return now.toISOString().slice(0, 16)
 }
 
@@ -113,8 +121,10 @@ export const getCurrentDateTimeISO = () => {
  */
 export const getFutureDateTimeISO = days => {
   const future = new Date()
+
   future.setDate(future.getDate() + days)
   future.setMinutes(future.getMinutes() - future.getTimezoneOffset())
+
   return future.toISOString().slice(0, 16)
 }
 
@@ -171,7 +181,9 @@ export const createLocalDate = (year, month, day) => {
 export const normalizeDate = date => {
   if (!date) return null
   const normalized = new Date(date)
+
   normalized.setHours(0, 0, 0, 0)
+
   return normalized
 }
 
@@ -189,16 +201,19 @@ export const parseJavaDate = dateValue => {
       // [año, mes, día, hora, minuto, segundo, nanosegundos]
       // Nota: En JavaScript los meses van de 0-11, en Java de 1-12
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateValue
+
       return new Date(year, month - 1, day, hour, minute, second)
     }
 
     // Si es un string o Date, usar el constructor normal
     const date = new Date(dateValue)
+
     return isNaN(date.getTime()) ? null : date
   } catch (error) {
     Logger.error(Logger.CATEGORIES.NETWORK, 'parsear fecha Java', error, {
       context: { inputValue: dateValue }
     })
+
     return null
   }
 }
@@ -213,6 +228,7 @@ export const formatJavaDateForDisplay = (dateValue, options = {}) => {
   if (!dateValue) return 'No disponible'
 
   const date = parseJavaDate(dateValue)
+
   if (!date) return 'Fecha inválida'
 
   const defaultOptions = {
@@ -234,10 +250,12 @@ export const daysSinceJavaDate = dateValue => {
   if (!dateValue) return null
 
   const date = parseJavaDate(dateValue)
+
   if (!date) return null
 
   const today = new Date()
   const diffTime = Math.abs(today - date)
+
   return Math.floor(diffTime / (1000 * 60 * 60 * 24))
 }
 
@@ -250,6 +268,7 @@ export const calculateAgeFromJavaDate = birthDateValue => {
   if (!birthDateValue) return null
 
   const birthDate = parseJavaDate(birthDateValue)
+
   if (!birthDate) return null
 
   const today = new Date()

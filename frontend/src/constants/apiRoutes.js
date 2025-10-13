@@ -63,6 +63,7 @@ export const PUBLIC_ROUTES = [
 // Función para verificar si una URL es una ruta pública
 export const isPublicRoute = url => {
   if (!url) return false
+
   return PUBLIC_ROUTES.some(route => url.includes(route))
 }
 

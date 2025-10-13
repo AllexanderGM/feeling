@@ -24,6 +24,7 @@ export const ErrorProvider = ({ children }) => {
         return 'Error desconocido'
       }
     }
+
     return String(err || 'Error desconocido')
   }
 
@@ -59,6 +60,7 @@ export const ErrorProvider = ({ children }) => {
     if (existingAlert) {
       // Si ya existe, actualizamos su timestamp para extender su duración
       setAlerts(prevAlerts => prevAlerts.map(alert => (alert.id === existingAlert.id ? { ...alert, timestamp: Date.now() } : alert)))
+
       return
     }
 

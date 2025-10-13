@@ -30,6 +30,7 @@ class UserAnalyticsService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ANALYTICS.OVERVIEW)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -50,6 +51,7 @@ class UserAnalyticsService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ANALYTICS.USER_METRICS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -68,6 +70,7 @@ class UserAnalyticsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_ANALYTICS.USER_DETAILED_METRICS.replace('{userId}', encodeURIComponent(userId))
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -86,6 +89,7 @@ class UserAnalyticsService extends ServiceREST {
     try {
       const params = new URLSearchParams({ limit: limit.toString() })
       const result = await ServiceREST.get(`${API_ENDPOINTS.USER_ANALYTICS.TOP_USERS}?${params}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -102,6 +106,7 @@ class UserAnalyticsService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ANALYTICS.ATTRIBUTE_STATISTICS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -118,6 +123,7 @@ class UserAnalyticsService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ANALYTICS.INTERESTS_STATISTICS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -134,6 +140,7 @@ class UserAnalyticsService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_ANALYTICS.TAGS_STATISTICS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

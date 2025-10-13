@@ -151,6 +151,7 @@ const GenericDataTable = memo(
     const handleColumnVisibilityChange = useCallback(
       keys => {
         const newVisibleColumns = new Set(keys)
+
         setVisibleColumns(newVisibleColumns)
         logTableAction('column_visibility_change', {
           visibleCount: newVisibleColumns.size,
@@ -248,12 +249,6 @@ const GenericDataTable = memo(
               <Input
                 isClearable
                 className='w-full sm:max-w-[44%]'
-                placeholder={searchPlaceholder}
-                startContent={<Search />}
-                value={searchValue}
-                onClear={handleSearchClear}
-                onValueChange={handleSearchChange}
-                variant='underlined'
                 classNames={{
                   inputWrapper: [
                     'data-[focus=true]:after:bg-[#E86C6E]',
@@ -261,6 +256,12 @@ const GenericDataTable = memo(
                     'after:bg-[#E86C6E]'
                   ]
                 }}
+                placeholder={searchPlaceholder}
+                startContent={<Search />}
+                value={searchValue}
+                variant='underlined'
+                onClear={handleSearchClear}
+                onValueChange={handleSearchChange}
               />
             )}
 
@@ -296,7 +297,7 @@ const GenericDataTable = memo(
 
               {/* Botón de refrescar */}
               {showRefreshButton && (
-                <Button color='default' variant='flat' isIconOnly onPress={handleRefresh} isLoading={loading} className='min-w-10'>
+                <Button isIconOnly className='min-w-10' color='default' isLoading={loading} variant='flat' onPress={handleRefresh}>
                   <RefreshCw className='w-4 h-4' />
                 </Button>
               )}
@@ -321,7 +322,7 @@ const GenericDataTable = memo(
                 <span className='text-default-400 text-small'>Filas por página:</span>
                 <Dropdown>
                   <DropdownTrigger>
-                    <Button className='min-w-16' size='sm' variant='flat' endContent={<ChevronDown className='w-3 h-3' />}>
+                    <Button className='min-w-16' endContent={<ChevronDown className='w-3 h-3' />} size='sm' variant='flat'>
                       {stats.pageSize}
                     </Button>
                   </DropdownTrigger>
@@ -393,11 +394,11 @@ const GenericDataTable = memo(
 
           {/* Paginación central */}
           <Pagination
-            initialPage={1}
             isCompact
             showControls
             showShadow
             color='primary'
+            initialPage={1}
             page={pagination.page}
             total={pagination.totalPages}
             onChange={handlePageChange}
@@ -425,7 +426,7 @@ const GenericDataTable = memo(
       if (loading) {
         return (
           <div className='flex flex-col items-center justify-center py-12'>
-            <Spinner size='lg' color='primary' />
+            <Spinner color='primary' size='lg' />
             <p className='text-default-500 mt-4'>{loadingMessage}</p>
           </div>
         )
@@ -445,28 +446,23 @@ const GenericDataTable = memo(
     // Validaciones
     if (!renderCell) {
       Logger.error('GenericDataTable: renderCell function is required', { tableId })
+
       return <div className='p-4 text-center text-red-500'>Error: función renderCell es requerida</div>
     }
 
     if (!columns || columns.length === 0) {
       Logger.error('GenericDataTable: columns array is required', { tableId })
+
       return <div className='p-4 text-center text-red-500'>Error: definición de columnas es requerida</div>
     }
 
     return (
       <div className='w-full space-y-4'>
         <Table
-          aria-label={`Tabla de datos ${tableId}`}
           isHeaderSticky
+          aria-label={`Tabla de datos ${tableId}`}
           bottomContent={bottomContent}
           bottomContentPlacement='outside'
-          selectedKeys={enableSelection ? selectedKeys : undefined}
-          selectionMode={enableSelection ? 'multiple' : 'none'}
-          sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement='outside'
-          onSelectionChange={enableSelection ? handleSelectionChange : undefined}
-          onSortChange={onSort ? handleSort : undefined}
           classNames={{
             wrapper: 'bg-gray-800/40 backdrop-blur-sm border border-gray-700/50',
             th: 'bg-gray-700/50 border-b border-gray-600/50',
@@ -474,6 +470,13 @@ const GenericDataTable = memo(
             tbody: '[&>tr:hover]:bg-gray-700/20',
             ...tableProps.classNames
           }}
+          selectedKeys={enableSelection ? selectedKeys : undefined}
+          selectionMode={enableSelection ? 'multiple' : 'none'}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement='outside'
+          onSelectionChange={enableSelection ? handleSelectionChange : undefined}
+          onSortChange={onSort ? handleSort : undefined}
           {...tableProps}>
           <TableHeader columns={visibleColumnsArray}>
             {column => (
@@ -483,10 +486,10 @@ const GenericDataTable = memo(
             )}
           </TableHeader>
           <TableBody
+            emptyContent={emptyContent}
             items={dataWithKeys}
             loadingContent={<Spinner label={loadingMessage} />}
-            loadingState={loading ? 'loading' : 'idle'}
-            emptyContent={emptyContent}>
+            loadingState={loading ? 'loading' : 'idle'}>
             {item => <TableRow key={item._tableKey}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
           </TableBody>
         </Table>

@@ -18,7 +18,9 @@ const api = axios.create({
 function getCookieValue(name) {
   const value = `; ${document.cookie}`
   const parts = value.split(`; ${name}=`)
+
   if (parts.length === 2) return parts.pop().split(';').shift()
+
   return null
 }
 
@@ -64,6 +66,7 @@ const emitTokenUpdate = newToken => {
   const event = new CustomEvent('tokenUpdated', {
     detail: { token: newToken }
   })
+
   window.dispatchEvent(event)
 }
 
@@ -77,6 +80,7 @@ const emitAuthError = error => {
   const event = new CustomEvent('authError', {
     detail: error
   })
+
   window.dispatchEvent(event)
 }
 
@@ -86,6 +90,7 @@ api.interceptors.request.use(
     // Solo agregar token si NO es una ruta pública
     if (!isPublicRoute(config.url)) {
       const token = getCookieValue('access_token')
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
@@ -126,6 +131,7 @@ api.interceptors.response.use(
         })
           .then(token => {
             originalRequest.headers.Authorization = `Bearer ${token}`
+
             return api(originalRequest)
           })
           .catch(err => {
@@ -165,6 +171,7 @@ api.interceptors.response.use(
 
             // Reintentar la petición original con el nuevo token
             originalRequest.headers.Authorization = `Bearer ${accessToken}`
+
             return api(originalRequest)
           } else {
             Logger.error('No se recibió nuevo token en la respuesta')
@@ -182,12 +189,14 @@ api.interceptors.response.use(
 
         // Notificar al AuthContext sobre el error de autenticación
         const authError = new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.')
+
         authError.errorType = 'AUTHENTICATION_ERROR'
         authError.status = 401
         authError.response = { status: 401 }
         authError._handledByInterceptor = true
 
         emitAuthError(authError)
+
         return Promise.reject(authError)
       } finally {
         isRefreshing = false

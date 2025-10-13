@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
-import { Button, Card, CardBody, Input, Chip, Spinner } from '@heroui/react'
+import { Button, Card, CardBody, Input, Spinner } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { MessageSquare, Plus, Search, RefreshCw, MessageCircle, Clock, CheckCircle, Eye } from 'lucide-react'
+import { MessageSquare, Plus, Search, RefreshCw, MessageCircle, Clock, CheckCircle } from 'lucide-react'
 import { useError, useComplaints } from '@hooks'
+import { COMPLAINT_TYPE_COLUMNS } from '@constants/tableConstants.js'
 
 import { UnifiedComplaintTable } from './components/UnifiedComplaintTable.jsx'
 import { CreateComplaintForm } from './components/CreateComplaintForm.jsx'
 import { ComplaintChatModal } from './components/ComplaintChatModal.jsx'
-import { COMPLAINT_TYPE_COLUMNS } from '@constants/tableConstants.js'
 
 const UserComplaints = memo(() => {
   const { showError } = useError()
@@ -100,6 +100,7 @@ const UserComplaints = memo(() => {
       (acc, complaint) => {
         acc.total++
         acc[complaint.status] = (acc[complaint.status] || 0) + 1
+
         return acc
       },
       { total: 0 }
@@ -124,7 +125,7 @@ const UserComplaints = memo(() => {
     <>
       <Helmet>
         <title>Mis Quejas y Reclamos - Feeling</title>
-        <meta name='description' content='Gestiona tus quejas y reclamos' />
+        <meta content='Gestiona tus quejas y reclamos' name='description' />
       </Helmet>
 
       <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
@@ -144,7 +145,7 @@ const UserComplaints = memo(() => {
             <Button color='primary' startContent={<Plus size={16} />} onPress={() => setIsCreateModalOpen(true)}>
               Nueva Queja
             </Button>
-            <Button variant='light' isIconOnly onPress={handleRefresh} isLoading={loading}>
+            <Button isIconOnly isLoading={loading} variant='light' onPress={handleRefresh}>
               <RefreshCw size={16} />
             </Button>
           </div>
@@ -208,13 +209,13 @@ const UserComplaints = memo(() => {
           <CardBody className='p-4'>
             <div className='flex flex-col sm:flex-row gap-4'>
               <Input
-                placeholder='Buscar por asunto, mensaje o tipo...'
-                value={searchTerm}
-                onValueChange={handleSearch}
-                startContent={<Search size={16} />}
-                className='flex-1'
                 isClearable
+                className='flex-1'
+                placeholder='Buscar por asunto, mensaje o tipo...'
+                startContent={<Search size={16} />}
+                value={searchTerm}
                 onClear={() => handleSearch('')}
+                onValueChange={handleSearch}
               />
             </div>
           </CardBody>
@@ -230,7 +231,7 @@ const UserComplaints = memo(() => {
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs'>
                   <div>
                     <p className='font-medium mb-1 text-gray-200'>1. Crear Queja</p>
-                    <p>Describe tu problema de manera detallada usando el botón "Nueva Queja"</p>
+                    <p>Describe tu problema de manera detallada usando el botón &quot;Nueva Queja&quot;</p>
                   </div>
                   <div>
                     <p className='font-medium mb-1 text-gray-200'>2. Seguimiento</p>
@@ -258,16 +259,16 @@ const UserComplaints = memo(() => {
               </div>
             ) : (
               <UnifiedComplaintTable
-                complaints={filteredComplaints}
                 columns={COMPLAINT_TYPE_COLUMNS.my}
-                loading={loading}
-                totalPages={pagination.totalPages}
+                complaints={filteredComplaints}
                 currentPage={pagination.page}
+                loading={loading}
+                showActions={true}
+                totalPages={pagination.totalPages}
+                viewType='my'
+                onOpenChat={handleOpenChat}
                 onPageChange={handlePageChange}
                 onView={handleViewComplaint}
-                onOpenChat={handleOpenChat}
-                viewType='my'
-                showActions={true}
               />
             )}
 
@@ -288,21 +289,21 @@ const UserComplaints = memo(() => {
       {/* Modales */}
       <CreateComplaintForm
         isOpen={isCreateModalOpen}
+        loading={loading}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateComplaint}
-        loading={loading}
       />
 
       <ComplaintChatModal
+        complaint={selectedComplaint}
+        isAdmin={false}
         isOpen={isChatModalOpen}
+        loading={loading}
         onClose={() => {
           setIsChatModalOpen(false)
           setSelectedComplaint(null)
         }}
-        complaint={selectedComplaint}
-        isAdmin={false}
         onSendMessage={handleSendMessage}
-        loading={loading}
       />
     </>
   )

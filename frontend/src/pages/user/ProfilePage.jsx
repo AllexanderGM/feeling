@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Card, CardBody, CardHeader, Avatar, Divider, Button } from '@heroui/react'
 import { useNavigate } from 'react-router-dom'
+import { Logger } from '@utils/logger.js'
 
 import { useAuth } from '../../context/AuthContext.jsx'
 import { getUserByEmail } from '../../services/user/userService.js'
-import { Logger } from '@utils/logger.js'
 
 const ProfilePage = () => {
   const { user } = useAuth()
@@ -18,6 +18,7 @@ const ProfilePage = () => {
       try {
         if (user?.email) {
           const data = await getUserByEmail(user.email)
+
           Logger.debug('Datos del usuario recibidos', { data }, { category: Logger.CATEGORIES.USER })
           setUserData({
             ...data,
@@ -82,11 +83,11 @@ const ProfilePage = () => {
       <Card className='max-w-xl w-full p-5'>
         <CardHeader className='flex flex-col items-center pb-0'>
           <Avatar
-            src={userData.image}
-            size='lg'
             isBordered
-            color={userData.role === 'admin' ? 'danger' : 'primary'}
             className='w-20 h-20 text-large'
+            color={userData.role === 'admin' ? 'danger' : 'primary'}
+            size='lg'
+            src={userData.image}
           />
           <h1 className='text-2xl font-bold mt-4'>
             {userData.name} {userData.lastName}
@@ -132,7 +133,7 @@ const ProfilePage = () => {
               <Button color='danger' variant='light' onPress={() => navigate('/')}>
                 Volver
               </Button>
-              <Button color='primary' className='bg-[#E86C6E]' onPress={() => navigate('/edit-profile')}>
+              <Button className='bg-[#E86C6E]' color='primary' onPress={() => navigate('/edit-profile')}>
                 Editar Perfil
               </Button>
             </div>

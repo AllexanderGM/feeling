@@ -26,11 +26,11 @@ const StatusChip = ({
 
   return (
     <Chip
-      size={size}
+      className={`${chipClasses} ${className}`}
       color={chipColor}
-      variant={variant}
+      size={size}
       startContent={Icon && <Icon className='w-3 h-3' />}
-      className={`${chipClasses} ${className}`}>
+      variant={variant}>
       {chipText}
     </Chip>
   )

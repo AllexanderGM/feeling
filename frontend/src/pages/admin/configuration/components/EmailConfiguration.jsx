@@ -112,6 +112,7 @@ const EmailConfiguration = ({ config, loading }) => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -178,6 +179,7 @@ const EmailConfiguration = ({ config, loading }) => {
       event_participants: '456',
       match_users: '789'
     }
+
     return counts[audience] || '0'
   }
 
@@ -198,54 +200,54 @@ const EmailConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
+              errorMessage={errors.smtpHost}
+              isInvalid={!!errors.smtpHost}
               label='Host SMTP'
               placeholder='smtp.gmail.com'
               value={formData.smtpHost}
               onChange={e => handleInputChange('smtpHost', e.target.value)}
-              isInvalid={!!errors.smtpHost}
-              errorMessage={errors.smtpHost}
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
-            />
-
-            <Input
+              errorMessage={errors.smtpPort}
+              isInvalid={!!errors.smtpPort}
               label='Puerto SMTP'
               placeholder='587'
               value={formData.smtpPort}
               onChange={e => handleInputChange('smtpPort', e.target.value)}
-              isInvalid={!!errors.smtpPort}
-              errorMessage={errors.smtpPort}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
               label='Usuario SMTP'
               placeholder='your-email@gmail.com'
               value={formData.smtpUser}
               onChange={e => handleInputChange('smtpUser', e.target.value)}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
 
             <Input
-              type='password'
-              label='Contraseña SMTP'
-              placeholder='••••••••'
-              value={formData.smtpPassword}
-              onChange={e => handleInputChange('smtpPassword', e.target.value)}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Contraseña SMTP'
+              placeholder='••••••••'
+              type='password'
+              value={formData.smtpPassword}
+              onChange={e => handleInputChange('smtpPassword', e.target.value)}
             />
           </div>
         </CardBody>
@@ -266,44 +268,44 @@ const EmailConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              label='Email Remitente'
-              placeholder='noreply@feeling.com'
-              value={formData.fromEmail}
-              onChange={e => handleInputChange('fromEmail', e.target.value)}
-              isInvalid={!!errors.fromEmail}
-              errorMessage={errors.fromEmail}
-              startContent={<Mail className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              errorMessage={errors.fromEmail}
+              isInvalid={!!errors.fromEmail}
+              label='Email Remitente'
+              placeholder='noreply@feeling.com'
+              startContent={<Mail className='w-4 h-4 text-gray-400' />}
+              value={formData.fromEmail}
+              onChange={e => handleInputChange('fromEmail', e.target.value)}
             />
 
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
+              errorMessage={errors.fromName}
+              isInvalid={!!errors.fromName}
               label='Nombre Remitente'
               placeholder='Feeling'
               value={formData.fromName}
               onChange={e => handleInputChange('fromName', e.target.value)}
-              isInvalid={!!errors.fromName}
-              errorMessage={errors.fromName}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
           </div>
 
           <Textarea
-            label='Firma de Email'
-            placeholder='--&#10;Equipo de Feeling&#10;www.feeling.com'
-            value={formData.emailSignature}
-            onChange={e => handleInputChange('emailSignature', e.target.value)}
-            minRows={3}
-            maxRows={5}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
             }}
+            label='Firma de Email'
+            maxRows={5}
+            minRows={3}
+            placeholder='--&#10;Equipo de Feeling&#10;www.feeling.com'
+            value={formData.emailSignature}
+            onChange={e => handleInputChange('emailSignature', e.target.value)}
           />
         </CardBody>
       </Card>
@@ -325,13 +327,13 @@ const EmailConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableEmailNotifications}
-                  onValueChange={value => handleInputChange('enableEmailNotifications', value)}
                   color='primary'
+                  isSelected={formData.enableEmailNotifications}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableEmailNotifications', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Notificaciones por Email</span>
-                <Chip size='sm' variant='flat' color={formData.enableEmailNotifications ? 'primary' : 'default'}>
+                <Chip color={formData.enableEmailNotifications ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableEmailNotifications ? 'Habilitadas' : 'Deshabilitadas'}
                 </Chip>
               </div>
@@ -341,13 +343,13 @@ const EmailConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableWelcomeEmails}
-                  onValueChange={value => handleInputChange('enableWelcomeEmails', value)}
                   color='success'
+                  isSelected={formData.enableWelcomeEmails}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableWelcomeEmails', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Emails de Bienvenida</span>
-                <Chip size='sm' variant='flat' color={formData.enableWelcomeEmails ? 'success' : 'default'}>
+                <Chip color={formData.enableWelcomeEmails ? 'success' : 'default'} size='sm' variant='flat'>
                   {formData.enableWelcomeEmails ? 'Activos' : 'Inactivos'}
                 </Chip>
               </div>
@@ -357,13 +359,13 @@ const EmailConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableEventReminders}
-                  onValueChange={value => handleInputChange('enableEventReminders', value)}
                   color='warning'
+                  isSelected={formData.enableEventReminders}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableEventReminders', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Recordatorios de Eventos</span>
-                <Chip size='sm' variant='flat' color={formData.enableEventReminders ? 'warning' : 'default'}>
+                <Chip color={formData.enableEventReminders ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.enableEventReminders ? 'Activos' : 'Inactivos'}
                 </Chip>
               </div>
@@ -373,13 +375,13 @@ const EmailConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableMatchNotifications}
-                  onValueChange={value => handleInputChange('enableMatchNotifications', value)}
                   color='secondary'
+                  isSelected={formData.enableMatchNotifications}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableMatchNotifications', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Notificaciones de Matches</span>
-                <Chip size='sm' variant='flat' color={formData.enableMatchNotifications ? 'secondary' : 'default'}>
+                <Chip color={formData.enableMatchNotifications ? 'secondary' : 'default'} size='sm' variant='flat'>
                   {formData.enableMatchNotifications ? 'Activas' : 'Inactivas'}
                 </Chip>
               </div>
@@ -404,7 +406,7 @@ const EmailConfiguration = ({ config, loading }) => {
         <CardBody>
           <div className='text-center'>
             <p className='text-sm text-orange-200/80 mb-4'>Envía comunicaciones importantes a grupos específicos de usuarios</p>
-            <Button color='warning' onPress={() => setShowMassEmailModal(true)} startContent={<Send className='w-4 h-4' />}>
+            <Button color='warning' startContent={<Send className='w-4 h-4' />} onPress={() => setShowMassEmailModal(true)}>
               Crear Email Masivo
             </Button>
           </div>
@@ -415,25 +417,25 @@ const EmailConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>
 
       {/* Modal de email masivo */}
       <Modal
-        isOpen={showMassEmailModal}
-        onClose={() => setShowMassEmailModal(false)}
-        placement='center'
-        size='4xl'
-        scrollBehavior='inside'
         classNames={{
           base: 'bg-gray-800 border border-gray-700',
           closeButton: 'text-gray-400 hover:text-gray-200'
-        }}>
+        }}
+        isOpen={showMassEmailModal}
+        placement='center'
+        scrollBehavior='inside'
+        size='4xl'
+        onClose={() => setShowMassEmailModal(false)}>
         <ModalContent>
           <ModalHeader className='text-gray-100'>
             <div className='flex items-center gap-3'>
@@ -451,13 +453,13 @@ const EmailConfiguration = ({ config, loading }) => {
             <div className='space-y-4'>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Select
-                  label='Plantilla'
-                  selectedKeys={massEmailData.template ? [massEmailData.template] : []}
-                  onSelectionChange={keys => handleMassEmailChange('template', Array.from(keys)[0] || '')}
                   classNames={{
                     trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                     value: 'text-gray-200'
-                  }}>
+                  }}
+                  label='Plantilla'
+                  selectedKeys={massEmailData.template ? [massEmailData.template] : []}
+                  onSelectionChange={keys => handleMassEmailChange('template', Array.from(keys)[0] || '')}>
                   {EMAIL_TEMPLATES.map(template => (
                     <SelectItem key={template.key} value={template.key}>
                       {template.label}
@@ -466,15 +468,15 @@ const EmailConfiguration = ({ config, loading }) => {
                 </Select>
 
                 <Select
-                  label='Audiencia'
-                  selectedKeys={massEmailData.targetAudience ? [massEmailData.targetAudience] : []}
-                  onSelectionChange={keys => handleMassEmailChange('targetAudience', Array.from(keys)[0] || '')}
                   classNames={{
                     trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                     value: 'text-gray-200'
-                  }}>
+                  }}
+                  label='Audiencia'
+                  selectedKeys={massEmailData.targetAudience ? [massEmailData.targetAudience] : []}
+                  onSelectionChange={keys => handleMassEmailChange('targetAudience', Array.from(keys)[0] || '')}>
                   {TARGET_AUDIENCES.map(audience => (
-                    <SelectItem key={audience.key} value={audience.key} description={`~${getAudienceCount(audience.key)} usuarios`}>
+                    <SelectItem key={audience.key} description={`~${getAudienceCount(audience.key)} usuarios`} value={audience.key}>
                       {audience.label}
                     </SelectItem>
                   ))}
@@ -482,40 +484,40 @@ const EmailConfiguration = ({ config, loading }) => {
               </div>
 
               <Input
+                classNames={{
+                  input: 'text-gray-200',
+                  inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                }}
                 label='Asunto'
                 placeholder='Asunto del email...'
                 value={massEmailData.subject}
                 onChange={e => handleMassEmailChange('subject', e.target.value)}
-                classNames={{
-                  input: 'text-gray-200',
-                  inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-                }}
               />
 
               <Textarea
-                label='Contenido'
-                placeholder='Escribe el contenido del email...'
-                value={massEmailData.content}
-                onChange={e => handleMassEmailChange('content', e.target.value)}
-                minRows={6}
-                maxRows={10}
                 classNames={{
                   input: 'text-gray-200',
                   inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                 }}
+                label='Contenido'
+                maxRows={10}
+                minRows={6}
+                placeholder='Escribe el contenido del email...'
+                value={massEmailData.content}
+                onChange={e => handleMassEmailChange('content', e.target.value)}
               />
 
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={massEmailData.includeUnsubscribe}
-                    onValueChange={value => handleMassEmailChange('includeUnsubscribe', value)}
                     color='primary'
+                    isSelected={massEmailData.includeUnsubscribe}
                     size='sm'
+                    onValueChange={value => handleMassEmailChange('includeUnsubscribe', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Incluir enlace de desuscripción</span>
                 </div>
-                <Chip size='sm' variant='flat' color='primary'>
+                <Chip color='primary' size='sm' variant='flat'>
                   Recomendado
                 </Chip>
               </div>
@@ -535,21 +537,21 @@ const EmailConfiguration = ({ config, loading }) => {
 
           <ModalFooter>
             <Button
-              variant='bordered'
-              onPress={() => setShowPreview(!showPreview)}
               className='border-gray-600 text-gray-300'
-              startContent={<Eye className='w-4 h-4' />}>
+              startContent={<Eye className='w-4 h-4' />}
+              variant='bordered'
+              onPress={() => setShowPreview(!showPreview)}>
               {showPreview ? 'Ocultar' : 'Vista Previa'}
             </Button>
-            <Button variant='bordered' onPress={() => setShowMassEmailModal(false)} className='border-gray-600 text-gray-300'>
+            <Button className='border-gray-600 text-gray-300' variant='bordered' onPress={() => setShowMassEmailModal(false)}>
               Cancelar
             </Button>
             <Button
               color='warning'
-              onPress={handleSendMassEmail}
-              isLoading={sending}
               isDisabled={!validateMassEmail()}
-              startContent={!sending && <Send className='w-4 h-4' />}>
+              isLoading={sending}
+              startContent={!sending && <Send className='w-4 h-4' />}
+              onPress={handleSendMassEmail}>
               Enviar Email
             </Button>
           </ModalFooter>

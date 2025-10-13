@@ -9,7 +9,6 @@ const UnifiedEventTable = memo(
     events = [],
     loading = false,
     tableType = 'active', // 'active' | 'pending'
-    currentUser = null,
     onEdit = () => {},
     onDelete = () => {},
     onApprove = () => {},
@@ -42,10 +41,10 @@ const UnifiedEventTable = memo(
           return (
             <div className='flex items-center gap-3'>
               <Avatar
-                src={event.images?.[0] || 'https://via.placeholder.com/40x40?text=E'}
                 alt={event.name}
-                size='sm'
                 className='flex-shrink-0'
+                size='sm'
+                src={event.images?.[0] || 'https://via.placeholder.com/40x40?text=E'}
               />
               <div className='flex flex-col'>
                 <p className='text-sm font-semibold text-default-800'>{event.name}</p>
@@ -80,12 +79,12 @@ const UnifiedEventTable = memo(
           return (
             <div className='flex flex-wrap gap-1 max-w-xs'>
               {event.tags?.slice(0, 2).map((tag, index) => (
-                <Chip key={index} size='sm' variant='flat' color={EVENT_CATEGORY_COLORS[tag] || 'default'} className='text-xs'>
+                <Chip key={index} className='text-xs' color={EVENT_CATEGORY_COLORS[tag] || 'default'} size='sm' variant='flat'>
                   {tag}
                 </Chip>
               ))}
               {event.tags?.length > 2 && (
-                <Chip size='sm' variant='flat' color='default' className='text-xs'>
+                <Chip className='text-xs' color='default' size='sm' variant='flat'>
                   +{event.tags.length - 2}
                 </Chip>
               )}
@@ -105,13 +104,14 @@ const UnifiedEventTable = memo(
 
         case 'status':
           return (
-            <Chip size='sm' variant='flat' color={EVENT_STATUS_COLORS[event.status] || 'default'}>
+            <Chip color={EVENT_STATUS_COLORS[event.status] || 'default'} size='sm' variant='flat'>
               {event.status || 'PENDIENTE'}
             </Chip>
           )
 
         case 'createdAt':
           const date = event.createdAt ? new Date(event.createdAt) : null
+
           return (
             <div className='flex flex-col'>
               <p className='text-sm text-default-800'>{date ? date.toLocaleDateString() : 'N/A'}</p>
@@ -124,12 +124,12 @@ const UnifiedEventTable = memo(
             return (
               <div className='flex items-center gap-2'>
                 <Tooltip content='Aprobar evento'>
-                  <Button isIconOnly size='sm' variant='flat' color='success' onPress={() => onApprove(event.id)}>
+                  <Button isIconOnly color='success' size='sm' variant='flat' onPress={() => onApprove(event.id)}>
                     <Check className='w-4 h-4' />
                   </Button>
                 </Tooltip>
                 <Tooltip content='Rechazar evento'>
-                  <Button isIconOnly size='sm' variant='flat' color='danger' onPress={() => onReject(event.id)}>
+                  <Button isIconOnly color='danger' size='sm' variant='flat' onPress={() => onReject(event.id)}>
                     <X className='w-4 h-4' />
                   </Button>
                 </Tooltip>
@@ -142,9 +142,9 @@ const UnifiedEventTable = memo(
               <Tooltip content='Ver detalles'>
                 <Button
                   isIconOnly
+                  color='primary'
                   size='sm'
                   variant='flat'
-                  color='primary'
                   onPress={() => {
                     // TODO: Implementar vista de detalles
                     Logger.debug(Logger.CATEGORIES.UI, 'view_event_details', 'Ver detalles del evento', { eventId: event.id })
@@ -153,12 +153,12 @@ const UnifiedEventTable = memo(
                 </Button>
               </Tooltip>
               <Tooltip content='Editar evento'>
-                <Button isIconOnly size='sm' variant='flat' color='warning' onPress={() => onEdit(event)}>
+                <Button isIconOnly color='warning' size='sm' variant='flat' onPress={() => onEdit(event)}>
                   <Edit className='w-4 h-4' />
                 </Button>
               </Tooltip>
               <Tooltip content='Eliminar evento'>
-                <Button isIconOnly size='sm' variant='flat' color='danger' onPress={() => onDelete(event)}>
+                <Button isIconOnly color='danger' size='sm' variant='flat' onPress={() => onDelete(event)}>
                   <Trash2 className='w-4 h-4' />
                 </Button>
               </Tooltip>
@@ -201,22 +201,22 @@ const UnifiedEventTable = memo(
 
     return (
       <Table
-        aria-label={`Tabla de eventos ${tableType === 'pending' ? 'pendientes' : 'activos'}`}
         isHeaderSticky
+        aria-label={`Tabla de eventos ${tableType === 'pending' ? 'pendientes' : 'activos'}`}
         bottomContent={bottomContent}
         bottomContentPlacement='outside'
         classNames={{
           wrapper: 'max-h-[600px]',
           table: 'min-h-[400px]'
         }}
+        disabledKeys={disabledKeys}
         selectedKeys={selectedKeys}
         selectionMode={tableType === 'active' ? 'multiple' : 'none'}
         sortDescriptor={sortDescriptor}
         topContent={topContent}
         topContentPlacement='outside'
         onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
-        disabledKeys={disabledKeys}>
+        onSortChange={setSortDescriptor}>
         <TableHeader columns={headerColumns}>
           {column => (
             <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'} allowsSorting={column.sortable}>
@@ -225,10 +225,10 @@ const UnifiedEventTable = memo(
           )}
         </TableHeader>
         <TableBody
+          emptyContent={tableType === 'pending' ? 'No hay eventos pendientes de aprobación' : 'No se encontraron eventos'}
           items={events}
           loadingContent={<Spinner />}
-          loadingState={loadingState}
-          emptyContent={tableType === 'pending' ? 'No hay eventos pendientes de aprobación' : 'No se encontraron eventos'}>
+          loadingState={loadingState}>
           {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
         </TableBody>
       </Table>

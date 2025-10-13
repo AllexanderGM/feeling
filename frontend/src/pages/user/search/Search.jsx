@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Card,
   CardBody,
@@ -7,10 +7,6 @@ import {
   Chip,
   Input,
   Slider,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   Switch,
   Modal,
   ModalContent,
@@ -32,23 +28,15 @@ import {
   Star,
   Sparkles,
   Flame,
-  Eye,
   Settings,
   Zap,
   Users,
-  Globe,
   Target,
   RefreshCw,
-  ArrowRight,
-  ChevronDown,
   Check
 } from 'lucide-react'
-
-// Hooks
 import { useAuth, useUserInterests } from '@hooks'
 import { Logger } from '@utils/logger.js'
-
-// Components
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
@@ -56,7 +44,7 @@ import UserCard from '@components/ui/UserCard.jsx'
 
 const Search = () => {
   const { user, loading: authLoading } = useAuth()
-  const { getInterestByEnum, loading: interestLoading } = useUserInterests()
+  const { loading: interestLoading } = useUserInterests()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [currentProfileIndex, setCurrentProfileIndex] = useState(0)
@@ -183,6 +171,7 @@ const Search = () => {
     // Filtro por término de búsqueda
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase()
+
       filtered = filtered.filter(
         profile =>
           profile.name.toLowerCase().includes(searchLower) ||
@@ -257,6 +246,7 @@ const Search = () => {
 
   const toggleFavorite = profileId => {
     const newFavorites = new Set(favorites)
+
     if (newFavorites.has(profileId)) {
       newFavorites.delete(profileId)
     } else {
@@ -304,7 +294,7 @@ const Search = () => {
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de búsqueda de usuarios'>
+    <LiteContainer ariaLabel='Página de búsqueda de usuarios' className='gap-4'>
       {/* Header de búsqueda */}
       <div className='w-full bg-gradient-to-br from-blue-900/20 via-purple-800/10 to-pink-900/20 backdrop-blur-sm rounded-xl border border-blue-700/50 p-4 sm:p-6'>
         <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-between gap-4'>
@@ -337,21 +327,21 @@ const Search = () => {
             {/* Cambiar modo */}
             <div className='flex items-center rounded-lg border border-gray-600 overflow-hidden'>
               <Button
-                size='sm'
-                variant={viewMode === 'discovery' ? 'solid' : 'light'}
-                color={viewMode === 'discovery' ? 'primary' : 'default'}
                 className={viewMode === 'discovery' ? '' : 'text-gray-400'}
-                onPress={() => setViewMode('discovery')}
-                startContent={<Target className='w-4 h-4' />}>
+                color={viewMode === 'discovery' ? 'primary' : 'default'}
+                size='sm'
+                startContent={<Target className='w-4 h-4' />}
+                variant={viewMode === 'discovery' ? 'solid' : 'light'}
+                onPress={() => setViewMode('discovery')}>
                 Discovery
               </Button>
               <Button
-                size='sm'
-                variant={viewMode === 'search' ? 'solid' : 'light'}
-                color={viewMode === 'search' ? 'primary' : 'default'}
                 className={viewMode === 'search' ? '' : 'text-gray-400'}
-                onPress={() => setViewMode('search')}
-                startContent={<SearchIcon className='w-4 h-4' />}>
+                color={viewMode === 'search' ? 'primary' : 'default'}
+                size='sm'
+                startContent={<SearchIcon className='w-4 h-4' />}
+                variant={viewMode === 'search' ? 'solid' : 'light'}
+                onPress={() => setViewMode('search')}>
                 Búsqueda
               </Button>
             </div>
@@ -363,32 +353,32 @@ const Search = () => {
           {viewMode === 'search' && (
             <div className='flex-1'>
               <Input
-                placeholder='Buscar por nombre, ubicación o intereses...'
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                startContent={<SearchIcon className='w-4 h-4 text-gray-400' />}
                 classNames={{
                   input: 'text-gray-200',
                   inputWrapper: 'bg-gray-800/50 backdrop-blur-sm border-gray-600'
                 }}
+                placeholder='Buscar por nombre, ubicación o intereses...'
+                startContent={<SearchIcon className='w-4 h-4 text-gray-400' />}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
           )}
 
           <div className='flex items-center gap-2'>
             <Button
-              variant='bordered'
-              startContent={<Filter className='w-4 h-4' />}
               className='border-gray-600 text-gray-300 hover:bg-gray-700/30'
+              startContent={<Filter className='w-4 h-4' />}
+              variant='bordered'
               onPress={onFiltersOpen}>
               Filtros
             </Button>
 
             {viewMode === 'discovery' && (
               <Button
-                variant='bordered'
-                startContent={<Shuffle className='w-4 h-4' />}
                 className='border-gray-600 text-gray-300 hover:bg-gray-700/30'
+                startContent={<Shuffle className='w-4 h-4' />}
+                variant='bordered'
                 onPress={() => {
                   setCurrentProfileIndex(Math.floor(Math.random() * filteredProfiles.length))
                 }}>
@@ -407,7 +397,7 @@ const Search = () => {
               <Users className='w-12 h-12 text-gray-500 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-400 mb-2'>No se encontraron perfiles</h3>
               <p className='text-gray-500 mb-4'>Intenta ajustar los filtros para encontrar más personas</p>
-              <Button variant='bordered' className='border-gray-600 text-gray-300' onPress={resetFilters}>
+              <Button className='border-gray-600 text-gray-300' variant='bordered' onPress={resetFilters}>
                 Resetear filtros
               </Button>
             </div>
@@ -418,14 +408,14 @@ const Search = () => {
                 <div className='max-w-md mx-auto'>
                   <div className={`transition-all duration-300 ${isAnimating ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}`}>
                     <UserCard
-                      user={currentProfile}
-                      variant='discovery'
-                      onViewProfile={handleViewProfile}
-                      onMessage={handleSendMessage}
-                      onToggleFavorite={toggleFavorite}
                       isFavorite={favorites.has(currentProfile.id)}
                       showCompatibility={true}
                       showDistance={true}
+                      user={currentProfile}
+                      variant='discovery'
+                      onMessage={handleSendMessage}
+                      onToggleFavorite={toggleFavorite}
+                      onViewProfile={handleViewProfile}
                     />
                   </div>
 
@@ -433,34 +423,34 @@ const Search = () => {
                   <div className='flex justify-center items-center gap-4 mt-6'>
                     <Button
                       isIconOnly
-                      size='lg'
-                      color='danger'
-                      variant='flat'
                       className='w-14 h-14 text-red-400 hover:text-red-300'
-                      onPress={() => handlePass(currentProfile.id)}
-                      isDisabled={isAnimating}>
+                      color='danger'
+                      isDisabled={isAnimating}
+                      size='lg'
+                      variant='flat'
+                      onPress={() => handlePass(currentProfile.id)}>
                       <X className='w-6 h-6' />
                     </Button>
 
                     <Button
                       isIconOnly
-                      size='lg'
-                      color='warning'
-                      variant='flat'
                       className='w-16 h-16 text-yellow-400 hover:text-yellow-300'
-                      onPress={() => handleSuperLike(currentProfile.id)}
-                      isDisabled={isAnimating}>
+                      color='warning'
+                      isDisabled={isAnimating}
+                      size='lg'
+                      variant='flat'
+                      onPress={() => handleSuperLike(currentProfile.id)}>
                       <Star className='w-7 h-7' />
                     </Button>
 
                     <Button
                       isIconOnly
-                      size='lg'
-                      color='success'
-                      variant='flat'
                       className='w-14 h-14 text-green-400 hover:text-green-300'
-                      onPress={() => handleLike(currentProfile.id)}
-                      isDisabled={isAnimating}>
+                      color='success'
+                      isDisabled={isAnimating}
+                      size='lg'
+                      variant='flat'
+                      onPress={() => handleLike(currentProfile.id)}>
                       <Heart className='w-6 h-6' />
                     </Button>
                   </div>
@@ -473,7 +463,8 @@ const Search = () => {
                     <div className='w-full bg-gray-700 rounded-full h-1 mt-2'>
                       <div
                         className='bg-primary-500 h-1 rounded-full transition-all duration-300'
-                        style={{ width: `${((currentProfileIndex + 1) / filteredProfiles.length) * 100}%` }}></div>
+                        style={{ width: `${((currentProfileIndex + 1) / filteredProfiles.length) * 100}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -485,14 +476,14 @@ const Search = () => {
                   {filteredProfiles.map(profile => (
                     <UserCard
                       key={profile.id}
-                      user={profile}
-                      variant='default'
-                      onViewProfile={handleViewProfile}
-                      onMessage={handleSendMessage}
-                      onToggleFavorite={toggleFavorite}
                       isFavorite={favorites.has(profile.id)}
                       showCompatibility={true}
                       showDistance={true}
+                      user={profile}
+                      variant='default'
+                      onMessage={handleSendMessage}
+                      onToggleFavorite={toggleFavorite}
+                      onViewProfile={handleViewProfile}
                     />
                   ))}
                 </div>
@@ -504,15 +495,15 @@ const Search = () => {
 
       {/* Modal de filtros */}
       <Modal
-        isOpen={isFiltersOpen}
-        onOpenChange={onFiltersOpenChange}
-        size='2xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isFiltersOpen}
+        size='2xl'
+        onOpenChange={onFiltersOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -528,15 +519,15 @@ const Search = () => {
                   <div>
                     <h4 className='font-semibold text-gray-200 mb-3'>Rango de Edad</h4>
                     <Slider
+                      className='max-w-md'
+                      color='primary'
+                      label={`${ageRange[0]} - ${ageRange[1]} años`}
+                      maxValue={65}
+                      minValue={18}
                       size='sm'
                       step={1}
-                      minValue={18}
-                      maxValue={65}
                       value={ageRange}
                       onChange={setAgeRange}
-                      className='max-w-md'
-                      label={`${ageRange[0]} - ${ageRange[1]} años`}
-                      color='primary'
                     />
                   </div>
 
@@ -544,15 +535,15 @@ const Search = () => {
                   <div>
                     <h4 className='font-semibold text-gray-200 mb-3'>Distancia Máxima</h4>
                     <Slider
+                      className='max-w-md'
+                      color='primary'
+                      label={`${maxDistance} km`}
+                      maxValue={100}
+                      minValue={5}
                       size='sm'
                       step={5}
-                      minValue={5}
-                      maxValue={100}
                       value={maxDistance}
                       onChange={setMaxDistance}
-                      className='max-w-md'
-                      label={`${maxDistance} km`}
-                      color='primary'
                     />
                   </div>
 
@@ -563,18 +554,20 @@ const Search = () => {
                       {categoryOptions.map(option => (
                         <Chip
                           key={option.value}
-                          variant={selectedCategories.includes(option.value) ? 'solid' : 'bordered'}
-                          color={selectedCategories.includes(option.value) ? 'primary' : 'default'}
                           className={`cursor-pointer ${
                             selectedCategories.includes(option.value) ? '' : 'border-gray-600 text-gray-300 hover:bg-gray-700/30'
                           }`}
+                          color={selectedCategories.includes(option.value) ? 'primary' : 'default'}
+                          variant={selectedCategories.includes(option.value) ? 'solid' : 'bordered'}
                           onClick={() => {
                             if (option.value === 'all') {
                               setSelectedCategories(['all'])
                             } else {
                               const newCategories = selectedCategories.filter(cat => cat !== 'all')
+
                               if (selectedCategories.includes(option.value)) {
                                 const filtered = newCategories.filter(cat => cat !== option.value)
+
                                 setSelectedCategories(filtered.length === 0 ? ['all'] : filtered)
                               } else {
                                 setSelectedCategories([...newCategories, option.value])
@@ -594,15 +587,15 @@ const Search = () => {
                       <h4 className='font-semibold text-gray-200'>Solo usuarios en línea</h4>
                       <p className='text-sm text-gray-400'>Mostrar únicamente personas conectadas</p>
                     </div>
-                    <Switch isSelected={onlineOnly} onValueChange={setOnlineOnly} color='primary' />
+                    <Switch color='primary' isSelected={onlineOnly} onValueChange={setOnlineOnly} />
                   </div>
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant='light' onPress={resetFilters} startContent={<RefreshCw className='w-4 h-4' />}>
+                <Button startContent={<RefreshCw className='w-4 h-4' />} variant='light' onPress={resetFilters}>
                   Resetear
                 </Button>
-                <Button color='primary' onPress={onClose} startContent={<Check className='w-4 h-4' />}>
+                <Button color='primary' startContent={<Check className='w-4 h-4' />} onPress={onClose}>
                   Aplicar Filtros
                 </Button>
               </ModalFooter>
@@ -613,15 +606,15 @@ const Search = () => {
 
       {/* Modal de perfil detallado */}
       <Modal
-        isOpen={isProfileOpen}
-        onOpenChange={onProfileOpenChange}
-        size='3xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isProfileOpen}
+        size='3xl'
+        onOpenChange={onProfileOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -629,7 +622,7 @@ const Search = () => {
                 {selectedProfile && (
                   <div className='flex items-center gap-3'>
                     <div className='relative'>
-                      <Avatar src={selectedProfile.image} alt={selectedProfile.name} className='w-16 h-16' />
+                      <Avatar alt={selectedProfile.name} className='w-16 h-16' src={selectedProfile.image} />
                       {selectedProfile.isOnline && (
                         <div className='absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-gray-900 rounded-full' />
                       )}
@@ -640,10 +633,10 @@ const Search = () => {
                         {selectedProfile.age} años • {selectedProfile.location}
                       </p>
                       <div className='flex items-center gap-2 mt-1'>
-                        <Chip color='danger' variant='flat' size='sm'>
+                        <Chip color='danger' size='sm' variant='flat'>
                           {selectedProfile.compatibility}% match
                         </Chip>
-                        <Chip color={selectedProfile.isOnline ? 'success' : 'default'} variant='flat' size='sm'>
+                        <Chip color={selectedProfile.isOnline ? 'success' : 'default'} size='sm' variant='flat'>
                           {selectedProfile.isOnline ? 'En línea' : 'Desconectado'}
                         </Chip>
                       </div>
@@ -698,9 +691,9 @@ const Search = () => {
                         {selectedProfile.photos.map((photo, index) => (
                           <div key={index} className='aspect-square rounded-lg overflow-hidden'>
                             <img
-                              src={photo}
                               alt={`Foto ${index + 1}`}
                               className='w-full h-full object-cover hover:scale-105 transition-transform'
+                              src={photo}
                             />
                           </div>
                         ))}
@@ -712,7 +705,7 @@ const Search = () => {
                       <h4 className='font-semibold text-gray-200 mb-3'>Intereses</h4>
                       <div className='flex flex-wrap gap-2'>
                         {selectedProfile.interests.map((interest, index) => (
-                          <Chip key={index} size='sm' variant='flat' color='primary' className='bg-primary-500/20 text-primary-300'>
+                          <Chip key={index} className='bg-primary-500/20 text-primary-300' color='primary' size='sm' variant='flat'>
                             {interest}
                           </Chip>
                         ))}
@@ -723,11 +716,11 @@ const Search = () => {
               </ModalBody>
               <ModalFooter>
                 <Button
-                  variant='flat'
                   color={favorites.has(selectedProfile?.id) ? 'danger' : 'default'}
                   startContent={
                     favorites.has(selectedProfile?.id) ? <Heart className='w-4 h-4 fill-current' /> : <HeartOff className='w-4 h-4' />
                   }
+                  variant='flat'
                   onPress={() => {
                     toggleFavorite(selectedProfile.id)
                   }}>

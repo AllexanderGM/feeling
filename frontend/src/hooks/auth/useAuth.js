@@ -2,7 +2,6 @@ import { useContext, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@services'
 import { Logger } from '@utils/logger.js'
-
 import AuthContext from '@context/AuthContext.jsx'
 import { useError } from '@hooks/utils/useError.js'
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
@@ -93,8 +92,10 @@ export const useAuth = () => {
     async (email, password, showNotifications = true) => {
       const result = await withLoading(async () => {
         const data = await authService.login(email, password)
+
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
         updateUser(data)
+
         return data
       }, 'Inicio de sesión')
 
@@ -112,6 +113,7 @@ export const useAuth = () => {
       if (!refreshToken) {
         Logger.warn(Logger.CATEGORIES.AUTH, 'renovar tokens', 'No hay refresh token disponible')
         clearAllAuth()
+
         return { success: false, message: 'No hay refresh token disponible' }
       }
 
@@ -123,6 +125,7 @@ export const useAuth = () => {
           if (data.success && data.accessToken) {
             Logger.authSuccess('renovar tokens', null, { manual: true })
             updateAccessToken(data.accessToken)
+
             return data
           } else {
             Logger.authError('renovar tokens', new Error('Respuesta inválida del refresh token'), null)
@@ -147,10 +150,12 @@ export const useAuth = () => {
         try {
           // Intentar hacer logout en el servidor
           const data = await authService.logout(accessToken)
+
           return data
         } catch (error) {
           // Aunque falle el logout del servidor, limpiar localmente
           Logger.warn(Logger.CATEGORIES.AUTH, 'logout servidor', `Error al hacer logout en el servidor: ${error.message}`)
+
           return { success: true, message: 'Sesión cerrada localmente' }
         } finally {
           // Siempre limpiar el estado local
@@ -165,6 +170,7 @@ export const useAuth = () => {
           }, 100)
         }
       }, 'Cierre de sesión')
+
       return handleApiResponse(result, 'Sesión cerrada correctamente.', { showNotifications })
     },
     [withLoading, clearAllAuth, handleApiResponse, accessToken, navigate]
@@ -177,6 +183,7 @@ export const useAuth = () => {
   const checkEmailAvailability = useCallback(
     async (email, showNotifications = false) => {
       const result = await withLoading(() => authService.checkEmailAvailability(email), 'Verificación de email')
+
       return handleApiResponse(result, 'Email verificado', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -185,6 +192,7 @@ export const useAuth = () => {
   const checkAuthMethod = useCallback(
     async (email, showNotifications = false) => {
       const result = await withLoading(() => authService.checkAuthMethod(email), 'Verificación de método')
+
       return handleApiResponse(result, 'Método verificado', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -193,6 +201,7 @@ export const useAuth = () => {
   const getUserStatus = useCallback(
     async (email, showNotifications = false) => {
       const result = await withLoading(() => authService.getUserStatus(email), 'Estado del usuario')
+
       return handleApiResponse(result, 'Estado obtenido', { showNotifications })
     },
     [withLoading, handleApiResponse]
@@ -209,6 +218,7 @@ export const useAuth = () => {
       return timeLeft < 300 // 5 minutos
     } catch (error) {
       Logger.warn(Logger.CATEGORIES.AUTH, 'verificar expiración token', `Error al verificar expiración: ${error.message}`)
+
       return true
     }
   }, [accessToken])

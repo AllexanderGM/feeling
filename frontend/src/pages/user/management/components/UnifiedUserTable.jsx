@@ -22,7 +22,7 @@ import {
 } from '@heroui/react'
 import { Check, X, Eye, UserIcon, UserX, Clock, AlertCircle, Mail, Trash2, Tags } from 'lucide-react'
 import { useError } from '@hooks'
-import { USER_INTEREST_COLORS, USER_ROLE_COLORS, USER_COLUMNS } from '@constants/tableConstants.js'
+import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
 import { Logger } from '@utils/logger.js'
 
@@ -31,12 +31,10 @@ const calculateAge = birthDate => {
   if (!birthDate) return 'N/A'
   try {
     return calculateAgeFromJavaDate(birthDate)
-  } catch (error) {
+  } catch {
     return 'N/A'
   }
 }
-import TableActionCell from '@components/ui/TableActionCell.jsx'
-import UserTagModal from './UserTagModal.jsx'
 
 const UnifiedUserTable = memo(
   ({
@@ -47,9 +45,6 @@ const UnifiedUserTable = memo(
     currentUser,
     onEdit,
     onDelete,
-    selectedKeys,
-    setSelectedKeys,
-    disabledKeys,
     sortDescriptor,
     setSortDescriptor,
     topContent,
@@ -63,16 +58,13 @@ const UnifiedUserTable = memo(
     onActivate,
     onView,
     onBlock,
-    visibleColumns,
     headerColumns
   }) => {
     // Initialize component state
 
     const { handleError, handleSuccess } = useError()
     const { isOpen, onOpen, onClose } = useDisclosure()
-    const { isOpen: isTagModalOpen, onOpen: onTagModalOpen, onClose: onTagModalClose } = useDisclosure()
     const [selectedUser, setSelectedUser] = useState(null)
-    const [selectedUserForTags, setSelectedUserForTags] = useState(null)
     const [actionLoading, setActionLoading] = useState(false)
 
     const handleViewDetails = useCallback(
@@ -81,14 +73,6 @@ const UnifiedUserTable = memo(
         onOpen()
       },
       [onOpen]
-    )
-
-    const handleViewTags = useCallback(
-      user => {
-        setSelectedUserForTags(user)
-        onTagModalOpen()
-      },
-      [onTagModalOpen]
     )
 
     const handleTagStatusUpdate = useCallback(
@@ -103,6 +87,7 @@ const UnifiedUserTable = memo(
                 'Content-Type': 'application/json'
               }
             })
+
             if (response.ok) {
               handleSuccess('Tag aprobado correctamente')
               // Actualizar el usuario seleccionado si es necesario
@@ -126,6 +111,7 @@ const UnifiedUserTable = memo(
                 'Content-Type': 'application/json'
               }
             })
+
             if (response.ok) {
               handleSuccess('Tag rechazado correctamente')
               // Actualizar el usuario seleccionado si es necesario
@@ -157,7 +143,7 @@ const UnifiedUserTable = memo(
         try {
           await onApprove(user.id)
           handleSuccess(`Usuario ${user.name} ${user.lastName} aprobado correctamente`)
-        } catch (error) {
+        } catch {
           handleError('Error al aprobar el usuario')
         } finally {
           setActionLoading(false)
@@ -172,7 +158,7 @@ const UnifiedUserTable = memo(
         try {
           await onReject(user.id)
           handleSuccess(`Usuario ${user.name} ${user.lastName} rechazado correctamente`)
-        } catch (error) {
+        } catch {
           handleError('Error al rechazar el usuario')
         } finally {
           setActionLoading(false)
@@ -195,22 +181,22 @@ const UnifiedUserTable = memo(
               <div className='flex items-center gap-3'>
                 {hasImage ? (
                   <Avatar
-                    radius='lg'
-                    src={hasImage}
                     alt={`${user.name || 'Usuario'}`}
                     className='w-10 h-10'
+                    radius='lg'
+                    src={hasImage}
                     onError={() => {
                       // Imagen de placeholder fallará silenciosamente
                     }}
                   />
                 ) : (
-                  <Avatar radius='lg' className='w-10 h-10 bg-default-100' icon={<UserIcon className='w-6 h-6 text-default-500' />} />
+                  <Avatar className='w-10 h-10 bg-default-100' icon={<UserIcon className='w-6 h-6 text-default-500' />} radius='lg' />
                 )}
                 <div className='flex flex-col'>
                   <div className='flex items-center gap-2'>
                     <p className='text-sm font-semibold text-foreground'>{`${user.name || 'Usuario'} ${user.lastName || ''}`.trim()}</p>
                     {isCurrentUser && (
-                      <Chip size='sm' color='primary' variant='flat'>
+                      <Chip color='primary' size='sm' variant='flat'>
                         Tú
                       </Chip>
                     )}
@@ -221,6 +207,7 @@ const UnifiedUserTable = memo(
             )
           case 'age':
             const age = calculateAge(user.birthDate || user.dateOfBirth)
+
             return (
               <div className='flex flex-col items-center'>
                 <span className='text-sm font-semibold text-foreground'>{age !== 'N/A' ? `${age}` : 'N/A'}</span>
@@ -245,7 +232,7 @@ const UnifiedUserTable = memo(
             return (
               <div className='flex flex-col items-center'>
                 <div className='flex items-center gap-2'>
-                  <div className='w-2 h-2 rounded-full bg-primary-500'></div>
+                  <div className='w-2 h-2 rounded-full bg-primary-500' />
                   <span className='text-sm font-semibold text-foreground'>
                     {user.matchesAvailable !== undefined ? user.matchesAvailable : 'N/A'}
                   </span>
@@ -259,6 +246,7 @@ const UnifiedUserTable = memo(
               if (percentage >= 80) return 'success'
               if (percentage >= 60) return 'warning'
               if (percentage >= 40) return 'primary'
+
               return 'danger'
             }
 
@@ -281,7 +269,7 @@ const UnifiedUserTable = memo(
                   </div>
                   <span className='text-xs font-semibold text-foreground'>{completeness}%</span>
                 </div>
-                <Chip size='sm' variant='flat' color={getColor(completeness)} className='text-xs'>
+                <Chip className='text-xs' color={getColor(completeness)} size='sm' variant='flat'>
                   {completeness >= 80 ? 'Completo' : completeness >= 60 ? 'Bueno' : completeness >= 40 ? 'Regular' : 'Incompleto'}
                 </Chip>
               </div>
@@ -315,6 +303,7 @@ const UnifiedUserTable = memo(
               GOOGLE: 'Google',
               FACEBOOK: 'Facebook'
             }
+
             return (
               <Chip className='capitalize' color={authProviderColors[user.userAuthProvider] || 'default'} size='sm' variant='flat'>
                 {authProviderLabels[user.userAuthProvider] || user.userAuthProvider || 'Local'}
@@ -324,6 +313,7 @@ const UnifiedUserTable = memo(
             const createdDate = user.createdAt || user.registeredAt
             const formattedDate = formatJavaDateForDisplay(createdDate)
             const daysSince = daysSinceJavaDate(createdDate)
+
             return (
               <div className='flex flex-col'>
                 <p className='text-sm font-semibold text-foreground'>{formattedDate}</p>
@@ -345,48 +335,48 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Visualizar perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                      onPress={() => handleViewDetails(user)}
                       isDisabled={loading || actionLoading}
-                      title='Visualizar perfil'>
+                      size='sm'
+                      title='Visualizar perfil'
+                      variant='flat'
+                      onPress={() => handleViewDetails(user)}>
                       <Eye className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Enviar correo'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo'>
+                      size='sm'
+                      title='Enviar correo'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Aprobar perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'
-                      onPress={() => handleApprove(user)}
                       isDisabled={loading || actionLoading}
-                      title='Aprobar perfil'>
+                      size='sm'
+                      title='Aprobar perfil'
+                      variant='flat'
+                      onPress={() => handleApprove(user)}>
                       <Check className='w-4 h-4' />
                     </Button>
                   </Tooltip>
-                  <Tooltip content='Desaprobar perfil' color='danger'>
+                  <Tooltip color='danger' content='Desaprobar perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                      onPress={() => handleReject(user)}
                       isDisabled={loading || actionLoading}
-                      title='Desaprobar perfil'>
+                      size='sm'
+                      title='Desaprobar perfil'
+                      variant='flat'
+                      onPress={() => handleReject(user)}>
                       <X className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -398,24 +388,24 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Ver perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                      onPress={() => handleViewDetails(user)}
                       isDisabled={loading || actionLoading}
-                      title='Ver perfil'>
+                      size='sm'
+                      title='Ver perfil'
+                      variant='flat'
+                      onPress={() => handleViewDetails(user)}>
                       <Eye className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Enviar correo'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo'>
+                      size='sm'
+                      title='Enviar correo'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -423,25 +413,25 @@ const UnifiedUserTable = memo(
                     <Tooltip content='Desactivar cuenta'>
                       <Button
                         isIconOnly
-                        size='sm'
-                        variant='flat'
                         className='bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                        onPress={() => onDeactivate(user.id)}
                         isDisabled={loading || actionLoading}
-                        title='Desactivar cuenta'>
+                        size='sm'
+                        title='Desactivar cuenta'
+                        variant='flat'
+                        onPress={() => onDeactivate(user.id)}>
                         <UserX className='w-4 h-4' />
                       </Button>
                     </Tooltip>
                   )}
-                  <Tooltip content='Eliminar cuenta' color='danger'>
+                  <Tooltip color='danger' content='Eliminar cuenta'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                      onPress={() => onDelete?.(user)}
                       isDisabled={loading || actionLoading}
-                      title='Eliminar cuenta'>
+                      size='sm'
+                      title='Eliminar cuenta'
+                      variant='flat'
+                      onPress={() => onDelete?.(user)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -453,12 +443,12 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Enviar correo electrónico'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo electrónico'>
+                      size='sm'
+                      title='Enviar correo electrónico'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -466,25 +456,25 @@ const UnifiedUserTable = memo(
                     <Tooltip content='Desactivar cuenta'>
                       <Button
                         isIconOnly
-                        size='sm'
-                        variant='flat'
                         className='bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                        onPress={() => onDeactivate(user.id)}
                         isDisabled={loading || actionLoading}
-                        title='Desactivar cuenta'>
+                        size='sm'
+                        title='Desactivar cuenta'
+                        variant='flat'
+                        onPress={() => onDeactivate(user.id)}>
                         <UserX className='w-4 h-4' />
                       </Button>
                     </Tooltip>
                   )}
-                  <Tooltip content='Eliminar cuenta' color='danger'>
+                  <Tooltip color='danger' content='Eliminar cuenta'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                      onPress={() => onDelete?.(user)}
                       isDisabled={loading || actionLoading}
-                      title='Eliminar cuenta'>
+                      size='sm'
+                      title='Eliminar cuenta'
+                      variant='flat'
+                      onPress={() => onDelete?.(user)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -496,36 +486,36 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Ver perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                      onPress={() => handleViewDetails(user)}
                       isDisabled={loading || actionLoading}
-                      title='Ver perfil'>
+                      size='sm'
+                      title='Ver perfil'
+                      variant='flat'
+                      onPress={() => handleViewDetails(user)}>
                       <Eye className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Enviar correo'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo'>
+                      size='sm'
+                      title='Enviar correo'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Aprobar cuenta'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'
-                      onPress={() => handleApprove(user)}
                       isDisabled={loading || actionLoading}
-                      title='Aprobar cuenta'>
+                      size='sm'
+                      title='Aprobar cuenta'
+                      variant='flat'
+                      onPress={() => handleApprove(user)}>
                       <Check className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -533,25 +523,25 @@ const UnifiedUserTable = memo(
                     <Tooltip content='Desactivar cuenta'>
                       <Button
                         isIconOnly
-                        size='sm'
-                        variant='flat'
                         className='bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                        onPress={() => onDeactivate(user.id)}
                         isDisabled={loading || actionLoading}
-                        title='Desactivar cuenta'>
+                        size='sm'
+                        title='Desactivar cuenta'
+                        variant='flat'
+                        onPress={() => onDeactivate(user.id)}>
                         <UserX className='w-4 h-4' />
                       </Button>
                     </Tooltip>
                   )}
-                  <Tooltip content='Eliminar definitivamente' color='danger'>
+                  <Tooltip color='danger' content='Eliminar definitivamente'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                      onPress={() => onDelete?.(user)}
                       isDisabled={loading || actionLoading}
-                      title='Eliminar definitivamente'>
+                      size='sm'
+                      title='Eliminar definitivamente'
+                      variant='flat'
+                      onPress={() => onDelete?.(user)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -563,24 +553,24 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Ver perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                      onPress={() => handleViewDetails(user)}
                       isDisabled={loading || actionLoading}
-                      title='Ver perfil'>
+                      size='sm'
+                      title='Ver perfil'
+                      variant='flat'
+                      onPress={() => handleViewDetails(user)}>
                       <Eye className='w-4 h-4' />
                     </Button>
                   </Tooltip>
                   <Tooltip content='Enviar correo electrónico'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo electrónico'>
+                      size='sm'
+                      title='Enviar correo electrónico'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -588,25 +578,25 @@ const UnifiedUserTable = memo(
                     <Tooltip content='Activar cuenta'>
                       <Button
                         isIconOnly
-                        size='sm'
-                        variant='flat'
                         className='bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'
-                        onPress={() => onActivate(user.id)}
                         isDisabled={loading || actionLoading}
-                        title='Activar cuenta'>
+                        size='sm'
+                        title='Activar cuenta'
+                        variant='flat'
+                        onPress={() => onActivate(user.id)}>
                         <Check className='w-4 h-4' />
                       </Button>
                     </Tooltip>
                   )}
-                  <Tooltip content='Eliminar definitivamente' color='danger'>
+                  <Tooltip color='danger' content='Eliminar definitivamente'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                      onPress={() => onDelete?.(user)}
                       isDisabled={loading || actionLoading}
-                      title='Eliminar definitivamente'>
+                      size='sm'
+                      title='Eliminar definitivamente'
+                      variant='flat'
+                      onPress={() => onDelete?.(user)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -635,12 +625,12 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Visualizar perfil'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                      onPress={() => onView?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Visualizar perfil'>
+                      size='sm'
+                      title='Visualizar perfil'
+                      variant='flat'
+                      onPress={() => onView?.(user.id)}>
                       <Eye className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -649,12 +639,12 @@ const UnifiedUserTable = memo(
                   <Tooltip content='Enviar correo'>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20'
-                      onPress={() => onSendEmail?.(user.id)}
                       isDisabled={loading || actionLoading}
-                      title='Enviar correo'>
+                      size='sm'
+                      title='Enviar correo'
+                      variant='flat'
+                      onPress={() => onSendEmail?.(user.id)}>
                       <Mail className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -663,12 +653,12 @@ const UnifiedUserTable = memo(
                   <Tooltip content={!canEdit ? 'No tienes permisos para desaprobar administradores' : 'Desaprobar perfil'}>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20'
-                      onPress={() => onReject?.(user)}
                       isDisabled={loading || actionLoading || !canEdit}
-                      title={!canEdit ? 'No tienes permisos para desaprobar administradores' : 'Desaprobar perfil'}>
+                      size='sm'
+                      title={!canEdit ? 'No tienes permisos para desaprobar administradores' : 'Desaprobar perfil'}
+                      variant='flat'
+                      onPress={() => onReject?.(user)}>
                       <X className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -678,12 +668,12 @@ const UnifiedUserTable = memo(
                     <Tooltip content='Desactivar perfil'>
                       <Button
                         isIconOnly
-                        size='sm'
-                        variant='flat'
                         className='bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/20'
-                        onPress={() => onDeactivate?.(user.id)}
                         isDisabled={loading || actionLoading}
-                        title='Desactivar perfil'>
+                        size='sm'
+                        title='Desactivar perfil'
+                        variant='flat'
+                        onPress={() => onDeactivate?.(user.id)}>
                         <UserX className='w-4 h-4' />
                       </Button>
                     </Tooltip>
@@ -691,16 +681,16 @@ const UnifiedUserTable = memo(
 
                   {/* Eliminar definitivamente */}
                   <Tooltip
-                    content={!canDelete ? 'No tienes permisos para eliminar administradores' : 'Eliminar definitivamente'}
-                    color='danger'>
+                    color='danger'
+                    content={!canDelete ? 'No tienes permisos para eliminar administradores' : 'Eliminar definitivamente'}>
                     <Button
                       isIconOnly
-                      size='sm'
-                      variant='flat'
                       className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                      onPress={() => onDelete?.(user)}
                       isDisabled={loading || actionLoading || !canDelete}
-                      title={!canDelete ? 'No tienes permisos para eliminar administradores' : 'Eliminar definitivamente'}>
+                      size='sm'
+                      title={!canDelete ? 'No tienes permisos para eliminar administradores' : 'Eliminar definitivamente'}
+                      variant='flat'
+                      onPress={() => onDelete?.(user)}>
                       <Trash2 className='w-4 h-4' />
                     </Button>
                   </Tooltip>
@@ -734,6 +724,7 @@ const UnifiedUserTable = memo(
     // Función para generar key única para cada usuario
     const getUserKey = (user, index) => {
       if (!user) return `user-empty-${index}`
+
       return user.id || user.userId || user.email || user.username || `user-${index}-${Math.random().toString(36).substr(2, 9)}`
     }
 
@@ -771,23 +762,23 @@ const UnifiedUserTable = memo(
       <>
         <Table
           aria-label={`Tabla de usuarios ${tableType === 'pending' ? 'pendientes' : tableType === 'incomplete' ? 'incompletos' : 'activos'}`}
-          className='min-h-[400px]'
-          removeWrapper={false}
-          isHeaderSticky={true}
-          color='primary'
           bottomContent={bottomContent}
           bottomContentPlacement='outside'
-          selectionMode='none'
-          sortDescriptor={tableType === 'active' ? sortDescriptor : undefined}
-          topContent={topContent}
-          topContentPlacement='outside'
-          onSortChange={tableType === 'active' ? setSortDescriptor : undefined}
+          className='min-h-[400px]'
           classNames={{
             wrapper: 'bg-gray-800/40 backdrop-blur-sm border border-gray-700/50',
             th: 'bg-gray-700/50 border-b border-gray-600/50',
             td: 'border-b border-gray-700/30',
             tbody: '[&>tr:hover]:bg-gray-700/20'
-          }}>
+          }}
+          color='primary'
+          isHeaderSticky={true}
+          removeWrapper={false}
+          selectionMode='none'
+          sortDescriptor={tableType === 'active' ? sortDescriptor : undefined}
+          topContent={topContent}
+          topContentPlacement='outside'
+          onSortChange={tableType === 'active' ? setSortDescriptor : undefined}>
           <TableHeader columns={displayColumns}>
             {column => (
               <TableColumn
@@ -799,12 +790,12 @@ const UnifiedUserTable = memo(
             )}
           </TableHeader>
           <TableBody
-            items={usersWithKeys}
-            loadingContent={`Cargando usuarios ${tableType === 'pending' ? 'pendientes' : tableType === 'incomplete' ? 'incompletos' : 'activos'}...`}
             emptyContent={
               emptyContent ||
               `No hay usuarios ${tableType === 'pending' ? 'pendientes de aprobación' : tableType === 'incomplete' ? 'con perfiles incompletos' : 'activos'}`
             }
+            items={usersWithKeys}
+            loadingContent={`Cargando usuarios ${tableType === 'pending' ? 'pendientes' : tableType === 'incomplete' ? 'incompletos' : 'activos'}...`}
             loadingState={loading ? 'loading' : 'idle'}>
             {item => <TableRow key={item._key}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
           </TableBody>
@@ -812,7 +803,7 @@ const UnifiedUserTable = memo(
 
         {/* Modal de detalles para usuarios pendientes, incompletos y no aprobados */}
         {(tableType === 'pending' || tableType === 'incomplete' || tableType === 'nonApproved') && (
-          <Modal isOpen={isOpen} onClose={onClose} size='4xl' scrollBehavior='inside'>
+          <Modal isOpen={isOpen} scrollBehavior='inside' size='4xl' onClose={onClose}>
             <ModalContent>
               <ModalHeader className='flex flex-col gap-1'>
                 <h3 className='text-xl font-semibold'>
@@ -836,11 +827,11 @@ const UnifiedUserTable = memo(
                       <CardBody className='flex flex-row items-center gap-6 p-6'>
                         <div className='flex flex-col items-center gap-3'>
                           <Avatar
-                            src={selectedUser.mainImage || selectedUser.image}
                             className='w-20 h-20'
                             icon={<UserIcon className='w-10 h-10 text-default-500' />}
+                            src={selectedUser.mainImage || selectedUser.image}
                           />
-                          <Chip size='sm' color={tableType === 'nonApproved' ? 'danger' : 'warning'} variant='flat'>
+                          <Chip color={tableType === 'nonApproved' ? 'danger' : 'warning'} size='sm' variant='flat'>
                             {tableType === 'pending'
                               ? 'Pendiente de aprobación'
                               : tableType === 'nonApproved'
@@ -908,7 +899,7 @@ const UnifiedUserTable = memo(
                           </div>
                           <div>
                             <p className='text-xs font-medium text-gray-400 uppercase'>Categoría de Interés</p>
-                            <Chip size='sm' color={USER_INTEREST_COLORS[selectedUser.categoryInterest] || 'default'} variant='flat'>
+                            <Chip color={USER_INTEREST_COLORS[selectedUser.categoryInterest] || 'default'} size='sm' variant='flat'>
                               {selectedUser.categoryInterest || 'No especificado'}
                             </Chip>
                           </div>
@@ -1003,7 +994,7 @@ const UnifiedUserTable = memo(
                           <h5 className='text-lg font-semibold text-white'>Gestión de Tags</h5>
                         </div>
                         {selectedUser.tags && selectedUser.tags.length > 0 && (
-                          <Chip size='sm' variant='flat' color='default'>
+                          <Chip color='default' size='sm' variant='flat'>
                             {selectedUser.tags.length} tags
                           </Chip>
                         )}
@@ -1023,6 +1014,7 @@ const UnifiedUserTable = memo(
                               const pendingTags = selectedUser.tags.filter(
                                 tag => typeof tag === 'object' && !tag.approved && !tag.rejectionReason
                               )
+
                               return (
                                 pendingTags.length > 0 && (
                                   <div>
@@ -1041,9 +1033,9 @@ const UnifiedUserTable = memo(
                                                   <span className='font-medium'>#{typeof tag === 'string' ? tag : tag.name}</span>
                                                   <Chip
                                                     color='warning'
-                                                    variant='flat'
                                                     size='sm'
-                                                    startContent={<Clock className='w-3 h-3' />}>
+                                                    startContent={<Clock className='w-3 h-3' />}
+                                                    variant='flat'>
                                                     Pendiente
                                                   </Chip>
                                                 </div>
@@ -1060,16 +1052,16 @@ const UnifiedUserTable = memo(
                                                 <Tooltip content='Aprobar tag'>
                                                   <Button
                                                     isIconOnly
-                                                    size='sm'
+                                                    aria-label='Aprobar tag'
+                                                    className='min-w-8 h-8'
                                                     color='success'
+                                                    size='sm'
                                                     variant='flat'
                                                     onPress={() => {
                                                       if (typeof tag === 'object' && tag.id) {
                                                         handleTagStatusUpdate(tag.id, 'approved')
                                                       }
-                                                    }}
-                                                    className='min-w-8 h-8'
-                                                    aria-label='Aprobar tag'>
+                                                    }}>
                                                     <Check className='w-3 h-3' />
                                                   </Button>
                                                 </Tooltip>
@@ -1077,16 +1069,16 @@ const UnifiedUserTable = memo(
                                                 <Tooltip content='Rechazar tag'>
                                                   <Button
                                                     isIconOnly
-                                                    size='sm'
+                                                    aria-label='Rechazar tag'
+                                                    className='min-w-8 h-8'
                                                     color='danger'
+                                                    size='sm'
                                                     variant='flat'
                                                     onPress={() => {
                                                       if (typeof tag === 'object' && tag.id) {
                                                         handleTagStatusUpdate(tag.id, 'rejected')
                                                       }
-                                                    }}
-                                                    className='min-w-8 h-8'
-                                                    aria-label='Rechazar tag'>
+                                                    }}>
                                                     <X className='w-3 h-3' />
                                                   </Button>
                                                 </Tooltip>
@@ -1106,6 +1098,7 @@ const UnifiedUserTable = memo(
                               const approvedTags = selectedUser.tags.filter(
                                 tag => typeof tag === 'string' || (typeof tag === 'object' && tag.approved)
                               )
+
                               return (
                                 approvedTags.length > 0 && (
                                   <div>
@@ -1116,7 +1109,7 @@ const UnifiedUserTable = memo(
 
                                     <div className='flex flex-wrap gap-2'>
                                       {approvedTags.map((tag, index) => (
-                                        <Chip key={index} color='success' variant='flat' startContent={<Tags className='w-3 h-3' />}>
+                                        <Chip key={index} color='success' startContent={<Tags className='w-3 h-3' />} variant='flat'>
                                           {typeof tag === 'string' ? tag : tag.name}
                                         </Chip>
                                       ))}
@@ -1129,6 +1122,7 @@ const UnifiedUserTable = memo(
                             {/* Tags Rechazados */}
                             {(() => {
                               const rejectedTags = selectedUser.tags.filter(tag => typeof tag === 'object' && tag.rejectionReason)
+
                               return (
                                 rejectedTags.length > 0 && (
                                   <div>
@@ -1143,7 +1137,7 @@ const UnifiedUserTable = memo(
                                           <CardBody className='p-4'>
                                             <div className='flex items-center gap-2 mb-2'>
                                               <span className='font-medium'>#{tag.name}</span>
-                                              <Chip color='danger' variant='flat' size='sm' startContent={<X className='w-3 h-3' />}>
+                                              <Chip color='danger' size='sm' startContent={<X className='w-3 h-3' />} variant='flat'>
                                                 Rechazado
                                               </Chip>
                                             </div>
@@ -1175,37 +1169,37 @@ const UnifiedUserTable = memo(
                             <div className='grid grid-cols-2 gap-3'>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Cuenta Pública</p>
-                                <Chip size='sm' color={selectedUser.publicAccount ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.publicAccount ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.publicAccount ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Visible en Búsqueda</p>
-                                <Chip size='sm' color={selectedUser.showMeInSearch ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.showMeInSearch ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.showMeInSearch ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Mostrar Edad</p>
-                                <Chip size='sm' color={selectedUser.showAge ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.showAge ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.showAge ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Mostrar Ubicación</p>
-                                <Chip size='sm' color={selectedUser.showLocation ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.showLocation ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.showLocation ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Mostrar Teléfono</p>
-                                <Chip size='sm' color={selectedUser.showPhone ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.showPhone ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.showPhone ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Ubicación Pública</p>
-                                <Chip size='sm' color={selectedUser.locationPublic ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.locationPublic ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.locationPublic ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
@@ -1223,37 +1217,37 @@ const UnifiedUserTable = memo(
                             <div className='grid grid-cols-2 gap-3'>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Email</p>
-                                <Chip size='sm' color={selectedUser.notificationsEmailEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsEmailEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsEmailEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Teléfono</p>
-                                <Chip size='sm' color={selectedUser.notificationsPhoneEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsPhoneEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsPhoneEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Matches</p>
-                                <Chip size='sm' color={selectedUser.notificationsMatchesEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsMatchesEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsMatchesEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Eventos</p>
-                                <Chip size='sm' color={selectedUser.notificationsEventsEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsEventsEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsEventsEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Login</p>
-                                <Chip size='sm' color={selectedUser.notificationsLoginEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsLoginEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsLoginEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Pagos</p>
-                                <Chip size='sm' color={selectedUser.notificationsPaymentsEnabled ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.notificationsPaymentsEnabled ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.notificationsPaymentsEnabled ? 'Activado' : 'Desactivado'}
                                 </Chip>
                               </div>
@@ -1334,25 +1328,25 @@ const UnifiedUserTable = memo(
                             <div className='grid grid-cols-2 gap-3'>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Estado del Perfil</p>
-                                <Chip size='sm' color={selectedUser.profileComplete ? 'success' : 'warning'} variant='flat'>
+                                <Chip color={selectedUser.profileComplete ? 'success' : 'warning'} size='sm' variant='flat'>
                                   {selectedUser.profileComplete ? 'Completo' : 'Incompleto'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Verificado</p>
-                                <Chip size='sm' color={selectedUser.verified ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.verified ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.verified ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Cuenta Activa</p>
-                                <Chip size='sm' color={selectedUser.active ? 'success' : 'danger'} variant='flat'>
+                                <Chip color={selectedUser.active ? 'success' : 'danger'} size='sm' variant='flat'>
                                   {selectedUser.active ? 'Activa' : 'Inactiva'}
                                 </Chip>
                               </div>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Cuenta Desactivada</p>
-                                <Chip size='sm' color={selectedUser.accountDeactivated ? 'danger' : 'success'} variant='flat'>
+                                <Chip color={selectedUser.accountDeactivated ? 'danger' : 'success'} size='sm' variant='flat'>
                                   {selectedUser.accountDeactivated ? 'Sí' : 'No'}
                                 </Chip>
                               </div>
@@ -1368,6 +1362,7 @@ const UnifiedUserTable = memo(
                               <p className='text-sm text-gray-200'>
                                 {(() => {
                                   const days = daysSinceJavaDate(selectedUser.createdAt || selectedUser.registeredAt)
+
                                   return days !== null ? `${days} días` : 'No disponible'
                                 })()}
                               </p>
@@ -1395,7 +1390,7 @@ const UnifiedUserTable = memo(
                         <div className='grid grid-cols-3 gap-4'>
                           <div>
                             <p className='text-xs font-medium text-gray-400 uppercase'>Método de Registro</p>
-                            <Chip size='sm' variant='flat' color={selectedUser.userAuthProvider === 'LOCAL' ? 'secondary' : 'primary'}>
+                            <Chip color={selectedUser.userAuthProvider === 'LOCAL' ? 'secondary' : 'primary'} size='sm' variant='flat'>
                               {selectedUser.userAuthProvider || 'LOCAL'}
                             </Chip>
                           </div>
@@ -1407,7 +1402,7 @@ const UnifiedUserTable = memo(
                           </div>
                           <div>
                             <p className='text-xs font-medium text-gray-400 uppercase'>Avatar Externo</p>
-                            <Chip size='sm' variant='flat' color={selectedUser.externalAvatarUrl ? 'success' : 'default'}>
+                            <Chip color={selectedUser.externalAvatarUrl ? 'success' : 'default'} size='sm' variant='flat'>
                               {selectedUser.externalAvatarUrl ? 'Sí' : 'No'}
                             </Chip>
                           </div>
@@ -1421,7 +1416,7 @@ const UnifiedUserTable = memo(
                           </div>
                           <div>
                             <p className='text-xs font-medium text-gray-400 uppercase'>Rol en Sistema</p>
-                            <Chip size='sm' variant='flat' color={selectedUser.role === 'ADMIN' ? 'danger' : 'primary'}>
+                            <Chip color={selectedUser.role === 'ADMIN' ? 'danger' : 'primary'} size='sm' variant='flat'>
                               {selectedUser.role || 'CLIENT'}
                             </Chip>
                           </div>
@@ -1444,9 +1439,9 @@ const UnifiedUserTable = memo(
                             {selectedUser.images.slice(0, 8).map((image, index) => (
                               <div key={index} className='aspect-square'>
                                 <img
-                                  src={image}
                                   alt={`Imagen ${index + 1}`}
                                   className='w-full h-full object-cover rounded-lg'
+                                  src={image}
                                   onError={e => {
                                     e.target.style.display = 'none'
                                   }}
@@ -1480,6 +1475,7 @@ const UnifiedUserTable = memo(
                         <p className={`text-xs ${tableType === 'nonApproved' ? 'text-red-200' : 'text-yellow-200'}`}>
                           {(() => {
                             const days = daysSinceJavaDate(selectedUser.registeredAt || selectedUser.createdAt)
+
                             return days !== null ? `Registrado hace ${days} días.` : 'Fecha de registro no disponible.'
                           })()}
                           {tableType === 'nonApproved'
@@ -1497,35 +1493,27 @@ const UnifiedUserTable = memo(
                 </Button>
                 <Button
                   className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
+                  isDisabled={actionLoading}
                   variant='flat'
                   onPress={() => {
                     handleReject(selectedUser)
                     onClose()
-                  }}
-                  isDisabled={actionLoading}>
+                  }}>
                   Rechazar
                 </Button>
                 <Button
                   className='bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'
+                  isDisabled={actionLoading}
                   onPress={() => {
                     handleApprove(selectedUser)
                     onClose()
-                  }}
-                  isDisabled={actionLoading}>
+                  }}>
                   Aprobar
                 </Button>
               </ModalFooter>
             </ModalContent>
           </Modal>
         )}
-
-        {/* Modal de gestión de tags */}
-        <UserTagModal
-          isOpen={isTagModalOpen}
-          onOpenChange={onTagModalClose}
-          user={selectedUserForTags}
-          onTagStatusUpdate={handleTagStatusUpdate}
-        />
       </>
     )
   }

@@ -25,6 +25,7 @@ class AuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REGISTER, userData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -38,6 +39,7 @@ class AuthService extends ServiceREST {
     try {
       const loginData = { email, password }
       const result = await ServiceREST.post(API_ENDPOINTS.AUTH.LOGIN, loginData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error.response?.data || error)
@@ -54,6 +56,7 @@ class AuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, { refreshToken })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -66,6 +69,7 @@ class AuthService extends ServiceREST {
 
     try {
       await ServiceREST.post(API_ENDPOINTS.AUTH.LOGOUT, {}, { headers: { Authorization: `Bearer ${token}` } })
+
       return { success: true, message: 'Sesión cerrada exitosamente' }
     } catch (error) {
       this.logError(context, error)
@@ -82,6 +86,7 @@ class AuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.CHECK_EMAIL}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -94,6 +99,7 @@ class AuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.CHECK_METHOD}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -106,6 +112,7 @@ class AuthService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.AUTH.STATUS}/${encodeURIComponent(email)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

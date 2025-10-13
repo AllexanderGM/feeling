@@ -1,17 +1,17 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
 import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { MessageCircle, Clock, AlertTriangle, CheckCircle, XCircle, Zap } from 'lucide-react'
+import { MessageCircle, Clock, AlertTriangle, CheckCircle, Zap } from 'lucide-react'
 import { useError, useComplaints } from '@hooks'
 import { Logger } from '@utils/logger.js'
-
 import GenericTableControls from '@components/ui/GenericTableControls.jsx'
 import TablePagination from '@components/ui/TablePagination.jsx'
+import { COMPLAINT_TYPE_COLUMNS, DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
+
 import { ComplaintStatsCards } from './components/ComplaintStatsCards.jsx'
 import { UnifiedComplaintTable } from './components/UnifiedComplaintTable.jsx'
 import { ComplaintChatModal } from './components/ComplaintChatModal.jsx'
 import { UpdateComplaintStatusModal } from './components/UpdateComplaintStatusModal.jsx'
-import { COMPLAINT_TYPE_COLUMNS, DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
 const ComplaintManagement = memo(() => {
   const { showError, showSuccess } = useError()
@@ -177,6 +177,7 @@ const ComplaintManagement = memo(() => {
           }
         }))
       }, 500)
+
       timers.push(timer)
     })
 
@@ -250,6 +251,7 @@ const ComplaintManagement = memo(() => {
     const visibleColumns = currentTableState?.visibleColumns
 
     if (visibleColumns === 'all') return allColumns
+
     return allColumns.filter(column => Array.from(visibleColumns || []).includes(column.uid))
   }, [allColumns, currentTableState?.visibleColumns])
 
@@ -262,12 +264,14 @@ const ComplaintManagement = memo(() => {
     if (!currentComplaints?.length) return []
 
     const sortDescriptor = currentTableState?.sortDescriptor
+
     if (!sortDescriptor) return currentComplaints
 
     return [...currentComplaints].sort((a, b) => {
       const first = a[sortDescriptor.column] || ''
       const second = b[sortDescriptor.column] || ''
       const cmp = first < second ? -1 : first > second ? 1 : 0
+
       return sortDescriptor.direction === 'descending' ? -cmp : cmp
     })
   }, [currentComplaints, currentTableState?.sortDescriptor])
@@ -278,6 +282,7 @@ const ComplaintManagement = memo(() => {
 
   const onNextPage = useCallback(() => {
     const currentTable = tableStates[selectedTab]
+
     if (currentTable.page < pages) {
       updateTableState(selectedTab, { page: currentTable.page + 1 })
     }
@@ -285,6 +290,7 @@ const ComplaintManagement = memo(() => {
 
   const onPreviousPage = useCallback(() => {
     const currentTable = tableStates[selectedTab]
+
     if (currentTable.page > 1) {
       updateTableState(selectedTab, { page: currentTable.page - 1 })
     }
@@ -455,6 +461,7 @@ const ComplaintManagement = memo(() => {
       overdue: 'Buscar quejas vencidas por usuario, asunto...',
       resolved: 'Buscar quejas resueltas por usuario, asunto...'
     }
+
     return placeholders[tableType] || 'Buscar quejas...'
   }, [])
 
@@ -462,21 +469,21 @@ const ComplaintManagement = memo(() => {
   const topContent = useMemo(() => {
     return (
       <GenericTableControls
-        filterValue={currentTableState?.filterValue || ''}
-        onClear={onClear}
-        onSearchChange={onSearchChange}
-        filterPlaceholder={getSearchPlaceholder(selectedTab)}
         columns={allColumns}
-        visibleColumns={currentTableState?.visibleColumns}
-        setVisibleColumns={onColumnsChange}
-        onRefresh={handleRefresh}
-        loading={currentTableState?.loading || loading}
         error={null}
-        totalItems={totalItems}
-        itemsLabel={`quejas ${selectedTab}`}
-        rowsPerPage={currentTableState?.rowsPerPage || DEFAULT_ROWS_PER_PAGE}
-        onRowsPerPageChange={onRowsPerPageChange}
+        filterPlaceholder={getSearchPlaceholder(selectedTab)}
+        filterValue={currentTableState?.filterValue || ''}
         hideCreateButton={true}
+        itemsLabel={`quejas ${selectedTab}`}
+        loading={currentTableState?.loading || loading}
+        rowsPerPage={currentTableState?.rowsPerPage || DEFAULT_ROWS_PER_PAGE}
+        setVisibleColumns={onColumnsChange}
+        totalItems={totalItems}
+        visibleColumns={currentTableState?.visibleColumns}
+        onClear={onClear}
+        onRefresh={handleRefresh}
+        onRowsPerPageChange={onRowsPerPageChange}
+        onSearchChange={onSearchChange}
       />
     )
   }, [
@@ -499,13 +506,13 @@ const ComplaintManagement = memo(() => {
   const bottomContent = useMemo(
     () => (
       <TablePagination
-        selectedKeys={currentTableState?.selectedKeys || new Set([])}
         filteredItemsLength={totalItems}
         page={currentTableState?.page || 1}
         pages={pages}
-        onPreviousPage={onPreviousPage}
+        selectedKeys={currentTableState?.selectedKeys || new Set([])}
         onNextPage={onNextPage}
         onPageChange={onPageChange}
+        onPreviousPage={onPreviousPage}
       />
     ),
     [currentTableState, totalItems, pages, onPreviousPage, onNextPage, onPageChange]
@@ -515,7 +522,7 @@ const ComplaintManagement = memo(() => {
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
         <title>Gestión de Quejas y Reclamos - Admin</title>
-        <meta name='description' content='Panel de administración para gestionar quejas y reclamos' />
+        <meta content='Panel de administración para gestionar quejas y reclamos' name='description' />
       </Helmet>
 
       {/* Header */}
@@ -527,16 +534,16 @@ const ComplaintManagement = memo(() => {
       </div>
 
       {/* Estadísticas */}
-      <ComplaintStatsCards stats={complaintStats} loading={loading} />
+      <ComplaintStatsCards loading={loading} stats={complaintStats} />
 
       {/* Tabs de diferentes tipos de quejas */}
       <div className='flex w-full flex-col'>
         <Tabs
-          selectedKey={selectedTab}
-          onSelectionChange={setSelectedTab}
           aria-label='Gestión de quejas'
           color='primary'
-          variant='bordered'>
+          selectedKey={selectedTab}
+          variant='bordered'
+          onSelectionChange={setSelectedTab}>
           {/* Todas las quejas */}
           <Tab
             key='all'
@@ -553,23 +560,23 @@ const ComplaintManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedComplaintTable
+                bottomContent={bottomContent}
                 complaints={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='all'
-                onView={handleViewComplaint}
-                onEdit={handleEditComplaint}
-                onDelete={handleDeleteComplaint}
-                onOpenChat={handleOpenChat}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
-                topContent={topContent}
-                bottomContent={bottomContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
-                viewType='all'
                 showActions={true}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='all'
+                topContent={topContent}
+                viewType='all'
+                visibleColumns={currentTableState?.visibleColumns}
+                onDelete={handleDeleteComplaint}
+                onEdit={handleEditComplaint}
+                onOpenChat={handleOpenChat}
+                onView={handleViewComplaint}
               />
             </div>
           </Tab>
@@ -590,23 +597,23 @@ const ComplaintManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedComplaintTable
+                bottomContent={bottomContent}
                 complaints={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='pending'
-                onView={handleViewComplaint}
-                onEdit={handleEditComplaint}
-                onDelete={handleDeleteComplaint}
-                onOpenChat={handleOpenChat}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
-                topContent={topContent}
-                bottomContent={bottomContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
-                viewType='pending'
                 showActions={true}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='pending'
+                topContent={topContent}
+                viewType='pending'
+                visibleColumns={currentTableState?.visibleColumns}
+                onDelete={handleDeleteComplaint}
+                onEdit={handleEditComplaint}
+                onOpenChat={handleOpenChat}
+                onView={handleViewComplaint}
               />
             </div>
           </Tab>
@@ -627,23 +634,23 @@ const ComplaintManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedComplaintTable
+                bottomContent={bottomContent}
                 complaints={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='urgent'
-                onView={handleViewComplaint}
-                onEdit={handleEditComplaint}
-                onDelete={handleDeleteComplaint}
-                onOpenChat={handleOpenChat}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
-                topContent={topContent}
-                bottomContent={bottomContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
-                viewType='urgent'
                 showActions={true}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='urgent'
+                topContent={topContent}
+                viewType='urgent'
+                visibleColumns={currentTableState?.visibleColumns}
+                onDelete={handleDeleteComplaint}
+                onEdit={handleEditComplaint}
+                onOpenChat={handleOpenChat}
+                onView={handleViewComplaint}
               />
             </div>
           </Tab>
@@ -664,23 +671,23 @@ const ComplaintManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedComplaintTable
+                bottomContent={bottomContent}
                 complaints={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='overdue'
-                onView={handleViewComplaint}
-                onEdit={handleEditComplaint}
-                onDelete={handleDeleteComplaint}
-                onOpenChat={handleOpenChat}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
-                topContent={topContent}
-                bottomContent={bottomContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
-                viewType='overdue'
                 showActions={true}
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='overdue'
+                topContent={topContent}
+                viewType='overdue'
+                visibleColumns={currentTableState?.visibleColumns}
+                onDelete={handleDeleteComplaint}
+                onEdit={handleEditComplaint}
+                onOpenChat={handleOpenChat}
+                onView={handleViewComplaint}
               />
             </div>
           </Tab>
@@ -701,21 +708,21 @@ const ComplaintManagement = memo(() => {
             }>
             <div className='py-4'>
               <UnifiedComplaintTable
+                bottomContent={bottomContent}
                 complaints={sortedItems}
+                headerColumns={headerColumns}
                 loading={currentTableState?.loading || loading}
-                tableType='resolved'
-                onView={handleViewComplaint}
-                onOpenChat={handleOpenChat}
                 selectedKeys={currentTableState?.selectedKeys}
                 setSelectedKeys={onSelectionChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
                 setSortDescriptor={onSortChange}
-                topContent={topContent}
-                bottomContent={bottomContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                headerColumns={headerColumns}
-                viewType='resolved'
                 showActions={false} // Las quejas resueltas no necesitan edición o eliminación
+                sortDescriptor={currentTableState?.sortDescriptor}
+                tableType='resolved'
+                topContent={topContent}
+                viewType='resolved'
+                visibleColumns={currentTableState?.visibleColumns}
+                onOpenChat={handleOpenChat}
+                onView={handleViewComplaint}
               />
             </div>
           </Tab>
@@ -724,27 +731,27 @@ const ComplaintManagement = memo(() => {
 
       {/* Modales */}
       <ComplaintChatModal
+        complaint={selectedComplaint}
+        isAdmin={true}
         isOpen={isChatModalOpen}
+        loading={loading}
         onClose={() => {
           setIsChatModalOpen(false)
           setSelectedComplaint(null)
         }}
-        complaint={selectedComplaint}
-        isAdmin={true}
         onSendMessage={handleSendMessage}
         onUpdateStatus={handleUpdateStatus}
-        loading={loading}
       />
 
       <UpdateComplaintStatusModal
+        complaint={selectedComplaint}
         isOpen={isUpdateModalOpen}
+        loading={loading}
         onClose={() => {
           setIsUpdateModalOpen(false)
           setSelectedComplaint(null)
         }}
-        complaint={selectedComplaint}
         onUpdate={handleUpdateStatus}
-        loading={loading}
       />
     </div>
   )

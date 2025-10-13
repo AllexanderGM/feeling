@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, CardHeader, Divider } from '@heroui/react'
+import { Logger } from '@utils/logger.js'
 
 import { useAuth } from '../../context/AuthContext.jsx'
 import { getUserByEmail, updateUser } from '../../services/user/userService.js'
-import { Logger } from '@utils/logger.js'
 
 // Funciones auxiliares
 const generateRandomDocument = () => Math.floor(10000000 + Math.random() * 90000000).toString()
@@ -19,8 +19,10 @@ const formatDate = date => {
     if (date.match(/^\d{4}-\d{2}-\d{2}$/)) return date
     // Si es una fecha en otro formato, la convertimos
     const d = new Date(date)
+
     return d instanceof Date && !isNaN(d) ? d.toISOString().split('T')[0] : DEFAULT_BIRTHDATE
   }
+
   // Si es un objeto Date, lo convertimos a string
   return date instanceof Date ? date.toISOString().split('T')[0] : DEFAULT_BIRTHDATE
 }
@@ -49,6 +51,7 @@ const EditUserProfile = () => {
       try {
         if (user?.email) {
           const userData = await getUserByEmail(user.email)
+
           setFormData({
             name: userData.name || '',
             lastName: userData.lastName || '',
@@ -95,6 +98,7 @@ const EditUserProfile = () => {
     // Validar fecha de nacimiento (mayor de 18 años)
     const birthDate = new Date(formData.dateOfBirth)
     const maxDate = new Date(MAX_BIRTHDATE)
+
     if (birthDate > maxDate) {
       return 'Debe ser mayor de 18 años'
     }
@@ -108,9 +112,11 @@ const EditUserProfile = () => {
     setError(null)
 
     const validationError = validateForm()
+
     if (validationError) {
       setError(validationError)
       setIsLoading(false)
+
       return
     }
 
@@ -156,106 +162,106 @@ const EditUserProfile = () => {
             <div className='space-y-6'>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-5'>
                 <Input
+                  isDisabled={isLoading || success}
                   label='Nombre'
                   labelPlacement='outside'
                   name='name'
                   placeholder='Tu nombre'
                   value={formData.name}
                   onValueChange={value => handleChange('name', value)}
-                  isDisabled={isLoading || success}
                 />
 
                 <Input
+                  isDisabled={isLoading || success}
                   label='Apellido'
                   labelPlacement='outside'
                   name='lastName'
                   placeholder='Tu apellido'
                   value={formData.lastName}
                   onValueChange={value => handleChange('lastName', value)}
-                  isDisabled={isLoading || success}
                 />
               </div>
 
               <Input
+                isReadOnly
+                className='py-4'
+                description='El correo electrónico no se puede modificar'
+                isDisabled={true}
                 label='Correo electrónico'
                 labelPlacement='outside'
                 name='email'
                 placeholder='correo@ejemplo.com'
                 type='email'
                 value={formData.email}
-                isReadOnly
-                description='El correo electrónico no se puede modificar'
-                isDisabled={true}
-                className='py-4'
               />
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Input
+                  isDisabled={isLoading || success}
                   label='Documento'
                   labelPlacement='outside'
                   name='document'
                   placeholder='Tu documento'
                   value={formData.document}
                   onValueChange={value => handleChange('document', value)}
-                  isDisabled={isLoading || success}
                 />
 
                 <Input
+                  isDisabled={isLoading || success}
                   label='Teléfono'
                   labelPlacement='outside'
                   name='phone'
                   placeholder='Tu teléfono (9 dígitos)'
                   value={formData.phone}
                   onValueChange={value => handleChange('phone', value)}
-                  isDisabled={isLoading || success}
                 />
               </div>
 
               <Input
+                className='py-4'
+                description='Debes ser mayor de 18 años'
+                isDisabled={isLoading || success}
                 label='Fecha de Nacimiento'
                 labelPlacement='outside'
+                max={MAX_BIRTHDATE}
                 name='dateOfBirth'
                 type='date'
                 value={formData.dateOfBirth}
                 onValueChange={value => handleChange('dateOfBirth', value)}
-                isDisabled={isLoading || success}
-                max={MAX_BIRTHDATE}
-                description='Debes ser mayor de 18 años'
-                className='py-4'
               />
 
               <Input
+                className='py-4'
+                isDisabled={isLoading || success}
                 label='URL de Imagen'
                 labelPlacement='outside'
                 name='image'
                 placeholder='URL de tu imagen de perfil'
                 value={formData.image}
                 onValueChange={value => handleChange('image', value)}
-                isDisabled={isLoading || success}
-                className='py-4'
               />
 
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Input
-                  type='password'
+                  isDisabled={isLoading || success}
                   label='Contraseña'
                   labelPlacement='outside'
                   name='password'
                   placeholder='Tu contraseña'
+                  type='password'
                   value={formData.password}
                   onValueChange={value => handleChange('password', value)}
-                  isDisabled={isLoading || success}
                 />
 
                 <Input
-                  type='password'
+                  isDisabled={isLoading || success}
                   label='Confirmar Contraseña'
                   labelPlacement='outside'
                   name='confirmPassword'
                   placeholder='Confirma tu contraseña'
+                  type='password'
                   value={formData.confirmPassword}
                   onValueChange={value => handleChange('confirmPassword', value)}
-                  isDisabled={isLoading || success}
                 />
               </div>
             </div>
@@ -263,10 +269,10 @@ const EditUserProfile = () => {
             <Divider className='my-4' />
 
             <div className='flex gap-4 justify-end'>
-              <Button type='button' variant='bordered' onPress={() => navigate('/profile-user')} isDisabled={isLoading || success}>
+              <Button isDisabled={isLoading || success} type='button' variant='bordered' onPress={() => navigate('/profile-user')}>
                 Cancelar
               </Button>
-              <Button type='submit' color='primary' className='bg-[#E86C6E]' isLoading={isLoading} isDisabled={success}>
+              <Button className='bg-[#E86C6E]' color='primary' isDisabled={success} isLoading={isLoading} type='submit'>
                 {isLoading ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
             </div>

@@ -21,6 +21,7 @@ class UserInterestsService extends ServiceREST {
   async getAllInterests() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_INTERESTS.ALL)
+
       return ServiceREST.handleServiceResponse(result, 'obtener categorías de interés')
     } catch (error) {
       this.logError('obtener categorías de interés', error)
@@ -35,6 +36,7 @@ class UserInterestsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_INTERESTS.BY_ID.replace('{id}', interestId)
       const result = await ServiceREST.get(url)
+
       return ServiceREST.handleServiceResponse(result, `obtener interés ${interestId}`)
     } catch (error) {
       this.logError(`obtener interés ${interestId}`, error)
@@ -52,6 +54,7 @@ class UserInterestsService extends ServiceREST {
   async createInterest(interestData) {
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.USER_INTERESTS.CREATE, interestData)
+
       return ServiceREST.handleServiceResponse(result, 'crear categoría de interés')
     } catch (error) {
       this.logError('crear categoría de interés', error)
@@ -66,6 +69,7 @@ class UserInterestsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_INTERESTS.UPDATE.replace('{interestId}', interestId)
       const result = await ServiceREST.put(url, interestData)
+
       return ServiceREST.handleServiceResponse(result, `actualizar interés ${interestId}`)
     } catch (error) {
       this.logError(`actualizar interés ${interestId}`, error)
@@ -80,6 +84,7 @@ class UserInterestsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_INTERESTS.DELETE.replace('{interestId}', interestId)
       const result = await ServiceREST.delete(url)
+
       return ServiceREST.handleServiceResponse(result, `eliminar interés ${interestId}`)
     } catch (error) {
       this.logError(`eliminar interés ${interestId}`, error)
@@ -93,6 +98,7 @@ class UserInterestsService extends ServiceREST {
   async getAllInterestsAdmin() {
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.USER_INTERESTS.ALL_ADMIN)
+
       return ServiceREST.handleServiceResponse(result, 'obtener todas las categorías (admin)')
     } catch (error) {
       this.logError('obtener todas las categorías (admin)', error)
@@ -107,6 +113,7 @@ class UserInterestsService extends ServiceREST {
     try {
       const url = API_ENDPOINTS.USER_INTERESTS.TOGGLE_STATUS.replace('{interestId}', interestId)
       const result = await ServiceREST.patch(url)
+
       return ServiceREST.handleServiceResponse(result, `cambiar estado de interés ${interestId}`)
     } catch (error) {
       this.logError(`cambiar estado de interés ${interestId}`, error)
@@ -138,6 +145,7 @@ class UserInterestsService extends ServiceREST {
   async searchInterestsByName(searchTerm) {
     try {
       const allInterests = await this.getAllInterests()
+
       return allInterests.filter(
         interest =>
           interest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

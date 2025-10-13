@@ -8,14 +8,14 @@ const DeletePlanModal = ({ isOpen, onClose, onConfirm, loading, plan }) => {
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement='center'
-      size='lg'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      size='lg'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -93,10 +93,10 @@ const DeletePlanModal = ({ isOpen, onClose, onConfirm, loading, plan }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button variant='bordered' onPress={onClose} className='border-gray-600 text-gray-300' disabled={loading}>
+          <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={onClose}>
             Cancelar
           </Button>
-          <Button color='danger' onPress={onConfirm} isLoading={loading} startContent={!loading && <AlertTriangle className='w-4 h-4' />}>
+          <Button color='danger' isLoading={loading} startContent={!loading && <AlertTriangle className='w-4 h-4' />} onPress={onConfirm}>
             Eliminar Plan
           </Button>
         </ModalFooter>

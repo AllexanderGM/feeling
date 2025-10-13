@@ -21,6 +21,7 @@ class PasswordService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.PASSWORD.FORGOT, { email })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -37,6 +38,7 @@ class PasswordService extends ServiceREST {
         password,
         confirmPassword
       })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -49,6 +51,7 @@ class PasswordService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.PASSWORD.VALIDATE_RESET_TOKEN}/${encodeURIComponent(token)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -77,6 +80,7 @@ class PasswordService extends ServiceREST {
           }
         }
       )
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -93,11 +97,13 @@ class PasswordService extends ServiceREST {
 
     try {
       const payload = { password }
+
       if (email) {
         payload.email = email
       }
 
       const result = await ServiceREST.post(API_ENDPOINTS.PASSWORD.VALIDATE, payload)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -110,6 +116,7 @@ class PasswordService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.PASSWORD.SUGGESTIONS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -122,6 +129,7 @@ class PasswordService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.PASSWORD.POLICY)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -134,6 +142,7 @@ class PasswordService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.PASSWORD.CHECK_COMPROMISED, { password })
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

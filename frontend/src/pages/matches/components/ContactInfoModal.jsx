@@ -17,25 +17,27 @@ const ContactInfoModal = ({ isOpen, onClose, contact }) => {
   const handleOpenWhatsApp = () => {
     const phoneNumber = contact.phone.replace(/\D/g, '') // Remove non-numeric characters
     const message = encodeURIComponent('¡Hola! Nos conectamos a través de Feeling 😊')
+
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank')
   }
 
   const handleSendEmail = () => {
     const subject = encodeURIComponent('Conexión desde Feeling')
     const body = encodeURIComponent('¡Hola! Me gustaría conocerte mejor. Nos conectamos a través de Feeling.')
+
     window.open(`mailto:${contact.email}?subject=${subject}&body=${body}`, '_blank')
   }
 
   return (
     <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      placement='center'
-      size='lg'
       classNames={{
         base: 'bg-gray-800 border border-gray-700',
         closeButton: 'text-gray-400 hover:text-gray-200'
-      }}>
+      }}
+      isOpen={isOpen}
+      placement='center'
+      size='lg'
+      onClose={onClose}>
       <ModalContent>
         <ModalHeader className='flex flex-col gap-1 text-gray-100'>
           <div className='flex items-center gap-3'>
@@ -76,14 +78,14 @@ const ContactInfoModal = ({ isOpen, onClose, contact }) => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Button
-                      size='sm'
-                      variant='bordered'
                       isIconOnly
                       className='border-gray-600 text-gray-300'
+                      size='sm'
+                      variant='bordered'
                       onPress={() => handleCopyToClipboard(contact.email, 'Email')}>
                       <Copy className='w-4 h-4' />
                     </Button>
-                    <Button size='sm' color='primary' startContent={<ExternalLink className='w-4 h-4' />} onPress={handleSendEmail}>
+                    <Button color='primary' size='sm' startContent={<ExternalLink className='w-4 h-4' />} onPress={handleSendEmail}>
                       Enviar Email
                     </Button>
                   </div>
@@ -104,14 +106,14 @@ const ContactInfoModal = ({ isOpen, onClose, contact }) => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Button
-                      size='sm'
-                      variant='bordered'
                       isIconOnly
                       className='border-gray-600 text-gray-300'
+                      size='sm'
+                      variant='bordered'
                       onPress={() => handleCopyToClipboard(contact.phone, 'Teléfono')}>
                       <Copy className='w-4 h-4' />
                     </Button>
-                    <Button size='sm' color='success' startContent={<MessageCircle className='w-4 h-4' />} onPress={handleOpenWhatsApp}>
+                    <Button color='success' size='sm' startContent={<MessageCircle className='w-4 h-4' />} onPress={handleOpenWhatsApp}>
                       WhatsApp
                     </Button>
                   </div>
@@ -135,7 +137,7 @@ const ContactInfoModal = ({ isOpen, onClose, contact }) => {
         </ModalBody>
 
         <ModalFooter>
-          <Button color='primary' onPress={onClose} className='w-full'>
+          <Button className='w-full' color='primary' onPress={onClose}>
             Entendido
           </Button>
         </ModalFooter>

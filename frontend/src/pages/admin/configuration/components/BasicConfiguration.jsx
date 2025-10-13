@@ -99,6 +99,7 @@ const BasicConfiguration = ({ config, loading }) => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -145,71 +146,71 @@ const BasicConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              label='Nombre del Sitio'
-              placeholder='Feeling'
-              value={formData.siteName}
-              onChange={e => handleInputChange('siteName', e.target.value)}
-              isInvalid={!!errors.siteName}
-              errorMessage={errors.siteName}
-              startContent={<Globe className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              errorMessage={errors.siteName}
+              isInvalid={!!errors.siteName}
+              label='Nombre del Sitio'
+              placeholder='Feeling'
+              startContent={<Globe className='w-4 h-4 text-gray-400' />}
+              value={formData.siteName}
+              onChange={e => handleInputChange('siteName', e.target.value)}
             />
 
             <Input
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
+              errorMessage={errors.siteUrl}
+              isInvalid={!!errors.siteUrl}
               label='URL del Sitio'
               placeholder='https://feeling.com'
               value={formData.siteUrl}
               onChange={e => handleInputChange('siteUrl', e.target.value)}
-              isInvalid={!!errors.siteUrl}
-              errorMessage={errors.siteUrl}
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
           </div>
 
           <Textarea
-            label='Descripción del Sitio'
-            placeholder='Plataforma de citas y eventos que conecta personas...'
-            value={formData.siteDescription}
-            onChange={e => handleInputChange('siteDescription', e.target.value)}
-            isInvalid={!!errors.siteDescription}
-            errorMessage={errors.siteDescription}
-            minRows={2}
-            maxRows={4}
             classNames={{
               input: 'text-gray-200',
               inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
             }}
+            errorMessage={errors.siteDescription}
+            isInvalid={!!errors.siteDescription}
+            label='Descripción del Sitio'
+            maxRows={4}
+            minRows={2}
+            placeholder='Plataforma de citas y eventos que conecta personas...'
+            value={formData.siteDescription}
+            onChange={e => handleInputChange('siteDescription', e.target.value)}
           />
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              label='URL del Logo'
-              placeholder='https://ejemplo.com/logo.png'
-              value={formData.logoUrl}
-              onChange={e => handleInputChange('logoUrl', e.target.value)}
-              startContent={<Image className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='URL del Logo'
+              placeholder='https://ejemplo.com/logo.png'
+              startContent={<Image className='w-4 h-4 text-gray-400' />}
+              value={formData.logoUrl}
+              onChange={e => handleInputChange('logoUrl', e.target.value)}
             />
 
             <Input
-              label='URL del Favicon'
-              placeholder='https://ejemplo.com/favicon.ico'
-              value={formData.faviconUrl}
-              onChange={e => handleInputChange('faviconUrl', e.target.value)}
-              startContent={<Image className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='URL del Favicon'
+              placeholder='https://ejemplo.com/favicon.ico'
+              startContent={<Image className='w-4 h-4 text-gray-400' />}
+              value={formData.faviconUrl}
+              onChange={e => handleInputChange('faviconUrl', e.target.value)}
             />
           </div>
         </CardBody>
@@ -230,57 +231,57 @@ const BasicConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              label='Email del Administrador'
-              placeholder='admin@feeling.com'
-              value={formData.adminEmail}
-              onChange={e => handleInputChange('adminEmail', e.target.value)}
-              isInvalid={!!errors.adminEmail}
-              errorMessage={errors.adminEmail}
-              startContent={<Mail className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              errorMessage={errors.adminEmail}
+              isInvalid={!!errors.adminEmail}
+              label='Email del Administrador'
+              placeholder='admin@feeling.com'
+              startContent={<Mail className='w-4 h-4 text-gray-400' />}
+              value={formData.adminEmail}
+              onChange={e => handleInputChange('adminEmail', e.target.value)}
             />
 
             <Input
-              label='Email de Soporte'
-              placeholder='support@feeling.com'
-              value={formData.supportEmail}
-              onChange={e => handleInputChange('supportEmail', e.target.value)}
-              isInvalid={!!errors.supportEmail}
-              errorMessage={errors.supportEmail}
-              startContent={<Mail className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              errorMessage={errors.supportEmail}
+              isInvalid={!!errors.supportEmail}
+              label='Email de Soporte'
+              placeholder='support@feeling.com'
+              startContent={<Mail className='w-4 h-4 text-gray-400' />}
+              value={formData.supportEmail}
+              onChange={e => handleInputChange('supportEmail', e.target.value)}
             />
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              label='Teléfono'
-              placeholder='+57 300 123 4567'
-              value={formData.phone}
-              onChange={e => handleInputChange('phone', e.target.value)}
-              startContent={<Phone className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Teléfono'
+              placeholder='+57 300 123 4567'
+              startContent={<Phone className='w-4 h-4 text-gray-400' />}
+              value={formData.phone}
+              onChange={e => handleInputChange('phone', e.target.value)}
             />
 
             <Input
-              label='Dirección'
-              placeholder='Bogotá, Colombia'
-              value={formData.address}
-              onChange={e => handleInputChange('address', e.target.value)}
-              startContent={<MapPin className='w-4 h-4 text-gray-400' />}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              label='Dirección'
+              placeholder='Bogotá, Colombia'
+              startContent={<MapPin className='w-4 h-4 text-gray-400' />}
+              value={formData.address}
+              onChange={e => handleInputChange('address', e.target.value)}
             />
           </div>
         </CardBody>
@@ -301,13 +302,13 @@ const BasicConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Select
-              label='Idioma por Defecto'
-              selectedKeys={formData.defaultLanguage ? [formData.defaultLanguage] : []}
-              onSelectionChange={keys => handleInputChange('defaultLanguage', Array.from(keys)[0] || '')}
               classNames={{
                 trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                 value: 'text-gray-200'
-              }}>
+              }}
+              label='Idioma por Defecto'
+              selectedKeys={formData.defaultLanguage ? [formData.defaultLanguage] : []}
+              onSelectionChange={keys => handleInputChange('defaultLanguage', Array.from(keys)[0] || '')}>
               {SUPPORTED_LANGUAGES.map(lang => (
                 <SelectItem key={lang.key} value={lang.key}>
                   {lang.label}
@@ -316,13 +317,13 @@ const BasicConfiguration = ({ config, loading }) => {
             </Select>
 
             <Select
-              label='Zona Horaria'
-              selectedKeys={formData.timezone ? [formData.timezone] : []}
-              onSelectionChange={keys => handleInputChange('timezone', Array.from(keys)[0] || '')}
               classNames={{
                 trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
                 value: 'text-gray-200'
-              }}>
+              }}
+              label='Zona Horaria'
+              selectedKeys={formData.timezone ? [formData.timezone] : []}
+              onSelectionChange={keys => handleInputChange('timezone', Array.from(keys)[0] || '')}>
               {SUPPORTED_TIMEZONES.map(tz => (
                 <SelectItem key={tz.key} value={tz.key}>
                   {tz.label}
@@ -335,14 +336,14 @@ const BasicConfiguration = ({ config, loading }) => {
             <div className='flex items-center gap-3'>
               <div className='flex items-center gap-2'>
                 <Switch
-                  isSelected={formData.allowRegistrations}
-                  onValueChange={value => handleInputChange('allowRegistrations', value)}
                   color='success'
+                  isSelected={formData.allowRegistrations}
                   size='sm'
+                  onValueChange={value => handleInputChange('allowRegistrations', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Permitir Registros</span>
               </div>
-              <Chip size='sm' variant='flat' color={formData.allowRegistrations ? 'success' : 'danger'}>
+              <Chip color={formData.allowRegistrations ? 'success' : 'danger'} size='sm' variant='flat'>
                 {formData.allowRegistrations ? 'Activo' : 'Inactivo'}
               </Chip>
             </div>
@@ -353,14 +354,14 @@ const BasicConfiguration = ({ config, loading }) => {
             <div className='flex items-center gap-3'>
               <div className='flex items-center gap-2'>
                 <Switch
-                  isSelected={formData.requireEmailVerification}
-                  onValueChange={value => handleInputChange('requireEmailVerification', value)}
                   color='primary'
+                  isSelected={formData.requireEmailVerification}
                   size='sm'
+                  onValueChange={value => handleInputChange('requireEmailVerification', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Verificación de Email</span>
               </div>
-              <Chip size='sm' variant='flat' color={formData.requireEmailVerification ? 'primary' : 'default'}>
+              <Chip color={formData.requireEmailVerification ? 'primary' : 'default'} size='sm' variant='flat'>
                 {formData.requireEmailVerification ? 'Requerida' : 'Opcional'}
               </Chip>
             </div>
@@ -389,31 +390,31 @@ const BasicConfiguration = ({ config, loading }) => {
             <CardBody className='gap-4'>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <Input
-                  type='number'
-                  label='Tamaño Máximo de Archivo (MB)'
-                  placeholder='5'
-                  value={formData.maxFileUploadSize}
-                  onChange={e => handleInputChange('maxFileUploadSize', e.target.value)}
-                  min='1'
-                  max='100'
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  label='Tamaño Máximo de Archivo (MB)'
+                  max='100'
+                  min='1'
+                  placeholder='5'
+                  type='number'
+                  value={formData.maxFileUploadSize}
+                  onChange={e => handleInputChange('maxFileUploadSize', e.target.value)}
                 />
 
                 <Input
-                  type='number'
-                  label='Timeout de Sesión (minutos)'
-                  placeholder='30'
-                  value={formData.sessionTimeout}
-                  onChange={e => handleInputChange('sessionTimeout', e.target.value)}
-                  min='5'
-                  max='1440'
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  label='Timeout de Sesión (minutos)'
+                  max='1440'
+                  min='5'
+                  placeholder='30'
+                  type='number'
+                  value={formData.sessionTimeout}
+                  onChange={e => handleInputChange('sessionTimeout', e.target.value)}
                 />
               </div>
             </CardBody>
@@ -425,10 +426,10 @@ const BasicConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>

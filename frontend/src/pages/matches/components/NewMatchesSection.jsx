@@ -24,6 +24,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
     if (!searchTerm.trim()) return matches
 
     const searchLower = searchTerm.toLowerCase()
+
     return matches.filter(
       match =>
         match.name.toLowerCase().includes(searchLower) ||
@@ -39,6 +40,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
     if (diffInHours < 1) return 'Hace unos minutos'
     if (diffInHours < 24) return `Hace ${diffInHours}h`
     const diffInDays = Math.floor(diffInHours / 24)
+
     return `Hace ${diffInDays}d`
   }
 
@@ -71,7 +73,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
             <Heart className='w-12 h-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-400 mb-2'>¡Aún no tienes nuevos matches!</h3>
             <p className='text-gray-500 mb-4'>Sigue explorando y conectando con personas increíbles</p>
-            <Button color='primary' startContent={<Zap className='w-4 h-4' />} className='bg-gradient-to-r from-primary-500 to-purple-500'>
+            <Button className='bg-gradient-to-r from-primary-500 to-purple-500' color='primary' startContent={<Zap className='w-4 h-4' />}>
               Buscar Más Personas
             </Button>
           </>
@@ -84,7 +86,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
         <h2 className='text-lg font-semibold text-gray-200'>Nuevos Matches ({filteredMatches.length})</h2>
-        <Chip color='success' variant='flat' size='sm'>
+        <Chip color='success' size='sm' variant='flat'>
           ¡{filteredMatches.filter(m => m.isOnline).length} en línea!
         </Chip>
       </div>
@@ -98,7 +100,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
               <div className='flex items-start justify-between mb-3'>
                 <div className='flex items-center gap-3'>
                   <div className='relative'>
-                    <Avatar src={match.image} alt={match.name} className='w-12 h-12' />
+                    <Avatar alt={match.name} className='w-12 h-12' src={match.image} />
                     {match.isOnline && (
                       <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full' />
                     )}
@@ -110,7 +112,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                 </div>
                 <div className='flex items-center gap-1'>
                   {getCategoryIcon(match.category)}
-                  <Chip size='sm' color='danger' variant='flat' className='text-xs'>
+                  <Chip className='text-xs' color='danger' size='sm' variant='flat'>
                     {match.compatibility}% match
                   </Chip>
                 </div>
@@ -135,12 +137,12 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                 <p className='text-xs text-gray-400 mb-2'>Intereses en común:</p>
                 <div className='flex flex-wrap gap-1'>
                   {match.interests?.slice(0, 3).map((interest, index) => (
-                    <Chip key={index} size='sm' variant='flat' color='primary' className='text-xs bg-primary-500/20 text-primary-300'>
+                    <Chip key={index} className='text-xs bg-primary-500/20 text-primary-300' color='primary' size='sm' variant='flat'>
                       {interest}
                     </Chip>
                   ))}
                   {match.interests?.length > 3 && (
-                    <Chip size='sm' variant='flat' className='text-xs bg-gray-500/20 text-gray-300'>
+                    <Chip className='text-xs bg-gray-500/20 text-gray-300' size='sm' variant='flat'>
                       +{match.interests.length - 3}
                     </Chip>
                   )}
@@ -150,17 +152,17 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
               {/* Acciones */}
               <div className='flex gap-2'>
                 <Button
-                  size='sm'
-                  variant='bordered'
                   className='flex-1 border-gray-600 text-gray-300 hover:bg-gray-700/30'
+                  size='sm'
                   startContent={<Eye className='w-3 h-3' />}
+                  variant='bordered'
                   onPress={() => handleViewProfile(match)}>
                   Ver Perfil
                 </Button>
                 <Button
-                  size='sm'
-                  color='primary'
                   className='flex-1'
+                  color='primary'
+                  size='sm'
                   startContent={<MessageCircle className='w-3 h-3' />}
                   onPress={() => handleStartConversation(match)}>
                   Mensaje
@@ -171,11 +173,11 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
               {match.compatibility >= 90 && (
                 <div className='mt-2 text-center'>
                   <Button
-                    size='sm'
-                    color='warning'
-                    variant='flat'
                     className='text-xs'
+                    color='warning'
+                    size='sm'
                     startContent={<Star className='w-3 h-3' />}
+                    variant='flat'
                     onPress={() => handleSuperLike(match)}>
                     Super Like
                   </Button>
@@ -188,15 +190,15 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
 
       {/* Modal de perfil detallado */}
       <Modal
-        isOpen={isProfileOpen}
-        onOpenChange={onProfileOpenChange}
-        size='3xl'
         classNames={{
           base: 'bg-gray-900/95 backdrop-blur-sm',
           header: 'border-b border-gray-700/50',
           footer: 'border-t border-gray-700/50',
           closeButton: 'hover:bg-gray-800/50'
-        }}>
+        }}
+        isOpen={isProfileOpen}
+        size='3xl'
+        onOpenChange={onProfileOpenChange}>
         <ModalContent>
           {onClose => (
             <>
@@ -204,7 +206,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                 {selectedMatch && (
                   <div className='flex items-center gap-3'>
                     <div className='relative'>
-                      <Avatar src={selectedMatch.image} alt={selectedMatch.name} className='w-16 h-16' />
+                      <Avatar alt={selectedMatch.name} className='w-16 h-16' src={selectedMatch.image} />
                       {selectedMatch.isOnline && (
                         <div className='absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-gray-900 rounded-full' />
                       )}
@@ -255,10 +257,10 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                       <div>
                         <h4 className='font-semibold text-gray-200 mb-2'>Estado</h4>
                         <div className='space-y-2'>
-                          <Chip size='sm' color={selectedMatch.isOnline ? 'success' : 'default'} variant='flat'>
+                          <Chip color={selectedMatch.isOnline ? 'success' : 'default'} size='sm' variant='flat'>
                             {selectedMatch.isOnline ? 'En línea' : 'Desconectado'}
                           </Chip>
-                          <Chip size='sm' color='danger' variant='flat'>
+                          <Chip color='danger' size='sm' variant='flat'>
                             Nuevo match
                           </Chip>
                         </div>
@@ -270,7 +272,7 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                       <h4 className='font-semibold text-gray-200 mb-3'>Intereses en común</h4>
                       <div className='flex flex-wrap gap-2'>
                         {selectedMatch.commonInterests.map((interest, index) => (
-                          <Chip key={index} size='sm' variant='flat' color='primary' className='bg-primary-500/20 text-primary-300'>
+                          <Chip key={index} className='bg-primary-500/20 text-primary-300' color='primary' size='sm' variant='flat'>
                             {interest}
                           </Chip>
                         ))}
@@ -292,16 +294,16 @@ const NewMatchesSection = ({ matches, searchTerm, getCategoryIcon }) => {
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button variant='light' onPress={onClose} startContent={<X className='w-4 h-4' />}>
+                <Button startContent={<X className='w-4 h-4' />} variant='light' onPress={onClose}>
                   Cerrar
                 </Button>
                 <Button
                   color='primary'
+                  startContent={<Send className='w-4 h-4' />}
                   onPress={() => {
                     handleStartConversation(selectedMatch)
                     onClose()
-                  }}
-                  startContent={<Send className='w-4 h-4' />}>
+                  }}>
                   Enviar Mensaje
                 </Button>
               </ModalFooter>

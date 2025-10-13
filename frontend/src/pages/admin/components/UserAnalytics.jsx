@@ -1,20 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Card, CardBody, CardHeader, Chip, Button, Spinner, Progress, Badge } from '@heroui/react'
-import { Users, UserPlus, UserCheck, UserX, TrendingUp, Activity, Calendar, RefreshCw, Eye, Shield } from 'lucide-react'
+import { Card, CardBody, CardHeader, Button, Spinner, Progress } from '@heroui/react'
+import { Users, UserPlus, UserCheck, TrendingUp, Activity, RefreshCw } from 'lucide-react'
 import { useError, useUserAnalytics } from '@hooks'
 
 const UserAnalytics = () => {
   const { handleSuccess, handleError } = useError()
-  const {
-    overview,
-    userMetrics,
-    attributeStatistics,
-    loading,
-    getUserOverview,
-    getUserMetrics,
-    getAttributeStatistics,
-    refreshAllAnalytics
-  } = useUserAnalytics()
+  const { overview, userMetrics, loading, getUserOverview, getUserMetrics, getAttributeStatistics, refreshAllAnalytics } =
+    useUserAnalytics()
 
   const [refreshing, setRefreshing] = useState(false)
 
@@ -23,7 +15,7 @@ const UserAnalytics = () => {
     const loadInitialData = async () => {
       try {
         await Promise.all([getUserOverview(), getUserMetrics(), getAttributeStatistics()])
-      } catch (error) {
+      } catch {
         handleError('Error al cargar estadísticas de usuarios')
       }
     }
@@ -36,7 +28,7 @@ const UserAnalytics = () => {
     try {
       await refreshAllAnalytics()
       handleSuccess('Estadísticas de usuarios actualizadas')
-    } catch (error) {
+    } catch {
       handleError('Error al actualizar estadísticas')
     } finally {
       setRefreshing(false)
@@ -84,7 +76,7 @@ const UserAnalytics = () => {
   if (loading && !overview) {
     return (
       <div className='flex items-center justify-center h-64'>
-        <Spinner size='lg' color='primary' />
+        <Spinner color='primary' size='lg' />
       </div>
     )
   }
@@ -99,12 +91,12 @@ const UserAnalytics = () => {
         </div>
         <Button
           isIconOnly
-          variant='flat'
-          color='primary'
-          onPress={handleRefresh}
-          isLoading={refreshing}
+          aria-label='Actualizar estadísticas de usuarios'
           className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-          aria-label='Actualizar estadísticas de usuarios'>
+          color='primary'
+          isLoading={refreshing}
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -211,28 +203,28 @@ const UserAnalytics = () => {
             <div className='space-y-4'>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
-                  <div className='w-3 h-3 bg-green-500 rounded-full'></div>
+                  <div className='w-3 h-3 bg-green-500 rounded-full' />
                   <span className='text-sm text-foreground'>Verificados</span>
                 </div>
                 <span className='text-sm font-medium text-foreground'>{userStats.totals.verified}</span>
               </div>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
-                  <div className='w-3 h-3 bg-orange-500 rounded-full'></div>
+                  <div className='w-3 h-3 bg-orange-500 rounded-full' />
                   <span className='text-sm text-foreground'>Pendientes</span>
                 </div>
                 <span className='text-sm font-medium text-foreground'>{userStats.totals.pending}</span>
               </div>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
-                  <div className='w-3 h-3 bg-yellow-500 rounded-full'></div>
+                  <div className='w-3 h-3 bg-yellow-500 rounded-full' />
                   <span className='text-sm text-foreground'>Incompletos</span>
                 </div>
                 <span className='text-sm font-medium text-foreground'>{userStats.totals.incomplete}</span>
               </div>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
-                  <div className='w-3 h-3 bg-red-500 rounded-full'></div>
+                  <div className='w-3 h-3 bg-red-500 rounded-full' />
                   <span className='text-sm text-foreground'>Bloqueados</span>
                 </div>
                 <span className='text-sm font-medium text-foreground'>{userStats.totals.blocked}</span>
@@ -283,10 +275,10 @@ const UserAnalytics = () => {
                     <span className='text-sm text-default-500'>{percentage}%</span>
                   </div>
                   <Progress
-                    value={percentage}
-                    color='primary'
-                    className='max-w-full'
                     aria-label={`Distribución de usuarios por edad ${age} años: ${percentage}%`}
+                    className='max-w-full'
+                    color='primary'
+                    value={percentage}
                   />
                 </div>
               ))}
@@ -307,10 +299,10 @@ const UserAnalytics = () => {
                     <span className='text-sm text-default-500'>{percentage}%</span>
                   </div>
                   <Progress
-                    value={percentage}
-                    color='secondary'
-                    className='max-w-full'
                     aria-label={`Distribución de usuarios por ubicación ${location}: ${percentage}%`}
+                    className='max-w-full'
+                    color='secondary'
+                    value={percentage}
                   />
                 </div>
               ))}

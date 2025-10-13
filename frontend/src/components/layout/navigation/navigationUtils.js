@@ -16,6 +16,7 @@ export const isActive = (location, path, APP_PATHS) => {
   if (path === APP_PATHS.ROOT || path === APP_PATHS.ADMIN.ROOT) {
     return location.pathname === path
   }
+
   return location.pathname.startsWith(path)
 }
 

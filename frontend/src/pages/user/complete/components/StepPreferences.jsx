@@ -10,13 +10,11 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  Input,
   Textarea,
   Slider,
   Divider
 } from '@heroui/react'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
-import { Church, Building } from 'lucide-react'
 
 const StepPreferences = ({
   control,
@@ -86,6 +84,7 @@ const StepPreferences = ({
   const handleCategoryInfo = useCallback(
     categoryKey => {
       const category = categoryOptions.find(cat => cat.key === categoryKey)
+
       if (category) {
         setSelectedCategoryForModal(category)
         onOpen()
@@ -121,26 +120,20 @@ const StepPreferences = ({
 
       return (
         <Controller
-          name={fieldName}
           control={control}
+          name={fieldName}
           render={({ field }) => (
             <Select
-              variant='underlined'
-              label={label}
               aria-label={ariaLabel}
-              placeholder={placeholder}
-              isRequired={isRequired}
-              selectedKeys={field.value ? [field.value.toString()] : []}
-              onSelectionChange={keys => {
-                const selectedKey = Array.from(keys)[0]
-                field.onChange(selectedKey ? parseInt(selectedKey) : null)
-              }}
-              isInvalid={!!errors[fieldName]}
               errorMessage={errors[fieldName]?.message}
-              startContent={startContent}
+              isInvalid={!!errors[fieldName]}
+              isRequired={isRequired}
+              label={label}
+              placeholder={placeholder}
               renderValue={items => {
                 return items.map(item => {
                   const option = options.find(opt => opt.key === item.key)
+
                   return (
                     <div key={item.key} className='flex items-center gap-2'>
                       <AttributeDetailRenderer detail={option?.detail} size='sm' />
@@ -148,15 +141,23 @@ const StepPreferences = ({
                     </div>
                   )
                 })
+              }}
+              selectedKeys={field.value ? [field.value.toString()] : []}
+              startContent={startContent}
+              variant='underlined'
+              onSelectionChange={keys => {
+                const selectedKey = Array.from(keys)[0]
+
+                field.onChange(selectedKey ? parseInt(selectedKey) : null)
               }}>
               {options.map(option => (
                 <SelectItem
                   key={option.key}
-                  value={option.key}
-                  textValue={option.label}
                   classNames={{
                     base: 'text-gray-200 data-[hover=true]:bg-gray-700 data-[selectable=true]:focus:bg-gray-700'
-                  }}>
+                  }}
+                  textValue={option.label}
+                  value={option.key}>
                   <div className='flex items-center gap-3'>
                     <AttributeDetailRenderer detail={option.detail} size='sm' />
                     <span>{option.label}</span>
@@ -180,27 +181,27 @@ const StepPreferences = ({
 
       return (
         <Controller
-          name={fieldName}
           control={control}
+          name={fieldName}
           render={({ field }) => (
             <Textarea
               {...field}
-              variant='bordered'
-              label={label}
-              placeholder={placeholder}
-              isRequired={isRequired}
-              value={field.value || ''}
-              isInvalid={!!errors[fieldName]}
-              errorMessage={errors[fieldName]?.message}
-              minRows={minRows}
-              maxRows={maxRows}
-              maxLength={maxLength}
-              description={`${(field.value || '').length}/${maxLength} caracteres`}
-              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/30'
               }}
+              description={`${(field.value || '').length}/${maxLength} caracteres`}
+              errorMessage={errors[fieldName]?.message}
+              isInvalid={!!errors[fieldName]}
+              isRequired={isRequired}
+              label={label}
+              maxLength={maxLength}
+              maxRows={maxRows}
+              minRows={minRows}
+              placeholder={placeholder}
+              value={field.value || ''}
+              variant='bordered'
+              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
             />
           )}
         />
@@ -212,34 +213,6 @@ const StepPreferences = ({
   // ========================================
   // Renderizador de Input optimizado
   // ========================================
-  const renderInput = useCallback(
-    (fieldName, config = {}) => {
-      const { label, placeholder, isRequired = false, startContent = null, ariaLabel = label } = config
-
-      return (
-        <Controller
-          name={fieldName}
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              variant='underlined'
-              label={label}
-              aria-label={ariaLabel}
-              placeholder={placeholder}
-              isRequired={isRequired}
-              value={field.value || ''}
-              isInvalid={!!errors[fieldName]}
-              errorMessage={errors[fieldName]?.message}
-              startContent={startContent}
-              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
-            />
-          )}
-        />
-      )
-    },
-    [control, errors, formHandlers]
-  )
 
   if (categoriesLoading || attributesLoading) {
     return (
@@ -257,7 +230,7 @@ const StepPreferences = ({
       <div className='flex items-center justify-center py-12'>
         <div className='text-center space-y-4'>
           <p className='text-red-400'>Error al cargar categorías</p>
-          <Button variant='bordered' size='sm' onPress={() => window.location.reload()}>
+          <Button size='sm' variant='bordered' onPress={() => window.location.reload()}>
             Reintentar
           </Button>
         </div>
@@ -276,12 +249,21 @@ const StepPreferences = ({
           {categoryOptions.slice(0, 3).map(category => (
             <div
               key={category.key}
+              aria-pressed={selectedCategoryCard === category.key}
               className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-xl ${
                 selectedCategoryCard === category.key
                   ? 'bg-gradient-to-br from-primary-600/30 to-primary-800/30 border-2 border-primary-400 shadow-lg shadow-primary-500/25'
                   : 'bg-gray-800/50 border border-gray-700 hover:bg-gray-700/50'
               }`}
-              onClick={() => handleCategoryCardSelect(category.key)}>
+              role='button'
+              tabIndex={0}
+              onClick={() => handleCategoryCardSelect(category.key)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleCategoryCardSelect(category.key)
+                }
+              }}>
               <div className='text-center space-y-4 p-4'>
                 <div className='text-4xl'>{category.icon}</div>
                 <div className='space-y-1'>
@@ -290,10 +272,10 @@ const StepPreferences = ({
                 </div>
 
                 <Button
+                  className='border-gray-600 text-gray-300 hover:bg-gray-700'
+                  radius='lg'
                   type='button'
                   variant='bordered'
-                  radius='lg'
-                  className='border-gray-600 text-gray-300 hover:bg-gray-700'
                   onPress={() => handleCategoryInfo(category.key)}>
                   Ver detalles
                 </Button>
@@ -402,31 +384,23 @@ const StepPreferences = ({
               </span>
             </label>
             <Controller
-              name='agePreferenceMin'
               control={control}
+              name='agePreferenceMin'
               render={({ field: minField }) => (
                 <Controller
-                  name='agePreferenceMax'
                   control={control}
+                  name='agePreferenceMax'
                   render={({ field: maxField }) => (
                     <Slider
-                      label='Rango de edad que te interesa para hacer conexiones'
-                      color='primary'
-                      minValue={18}
-                      maxValue={80}
-                      value={[minField.value || 18, maxField.value || 40]}
-                      onChange={value => {
-                        formHandlers.handleInputChange('agePreferenceMin', value[0])
-                        formHandlers.handleInputChange('agePreferenceMax', value[1])
-                      }}
+                      aria-label='Rango de edad que te interesa para hacer conexiones'
                       className='max-w-full'
-                      showTooltip={true}
+                      color='primary'
                       formatOptions={{
                         style: 'unit',
                         unit: 'year',
                         unitDisplay: 'short'
                       }}
-                      aria-label='Rango de edad que te interesa para hacer conexiones'
+                      label='Rango de edad que te interesa para hacer conexiones'
                       marks={[
                         { value: 18, label: '18' },
                         { value: 30, label: '30 años' },
@@ -434,6 +408,14 @@ const StepPreferences = ({
                         { value: 65, label: '65 años' },
                         { value: 80, label: '80' }
                       ]}
+                      maxValue={80}
+                      minValue={18}
+                      showTooltip={true}
+                      value={[minField.value || 18, maxField.value || 40]}
+                      onChange={value => {
+                        formHandlers.handleInputChange('agePreferenceMin', value[0])
+                        formHandlers.handleInputChange('agePreferenceMax', value[1])
+                      }}
                     />
                   )}
                 />
@@ -459,20 +441,14 @@ const StepPreferences = ({
             Radio de búsqueda: <span className='text-primary-400 font-semibold'>{locationPreferenceRadius || 50} km</span>
           </label>
           <Controller
-            name='locationPreferenceRadius'
             control={control}
+            name='locationPreferenceRadius'
             render={({ field }) => (
               <Slider
-                label='Seleccionar radio de búsqueda'
-                step={10}
-                color='primary'
-                minValue={5}
-                maxValue={200}
-                value={field.value || 50}
-                onChange={value => formHandlers.handleInputChange('locationPreferenceRadius', value)}
-                className='max-w-full'
-                showTooltip={true}
                 aria-label='Radio de búsqueda en kilómetros'
+                className='max-w-full'
+                color='primary'
+                label='Seleccionar radio de búsqueda'
                 marks={[
                   { value: 5, label: '5 km' },
                   { value: 50, label: '50 km' },
@@ -480,6 +456,12 @@ const StepPreferences = ({
                   { value: 150, label: '150 km' },
                   { value: 200, label: '200 km' }
                 ]}
+                maxValue={200}
+                minValue={5}
+                showTooltip={true}
+                step={10}
+                value={field.value || 50}
+                onChange={value => formHandlers.handleInputChange('locationPreferenceRadius', value)}
               />
             )}
           />
@@ -507,17 +489,17 @@ const StepPreferences = ({
 
       {/* Modal informativo de categorías */}
       <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        size='2xl'
-        scrollBehavior='outside'
-        placement='center'
         classNames={{
           base: 'bg-gray-900 text-white',
           header: 'border-b border-gray-700',
           body: 'py-6',
           footer: 'border-t border-gray-700'
-        }}>
+        }}
+        isOpen={isOpen}
+        placement='center'
+        scrollBehavior='outside'
+        size='2xl'
+        onClose={onClose}>
         <ModalContent>
           {onClose => (
             <>
@@ -570,10 +552,10 @@ const StepPreferences = ({
                   Regresar
                 </Button>
                 <Button
+                  className='bg-gradient-to-r from-primary-600 to-primary-700'
                   color='primary'
-                  onPress={handleCategorySelectFromModal}
                   startContent={<span>✓</span>}
-                  className='bg-gradient-to-r from-primary-600 to-primary-700'>
+                  onPress={handleCategorySelectFromModal}>
                   Seleccionar {selectedCategoryForModal?.label}
                 </Button>
               </ModalFooter>

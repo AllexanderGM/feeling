@@ -1,8 +1,8 @@
-import { useEffect, memo, Suspense } from 'react'
+import { useEffect, memo } from 'react'
 import { Card, CardBody } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
 import { Settings, Globe, Share2, Mail, Heart, Calendar, Bell, Database, Wrench } from 'lucide-react'
-import { useAuth, useConfiguration } from '@hooks'
+import { useConfiguration } from '@hooks'
 import LoadData from '@components/layout/LoadData.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import { Logger } from '@utils/logger.js'
@@ -10,9 +10,7 @@ import { Logger } from '@utils/logger.js'
 // Componentes importados pero no utilizados hasta que se implementen los endpoints
 
 const ConfigurationManagement = memo(() => {
-  const { user: currentUser } = useAuth()
-
-  const { loading, submitting, maintenanceMode, fetchMaintenanceMode } = useConfiguration()
+  const { loading, maintenanceMode, fetchMaintenanceMode } = useConfiguration()
 
   // Cargar estado de mantenimiento al montar el componente
   useEffect(() => {
@@ -34,10 +32,10 @@ const ConfigurationManagement = memo(() => {
   if (isLoading) return <LoadData>Cargando configuraciones...</LoadData>
 
   return (
-    <LiteContainer className='gap-4' ariaLabel='Página de configuración del sistema'>
+    <LiteContainer ariaLabel='Página de configuración del sistema' className='gap-4'>
       <Helmet>
         <title>Configuración del Sistema | Admin</title>
-        <meta name='description' content='Panel de configuración general del sistema y plataforma' />
+        <meta content='Panel de configuración general del sistema y plataforma' name='description' />
       </Helmet>
 
       {/* Header */}

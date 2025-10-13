@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
-
 import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
 
 /**
@@ -24,7 +23,7 @@ const useUserTags = () => {
     []
   )
 
-  const { loading, executeOperation, withLoading } = useAsyncOperation(asyncOptions)
+  const { loading } = useAsyncOperation(asyncOptions)
 
   // ========================================
   // FUNCIONES PRINCIPALES
@@ -37,12 +36,15 @@ const useUserTags = () => {
       // Usar el nuevo método paginado pero tomando solo los primeros resultados
       const result = await userTagsService.getPopularTagsLegacy(limit)
       const tagsArray = Array.isArray(result) ? result : result?.content || []
+
       setPopularTags(tagsArray)
+
       return tagsArray
     } catch (err) {
       Logger.error(Logger.CATEGORIES.USER, 'Error loading popular tags', err)
       setError(err)
       setPopularTags([])
+
       return []
     }
   }, [])
@@ -51,6 +53,7 @@ const useUserTags = () => {
   const searchTags = useCallback(async (query, limit = 15) => {
     if (!query || query.trim().length < 2) {
       setSearchResults([])
+
       return []
     }
 
@@ -63,11 +66,13 @@ const useUserTags = () => {
       const resultsArray = Array.isArray(results) ? results : results?.content || []
 
       setSearchResults(resultsArray)
+
       return resultsArray
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error searching tags', error)
       setSearchResults([])
       setError(error)
+
       return []
     } finally {
       setSearchLoading(false)
@@ -82,9 +87,11 @@ const useUserTags = () => {
       // Usar popular tags como fallback ya que no tenemos endpoint específico por categoría
       const result = await userTagsService.getPopularTagsLegacy(limit)
       const tagsArray = Array.isArray(result) ? result : result?.content || []
+
       return tagsArray
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error getting tags by category', error)
+
       return []
     }
   }, [])
@@ -92,10 +99,12 @@ const useUserTags = () => {
   // Función para crear un nuevo tag
   const createTag = useCallback(async tagName => {
     const trimmedName = tagName?.trim()
+
     if (!trimmedName) return Promise.reject(new Error('El nombre del tag es requerido'))
 
     try {
       const result = await userTagsService.addTagToMyProfile(trimmedName)
+
       return result
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error creating tag', error)
@@ -107,9 +116,11 @@ const useUserTags = () => {
   const getMyTags = useCallback(async () => {
     try {
       const result = await userTagsService.getMyTags()
+
       return Array.isArray(result) ? result : result?.content || []
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error getting my tags', error)
+
       return []
     }
   }, [])
@@ -118,6 +129,7 @@ const useUserTags = () => {
   const updateMyTags = useCallback(async tags => {
     try {
       const result = await userTagsService.addTagsToUser(tags)
+
       return result
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error updating tags', error)
@@ -129,6 +141,7 @@ const useUserTags = () => {
   const removeTag = useCallback(async tagId => {
     try {
       const result = await userTagsService.removeTagFromUser(tagId)
+
       return result
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error removing tag', error)
@@ -140,9 +153,11 @@ const useUserTags = () => {
   const getTagSuggestions = useCallback(async (limit = 10) => {
     try {
       const result = await userTagsService.getTagSuggestionsLegacy(limit)
+
       return Array.isArray(result) ? result : result?.content || []
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error getting tag suggestions', error)
+
       return []
     }
   }, [])
@@ -151,9 +166,11 @@ const useUserTags = () => {
   const getTrendingTags = useCallback(async (limit = 15) => {
     try {
       const result = await userTagsService.getTrendingTagsLegacy(limit)
+
       return Array.isArray(result) ? result : result?.content || []
     } catch (error) {
       Logger.error(Logger.CATEGORIES.USER, 'Error getting trending tags', error)
+
       return []
     }
   }, [])

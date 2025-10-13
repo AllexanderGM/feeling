@@ -32,12 +32,12 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               <div className='text-xl font-bold text-primary-400'>{getMatchAttempts()}</div>
               <div className='text-xs text-gray-400'>Disponibles</div>
             </div>
-            <div className='h-8 w-px bg-gray-600'></div>
+            <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
               <div className='text-xl font-bold text-purple-400'>{getTodayMatches()}</div>
               <div className='text-xs text-gray-400'>Hoy</div>
             </div>
-            <div className='h-8 w-px bg-gray-600'></div>
+            <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
               <div className='text-xl font-bold text-green-400'>{getTotalMatches()}</div>
               <div className='text-xs text-gray-400'>Total</div>
@@ -47,21 +47,21 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
           {/* Botones de acción mobile */}
           <div className='flex flex-col gap-2 w-full max-w-sm'>
             <Button
-              size='sm'
-              color='primary'
-              variant='solid'
+              aria-label='Buscar nuevo match'
               className='bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600 w-full'
+              color='primary'
+              size='sm'
               startContent={<Heart className='w-4 h-4' />}
-              aria-label='Buscar nuevo match'>
+              variant='solid'>
               Buscar Match
             </Button>
             <Button
-              size='sm'
-              color='secondary'
-              variant='bordered'
+              aria-label='Obtener más intentos de match'
               className='border-purple-500/50 text-purple-300 hover:bg-purple-500/10 w-full'
+              color='secondary'
+              size='sm'
               startContent={<Star className='w-4 h-4' />}
-              aria-label='Obtener más intentos de match'>
+              variant='bordered'>
               Obtener Más
             </Button>
           </div>
@@ -90,12 +90,12 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
                   <div className='text-2xl font-bold text-primary-400'>{getMatchAttempts()}</div>
                   <div className='text-xs text-gray-400'>Disponibles</div>
                 </div>
-                <div className='h-8 w-px bg-gray-600'></div>
+                <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
                   <div className='text-2xl font-bold text-purple-400'>{getTodayMatches()}</div>
                   <div className='text-xs text-gray-400'>Hoy</div>
                 </div>
-                <div className='h-8 w-px bg-gray-600'></div>
+                <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
                   <div className='text-2xl font-bold text-green-400'>{getTotalMatches()}</div>
                   <div className='text-xs text-gray-400'>Total</div>
@@ -107,21 +107,21 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
           {/* Botones de acción desktop */}
           <div className='flex flex-row gap-3'>
             <Button
-              size='sm'
-              color='primary'
-              variant='solid'
+              aria-label='Buscar nuevo match'
               className='bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600'
+              color='primary'
+              size='sm'
               startContent={<Heart className='w-4 h-4' />}
-              aria-label='Buscar nuevo match'>
+              variant='solid'>
               Buscar Match
             </Button>
             <Button
-              size='sm'
-              color='secondary'
-              variant='bordered'
+              aria-label='Obtener más intentos de match'
               className='border-purple-500/50 text-purple-300 hover:bg-purple-500/10'
+              color='secondary'
+              size='sm'
               startContent={<Star className='w-4 h-4' />}
-              aria-label='Obtener más intentos de match'>
+              variant='bordered'>
               Obtener Más
             </Button>
           </div>
@@ -136,13 +136,13 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
             </span>
           </div>
           <Progress
-            value={(getMatchAttempts() / getMaxDailyAttempts()) * 100}
-            className='h-2'
             aria-label={`Intentos de match restantes: ${getMatchAttempts()} de ${getMaxDailyAttempts()}`}
+            className='h-2'
             classNames={{
               indicator: 'bg-gradient-to-r from-primary-400 via-purple-400 to-pink-400',
               track: 'bg-gray-700/50'
             }}
+            value={(getMatchAttempts() / getMaxDailyAttempts()) * 100}
           />
         </div>
 

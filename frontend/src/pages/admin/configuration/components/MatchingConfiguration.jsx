@@ -10,14 +10,6 @@ const MATCHING_ALGORITHMS = [
   { key: 'ai_powered', label: 'IA Avanzada', description: 'Machine learning y análisis de comportamiento' }
 ]
 
-const AGE_RANGES = [
-  { key: '18-25', label: '18-25 años' },
-  { key: '26-35', label: '26-35 años' },
-  { key: '36-45', label: '36-45 años' },
-  { key: '46-55', label: '46-55 años' },
-  { key: '56+', label: '56+ años' }
-]
-
 const MatchingConfiguration = ({ config, loading }) => {
   const { updateMatchingConfiguration } = useConfiguration()
 
@@ -97,6 +89,7 @@ const MatchingConfiguration = ({ config, loading }) => {
     }
 
     setErrors(newErrors)
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -138,15 +131,15 @@ const MatchingConfiguration = ({ config, loading }) => {
         <Divider className='bg-gray-700' />
         <CardBody className='gap-4'>
           <Select
-            label='Algoritmo Principal'
-            selectedKeys={formData.algorithm ? [formData.algorithm] : []}
-            onSelectionChange={keys => handleInputChange('algorithm', Array.from(keys)[0] || '')}
             classNames={{
               trigger: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500',
               value: 'text-gray-200'
-            }}>
+            }}
+            label='Algoritmo Principal'
+            selectedKeys={formData.algorithm ? [formData.algorithm] : []}
+            onSelectionChange={keys => handleInputChange('algorithm', Array.from(keys)[0] || '')}>
             {MATCHING_ALGORITHMS.map(algorithm => (
-              <SelectItem key={algorithm.key} value={algorithm.key} description={algorithm.description}>
+              <SelectItem key={algorithm.key} description={algorithm.description} value={algorithm.key}>
                 {algorithm.label}
               </SelectItem>
             ))}
@@ -182,19 +175,19 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div>
                 <label className='text-sm font-medium text-gray-300 mb-2 block'>Distancia Máxima: {formData.maxDistance} km</label>
                 <Slider
-                  size='md'
-                  step={5}
-                  minValue={5}
-                  maxValue={200}
-                  value={formData.maxDistance}
-                  onChange={value => handleInputChange('maxDistance', value)}
                   className='max-w-md'
-                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     base: 'max-w-md',
                     track: 'bg-gray-700',
                     filler: 'bg-blue-500'
                   }}
+                  maxValue={200}
+                  minValue={5}
+                  size='md'
+                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
+                  step={5}
+                  value={formData.maxDistance}
+                  onChange={value => handleInputChange('maxDistance', value)}
                 />
               </div>
 
@@ -203,19 +196,19 @@ const MatchingConfiguration = ({ config, loading }) => {
                   Flexibilidad de Edad: ±{formData.ageRangeFlexibility} años
                 </label>
                 <Slider
-                  size='md'
-                  step={1}
-                  minValue={0}
-                  maxValue={15}
-                  value={formData.ageRangeFlexibility}
-                  onChange={value => handleInputChange('ageRangeFlexibility', value)}
                   className='max-w-md'
-                  startContent={<Calendar className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     base: 'max-w-md',
                     track: 'bg-gray-700',
                     filler: 'bg-green-500'
                   }}
+                  maxValue={15}
+                  minValue={0}
+                  size='md'
+                  startContent={<Calendar className='w-4 h-4 text-gray-400' />}
+                  step={1}
+                  value={formData.ageRangeFlexibility}
+                  onChange={value => handleInputChange('ageRangeFlexibility', value)}
                 />
               </div>
             </div>
@@ -224,38 +217,38 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div>
                 <label className='text-sm font-medium text-gray-300 mb-2 block'>Peso de Intereses: {formData.interestWeighting}%</label>
                 <Slider
-                  size='md'
-                  step={5}
-                  minValue={0}
-                  maxValue={100}
-                  value={formData.interestWeighting}
-                  onChange={value => handleInputChange('interestWeighting', value)}
                   className='max-w-md'
-                  startContent={<Heart className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     base: 'max-w-md',
                     track: 'bg-gray-700',
                     filler: 'bg-purple-500'
                   }}
+                  maxValue={100}
+                  minValue={0}
+                  size='md'
+                  startContent={<Heart className='w-4 h-4 text-gray-400' />}
+                  step={5}
+                  value={formData.interestWeighting}
+                  onChange={value => handleInputChange('interestWeighting', value)}
                 />
               </div>
 
               <div>
                 <label className='text-sm font-medium text-gray-300 mb-2 block'>Peso de Ubicación: {formData.locationWeighting}%</label>
                 <Slider
-                  size='md'
-                  step={5}
-                  minValue={0}
-                  maxValue={100}
-                  value={formData.locationWeighting}
-                  onChange={value => handleInputChange('locationWeighting', value)}
                   className='max-w-md'
-                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
                   classNames={{
                     base: 'max-w-md',
                     track: 'bg-gray-700',
                     filler: 'bg-orange-500'
                   }}
+                  maxValue={100}
+                  minValue={0}
+                  size='md'
+                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
+                  step={5}
+                  value={formData.locationWeighting}
+                  onChange={value => handleInputChange('locationWeighting', value)}
                 />
               </div>
             </div>
@@ -278,73 +271,73 @@ const MatchingConfiguration = ({ config, loading }) => {
         <CardBody className='gap-4'>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <Input
-              type='number'
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+              }}
+              errorMessage={errors.dailyMatchLimit}
+              isInvalid={!!errors.dailyMatchLimit}
               label='Matches Diarios (Usuarios Básicos)'
+              max='100'
+              min='1'
+              type='number'
               value={formData.dailyMatchLimit.toString()}
               onChange={e => handleInputChange('dailyMatchLimit', parseInt(e.target.value) || 0)}
-              isInvalid={!!errors.dailyMatchLimit}
-              errorMessage={errors.dailyMatchLimit}
-              min='1'
-              max='100'
+            />
+
+            <Input
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
-            />
-
-            <Input
-              type='number'
               label='Matches Diarios (Premium)'
+              max='100'
+              min='1'
+              type='number'
               value={formData.premiumMatchLimit.toString()}
               onChange={e => handleInputChange('premiumMatchLimit', parseInt(e.target.value) || 0)}
-              min='1'
-              max='100'
-              classNames={{
-                input: 'text-gray-200',
-                inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-              }}
             />
 
             <Input
-              type='number'
-              label='Perfil Mínimo Completo (%)'
-              value={formData.minimumProfileCompletion.toString()}
-              onChange={e => handleInputChange('minimumProfileCompletion', parseInt(e.target.value) || 0)}
-              isInvalid={!!errors.minimumProfileCompletion}
-              errorMessage={errors.minimumProfileCompletion}
-              min='30'
-              max='100'
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              errorMessage={errors.minimumProfileCompletion}
+              isInvalid={!!errors.minimumProfileCompletion}
+              label='Perfil Mínimo Completo (%)'
+              max='100'
+              min='30'
+              type='number'
+              value={formData.minimumProfileCompletion.toString()}
+              onChange={e => handleInputChange('minimumProfileCompletion', parseInt(e.target.value) || 0)}
             />
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <Input
-              type='number'
-              label='Período de Espera (horas)'
-              value={formData.cooldownPeriod.toString()}
-              onChange={e => handleInputChange('cooldownPeriod', parseInt(e.target.value) || 0)}
-              description='Tiempo entre intentos de match fallidos'
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              description='Tiempo entre intentos de match fallidos'
+              label='Período de Espera (horas)'
+              type='number'
+              value={formData.cooldownPeriod.toString()}
+              onChange={e => handleInputChange('cooldownPeriod', parseInt(e.target.value) || 0)}
             />
 
             <Input
-              type='number'
-              label='Expiración de Matches (días)'
-              value={formData.matchExpirationDays.toString()}
-              onChange={e => handleInputChange('matchExpirationDays', parseInt(e.target.value) || 0)}
-              description='Días antes de que expire un match'
-              isDisabled={!formData.enableMatchExpiration}
               classNames={{
                 input: 'text-gray-200',
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
+              description='Días antes de que expire un match'
+              isDisabled={!formData.enableMatchExpiration}
+              label='Expiración de Matches (días)'
+              type='number'
+              value={formData.matchExpirationDays.toString()}
+              onChange={e => handleInputChange('matchExpirationDays', parseInt(e.target.value) || 0)}
             />
           </div>
         </CardBody>
@@ -367,42 +360,42 @@ const MatchingConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableSuperLikes}
-                  onValueChange={value => handleInputChange('enableSuperLikes', value)}
                   color='warning'
+                  isSelected={formData.enableSuperLikes}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableSuperLikes', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Super Likes</span>
-                <Chip size='sm' variant='flat' color={formData.enableSuperLikes ? 'warning' : 'default'}>
+                <Chip color={formData.enableSuperLikes ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.enableSuperLikes ? 'Habilitados' : 'Deshabilitados'}
                 </Chip>
               </div>
               <div className='flex gap-2'>
                 <Input
-                  type='number'
-                  size='sm'
+                  className='w-24'
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600'
+                  }}
+                  isDisabled={!formData.enableSuperLikes}
                   label='Básicos/día'
+                  size='sm'
+                  type='number'
                   value={formData.superLikesPerDay.toString()}
                   onChange={e => handleInputChange('superLikesPerDay', parseInt(e.target.value) || 0)}
-                  isDisabled={!formData.enableSuperLikes}
-                  className='w-24'
-                  classNames={{
-                    input: 'text-gray-200',
-                    inputWrapper: 'bg-gray-800/50 border-gray-600'
-                  }}
                 />
                 <Input
-                  type='number'
-                  size='sm'
-                  label='Premium/día'
-                  value={formData.premiumSuperLikesPerDay.toString()}
-                  onChange={e => handleInputChange('premiumSuperLikesPerDay', parseInt(e.target.value) || 0)}
-                  isDisabled={!formData.enableSuperLikes}
                   className='w-24'
                   classNames={{
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600'
                   }}
+                  isDisabled={!formData.enableSuperLikes}
+                  label='Premium/día'
+                  size='sm'
+                  type='number'
+                  value={formData.premiumSuperLikesPerDay.toString()}
+                  onChange={e => handleInputChange('premiumSuperLikesPerDay', parseInt(e.target.value) || 0)}
                 />
               </div>
             </div>
@@ -410,28 +403,28 @@ const MatchingConfiguration = ({ config, loading }) => {
             <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
               <div className='flex items-center gap-3'>
                 <Switch
-                  isSelected={formData.enableBoosts}
-                  onValueChange={value => handleInputChange('enableBoosts', value)}
                   color='primary'
+                  isSelected={formData.enableBoosts}
                   size='sm'
+                  onValueChange={value => handleInputChange('enableBoosts', value)}
                 />
                 <span className='text-sm font-medium text-gray-200'>Profile Boosts</span>
-                <Chip size='sm' variant='flat' color={formData.enableBoosts ? 'primary' : 'default'}>
+                <Chip color={formData.enableBoosts ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableBoosts ? 'Habilitados' : 'Deshabilitados'}
                 </Chip>
               </div>
               <Input
-                type='number'
-                size='sm'
-                label='Duración (min)'
-                value={formData.boostDuration.toString()}
-                onChange={e => handleInputChange('boostDuration', parseInt(e.target.value) || 0)}
-                isDisabled={!formData.enableBoosts}
                 className='w-32'
                 classNames={{
                   input: 'text-gray-200',
                   inputWrapper: 'bg-gray-800/50 border-gray-600'
                 }}
+                isDisabled={!formData.enableBoosts}
+                label='Duración (min)'
+                size='sm'
+                type='number'
+                value={formData.boostDuration.toString()}
+                onChange={e => handleInputChange('boostDuration', parseInt(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -456,14 +449,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableSmartMatching}
-                    onValueChange={value => handleInputChange('enableSmartMatching', value)}
                     color='primary'
+                    isSelected={formData.enableSmartMatching}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableSmartMatching', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Smart Matching</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableSmartMatching ? 'primary' : 'default'}>
+                <Chip color={formData.enableSmartMatching ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableSmartMatching ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -471,14 +464,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableLocationMatching}
-                    onValueChange={value => handleInputChange('enableLocationMatching', value)}
                     color='success'
+                    isSelected={formData.enableLocationMatching}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableLocationMatching', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Matching por Ubicación</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableLocationMatching ? 'success' : 'default'}>
+                <Chip color={formData.enableLocationMatching ? 'success' : 'default'} size='sm' variant='flat'>
                   {formData.enableLocationMatching ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -486,14 +479,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableInterestMatching}
-                    onValueChange={value => handleInputChange('enableInterestMatching', value)}
                     color='warning'
+                    isSelected={formData.enableInterestMatching}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableInterestMatching', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Matching por Intereses</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableInterestMatching ? 'warning' : 'default'}>
+                <Chip color={formData.enableInterestMatching ? 'warning' : 'default'} size='sm' variant='flat'>
                   {formData.enableInterestMatching ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -503,14 +496,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableAgePreferences}
-                    onValueChange={value => handleInputChange('enableAgePreferences', value)}
                     color='secondary'
+                    isSelected={formData.enableAgePreferences}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableAgePreferences', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Preferencias de Edad</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableAgePreferences ? 'secondary' : 'default'}>
+                <Chip color={formData.enableAgePreferences ? 'secondary' : 'default'} size='sm' variant='flat'>
                   {formData.enableAgePreferences ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -518,14 +511,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableMatchExpiration}
-                    onValueChange={value => handleInputChange('enableMatchExpiration', value)}
                     color='danger'
+                    isSelected={formData.enableMatchExpiration}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableMatchExpiration', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Expiración de Matches</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableMatchExpiration ? 'danger' : 'default'}>
+                <Chip color={formData.enableMatchExpiration ? 'danger' : 'default'} size='sm' variant='flat'>
                   {formData.enableMatchExpiration ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -533,14 +526,14 @@ const MatchingConfiguration = ({ config, loading }) => {
               <div className='flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600/50'>
                 <div className='flex items-center gap-2'>
                   <Switch
-                    isSelected={formData.enableMatchAnalytics}
-                    onValueChange={value => handleInputChange('enableMatchAnalytics', value)}
                     color='primary'
+                    isSelected={formData.enableMatchAnalytics}
                     size='sm'
+                    onValueChange={value => handleInputChange('enableMatchAnalytics', value)}
                   />
                   <span className='text-sm font-medium text-gray-200'>Analytics de Matches</span>
                 </div>
-                <Chip size='sm' variant='flat' color={formData.enableMatchAnalytics ? 'primary' : 'default'}>
+                <Chip color={formData.enableMatchAnalytics ? 'primary' : 'default'} size='sm' variant='flat'>
                   {formData.enableMatchAnalytics ? 'ON' : 'OFF'}
                 </Chip>
               </div>
@@ -553,10 +546,10 @@ const MatchingConfiguration = ({ config, loading }) => {
       <div className='flex justify-end'>
         <Button
           color='primary'
-          onPress={handleSubmit}
           isLoading={saving || loading}
+          size='sm'
           startContent={!saving && !loading && <Save className='w-3 h-3' />}
-          size='sm'>
+          onPress={handleSubmit}>
           Guardar
         </Button>
       </div>

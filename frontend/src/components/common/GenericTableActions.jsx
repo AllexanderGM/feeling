@@ -48,6 +48,7 @@ const GenericTableActions = memo(
       if (typeof action.isVisible === 'function') {
         return action.isVisible(item)
       }
+
       return true
     })
 
@@ -58,6 +59,7 @@ const GenericTableActions = memo(
           actionKey: action?.key,
           tableId
         })
+
         return
       }
 
@@ -68,6 +70,7 @@ const GenericTableActions = memo(
           itemId: item.id || 'unknown',
           tableId
         })
+
         return
       }
 
@@ -119,6 +122,7 @@ const GenericTableActions = memo(
     const isActionLoading = action => {
       if (loading) return true
       if (action.loadingKey && actionLoadingStates[action.loadingKey]) return true
+
       return false
     }
 
@@ -129,6 +133,7 @@ const GenericTableActions = memo(
       if (typeof action.isDisabled === 'function') {
         return action.isDisabled(item)
       }
+
       return false
     }
 
@@ -141,24 +146,24 @@ const GenericTableActions = memo(
       const button = (
         <Button
           key={action.key}
-          size={size}
-          variant={action.variant || variant}
+          className={action.className || ''}
           color={action.color || 'default'}
           isDisabled={isDisabled}
-          isLoading={isLoading}
-          className={action.className || ''}
-          onPress={() => executeAction(action)}
           isIconOnly={!action.label}
-          startContent={Icon && !isLoading ? <Icon className='w-4 h-4' /> : undefined}>
+          isLoading={isLoading}
+          size={size}
+          startContent={Icon && !isLoading ? <Icon className='w-4 h-4' /> : undefined}
+          variant={action.variant || variant}
+          onPress={() => executeAction(action)}>
           {action.label && !isLoading ? action.label : null}
-          {isLoading && <Spinner size='sm' color='current' />}
+          {isLoading && <Spinner color='current' size='sm' />}
         </Button>
       )
 
       // Envolver en tooltip si se especifica
       if (action.tooltip) {
         return (
-          <Tooltip color='default' key={action.key} content={action.tooltip}>
+          <Tooltip key={action.key} color='default' content={action.tooltip}>
             {button}
           </Tooltip>
         )

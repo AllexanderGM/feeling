@@ -15,18 +15,21 @@ const fileToBase64 = file => {
   return new Promise((resolve, reject) => {
     if (!file) {
       resolve(null)
+
       return
     }
 
     // Si ya es una string base64, devolverla
     if (typeof file === 'string') {
       resolve(file)
+
       return
     }
 
     // Si no es un File, rechazar
     if (!(file instanceof File)) {
       resolve(null)
+
       return
     }
 
@@ -55,6 +58,7 @@ const base64ToFile = (base64String, fileName = 'image.jpg') => {
   try {
     // Extraer el tipo de archivo del base64
     const matches = base64String.match(/^data:([^;]+);base64,(.+)$/)
+
     if (!matches) {
       return null
     }
@@ -76,6 +80,7 @@ const base64ToFile = (base64String, fileName = 'image.jpg') => {
     return new File([byteArray], fileName, { type: mimeType })
   } catch (error) {
     Logger.error('Error converting base64 to file:', error, { category: Logger.CATEGORIES.SYSTEM })
+
     return null
   }
 }
@@ -94,6 +99,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
     if (initialImages.length === 0) {
       setPersistentImages([])
       setHasInitialized(true)
+
       return
     }
 
@@ -125,6 +131,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         )
 
         const validImages = convertedImages.filter(img => img !== null)
+
         setPersistentImages(validImages)
         setHasInitialized(true)
       } catch (error) {
@@ -192,6 +199,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
   const removeImage = useCallback(
     index => {
       const updatedImages = persistentImages.filter((_, i) => i !== index)
+
       setPersistentImages(updatedImages)
 
       // Convertir a File objects y notificar
@@ -201,6 +209,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         })
       ).then(files => {
         const validFiles = files.filter(file => file !== null)
+
         onImagesChange?.(validFiles)
       })
     },
@@ -212,6 +221,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
     (startIndex, endIndex) => {
       const reorderedImages = [...persistentImages]
       const [removed] = reorderedImages.splice(startIndex, 1)
+
       reorderedImages.splice(endIndex, 0, removed)
 
       setPersistentImages(reorderedImages)
@@ -223,6 +233,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         })
       ).then(files => {
         const validFiles = files.filter(file => file !== null)
+
         onImagesChange?.(validFiles)
       })
     },

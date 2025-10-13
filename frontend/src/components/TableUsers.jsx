@@ -4,13 +4,14 @@ import { useAuth } from '@context/AuthContext.jsx'
 import { getAllUsers, getUserByEmail } from '@services'
 import { Logger } from '@utils/logger.js'
 
-import GenericTableControls from './ui/GenericTableControls.jsx'
-import TableActionCell from './ui/TableActionCell.jsx'
-import TablePagination from './ui/TablePagination.jsx'
 import CrearUserForm from '../pages/user/management/components/CrearUserForm.js'
 import EditarUserForm from '../pages/user/management/components/EditarUserForm.js'
 import DeleteUserModal from '../pages/user/management/components/DeleteUserModal.jsx'
 import { USER_ROLES, USER_ROLE_COLORS, USER_COLUMNS } from '../constants/tableConstants.js'
+
+import TablePagination from './ui/TablePagination.jsx'
+import TableActionCell from './ui/TableActionCell.jsx'
+import GenericTableControls from './ui/GenericTableControls.jsx'
 
 const TableUsers = () => {
   const [users, setUsers] = useState([])
@@ -37,6 +38,7 @@ const TableUsers = () => {
 
   const headerColumns = useMemo(() => {
     if (visibleColumns === 'all') return USER_COLUMNS
+
     return USER_COLUMNS.filter(column => Array.from(visibleColumns).includes(column.uid))
   }, [visibleColumns])
 
@@ -74,6 +76,7 @@ const TableUsers = () => {
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage
     const end = start + rowsPerPage
+
     return filteredItems.slice(start, end)
   }, [page, filteredItems, rowsPerPage])
 
@@ -82,6 +85,7 @@ const TableUsers = () => {
       const first = a[sortDescriptor.column] || ''
       const second = b[sortDescriptor.column] || ''
       const cmp = first < second ? -1 : first > second ? 1 : 0
+
       return sortDescriptor.direction === 'descending' ? -cmp : cmp
     })
   }, [sortDescriptor, items])
@@ -91,6 +95,7 @@ const TableUsers = () => {
       setLoading(true)
       setError(null)
       const data = await getAllUsers()
+
       setUsers(data)
     } catch (error) {
       Logger.error('Error al cargar usuarios', Logger.CATEGORIES.SERVICE, { error: error.message, stack: error.stack })
@@ -112,6 +117,7 @@ const TableUsers = () => {
     try {
       // Obtener datos completos del usuario
       const fullUserData = await getUserByEmail(user.email)
+
       Logger.debug('Datos completos del usuario obtenidos', Logger.CATEGORIES.SERVICE, {
         userId: fullUserData.id,
         email: fullUserData.email
@@ -152,6 +158,7 @@ const TableUsers = () => {
     // Asegurarnos de que tenemos la información correcta del usuario
     if (!user || !user.email) {
       Logger.error('Datos de usuario incompletos para eliminación', Logger.CATEGORIES.USER, { user })
+
       return
     }
 
@@ -210,11 +217,11 @@ const TableUsers = () => {
 
           return (
             <TableActionCell
-              item={user}
-              onEdit={canEdit ? () => handleOpenEditModal(user) : null}
-              onDelete={canDelete ? () => handleOpenDeleteModal(user) : null}
-              editTooltip={!canEdit ? 'No tienes permisos para editar administradores' : 'Editar'}
               deleteTooltip={!canDelete ? 'No puedes eliminar este usuario' : 'Eliminar'}
+              editTooltip={!canEdit ? 'No tienes permisos para editar administradores' : 'Editar'}
+              item={user}
+              onDelete={canDelete ? () => handleOpenDeleteModal(user) : null}
+              onEdit={canEdit ? () => handleOpenEditModal(user) : null}
             />
           )
         }
@@ -259,21 +266,21 @@ const TableUsers = () => {
   const topContent = useMemo(
     () => (
       <GenericTableControls
-        filterValue={filterValue}
-        onClear={onClear}
-        onSearchChange={onSearchChange}
-        filterPlaceholder='Buscar por nombre o email...'
         columns={USER_COLUMNS}
-        visibleColumns={visibleColumns}
-        setVisibleColumns={setVisibleColumns}
-        onCreateItem={handleOpenCreateModal}
         createButtonLabel='Crear Usuario'
-        loading={loading}
         error={error}
-        totalItems={users.length}
+        filterPlaceholder='Buscar por nombre o email...'
+        filterValue={filterValue}
         itemsLabel='usuarios'
+        loading={loading}
         rowsPerPage={rowsPerPage}
+        setVisibleColumns={setVisibleColumns}
+        totalItems={users.length}
+        visibleColumns={visibleColumns}
+        onClear={onClear}
+        onCreateItem={handleOpenCreateModal}
         onRowsPerPageChange={onRowsPerPageChange}
+        onSearchChange={onSearchChange}
       />
     ),
     [
@@ -293,13 +300,13 @@ const TableUsers = () => {
   const bottomContent = useMemo(
     () => (
       <TablePagination
-        selectedKeys={selectedKeys}
         filteredItemsLength={filteredItems.length}
         page={page}
         pages={pages}
-        onPreviousPage={onPreviousPage}
+        selectedKeys={selectedKeys}
         onNextPage={onNextPage}
         onPageChange={setPage}
+        onPreviousPage={onPreviousPage}
       />
     ),
     [selectedKeys, filteredItems.length, page, pages, onPreviousPage, onNextPage]
@@ -310,9 +317,9 @@ const TableUsers = () => {
       <Table
         isHeaderSticky
         aria-label='Tabla de Usuarios'
-        className='w-full max-w-6xl mt-6'
         bottomContent={bottomContent}
         bottomContentPlacement='outside'
+        className='w-full max-w-6xl mt-6'
         selectedKeys={selectedKeys}
         selectionMode='multiple'
         sortDescriptor={sortDescriptor}
@@ -328,8 +335,8 @@ const TableUsers = () => {
           )}
         </TableHeader>
         <TableBody
-          items={sortedItems}
           emptyContent={loading ? 'Cargando...' : error ? 'Error al cargar usuarios' : 'No se encontraron usuarios'}
+          items={sortedItems}
           loadingContent={<div>Cargando usuarios...</div>}
           loadingState={loading ? 'loading' : 'idle'}>
           {item => <TableRow key={item.id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
@@ -340,11 +347,11 @@ const TableUsers = () => {
       <CrearUserForm isOpen={isCreateModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} />
 
       {selectedUser && (
-        <EditarUserForm isOpen={isEditModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} userData={selectedUser} />
+        <EditarUserForm isOpen={isEditModalOpen} userData={selectedUser} onClose={handleCloseModals} onSuccess={handleSuccess} />
       )}
 
       {selectedUser && (
-        <DeleteUserModal isOpen={isDeleteModalOpen} onClose={handleCloseModals} onSuccess={handleSuccess} userData={selectedUser} />
+        <DeleteUserModal isOpen={isDeleteModalOpen} userData={selectedUser} onClose={handleCloseModals} onSuccess={handleSuccess} />
       )}
     </>
   )

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Card, CardBody, Progress, Chip } from '@heroui/react'
-import { Calendar, Users, TrendingUp, BarChart3, CheckCircle, Clock, MapPin, Activity, DollarSign, Star } from 'lucide-react'
+import { Calendar, TrendingUp, CheckCircle, DollarSign } from 'lucide-react'
 
 const EventStatsCards = memo(({ eventStats }) => {
   if (!eventStats) return null
@@ -18,7 +18,6 @@ const EventStatsCards = memo(({ eventStats }) => {
   const inactiveEvents = totalEvents - activeEvents
   const activationRate = totalEvents > 0 ? ((activeEvents / totalEvents) * 100).toFixed(1) : 0
   const registrationRate = totalRegistrations > 0 ? ((completedRegistrations / totalRegistrations) * 100).toFixed(1) : 0
-  const revenuePerEvent = activeEvents > 0 ? (totalRevenue / activeEvents).toFixed(2) : 0
 
   // Eventos que requieren atención
   const needsAttentionCount = inactiveEvents
@@ -77,6 +76,7 @@ const EventStatsCards = memo(({ eventStats }) => {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {statsConfig.map((stat, index) => {
               const Icon = stat.icon
+
               return (
                 <div key={index} className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
                   <div className='flex items-center justify-between mb-2'>
@@ -123,11 +123,11 @@ const EventStatsCards = memo(({ eventStats }) => {
                 <div className='text-lg font-bold text-orange-400'>{(capacityUtilization * 100).toFixed(1)}%</div>
                 <div className='text-xs text-gray-400'>Ocupación Media</div>
                 <Progress
-                  value={capacityUtilization * 100}
-                  color='warning'
-                  className='mt-2 max-w-full'
-                  size='sm'
                   aria-label={`Ocupación media de eventos: ${(capacityUtilization * 100).toFixed(1)}%`}
+                  className='mt-2 max-w-full'
+                  color='warning'
+                  size='sm'
+                  value={capacityUtilization * 100}
                 />
                 <div className='text-xs text-gray-500 mt-1'>{avgAttendees.toFixed(1)} personas/evento</div>
               </div>
@@ -135,9 +135,9 @@ const EventStatsCards = memo(({ eventStats }) => {
               {/* Estado general */}
               <div className='text-center'>
                 <Chip
-                  variant='flat'
                   color={needsAttentionCount === 0 ? 'success' : needsAttentionCount <= 5 ? 'warning' : 'danger'}
-                  size='sm'>
+                  size='sm'
+                  variant='flat'>
                   {needsAttentionCount === 0 ? 'Todo activo' : needsAttentionCount <= 5 ? 'Pocos inactivos' : 'Revisar eventos'}
                 </Chip>
                 <div className='text-xs text-gray-400 mt-1'>Estado General</div>

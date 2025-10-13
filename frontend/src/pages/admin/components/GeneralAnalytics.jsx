@@ -27,7 +27,7 @@ const GeneralAnalytics = () => {
     try {
       await refresh()
       handleSuccess('Estadísticas actualizadas correctamente')
-    } catch (err) {
+    } catch {
       handleError('Error al actualizar las estadísticas')
     } finally {
       setRefreshing(false)
@@ -68,6 +68,7 @@ const GeneralAnalytics = () => {
   const getSystemStatus = () => {
     if (error) return { color: 'danger', label: 'Error', icon: AlertCircle }
     if (loading || refreshing) return { color: 'warning', label: 'Cargando', icon: Clock }
+
     return { color: 'success', label: 'Operativo', icon: CheckCircle }
   }
 
@@ -78,19 +79,19 @@ const GeneralAnalytics = () => {
       {/* Header compacto con estado del sistema */}
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-3'>
-          <Chip variant='flat' color={systemStatus.color} startContent={<systemStatus.icon className='w-4 h-4' />} size='sm'>
+          <Chip color={systemStatus.color} size='sm' startContent={<systemStatus.icon className='w-4 h-4' />} variant='flat'>
             {systemStatus.label}
           </Chip>
           <span className='text-sm text-default-500'>Sistema operativo desde hace {stats.system?.uptime || 'N/A'}</span>
         </div>
         <Button
           isIconOnly
-          variant='flat'
+          className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
           color='primary'
-          onPress={handleRefresh}
           isLoading={refreshing}
           size='sm'
-          className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'>
+          variant='flat'
+          onPress={handleRefresh}>
           <RefreshCw className='w-4 h-4' />
         </Button>
       </div>
@@ -215,10 +216,10 @@ const GeneralAnalytics = () => {
                 <span className='text-sm text-default-500'>{stats.performance?.memoryUsage || 0}%</span>
               </div>
               <Progress
-                value={stats.performance?.memoryUsage || 0}
-                color={stats.performance?.memoryUsage > 80 ? 'danger' : stats.performance?.memoryUsage > 60 ? 'warning' : 'success'}
-                className='max-w-full'
                 aria-label={`Uso de memoria: ${stats.performance?.memoryUsage || 0}%`}
+                className='max-w-full'
+                color={stats.performance?.memoryUsage > 80 ? 'danger' : stats.performance?.memoryUsage > 60 ? 'warning' : 'success'}
+                value={stats.performance?.memoryUsage || 0}
               />
             </div>
 
@@ -229,10 +230,10 @@ const GeneralAnalytics = () => {
                 <span className='text-sm text-default-500'>{stats.performance?.cpuUsage || 0}%</span>
               </div>
               <Progress
-                value={stats.performance?.cpuUsage || 0}
-                color={stats.performance?.cpuUsage > 80 ? 'danger' : stats.performance?.cpuUsage > 60 ? 'warning' : 'success'}
-                className='max-w-full'
                 aria-label={`Uso de CPU: ${stats.performance?.cpuUsage || 0}%`}
+                className='max-w-full'
+                color={stats.performance?.cpuUsage > 80 ? 'danger' : stats.performance?.cpuUsage > 60 ? 'warning' : 'success'}
+                value={stats.performance?.cpuUsage || 0}
               />
             </div>
 
@@ -243,10 +244,10 @@ const GeneralAnalytics = () => {
                 <span className='text-sm text-default-500'>{stats.performance?.diskUsage || 0}%</span>
               </div>
               <Progress
-                value={stats.performance?.diskUsage || 0}
-                color={stats.performance?.diskUsage > 80 ? 'danger' : stats.performance?.diskUsage > 60 ? 'warning' : 'success'}
-                className='max-w-full'
                 aria-label={`Uso de disco: ${stats.performance?.diskUsage || 0}%`}
+                className='max-w-full'
+                color={stats.performance?.diskUsage > 80 ? 'danger' : stats.performance?.diskUsage > 60 ? 'warning' : 'success'}
+                value={stats.performance?.diskUsage || 0}
               />
             </div>
 
@@ -257,10 +258,10 @@ const GeneralAnalytics = () => {
                 <span className='text-sm text-default-500'>{stats.performance?.responseTime || 0}ms</span>
               </div>
               <Progress
-                value={Math.min((stats.performance?.responseTime || 0) / 10, 100)}
-                color={stats.performance?.responseTime > 500 ? 'danger' : stats.performance?.responseTime > 200 ? 'warning' : 'success'}
-                className='max-w-full'
                 aria-label={`Tiempo de respuesta: ${stats.performance?.responseTime || 0}ms`}
+                className='max-w-full'
+                color={stats.performance?.responseTime > 500 ? 'danger' : stats.performance?.responseTime > 200 ? 'warning' : 'success'}
+                value={Math.min((stats.performance?.responseTime || 0) / 10, 100)}
               />
             </div>
           </div>

@@ -29,6 +29,7 @@ class EventService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.ALL_ADMIN}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -51,6 +52,7 @@ class EventService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BASE}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -73,6 +75,7 @@ class EventService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.UPCOMING}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -95,6 +98,7 @@ class EventService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_CATEGORY}/${encodeURIComponent(category)}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -107,6 +111,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -119,6 +124,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.post(API_ENDPOINTS.EVENTS.BASE, eventData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -131,6 +137,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.put(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}`, eventData)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -143,6 +150,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -155,6 +163,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.patch(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/admin-toggle-status`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -167,6 +176,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/force-delete`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -193,6 +203,7 @@ class EventService extends ServiceREST {
       }
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_STATUS}/${encodeURIComponent(status)}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -209,6 +220,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.STATS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -221,6 +233,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.COUNT)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -237,6 +250,7 @@ class EventService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.COUNT_BY_CATEGORY}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -249,6 +263,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.REVENUE)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -261,6 +276,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.CATEGORY_STATS)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -283,6 +299,7 @@ class EventService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_USER}/${encodeURIComponent(userId)}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -301,6 +318,7 @@ class EventService extends ServiceREST {
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_EVENTS}?${params.toString()}`)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
@@ -317,6 +335,7 @@ class EventService extends ServiceREST {
 
     try {
       const result = await ServiceREST.get(API_ENDPOINTS.EVENTS.CATEGORIES)
+
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)

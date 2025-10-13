@@ -25,12 +25,15 @@ class GeographicService extends ServiceREST {
    */
   getCachedData(key) {
     const cached = this.cache.get(key)
+
     if (cached && Date.now() - cached.timestamp < this.cacheExpiration) {
       if (this.verboseLogging) {
         this.Logger.debug(`Cache hit: ${key}`, { key })
       }
+
       return cached.data
     }
+
     return null
   }
 
@@ -103,6 +106,7 @@ class GeographicService extends ServiceREST {
     // Verificar cache primero
     if (!forceRefresh) {
       const cached = this.getCachedData('all-geographic-data')
+
       if (cached) return cached
     }
 
@@ -111,6 +115,7 @@ class GeographicService extends ServiceREST {
       return new Promise(resolve => {
         const checkInterval = setInterval(() => {
           const cached = this.getCachedData('all-geographic-data')
+
           if (cached || !this.isLoadingAll) {
             clearInterval(checkInterval)
             resolve(cached || this.getAllGeographicData(forceRefresh))
@@ -147,10 +152,12 @@ class GeographicService extends ServiceREST {
   async getAllCountries() {
     // Intentar desde cache directo
     let countries = this.getCachedData('countries')
+
     if (countries) return countries
 
     // Si no está en cache, cargar datos completos
     const allData = await this.getAllGeographicData()
+
     return allData.countries || []
   }
 
@@ -166,6 +173,7 @@ class GeographicService extends ServiceREST {
 
     // Verificar cache directo
     let cities = this.getCachedData(cacheKey)
+
     if (cities) return cities
 
     const context = `obtener ciudades de ${countryName}`
@@ -177,13 +185,16 @@ class GeographicService extends ServiceREST {
       if (result.success) {
         cities = result.data || []
         this.setCachedData(cacheKey, cities)
+
         return cities
       } else {
         this.Logger.warn(`No se encontraron ciudades para ${countryName}`, { countryName })
+
         return []
       }
     } catch (error) {
       this.logError(context, error)
+
       return []
     }
   }
@@ -200,6 +211,7 @@ class GeographicService extends ServiceREST {
 
     // Verificar cache directo
     let localities = this.getCachedData(cacheKey)
+
     if (localities) return localities
 
     const context = `obtener localidades de ${cityName}`
@@ -211,12 +223,14 @@ class GeographicService extends ServiceREST {
       if (result.success) {
         localities = result.data || []
         this.setCachedData(cacheKey, localities)
+
         return localities
       } else {
         return []
       }
     } catch (error) {
       this.logError(context, error)
+
       return []
     }
   }
@@ -301,6 +315,7 @@ class GeographicService extends ServiceREST {
 
   formatCountriesForSelect(countries) {
     if (!Array.isArray(countries)) return []
+
     return countries.map(country => ({
       key: country.code || country.name,
       name: country.name,
@@ -313,6 +328,7 @@ class GeographicService extends ServiceREST {
 
   formatCitiesForSelect(cities) {
     if (!Array.isArray(cities)) return []
+
     return cities.map(city => ({
       key: city.name,
       name: city.name,
@@ -322,6 +338,7 @@ class GeographicService extends ServiceREST {
 
   formatLocalitiesForSelect(localities) {
     if (!Array.isArray(localities)) return []
+
     return localities.map(locality => ({
       key: locality.name,
       name: locality.name
@@ -335,14 +352,17 @@ class GeographicService extends ServiceREST {
   async searchCountries(searchTerm) {
     try {
       const countries = await this.getAllCountries()
+
       if (!searchTerm) return countries
 
       const lowercaseSearch = searchTerm.toLowerCase()
+
       return countries.filter(
         country => country.name.toLowerCase().includes(lowercaseSearch) || country.code?.toLowerCase().includes(lowercaseSearch)
       )
     } catch (error) {
       this.logError('buscar países', error)
+
       return []
     }
   }
@@ -350,12 +370,15 @@ class GeographicService extends ServiceREST {
   async searchCities(countryName, searchTerm) {
     try {
       const cities = await this.getCitiesByCountry(countryName)
+
       if (!searchTerm) return cities
 
       const lowercaseSearch = searchTerm.toLowerCase()
+
       return cities.filter(city => city.name.toLowerCase().includes(lowercaseSearch))
     } catch (error) {
       this.logError(`buscar ciudades en ${countryName}`, error)
+
       return []
     }
   }
