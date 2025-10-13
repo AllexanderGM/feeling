@@ -95,10 +95,10 @@ const useUser = () => {
    * Obtener sugerencias de usuarios (pageable)
    */
   const fetchUserSuggestions = useCallback(
-    async (page = 0, size = 4, showNotifications = false) => {
+    async (page = 0, size = 4, includeLevel = 'public', showNotifications = false) => {
       const result = await withLoading(async () => {
-        Logger.log('🌍 Fetching user suggestions - page:', page, 'size:', size)
-        const response = await userService.getUserSuggestions(page, size)
+        Logger.log('🌍 Fetching user suggestions - include:', includeLevel, 'page:', page, 'size:', size)
+        const response = await userService.getUserSuggestions(includeLevel, page, size)
 
         Logger.log('📡 API Response received:', response)
 

@@ -86,7 +86,7 @@ const Register = () => {
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
       try {
-        const result = await registerWithGoogle(tokenResponse)
+        const result = await registerWithGoogle(tokenResponse.access_token, tokenResponse.token_type || 'Bearer', tokenResponse.scope || '')
 
         if (result.success) navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
       } finally {

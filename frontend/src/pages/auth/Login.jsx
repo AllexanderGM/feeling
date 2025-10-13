@@ -53,7 +53,7 @@ const Login = () => {
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
       try {
-        const result = await loginWithGoogle(tokenResponse)
+        const result = await loginWithGoogle(tokenResponse.access_token, tokenResponse.token_type || 'Bearer', tokenResponse.scope || '')
 
         if (result.success) navigate(fromPath, { replace: true })
       } finally {
