@@ -2,15 +2,8 @@ package com.feeling.packages.user.domain.services;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.NotFoundException;
-import com.feeling.packages.user.domain.dto.analytics.UserEngagementStatsDTO;
-import com.feeling.packages.user.domain.dto.analytics.UserGeographicDistributionDTO;
-import com.feeling.packages.user.domain.dto.analytics.UserGrowthStatsDTO;
-import com.feeling.packages.user.domain.dto.analytics.UserTabsCountDTO;
+import com.feeling.packages.user.domain.dto.analytics.*;
 import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
-import com.feeling.packages.user.domain.dto.response.profile.UserAnalyticsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserComprehensiveMetricsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserMetricsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UsersTopResponseDTO;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -118,7 +111,7 @@ public class UserAnalyticsService {
      * @throws NotFoundException Si el usuario no existe
      */
     @Transactional(readOnly = true)
-    public UserMetricsResponseDTO getUserDetailedMetrics(Long userId) {
+    public UserPerformanceMetricsDTO getUserDetailedMetrics(Long userId) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new NotFoundException("Usuario no encontrado con ID: " + userId));
 
@@ -156,7 +149,7 @@ public class UserAnalyticsService {
      *
      * @return DTO con distribución geográfica completa y tops
      */
-    private UserGeographicDistributionDTO getGeographicDistribution() {
+    private UserLocationDistributionDTO getGeographicDistribution() {
         logger.info("Generando distribución geográfica de usuarios");
 
         // Distribución por países
@@ -196,8 +189,8 @@ public class UserAnalyticsService {
                 LinkedHashMap::new
             ));
 
-        var topLocations = new UserGeographicDistributionDTO.TopLocationsDTO(topCountries, topCities);
-        var distribution = new UserGeographicDistributionDTO(usersByCountry, usersByCity, topLocations);
+        var topLocations = new UserLocationDistributionDTO.TopLocationsDTO(topCountries, topCities);
+        var distribution = new UserLocationDistributionDTO(usersByCountry, usersByCity, topLocations);
 
         logger.info("Distribución geográfica generada", Map.of(
             "total_countries", usersByCountry.size(),
@@ -221,7 +214,7 @@ public class UserAnalyticsService {
      * - Tasa promedio de verificación de email (%)
      * - Tasa promedio de completitud de perfil (%)
      * <p>
-     * Las tasas se calculan en {@link UserEngagementStatsDTO#from} como porcentajes
+     * Las tasas se calculan en {@link UserEngagementMetricsDTO#from} como porcentajes
      * redondeados con precisión de 2 decimales.
      * <p>
      * Casos de uso:
@@ -231,14 +224,14 @@ public class UserAnalyticsService {
      *
      * @return DTO con estadísticas de engagement y tasas calculadas
      */
-    private UserEngagementStatsDTO getEngagementStats() {
+    private UserEngagementMetricsDTO getEngagementStats() {
         logger.info("Generando estadísticas de engagement");
 
         Long totalUsers = userRepository.count();
         Long verifiedUsers = userRepository.countByVerifiedTrue();
         Long completeProfiles = userRepository.countByProfileCompleteTrue();
 
-        UserEngagementStatsDTO stats = UserEngagementStatsDTO.from(totalUsers, verifiedUsers, completeProfiles);
+        UserEngagementMetricsDTO stats = UserEngagementMetricsDTO.from(totalUsers, verifiedUsers, completeProfiles);
 
         logger.info("Estadísticas de engagement generadas", Map.of(
             "total_users", totalUsers,
@@ -276,7 +269,7 @@ public class UserAnalyticsService {
      * @return DTO con tres rankings de top usuarios
      */
     @Transactional(readOnly = true)
-    public UsersTopResponseDTO getTopUsers(int limit) {
+    public UserTopResponseDTO getTopUsers(int limit) {
         logger.info("Generando ranking de top usuarios", Map.of("limit", limit));
 
         // Validar límite
@@ -286,11 +279,11 @@ public class UserAnalyticsService {
         List<User> allUsers = userRepository.findAll();
 
         // Top por popularityScore
-        List<UsersTopResponseDTO.TopUserDTO> topByPopularity = allUsers.stream()
+        List<UserTopResponseDTO.TopUserDTO> topByPopularity = allUsers.stream()
             .filter(u -> u.getPopularityScore() > 0)
             .sorted((u1, u2) -> Double.compare(u2.getPopularityScore(), u1.getPopularityScore()))
             .limit(validLimit)
-            .map(u -> new UsersTopResponseDTO.TopUserDTO(
+            .map(u -> new UserTopResponseDTO.TopUserDTO(
                 u.getId(),
                 u.getName() + " " + u.getLastName(),
                 u.getEmail(),
@@ -300,11 +293,11 @@ public class UserAnalyticsService {
             .toList();
 
         // Top por matchesCount
-        List<UsersTopResponseDTO.TopUserDTO> topByMatches = allUsers.stream()
+        List<UserTopResponseDTO.TopUserDTO> topByMatches = allUsers.stream()
             .filter(u -> u.getMatchesCount() > 0)
             .sorted((u1, u2) -> Long.compare(u2.getMatchesCount(), u1.getMatchesCount()))
             .limit(validLimit)
-            .map(u -> new UsersTopResponseDTO.TopUserDTO(
+            .map(u -> new UserTopResponseDTO.TopUserDTO(
                 u.getId(),
                 u.getName() + " " + u.getLastName(),
                 u.getEmail(),
@@ -314,11 +307,11 @@ public class UserAnalyticsService {
             .toList();
 
         // Top por profileViews
-        List<UsersTopResponseDTO.TopUserDTO> topByViews = allUsers.stream()
+        List<UserTopResponseDTO.TopUserDTO> topByViews = allUsers.stream()
             .filter(u -> u.getProfileViews() > 0)
             .sorted((u1, u2) -> Long.compare(u2.getProfileViews(), u1.getProfileViews()))
             .limit(validLimit)
-            .map(u -> new UsersTopResponseDTO.TopUserDTO(
+            .map(u -> new UserTopResponseDTO.TopUserDTO(
                 u.getId(),
                 u.getName() + " " + u.getLastName(),
                 u.getEmail(),
@@ -333,7 +326,7 @@ public class UserAnalyticsService {
             "top_by_views_count", topByViews.size()
         ));
 
-        return new UsersTopResponseDTO(topByPopularity, topByMatches, topByViews, validLimit);
+        return new UserTopResponseDTO(topByPopularity, topByMatches, topByViews, validLimit);
     }
 
     // ========================================
@@ -358,7 +351,7 @@ public class UserAnalyticsService {
      * @param period Parámetro de período (actualmente no utilizado, reservado para futuro)
      * @return DTO con estadísticas de crecimiento y retención
      */
-    private UserGrowthStatsDTO getGrowthStats(String period) {
+    private UserGrowthMetricsDTO getGrowthStats(String period) {
         logger.info("Generando estadísticas de crecimiento", Map.of("period", period != null ? period : "default"));
 
         LocalDateTime now = LocalDateTime.now();
@@ -374,7 +367,7 @@ public class UserAnalyticsService {
 
         Long totalUsers = userRepository.count();
 
-        UserGrowthStatsDTO stats = UserGrowthStatsDTO.from(
+        UserGrowthMetricsDTO stats = UserGrowthMetricsDTO.from(
             usersLast24Hours,
             usersLast7Days,
             usersLast30Days,
@@ -417,7 +410,7 @@ public class UserAnalyticsService {
      *
      * @return DTO con contadores individuales por estado
      */
-    private UserTabsCountDTO getUserTabsCount() {
+    private UserStatusCountsDTO getUserTabsCount() {
         logger.info("Generando conteo de usuarios por tabs del panel");
 
         Long active = userRepository.countActiveUsers();
@@ -435,7 +428,7 @@ public class UserAnalyticsService {
             "total", total
         ));
 
-        return new UserTabsCountDTO(active, pending, incomplete, unverified, nonApproved, rejected, deactivated, total);
+        return new UserStatusCountsDTO(active, pending, incomplete, unverified, nonApproved, rejected, deactivated, total);
     }
 
     /**
@@ -453,10 +446,10 @@ public class UserAnalyticsService {
      * @return DTO comprehensivo con todas las métricas agregadas
      */
     @Transactional(readOnly = true)
-    public UserComprehensiveMetricsResponseDTO getComprehensiveUserMetrics() {
+    public UserAnalyticsOverviewDTO getComprehensiveUserMetrics() {
         logger.info("Generando métricas comprehensivas de usuarios");
 
-        return new UserComprehensiveMetricsResponseDTO(
+        return new UserAnalyticsOverviewDTO(
             getUserTabsCount(),
             getEngagementStats(),
             getGrowthStats("monthly"),

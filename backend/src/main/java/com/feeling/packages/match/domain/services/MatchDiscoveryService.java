@@ -3,23 +3,27 @@ package com.feeling.packages.match.domain.services;
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
+import com.feeling.packages.match.domain.dto.MatchCompatibilityDTO;
+import com.feeling.packages.match.domain.dto.UserSuggestionDTO;
+import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
+import com.feeling.packages.match.infrastructure.repositories.IUserDismissedRepository;
+import com.feeling.packages.match.infrastructure.repositories.IUserFavoriteRepository;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.response.UserCompatibilityDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
 import com.feeling.packages.user.infrastructure.repositories.IUserMatchingRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Servicio especializado para descubrimiento y recomendación de usuarios compatibles.
@@ -51,6 +55,9 @@ public class MatchDiscoveryService {
 
     private final IUserRepository userRepository;
     private final IUserMatchingRepository userMatchingRepository;
+    private final IUserFavoriteRepository userFavoriteRepository;
+    private final IUserDismissedRepository userDismissedRepository;
+    private final IMatchRepository matchRepository;
 
     // ========================================
     // SUGERENCIAS PERSONALIZADAS
@@ -85,12 +92,13 @@ public class MatchDiscoveryService {
      * @throws BadRequestException Si el perfil del usuario no está completo
      */
     @Transactional(readOnly = true)
-    @Cacheable(
-        value = "userSuggestions",
-        key = "'user_suggestions_' + #userEmail + '_' + #includeLevel + '_' + #pageable.pageNumber + '_' + #pageable.pageSize",
-        unless = "#result == null || #result.isEmpty()"
-    )
-    public Page<UserResponseDTO> getUserSuggestions(String userEmail, String includeLevel, Pageable pageable) {
+    // Cache deshabilitado para permitir variedad en las sugerencias
+    // @Cacheable(
+    //     value = "userSuggestions",
+    //     key = "'user_suggestions_' + #userEmail + '_' + #includeLevel + '_' + #pageable.pageNumber + '_' + #pageable.pageSize",
+    //     unless = "#result == null || #result.isEmpty()"
+    // )
+    public Page<UserSuggestionDTO> getUserSuggestions(String userEmail, String includeLevel, Pageable pageable) {
         User currentUser = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
@@ -112,6 +120,75 @@ public class MatchDiscoveryService {
         logger.logMatching(userEmail, "suggestions", (int) suggestedUsers.getTotalElements(),
             Map.of("page", pageable.getPageNumber(), "level", includeLevel));
 
+        // Calcular sets de interacción para priorizar usuarios sin historial con el solicitante
+        Long currentUserId = currentUser.getId();
+        Set<Long> favoriteUserIds = new HashSet<>(userFavoriteRepository.findFavoriteUserIds(currentUserId));
+        Set<Long> dismissedSuggestionIds = new HashSet<>(userDismissedRepository.findDismissedUserIds(currentUserId));
+        Set<Long> rejectedUserIds = new HashSet<>(matchRepository.findRejectedUserIds(currentUserId));
+        Set<Long> likedUserIds = new HashSet<>(matchRepository.findPendingInitiatedUserIds(currentUserId));
+        Set<Long> matchedUserIds = new HashSet<>(matchRepository.findAcceptedUserIds(currentUserId));
+
+        List<User> freshUsers = new ArrayList<>();
+        List<User> dismissedUsers = new ArrayList<>();
+        List<User> likedOrFavoriteUsers = new ArrayList<>();
+        List<User> matchedUsers = new ArrayList<>();
+
+        for (User candidate : suggestedUsers.getContent()) {
+            Long candidateId = candidate.getId();
+            if (candidateId == null) {
+                freshUsers.add(candidate);
+                continue;
+            }
+
+            if (matchedUserIds.contains(candidateId)) {
+                matchedUsers.add(candidate);
+                continue;
+            }
+
+            boolean isDismissed = dismissedSuggestionIds.contains(candidateId) || rejectedUserIds.contains(candidateId);
+            boolean isLiked = likedUserIds.contains(candidateId);
+            boolean isFavorite = favoriteUserIds.contains(candidateId);
+
+            if (!isDismissed && !isLiked && !isFavorite) {
+                freshUsers.add(candidate);
+            } else if (isDismissed) {
+                dismissedUsers.add(candidate);
+            } else {
+                likedOrFavoriteUsers.add(candidate);
+            }
+        }
+
+        // Mezclar aleatoriamente TODOS los grupos para mayor variedad
+        Collections.shuffle(freshUsers, ThreadLocalRandom.current());
+        Collections.shuffle(dismissedUsers, ThreadLocalRandom.current());
+        Collections.shuffle(likedOrFavoriteUsers, ThreadLocalRandom.current());
+        Collections.shuffle(matchedUsers, ThreadLocalRandom.current());
+
+        // Mezclar rechazados con favoritos/gustados de forma aleatoria
+        List<User> mixedPool = new ArrayList<>(dismissedUsers.size() + likedOrFavoriteUsers.size());
+        if (!dismissedUsers.isEmpty()) {
+            mixedPool.add(dismissedUsers.remove(0));
+        }
+
+        while (!dismissedUsers.isEmpty() || !likedOrFavoriteUsers.isEmpty()) {
+            if (dismissedUsers.isEmpty()) {
+                mixedPool.add(likedOrFavoriteUsers.remove(0));
+            } else if (likedOrFavoriteUsers.isEmpty()) {
+                mixedPool.add(dismissedUsers.remove(0));
+            } else if (ThreadLocalRandom.current().nextBoolean()) {
+                mixedPool.add(dismissedUsers.remove(0));
+            } else {
+                mixedPool.add(likedOrFavoriteUsers.remove(0));
+            }
+        }
+
+        // Orden final: usuarios frescos primero (ya mezclados aleatoriamente),
+        // luego pool mixto, finalmente usuarios con matches confirmados
+        List<User> orderedUsers = new ArrayList<>(freshUsers.size() + mixedPool.size() + matchedUsers.size());
+        orderedUsers.addAll(freshUsers);
+        orderedUsers.addAll(mixedPool);
+        orderedUsers.addAll(matchedUsers);
+
         // Determinar nivel apropiado para sugerencias (máximo BASIC por seguridad)
         UserResponseLevel level = UserResponseLevel.fromString(includeLevel, UserResponseLevel.PUBLIC);
         if (level.ordinal() > UserResponseLevel.BASIC.ordinal()) {
@@ -119,7 +196,25 @@ public class MatchDiscoveryService {
         }
 
         final UserResponseLevel finalLevel = level;
-        return suggestedUsers.map(user -> UserResponseFactory.create(user, finalLevel));
+        final String currentUserEmailFinal = currentUser.getEmail();
+
+        List<UserSuggestionDTO> dtoContent = orderedUsers.stream()
+            .map(user -> {
+                Long candidateId = user.getId();
+                boolean isFavorite = candidateId != null && favoriteUserIds.contains(candidateId);
+                boolean hasPendingMatch = candidateId != null && likedUserIds.contains(candidateId);
+                boolean hasAcceptedMatch = candidateId != null && matchedUserIds.contains(candidateId);
+                boolean isDismissed = candidateId != null && (dismissedSuggestionIds.contains(candidateId) || rejectedUserIds.contains(candidateId));
+
+                // Calcular compatibilidad entre el usuario actual y el candidato
+                MatchCompatibilityDTO compatibility = calculateUserCompatibility(currentUserEmailFinal, user.getEmail());
+
+                UserResponseDTO responseDTO = UserResponseFactory.create(user, finalLevel);
+                return new UserSuggestionDTO(responseDTO, compatibility, isFavorite, hasPendingMatch, hasAcceptedMatch, isDismissed);
+            })
+            .toList();
+
+        return new PageImpl<>(dtoContent, pageable, suggestedUsers.getTotalElements());
     }
 
     // ========================================
@@ -564,7 +659,7 @@ public class MatchDiscoveryService {
      * @throws NotFoundException Si alguno de los usuarios no existe
      */
     @Transactional(readOnly = true)
-    public UserCompatibilityDTO calculateUserCompatibility(String currentUserEmail, String otherUserEmail) {
+    public MatchCompatibilityDTO calculateUserCompatibility(String currentUserEmail, String otherUserEmail) {
         logger.info("Calculando compatibilidad entre usuarios", Map.of(
             "current_user", currentUserEmail,
             "other_user", otherUserEmail
@@ -652,7 +747,7 @@ public class MatchDiscoveryService {
         totalCompatibility = categoryScore + ageScore + locationScore + tagsScore;
         totalCompatibility = Math.min(1.0, totalCompatibility);
 
-        UserCompatibilityDTO result = UserCompatibilityDTO.from(
+        MatchCompatibilityDTO result = MatchCompatibilityDTO.from(
             totalCompatibility,
             categoryScore,
             ageScore,

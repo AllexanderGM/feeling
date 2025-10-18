@@ -3,16 +3,16 @@ package com.feeling.integration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.feeling.domain.dto.views.UserViews;
 import com.feeling.packages.auth.domain.dto.response.AuthProviderInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.UserProfileDataDTO;
-import com.feeling.packages.auth.domain.dto.response.UserStatusDTO;
-import com.feeling.packages.user.domain.dto.UserAccountStatusDTO;
-import com.feeling.packages.user.domain.dto.UserMatchesDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserMetricsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserNotificationDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserPrivacyDTO;
+import com.feeling.packages.user.domain.dto.analytics.UserPerformanceMetricsDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserAccountStatusDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserDataDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserMatchesDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserStatusDTO;
+import com.feeling.packages.user.domain.dto.profile.preferences.UserNotificationDTO;
+import com.feeling.packages.user.domain.dto.profile.preferences.UserPrivacyDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.views.UserViews;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,16 +44,59 @@ public class JsonViewsTest {
 
         // Crear DTO de test con todos los campos
         UserStatusDTO status = new UserStatusDTO(
-            1L, true, true, true, "APPROVED", "CLIENT", 10,
-            LocalDateTime.now(), LocalDateTime.now()
+            true,
+            true,
+            LocalDateTime.now().minusDays(1),
+            true,
+            "APPROVED",
+            "CLIENT",
+            10,
+            LocalDateTime.now().minusMonths(1),
+            false,
+            null,
+            null,
+            false,
+            false,
+            false,
+            false
         );
 
-        UserProfileDataDTO profile = new UserProfileDataDTO(
-            "John", "Doe", "john@example.com", LocalDate.of(1990, 1, 1), 30,
-            "123456789", "+1234567890", "+1", "USA", "New York", "NY", "Manhattan",
-            "Test description", Arrays.asList("img1.jpg", "img2.jpg"), "main.jpg",
-            "NETWORKING", "Male", Arrays.asList("tag1", "tag2"),
-            25, 35, 50, "Test Church", "Custom Church"
+        UserDataDTO profile = new UserDataDTO(
+            100L,
+            "John",
+            "Doe",
+            "john@example.com",
+            LocalDate.of(1990, 1, 1),
+            30,
+            "Software Engineer",
+            "123456789",
+            "+1234567890",
+            "+1",
+            "USA",
+            "New York",
+            "NY",
+            "Manhattan",
+            "Test description",
+            Arrays.asList("img1.jpg", "img2.jpg"),
+            "main.jpg",
+            "NETWORKING",
+            "Male",
+            Arrays.asList("tag1", "tag2"),
+            25,
+            35,
+            50,
+            "Single",
+            175,
+            "Brown",
+            "Black",
+            "Athletic",
+            "University",
+            "Test Church",
+            "Christian",
+            "Prayer moments",
+            "Meditation",
+            "Active",
+            "Long-term"
         );
 
         UserPrivacyDTO privacy = new UserPrivacyDTO(
@@ -64,7 +107,7 @@ public class JsonViewsTest {
             true, false, true, true, false, true
         );
 
-        UserMetricsResponseDTO metrics = new UserMetricsResponseDTO(
+        UserPerformanceMetricsDTO metrics = new UserPerformanceMetricsDTO(
             100L, 25L, 5L, 85.5, 95.0
         );
 
@@ -109,8 +152,32 @@ public class JsonViewsTest {
 
         // NO debe incluir datos sensibles en profile
         assertFalse(jsonNode.get("profile").has("phone"), "Should NOT include phone");
+        assertFalse(jsonNode.get("profile").has("email"), "Should NOT include email");
         assertFalse(jsonNode.get("profile").has("document"), "Should NOT include document");
         assertFalse(jsonNode.get("profile").has("dateOfBirth"), "Should NOT include dateOfBirth");
+
+        // NO debe incluir características físicas en PUBLIC
+        assertFalse(jsonNode.get("profile").has("gender"), "Should NOT include gender");
+        assertFalse(jsonNode.get("profile").has("maritalStatus"), "Should NOT include maritalStatus");
+        assertFalse(jsonNode.get("profile").has("height"), "Should NOT include height");
+        assertFalse(jsonNode.get("profile").has("eyeColor"), "Should NOT include eyeColor");
+        assertFalse(jsonNode.get("profile").has("hairColor"), "Should NOT include hairColor");
+        assertFalse(jsonNode.get("profile").has("bodyType"), "Should NOT include bodyType");
+        assertFalse(jsonNode.get("profile").has("education"), "Should NOT include education");
+
+        // NO debe incluir datos espirituales en PUBLIC
+        assertFalse(jsonNode.get("profile").has("church"), "Should NOT include church");
+        assertFalse(jsonNode.get("profile").has("customChurch"), "Should NOT include customChurch");
+        assertFalse(jsonNode.get("profile").has("religion"), "Should NOT include religion");
+        assertFalse(jsonNode.get("profile").has("spiritualMoments"), "Should NOT include spiritualMoments");
+        assertFalse(jsonNode.get("profile").has("spiritualPractices"), "Should NOT include spiritualPractices");
+
+        // NO debe incluir datos de relación en PUBLIC
+        assertFalse(jsonNode.get("profile").has("sexualRole"), "Should NOT include sexualRole");
+        assertFalse(jsonNode.get("profile").has("relationshipType"), "Should NOT include relationshipType");
+
+        // SÍ debe incluir phoneCode en PUBLIC (según requerimiento)
+        assertTrue(jsonNode.get("profile").has("phoneCode"), "Should include phoneCode in PUBLIC");
 
         System.out.println("Public View JSON length: " + json.length());
     }
@@ -145,32 +212,32 @@ public class JsonViewsTest {
         System.out.println("Internal View JSON length: " + json.length());
     }
 
-    @Test
-    @DisplayName("Test Admin View - Should Show Everything")
-    void testAdminView() throws JsonProcessingException {
-        String json = objectMapper
-            .writerWithView(UserViews.Admin.class)
-            .writeValueAsString(testUserDTO);
-
-        JsonNode jsonNode = objectMapper.readTree(json);
-
-        // Debe incluir TODOS los campos
-        assertTrue(jsonNode.has("complaintStatus"), "Should include complaintStatus");
-        assertTrue(jsonNode.has("profile"), "Should include profile");
-        assertTrue(jsonNode.has("privacy"), "Should include privacy");
-        assertTrue(jsonNode.has("notifications"), "Should include notifications");
-        assertTrue(jsonNode.has("metrics"), "Should include metrics");
-        assertTrue(jsonNode.has("matches"), "Should include matches");
-        assertTrue(jsonNode.has("auth"), "Should include auth");
-        assertTrue(jsonNode.has("account"), "Should include account");
-
-        // Debe incluir todos los campos de profile
-        assertTrue(jsonNode.get("profile").has("phone"), "Should include phone");
-        assertTrue(jsonNode.get("profile").has("document"), "Should include document");
-        assertTrue(jsonNode.get("profile").has("dateOfBirth"), "Should include dateOfBirth");
-
-        System.out.println("Admin View JSON length: " + json.length());
-    }
+//    @Test
+//     @DisplayName("Test Admin View - Should Show Everything")
+//     void testAdminView() throws JsonProcessingException {
+//         String json = objectMapper
+//             .writerWithView(UserViews.Admin.class)
+//             .writeValueAsString(testUserDTO);
+//
+//         JsonNode jsonNode = objectMapper.readTree(json);
+//
+//         // Debe incluir TODOS los campos
+//         assertTrue(jsonNode.has("complaintStatus"), "Should include complaintStatus");
+//         assertTrue(jsonNode.has("profile"), "Should include profile");
+//         assertTrue(jsonNode.has("privacy"), "Should include privacy");
+//         assertTrue(jsonNode.has("notifications"), "Should include notifications");
+//         assertTrue(jsonNode.has("analytics"), "Should include analytics");
+//         assertTrue(jsonNode.has("matches"), "Should include matches");
+//         assertTrue(jsonNode.has("auth"), "Should include auth");
+//         assertTrue(jsonNode.has("account"), "Should include account");
+//
+//         // Debe incluir todos los campos de profile
+//         assertTrue(jsonNode.get("profile").has("phone"), "Should include phone");
+//         assertTrue(jsonNode.get("profile").has("document"), "Should include document");
+//         assertTrue(jsonNode.get("profile").has("dateOfBirth"), "Should include dateOfBirth");
+//
+//         System.out.println("Admin View JSON length: " + json.length());
+//     }
 
     @Test
     @DisplayName("Test Suggestions View - Should Exclude Phone")
@@ -219,26 +286,6 @@ public class JsonViewsTest {
     }
 
     @Test
-    @DisplayName("Test Metrics View - Should Only Show Metrics")
-    void testMetricsView() throws JsonProcessingException {
-        String json = objectMapper
-            .writerWithView(UserViews.Metrics.class)
-            .writeValueAsString(testUserDTO);
-
-        JsonNode jsonNode = objectMapper.readTree(json);
-
-        // Debe incluir métricas
-        assertTrue(jsonNode.has("metrics"), "Should include metrics");
-
-        // NO debe incluir otros campos
-        assertFalse(jsonNode.has("privacy"), "Should NOT include privacy");
-        assertFalse(jsonNode.has("notifications"), "Should NOT include notifications");
-        assertFalse(jsonNode.has("auth"), "Should NOT include auth");
-
-        System.out.println("Metrics View JSON length: " + json.length());
-    }
-
-    @Test
     @DisplayName("Test View Size Comparison")
     void testViewSizeComparison() throws JsonProcessingException {
         String publicJson = objectMapper
@@ -249,9 +296,10 @@ public class JsonViewsTest {
             .writerWithView(UserViews.Internal.class)
             .writeValueAsString(testUserDTO);
 
-        String adminJson = objectMapper
-            .writerWithView(UserViews.Admin.class)
-            .writeValueAsString(testUserDTO);
+        // Admin view removed - admins see all fields without view restrictions
+        // String adminJson = objectMapper
+        //     .writerWithView(UserViews.Admin.class)
+        //     .writeValueAsString(testUserDTO);
 
         String suggestionsJson = objectMapper
             .writerWithView(UserViews.Suggestions.class)
@@ -261,8 +309,8 @@ public class JsonViewsTest {
         assertTrue(publicJson.length() < internalJson.length(),
             "Public view should be smaller than internal view");
 
-        assertTrue(internalJson.length() < adminJson.length(),
-            "Internal view should be smaller than admin view");
+        // assertTrue(internalJson.length() < adminJson.length(),
+        //     "Internal view should be smaller than admin view");
 
         assertTrue(suggestionsJson.length() < internalJson.length(),
             "Suggestions view should be smaller than internal view");
@@ -271,7 +319,7 @@ public class JsonViewsTest {
         System.out.println("Public: " + publicJson.length() + " characters");
         System.out.println("Suggestions: " + suggestionsJson.length() + " characters");
         System.out.println("Internal: " + internalJson.length() + " characters");
-        System.out.println("Admin: " + adminJson.length() + " characters");
+        // System.out.println("Admin: " + adminJson.length() + " characters");
     }
 
     @Test

@@ -1,5 +1,6 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 import { API_ENDPOINTS } from '@constants/apiRoutes'
+import { Logger } from '@utils/logger.js'
 
 /**
  * Servicio de inscripciones a eventos de Feeling

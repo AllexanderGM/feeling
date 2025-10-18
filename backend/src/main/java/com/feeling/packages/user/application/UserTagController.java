@@ -2,8 +2,8 @@ package com.feeling.packages.user.application;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserTagDTO;
-import com.feeling.packages.user.domain.dto.request.UserTagRequestDTO;
+import com.feeling.packages.user.domain.dto.tags.UserTagRequestDTO;
+import com.feeling.packages.user.domain.dto.tags.UserTagResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.domain.services.UserTagService;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
@@ -67,10 +67,10 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener tags del usuario actual",
         description = "Obtiene todos los tags del usuario autenticado actual")
-    public ResponseEntity<List<UserTagDTO>> getMyTags(Authentication authentication) {
+    public ResponseEntity<List<UserTagResponseDTO>> getMyTags(Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            List<UserTagDTO> tags = userTagService.getUserTags(userEmail);
+            List<UserTagResponseDTO> tags = userTagService.getUserTags(userEmail);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
             logger.error("Error obteniendo tags del usuario", e);
@@ -82,12 +82,12 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Agregar tags al usuario actual",
         description = "Agrega nuevos tags al perfil del usuario actual")
-    public ResponseEntity<List<UserTagDTO>> addTagsToMe(
+    public ResponseEntity<List<UserTagResponseDTO>> addTagsToMe(
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            List<UserTagDTO> updatedTags = userTagService.addTagsToUser(userEmail, request.tags());
+            List<UserTagResponseDTO> updatedTags = userTagService.addTagsToUser(userEmail, request.tags());
             return ResponseEntity.ok(updatedTags);
         } catch (Exception e) {
             logger.error("Error añadiendo tags al usuario", e);
@@ -99,13 +99,13 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Reemplazar tags de usuario",
         description = "Reemplaza todos los tags actuales del usuario con nuevos")
-    public ResponseEntity<List<UserTagDTO>> replaceMyTags(
+    public ResponseEntity<List<UserTagResponseDTO>> replaceMyTags(
         @Parameter(description = "ID del tag (no usado, mantenido por estructura de URL)") @PathVariable Long tagId,
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            List<UserTagDTO> updatedTags = userTagService.replaceUserTags(userEmail, request.tags());
+            List<UserTagResponseDTO> updatedTags = userTagService.replaceUserTags(userEmail, request.tags());
             return ResponseEntity.ok(updatedTags);
         } catch (Exception e) {
             logger.error("Error reemplazando tags del usuario", e);
@@ -139,11 +139,11 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Buscar tags",
         description = "Busca tags por nombre o query")
-    public ResponseEntity<Page<UserTagDTO>> searchTags(
+    public ResponseEntity<Page<UserTagResponseDTO>> searchTags(
         @RequestParam(required = false) String query,
         @PageableDefault(size = 20) Pageable pageable) {
         try {
-            Page<UserTagDTO> tags = userTagService.searchTagsPaginated(query, pageable);
+            Page<UserTagResponseDTO> tags = userTagService.searchTagsPaginated(query, pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
             logger.error("Error buscando tags", e);
@@ -155,10 +155,10 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener tags populares",
         description = "Obtiene los tags más populares del sistema")
-    public ResponseEntity<Page<UserTagDTO>> getPopularTags(
+    public ResponseEntity<Page<UserTagResponseDTO>> getPopularTags(
         @PageableDefault(size = 20) Pageable pageable) {
         try {
-            Page<UserTagDTO> tags = userTagService.getPopularTagsPaginated(pageable);
+            Page<UserTagResponseDTO> tags = userTagService.getPopularTagsPaginated(pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
             logger.error("Error obteniendo tags populares", e);
@@ -170,10 +170,10 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener tags en tendencia",
         description = "Obtiene los tags en tendencia del sistema")
-    public ResponseEntity<Page<UserTagDTO>> getTrendingTags(
+    public ResponseEntity<Page<UserTagResponseDTO>> getTrendingTags(
         @PageableDefault(size = 15) Pageable pageable) {
         try {
-            Page<UserTagDTO> tags = userTagService.getTrendingTagsPaginated(pageable);
+            Page<UserTagResponseDTO> tags = userTagService.getTrendingTagsPaginated(pageable);
             return ResponseEntity.ok(tags);
         } catch (Exception e) {
             logger.error("Error obteniendo tags en tendencia", e);
@@ -185,12 +185,12 @@ public class UserTagController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener sugerencias de tags personalizadas",
         description = "Obtiene sugerencias de tags personalizadas para el usuario actual")
-    public ResponseEntity<Page<UserTagDTO>> getTagSuggestions(
+    public ResponseEntity<Page<UserTagResponseDTO>> getTagSuggestions(
         @PageableDefault(size = 10) Pageable pageable,
         Authentication authentication) {
         try {
             String userEmail = authentication.getName();
-            Page<UserTagDTO> suggestions = userTagService.getSuggestedTagsForUserPaginated(userEmail, pageable);
+            Page<UserTagResponseDTO> suggestions = userTagService.getSuggestedTagsForUserPaginated(userEmail, pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
             logger.error("Error obteniendo sugerencias de tags", e);
@@ -206,10 +206,10 @@ public class UserTagController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener tags pendientes de aprobación",
         description = "Obtiene tags pendientes de aprobación (solo admin)")
-    public ResponseEntity<Page<UserTagDTO>> getPendingApprovalTags(
+    public ResponseEntity<Page<UserTagResponseDTO>> getPendingApprovalTags(
         @PageableDefault(size = 20) Pageable pageable) {
         try {
-            Page<UserTagDTO> pendingTags = userTagService.getPendingApprovalTagsPaginated(pageable);
+            Page<UserTagResponseDTO> pendingTags = userTagService.getPendingApprovalTagsPaginated(pageable);
             return ResponseEntity.ok(pendingTags);
         } catch (Exception e) {
             logger.error("Error obteniendo tags pendientes de aprobación", e);
@@ -221,13 +221,13 @@ public class UserTagController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nuevo tag",
         description = "Crea un nuevo tag (solo admin)")
-    public ResponseEntity<UserTagDTO> createTag(
+    public ResponseEntity<UserTagResponseDTO> createTag(
         @Valid @RequestBody UserTagRequestDTO request,
         Authentication authentication) {
         try {
             String adminEmail = authentication.getName();
             UserTag tag = userTagService.createTag(request.name(), adminEmail);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new UserTagDTO(tag));
+            return ResponseEntity.status(HttpStatus.CREATED).body(new UserTagResponseDTO(tag));
         } catch (Exception e) {
             logger.error("Error creando tag", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -238,11 +238,11 @@ public class UserTagController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar tag",
         description = "Actualiza un tag existente (solo admin)")
-    public ResponseEntity<UserTagDTO> updateTag(
+    public ResponseEntity<UserTagResponseDTO> updateTag(
         @Parameter(description = "ID del tag") @PathVariable Long tagId,
         @Valid @RequestBody UserTagRequestDTO request) {
         try {
-            UserTagDTO updatedTag = userTagService.updateTag(tagId, request.name());
+            UserTagResponseDTO updatedTag = userTagService.updateTag(tagId, request.name());
             return ResponseEntity.ok(updatedTag);
         } catch (Exception e) {
             logger.error("Error actualizando tag", Map.of("tagId", tagId), e);

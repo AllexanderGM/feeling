@@ -1,4 +1,4 @@
-import { useCreateTour } from '@context/CreateTourContext.jsx'
+import { useCreateTour } from '@contexts/CreateTourContext.jsx'
 
 import CrearTourForm from './CrearTourForm.jsx'
 

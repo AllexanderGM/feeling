@@ -3,7 +3,7 @@ import { Card, CardBody, CardHeader, Avatar, Divider, Button } from '@heroui/rea
 import { useNavigate } from 'react-router-dom'
 import { Logger } from '@utils/logger.js'
 
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
 import { getUserByEmail } from '../../services/user/userService.js'
 
 const ProfilePage = () => {

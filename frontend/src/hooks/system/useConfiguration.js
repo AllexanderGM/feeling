@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
 import { configurationService } from '@services'
 import { Logger } from '@utils/logger.js'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import { useError, useAsyncOperation } from '@hooks'
 
 const useConfiguration = () => {
   const { handleApiResponse } = useError()

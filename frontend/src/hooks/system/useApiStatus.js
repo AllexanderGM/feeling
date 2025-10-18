@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiStatusService } from '@services'
-import { useError } from '@hooks/utils/useError.js'
+import { useError } from '@hooks'
 
 /**
  * Hook personalizado para obtener y manejar el estado completo de la API

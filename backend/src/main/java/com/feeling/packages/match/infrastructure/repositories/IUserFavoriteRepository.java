@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -31,4 +32,7 @@ public interface IUserFavoriteRepository extends JpaRepository<UserFavorite, Lon
     Long countUserFavorites(@Param("user") User user);
 
     void deleteByUserAndFavoriteUser(User user, User favoriteUser);
+
+    @Query("SELECT uf.favoriteUser.id FROM UserFavorite uf WHERE uf.user.id = :userId")
+    List<Long> findFavoriteUserIds(@Param("userId") Long userId);
 }

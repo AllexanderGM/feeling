@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, User, Chip } from '@heroui/react'
-import { useAuth } from '@context/AuthContext.jsx'
+import { useAuth } from '@contexts/AuthContext.jsx'
 import { getAllUsers, getUserByEmail } from '@services'
 import { Logger } from '@utils/logger.js'
 

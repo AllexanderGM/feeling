@@ -4,7 +4,7 @@ import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.services.UserApprovalService;
 import io.swagger.v3.oas.annotations.Operation;

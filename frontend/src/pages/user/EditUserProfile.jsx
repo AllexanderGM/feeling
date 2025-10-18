@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Card, CardBody, CardHeader, Divider } from '@heroui/react'
 import { Logger } from '@utils/logger.js'
 
-import { useAuth } from '../../context/AuthContext.jsx'
+import { useAuth } from '../../contexts/AuthContext.jsx'
 import { getUserByEmail, updateUser } from '../../services/user/userService.js'
 
 // Funciones auxiliares

@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.packages.user.domain.dto.request.UserPartialUpdateDTO;
+import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -268,7 +268,7 @@ public class UserValidationService {
      * @param updateDTO Datos de actualización
      * @return true si puede realizar la actualización
      */
-    public boolean canUpdateProfile(User user, UserPartialUpdateDTO updateDTO) {
+    public boolean canUpdateProfile(User user, UserRequestDTO updateDTO) {
         if (user == null || updateDTO == null) {
             return false;
         }

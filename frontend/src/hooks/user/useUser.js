@@ -1,11 +1,25 @@
 import { useCallback, useState, useContext } from 'react'
 import { userService, matchService } from '@services'
 import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField } from '@schemas'
-import AuthContext from '@context/AuthContext.jsx'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import AuthContext from '@contexts/AuthContext.jsx'
+import { useError, useAsyncOperation } from '@hooks'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 import { Logger } from '@utils/logger'
+
+const dedupeSuggestions = suggestions => {
+  const seen = new Map()
+
+  suggestions.forEach(suggestion => {
+    // Usar user.status.id como clave única (estructura de la API)
+    const key = suggestion.user?.status?.id ?? suggestion.status?.id ?? JSON.stringify(suggestion)
+
+    if (!seen.has(key)) {
+      seen.set(key, suggestion)
+    }
+  })
+
+  return Array.from(seen.values())
+}
 
 const useUser = () => {
   const context = useContext(AuthContext)
@@ -64,6 +78,31 @@ const useUser = () => {
   )
 
   /**
+   * Obtener perfil de usuario por ID (primero busca en sugerencias, luego hace llamado API)
+   */
+  const getUserProfileById = useCallback(
+    async (userId, includeLevel = 'public', showNotifications = false) => {
+      // Primero intentar encontrar en sugerencias cargadas
+      const foundUser = suggestions.find(
+        suggestion =>
+          suggestion?.user?.status?.id?.toString() === userId?.toString() || suggestion?.status?.id?.toString() === userId?.toString()
+      )
+
+      if (foundUser) {
+        return { success: true, data: foundUser, fromCache: true }
+      }
+
+      // Si no está en sugerencias, hacer llamado a la API
+      const result = await withLoading(async () => {
+        return await userService.getUserProfileById(userId, includeLevel)
+      }, 'obtener perfil de usuario por ID')
+
+      return handleApiResponse(result, 'Perfil de usuario obtenido.', { showNotifications })
+    },
+    [suggestions, withLoading, handleApiResponse]
+  )
+
+  /**
    * Obtener perfil completo de usuario para match
    */
   const getUserCompleteProfile = useCallback(
@@ -95,48 +134,60 @@ const useUser = () => {
    * Obtener sugerencias de usuarios (pageable)
    */
   const fetchUserSuggestions = useCallback(
-    async (page = 0, size = 4, includeLevel = 'public', showNotifications = false) => {
+    async (page = 0, size = 3, includeLevel = 'public', showNotifications = false) => {
       const result = await withLoading(async () => {
         Logger.log('🌍 Fetching user suggestions - include:', includeLevel, 'page:', page, 'size:', size)
         const response = await userService.getUserSuggestions(includeLevel, page, size)
 
         Logger.log('📡 API Response received:', response)
 
-        // Manejar respuesta paginada
+        const buildSuggestion = item => {
+          // Mantener la estructura original de la API
+          return {
+            ...item, // Mantener user, compatibility, favorite, etc.
+            matchMetadata: {
+              isFavorite: item?.favorite ?? false,
+              hasPendingMatch: item?.hasPendingMatch ?? false,
+              hasAcceptedMatch: item?.hasAcceptedMatch ?? false,
+              isDismissed: item?.dismissed ?? false
+            }
+          }
+        }
+
+        let batch = []
+
         if (response.content && Array.isArray(response.content)) {
           Logger.log('📄 Processing paginated response with', response.content.length, 'users')
-          // Usar directamente la estructura estándar del proyecto
-          const suggestions = response.content
-
-          Logger.log('📋 Final suggestions to set:', suggestions)
-
-          setSuggestions(suggestions)
+          batch = response.content.map(buildSuggestion)
           setSuggestionsPagination({
-            page: response.number || page,
-            size: response.size || size,
-            totalPages: response.totalPages || 0,
-            totalElements: response.totalElements || 0,
+            page: response.number ?? page,
+            size: response.size ?? size,
+            totalPages: response.totalPages ?? 0,
+            totalElements: response.totalElements ?? 0,
             hasNext: !response.last,
             hasPrevious: !response.first
           })
-
-          return suggestions
         } else {
-          // Fallback para respuesta no paginada
-          const suggestions = Array.isArray(response) ? response : [response].filter(Boolean)
+          const normalized = Array.isArray(response) ? response : [response].filter(Boolean)
 
-          setSuggestions(suggestions)
-          setSuggestionsPagination({
-            page: 0,
-            size: suggestions.length,
-            totalPages: 1,
-            totalElements: suggestions.length,
-            hasNext: false,
-            hasPrevious: false
-          })
-
-          return suggestions
+          batch = normalized.map(buildSuggestion)
+          setSuggestionsPagination(prev => ({
+            page,
+            size,
+            totalPages: prev.totalPages || (page > 0 ? prev.totalPages : 1),
+            totalElements: (prev.totalElements || 0) + batch.length,
+            hasNext: batch.length === size,
+            hasPrevious: page > 0
+          }))
         }
+
+        setSuggestions(prev => {
+          const merged = page === 0 ? batch : [...prev, ...batch]
+
+          return dedupeSuggestions(merged)
+        })
+
+        return batch
       }, 'obtener sugerencias')
 
       return handleApiResponse(result, 'Sugerencias cargadas.', { showNotifications })
@@ -531,6 +582,7 @@ const useUser = () => {
     // Cliente endpoints
     getCurrentUser,
     getUserPublicProfile,
+    getUserProfileById,
     getUserCompleteProfile,
     calculateCompatibility,
     fetchUserSuggestions,

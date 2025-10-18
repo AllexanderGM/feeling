@@ -24,7 +24,7 @@ public class ValidationGroupsTest {
     @Test
     @DisplayName("Test Create User Validation Group")
     void testCreateUserValidationGroup() {
-        // Note: This test is deprecated as UserPartialUpdateDTO is designed for PATCH operations
+        // Note: This test is deprecated as UserRequestDTO is designed for PATCH operations
         // and uses Optional<T> for all fields. Validation groups are not applicable to Optional-based DTOs.
         // Validation should be performed at the service level, not at the DTO level.
 

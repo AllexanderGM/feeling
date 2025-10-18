@@ -1,4 +1,4 @@
-import { ServiceNoREST } from '@services/utils/serviceNoREST.js'
+import { ServiceNoREST } from '@services'
 import { COOKIE_OPTIONS } from '@config/config'
 
 /**

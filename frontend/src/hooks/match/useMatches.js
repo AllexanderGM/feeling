@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { matchService } from '@services'
-import { useError } from '@hooks/utils/useError.js'
+import { useError } from '@hooks'
 
 export const useMatches = () => {
   const [matches, setMatches] = useState({
     sent: [],
     received: [],
+    receivedPending: [],
     accepted: [],
-    favorites: []
+    favorites: [],
+    history: []
   })
   const [matchStats, setMatchStats] = useState({
     totalMatches: 0,
@@ -54,6 +56,26 @@ export const useMatches = () => {
         return response
       } catch (error) {
         handleError('Error al cargar matches recibidos', error)
+
+        return { content: [], totalElements: 0 }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError]
+  )
+
+  const fetchPendingReceivedMatches = useCallback(
+    async (page = 0, size = 10) => {
+      try {
+        setLoading(true)
+        const response = await matchService.getPendingReceivedMatches(page, size)
+
+        setMatches(prev => ({ ...prev, receivedPending: response.content || response }))
+
+        return response
+      } catch (error) {
+        handleError('Error al cargar matches recibidos pendientes', error)
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -144,6 +166,40 @@ export const useMatches = () => {
       return []
     }
   }, [handleError])
+
+  const fetchMatchHistory = useCallback(
+    async (status = null, from = null, to = null, page = 0, size = 10) => {
+      try {
+        setLoading(true)
+        const response = await matchService.getMatchHistory(status, from, to, page, size)
+
+        setMatches(prev => ({ ...prev, history: response.content || response }))
+
+        return response
+      } catch (error) {
+        handleError('Error al cargar historial de matches', error)
+
+        return { content: [], totalElements: 0 }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError]
+  )
+
+  const fetchMatchById = useCallback(
+    async matchId => {
+      try {
+        const response = await matchService.getMatchById(matchId)
+
+        return response
+      } catch (error) {
+        handleError('Error al cargar detalle de match', error)
+        throw error
+      }
+    },
+    [handleError]
+  )
 
   // ===============================
   // MATCH OPERATIONS
@@ -267,6 +323,21 @@ export const useMatches = () => {
     [handleError, fetchFavorites]
   )
 
+  const checkIfFavorite = useCallback(
+    async userId => {
+      try {
+        const response = await matchService.checkIfFavorite(userId)
+
+        return response.isFavorite || false
+      } catch (error) {
+        handleError('Error al verificar favorito', error)
+
+        return false
+      }
+    },
+    [handleError]
+  )
+
   // ===============================
   // REFRESH ALL DATA
   // ===============================
@@ -277,6 +348,7 @@ export const useMatches = () => {
       await Promise.all([
         fetchSentMatches(),
         fetchReceivedMatches(),
+        fetchPendingReceivedMatches(),
         fetchAcceptedMatches(),
         fetchFavorites(),
         fetchMatchStats(),
@@ -291,6 +363,7 @@ export const useMatches = () => {
   }, [
     fetchSentMatches,
     fetchReceivedMatches,
+    fetchPendingReceivedMatches,
     fetchAcceptedMatches,
     fetchFavorites,
     fetchMatchStats,
@@ -338,11 +411,14 @@ export const useMatches = () => {
     // Fetch operations
     fetchSentMatches,
     fetchReceivedMatches,
+    fetchPendingReceivedMatches,
     fetchAcceptedMatches,
     fetchFavorites,
     fetchMatchStats,
     fetchRemainingAttempts,
     fetchNotifications,
+    fetchMatchHistory,
+    fetchMatchById,
 
     // Match operations
     sendMatch,
@@ -353,6 +429,7 @@ export const useMatches = () => {
     // Favorites operations
     addToFavorites,
     removeFromFavorites,
+    checkIfFavorite,
 
     // Notifications
     markNotificationAsRead,

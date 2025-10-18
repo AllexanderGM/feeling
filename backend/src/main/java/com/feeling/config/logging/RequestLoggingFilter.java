@@ -151,7 +151,7 @@ public class RequestLoggingFilter implements Filter {
         // Skipear requests de health check y actuator
         if (uri.contains("/actuator") ||
             uri.contains("/health") ||
-            uri.contains("/metrics") ||
+            uri.contains("/analytics") ||
             uri.contains("/favicon.ico") ||
             uri.contains("/swagger") ||
             uri.contains("/api-docs")) {

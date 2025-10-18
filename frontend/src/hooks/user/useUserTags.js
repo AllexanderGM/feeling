@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import { useAsyncOperation } from '@hooks'
 
 /**
  * Hook para manejar tags/intereses de usuario

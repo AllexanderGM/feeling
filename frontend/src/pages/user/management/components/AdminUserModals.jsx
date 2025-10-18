@@ -123,7 +123,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onRejectUser(selectedUser.id, genericModerationReason)
+        await onRejectUser(selectedUser.status?.id || selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleRejectUser', 'Error rejecting user', error)
@@ -134,7 +134,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onDeactivateUser(selectedUser.id, genericModerationReason)
+        await onDeactivateUser(selectedUser.status?.id || selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleDeactivateUser', 'Error deactivating user', error)
@@ -145,7 +145,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onApproveUser(selectedUser.id)
+        await onApproveUser(selectedUser.status?.id || selectedUser.id)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleApproveUser', 'Error approving user', error)
@@ -156,7 +156,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onReactivateUser(selectedUser.id)
+        await onReactivateUser(selectedUser.status?.id || selectedUser.id)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleReactivateUser', 'Error reactivating user', error)

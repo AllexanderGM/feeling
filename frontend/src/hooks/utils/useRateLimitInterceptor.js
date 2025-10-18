@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
-
-import { registerRateLimitCallback } from '../../services/utils/api'
-import { useRateLimit } from '../../contexts/RateLimitContext'
+import { useRateLimit } from '@contexts/RateLimitContext'
+import { registerRateLimitCallback } from '@services'
 
 /**
  * Hook para registrar automáticamente el callback de rate limiting

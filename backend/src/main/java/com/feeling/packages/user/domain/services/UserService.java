@@ -9,11 +9,10 @@ import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepositor
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.request.UserPartialUpdateDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
-import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,14 +70,10 @@ public class UserService {
 
     // Repositorios
     private final IUserRepository userRepository;
-    private final IUserCategoryInterestRepository categoryInterestRepository;
     private final IAuthTokenRepository tokenRepository;
 
-    // Servicios externos
-    private final PasswordEncoder passwordEncoder;
-
     // Servicios internos
-    private final UserAttributeService userAttributeService;
+    private final UserProfileUpdater userProfileUpdater;
     private final UserValidationService userValidationService;
     private final UserBatchOperationHelper userBatchOperationHelper;
 
@@ -106,10 +100,10 @@ public class UserService {
      * @return DTO con información estándar del usuario
      * @throws UnauthorizedException Si el usuario no existe
      */
+    @Transactional(readOnly = true)
     public UserResponseDTO get(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        logger.logUserOperation("GET_USER", user.getEmail(), Map.of("found", true));
         return new UserResponseDTO(user);
     }
 
@@ -140,8 +134,6 @@ public class UserService {
     public UserResponseDTO get(String email, String includeLevel) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        logger.logUserOperation("GET_USER_WITH_LEVEL", user.getEmail(),
-            Map.of("found", true, "level", includeLevel));
         return UserResponseFactory.create(user, includeLevel, UserResponseLevel.BASIC);
     }
 
@@ -164,6 +156,7 @@ public class UserService {
      * @return DTO con información del usuario según el nivel apropiado determinado
      * @throws UnauthorizedException Si el usuario objetivo no existe
      */
+    @Transactional(readOnly = true)
     public UserResponseDTO get(String targetEmail, String currentUserEmail, String requestedLevel) {
         return getUserResponseDTO(targetEmail, currentUserEmail, requestedLevel, userRepository);
     }
@@ -191,11 +184,6 @@ public class UserService {
 
         UserResponseLevel appropriateLevel = UserResponseFactory
             .determineAppropriateLevel(currentUser, targetUser, requestedLevel);
-
-        UserService.logger.logUserOperation("GET_USER_CONTEXTUALIZED", targetUser.getEmail(),
-            Map.of("currentUser", currentUserEmail != null ? currentUserEmail : "anonymous",
-                "requestedLevel", requestedLevel,
-                "grantedLevel", appropriateLevel.toString()));
 
         return UserResponseFactory.create(targetUser, appropriateLevel);
     }
@@ -243,7 +231,6 @@ public class UserService {
      */
     public List<UserResponseDTO> getList() {
         List<User> users = userRepository.findAll();
-        logger.info("Usuarios encontrados correctamente");
         return users.stream()
             .map(UserResponseDTO::new)
             .collect(Collectors.toList());
@@ -265,10 +252,6 @@ public class UserService {
             pageable.getPageSize(),
             Sort.by(Sort.Direction.DESC, "createdAt")
         ));
-        logger.info("Usuarios paginados encontrados correctamente", Map.of(
-            "page", pageable.getPageNumber(),
-            "size", pageable.getPageSize(),
-            "total", users.getTotalElements()));
         return users.map(UserResponseDTO::new);
     }
 
@@ -289,10 +272,6 @@ public class UserService {
      */
     public Page<UserResponseDTO> searchUsers(String searchTerm, Pageable pageable) {
         Page<User> users = userRepository.findBySearchTerm(searchTerm, pageable);
-        logger.info("Búsqueda de usuarios completada", Map.of(
-            "searchTerm", searchTerm,
-            "page", pageable.getPageNumber(),
-            "results", users.getTotalElements()));
         return users.map(UserResponseDTO::new);
     }
 
@@ -316,17 +295,6 @@ public class UserService {
      * - Preferencias: rango de edad, radio de ubicación
      * - Configuración: privacidad, notificaciones
      * - Contraseña (encriptada automáticamente)
-     * <p>
-     * La lógica de aplicación de cambios está centralizada en {@link UserDTOMapper#applyPartialUpdate}
-     * para mantener consistencia y evitar duplicación de código.
-     * <p>
-     * Cache: Invalida múltiples caches relacionados automáticamente.
-     *
-     * @param email          Email del usuario a actualizar
-     * @param userRequestDTO DTO con los campos a actualizar (solo campos no-null)
-     * @return DTO con la información completa actualizada del usuario
-     * @throws UnauthorizedException Si el usuario no existe
-     * @throws BadRequestException   Si el DTO está vacío (sin campos para actualizar)
      */
     @Transactional
     @org.springframework.cache.annotation.CacheEvict(
@@ -334,7 +302,7 @@ public class UserService {
         key = "#email",
         allEntries = false
     )
-    public UserResponseDTO update(String email, UserPartialUpdateDTO userRequestDTO) {
+    public UserResponseDTO update(String email, UserRequestDTO userRequestDTO) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
@@ -342,8 +310,13 @@ public class UserService {
             throw new BadRequestException("No se enviaron campos para actualizar");
         }
 
+        // Determinar si quien actualiza es admin
+        boolean isAdmin = user.getUserRole() != null &&
+            ("ADMIN".equals(user.getUserRole().getAuthority()) ||
+                "SUPER_ADMIN".equals(user.getUserRole().getAuthority()));
+
         // Aplicar actualizaciones usando el mapper centralizado
-        UserDTOMapper.applyPartialUpdate(user, userRequestDTO, userAttributeService, categoryInterestRepository, passwordEncoder);
+        userProfileUpdater.apply(user, userRequestDTO, isAdmin);
 
         User savedUser = userRepository.save(user);
         logger.logUserOperation("user_partial_updated", email,
@@ -435,13 +408,6 @@ public class UserService {
     public Page<UserResponseDTO> getActiveUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> activeUsers = userRepository.findActiveUsers(search, pageable);
-
-        logger.info("Usuarios activos encontrados", Map.of(
-            "searchTerm", searchTerm != null ? searchTerm : "N/A",
-            "page", pageable.getPageNumber(),
-            "size", pageable.getPageSize(),
-            "total", activeUsers.getTotalElements()));
-
         return activeUsers.map(UserResponseDTO::new);
     }
 
@@ -462,13 +428,6 @@ public class UserService {
     public Page<UserResponseDTO> getUnverifiedUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> unverifiedUsers = userRepository.findUnverifiedUsers(search, pageable);
-
-        logger.info("Usuarios con email no verificado encontrados", Map.of(
-            "searchTerm", searchTerm != null ? searchTerm : "N/A",
-            "page", pageable.getPageNumber(),
-            "size", pageable.getPageSize(),
-            "total", unverifiedUsers.getTotalElements()));
-
         return unverifiedUsers.map(UserResponseDTO::new);
     }
 
@@ -492,13 +451,6 @@ public class UserService {
     public Page<UserResponseDTO> getDeactivatedUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> deactivatedUsers = userRepository.findDeactivatedUsers(search, pageable);
-
-        logger.info("Usuarios desactivados encontrados", Map.of(
-            "searchTerm", searchTerm != null ? searchTerm : "N/A",
-            "page", pageable.getPageNumber(),
-            "size", pageable.getPageSize(),
-            "total", deactivatedUsers.getTotalElements()));
-
         return deactivatedUsers.map(UserResponseDTO::new);
     }
 
@@ -525,13 +477,6 @@ public class UserService {
     public Page<UserResponseDTO> getIncompleteUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> users = userRepository.findIncompleteProfileUsers(search, pageable);
-
-        logger.info("Usuarios con perfil incompleto encontrados", Map.of(
-            "searchTerm", searchTerm != null ? searchTerm : "N/A",
-            "page", pageable.getPageNumber(),
-            "size", pageable.getPageSize(),
-            "total", users.getTotalElements()));
-
         return users.map(UserResponseDTO::new);
     }
 
@@ -714,16 +659,11 @@ public class UserService {
      */
     @Transactional
     public MessageResponseDTO deactivateAccountsBatch(List<String> userIds, String reason) {
-        logger.info("Desactivando cuentas en lote", Map.of("totalRequested", userIds.size(), "reason", reason != null ? reason : "No especificada"));
-
         UserBatchOperationHelper.BatchOperationResult result = userBatchOperationHelper.executeBatchOperation(
             userIds,
             userValidationService::canBeDeactivated,
             user -> user.deactivateAccount(reason)
         );
-
-        logger.info("Operación de desactivación en lote completada",
-            Map.of("deactivated", result.updated(), "alreadyDeactivated", result.alreadyInState(), "failed", result.failed()));
 
         String message = String.format("Operación completada: %d cuentas desactivadas, %d ya estaban desactivadas, %d fallos",
             result.updated(), result.alreadyInState(), result.failed());
@@ -739,16 +679,11 @@ public class UserService {
      */
     @Transactional
     public MessageResponseDTO reactivateAccountsBatch(List<String> userIds) {
-        logger.info("Reactivando cuentas en lote", Map.of("totalRequested", userIds.size()));
-
         UserBatchOperationHelper.BatchOperationResult result = userBatchOperationHelper.executeBatchOperation(
             userIds,
             userValidationService::canBeReactivated,
             User::reactivateAccount
         );
-
-        logger.info("Operación de reactivación en lote completada",
-            Map.of("reactivated", result.updated(), "alreadyActive", result.alreadyInState(), "failed", result.failed()));
 
         String message = String.format("Operación completada: %d cuentas reactivadas, %d ya estaban activas, %d fallos",
             result.updated(), result.alreadyInState(), result.failed());
@@ -819,15 +754,10 @@ public class UserService {
      */
     @Transactional
     public MessageResponseDTO deleteUsersBatch(List<String> userIds) {
-        logger.info("Eliminando usuarios en lote", Map.of("totalRequested", userIds.size()));
-
         UserBatchOperationHelper.ExtendedBatchOperationResult result = userBatchOperationHelper.executeBatchDeletion(
             userIds,
             userValidationService::canBeDeleted
         );
-
-        logger.info("Operación de eliminación en lote completada",
-            Map.of("deleted", result.updated(), "protected", result.protectedCount(), "failed", result.failed()));
 
         String message = String.format("Operación completada: %d usuarios eliminados, %d protegidos (admin principal), %d fallos",
             result.updated(), result.protectedCount(), result.failed());

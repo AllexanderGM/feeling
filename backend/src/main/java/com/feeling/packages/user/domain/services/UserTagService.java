@@ -3,7 +3,7 @@ package com.feeling.packages.user.domain.services;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserTagDTO;
+import com.feeling.packages.user.domain.dto.tags.UserTagResponseDTO;
 import com.feeling.packages.user.domain.dto.tags.UserTagStatisticsResponseDTO;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.domain.enums.UserRoleList;
@@ -184,11 +184,11 @@ public class UserTagService {
      * @return Lista de tags del usuario (vacía si no tiene tags)
      * @throws NotFoundException Si el usuario no existe
      */
-    public List<UserTagDTO> getUserTags(String userEmail) {
+    public List<UserTagResponseDTO> getUserTags(String userEmail) {
         User user = findUserByEmail(userEmail);
         return user.getTags() != null ?
             user.getTags().stream()
-                .map(UserTagDTO::new)
+                .map(UserTagResponseDTO::new)
                 .collect(Collectors.toList()) :
             List.of();
     }
@@ -204,7 +204,7 @@ public class UserTagService {
      * @throws NotFoundException        si el usuario no existe
      */
     @Transactional
-    public List<UserTagDTO> replaceUserTags(String userEmail, List<String> tagNames) {
+    public List<UserTagResponseDTO> replaceUserTags(String userEmail, List<String> tagNames) {
         User user = findUserByEmail(userEmail);
 
         // Validar límite
@@ -257,7 +257,7 @@ public class UserTagService {
         logger.info("Tags reemplazados para usuario {}: {}", userEmail, tagNames);
 
         return savedUser.getTags().stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -274,19 +274,19 @@ public class UserTagService {
      * @param limit      Número máximo de resultados
      * @return Lista de tags que coinciden con la búsqueda
      */
-    public List<UserTagDTO> searchTags(String searchTerm, int limit) {
+    public List<UserTagResponseDTO> searchTags(String searchTerm, int limit) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return userTagRepository.findMostPopularTags()
                 .stream()
                 .limit(limit)
-                .map(UserTagDTO::new)
+                .map(UserTagResponseDTO::new)
                 .collect(Collectors.toList());
         }
 
         return userTagRepository.searchByNameContaining(searchTerm.trim())
             .stream()
             .limit(limit)
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -296,10 +296,10 @@ public class UserTagService {
      * @param limit Número máximo de tags a retornar
      * @return Lista de tags más populares
      */
-    public List<UserTagDTO> getPopularTags(int limit) {
+    public List<UserTagResponseDTO> getPopularTags(int limit) {
         return userTagRepository.findTopPopularTags(limit)
             .stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -309,12 +309,12 @@ public class UserTagService {
      * @param limit Número máximo de tags a retornar
      * @return Lista de tags en tendencia
      */
-    public List<UserTagDTO> getTrendingTags(int limit) {
+    public List<UserTagResponseDTO> getTrendingTags(int limit) {
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
         return userTagRepository.findTrendingTags(oneWeekAgo)
             .stream()
             .limit(limit)
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -334,7 +334,7 @@ public class UserTagService {
      * @return Lista de tags sugeridos ordenados por relevancia
      * @throws NotFoundException Si el usuario no existe
      */
-    public List<UserTagDTO> getSuggestedTagsForUser(String userEmail, int limit) {
+    public List<UserTagResponseDTO> getSuggestedTagsForUser(String userEmail, int limit) {
         User user = findUserByEmail(userEmail);
 
         // Obtener tags que el usuario no tiene pero que son populares
@@ -343,7 +343,7 @@ public class UserTagService {
         return userTagRepository.findSuggestedTagsExcluding(userTagNames)
             .stream()
             .limit(limit)
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -386,7 +386,7 @@ public class UserTagService {
      * @param limit    Número máximo de tags a retornar
      * @return Lista de tags populares en esa categoría
      */
-    public List<UserTagDTO> getPopularTagsByCategory(String category, int limit) {
+    public List<UserTagResponseDTO> getPopularTagsByCategory(String category, int limit) {
         // Validar que la categoría existe
         try {
             UserCategoryInterestList.valueOf(category.toUpperCase());
@@ -397,7 +397,7 @@ public class UserTagService {
 
         return userTagRepository.findPopularTagsByCategory(category.toUpperCase(), limit)
             .stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -564,7 +564,7 @@ public class UserTagService {
      * @return Lista de tags sugeridos según su categoría de interés
      * @throws NotFoundException Si el usuario no existe
      */
-    public List<UserTagDTO> getTagsSuggestedByCategory(String userEmail) {
+    public List<UserTagResponseDTO> getTagsSuggestedByCategory(String userEmail) {
         User user = findUserByEmail(userEmail);
 
         if (user.getCategoryInterest() == null) {
@@ -693,10 +693,10 @@ public class UserTagService {
      *
      * @return Lista de tags con estado PENDING
      */
-    public List<UserTagDTO> getPendingApprovalTags() {
+    public List<UserTagResponseDTO> getPendingApprovalTags() {
         return userTagRepository.findPendingApprovalTags()
             .stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -802,32 +802,32 @@ public class UserTagService {
     /**
      * Búsqueda de tags aprobados solamente
      */
-    public List<UserTagDTO> searchApprovedTags(String searchTerm, int limit) {
+    public List<UserTagResponseDTO> searchApprovedTags(String searchTerm, int limit) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return userTagRepository.findTopApprovedPopularTags(
                     org.springframework.data.domain.PageRequest.of(0, limit)
                 )
                 .stream()
-                .map(UserTagDTO::new)
+                .map(UserTagResponseDTO::new)
                 .collect(Collectors.toList());
         }
 
         return userTagRepository.searchApprovedTagsByName(searchTerm.trim())
             .stream()
             .limit(limit)
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
     /**
      * Tags populares aprobados solamente
      */
-    public List<UserTagDTO> getPopularApprovedTags(int limit) {
+    public List<UserTagResponseDTO> getPopularApprovedTags(int limit) {
         return userTagRepository.findTopApprovedPopularTags(
                 org.springframework.data.domain.PageRequest.of(0, limit)
             )
             .stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -860,7 +860,7 @@ public class UserTagService {
      * @throws IllegalArgumentException si se excede el límite de tags permitidos
      */
     @Transactional
-    public List<UserTagDTO> addTagsToUser(String userEmail, List<String> tagNames) {
+    public List<UserTagResponseDTO> addTagsToUser(String userEmail, List<String> tagNames) {
         User user = findUserByEmail(userEmail);
 
         // Validar que no se agreguen más tags de los permitidos
@@ -945,7 +945,7 @@ public class UserTagService {
 
         // Retornar tags del usuario ya guardado (sin query adicional)
         return user.getTags().stream()
-            .map(UserTagDTO::new)
+            .map(UserTagResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -994,8 +994,8 @@ public class UserTagService {
      * @param pageable Configuración de paginación
      * @return Página de tags que coinciden con la búsqueda
      */
-    public Page<UserTagDTO> searchTagsPaginated(String query, Pageable pageable) {
-        List<UserTagDTO> allTags = searchTags(query, 1000);
+    public Page<UserTagResponseDTO> searchTagsPaginated(String query, Pageable pageable) {
+        List<UserTagResponseDTO> allTags = searchTags(query, 1000);
         return createPageFromList(allTags, pageable);
     }
 
@@ -1005,8 +1005,8 @@ public class UserTagService {
      * @param pageable Configuración de paginación
      * @return Página de tags más populares
      */
-    public Page<UserTagDTO> getPopularTagsPaginated(Pageable pageable) {
-        List<UserTagDTO> allTags = getPopularTags(1000);
+    public Page<UserTagResponseDTO> getPopularTagsPaginated(Pageable pageable) {
+        List<UserTagResponseDTO> allTags = getPopularTags(1000);
         return createPageFromList(allTags, pageable);
     }
 
@@ -1016,8 +1016,8 @@ public class UserTagService {
      * @param pageable Configuración de paginación
      * @return Página de tags en tendencia
      */
-    public Page<UserTagDTO> getTrendingTagsPaginated(Pageable pageable) {
-        List<UserTagDTO> allTags = getTrendingTags(1000);
+    public Page<UserTagResponseDTO> getTrendingTagsPaginated(Pageable pageable) {
+        List<UserTagResponseDTO> allTags = getTrendingTags(1000);
         return createPageFromList(allTags, pageable);
     }
 
@@ -1029,8 +1029,8 @@ public class UserTagService {
      * @return Página de tags sugeridos
      * @throws NotFoundException Si el usuario no existe
      */
-    public Page<UserTagDTO> getSuggestedTagsForUserPaginated(String userEmail, Pageable pageable) {
-        List<UserTagDTO> allTags = getSuggestedTagsForUser(userEmail, 1000);
+    public Page<UserTagResponseDTO> getSuggestedTagsForUserPaginated(String userEmail, Pageable pageable) {
+        List<UserTagResponseDTO> allTags = getSuggestedTagsForUser(userEmail, 1000);
         return createPageFromList(allTags, pageable);
     }
 
@@ -1040,8 +1040,8 @@ public class UserTagService {
      * @param pageable Configuración de paginación
      * @return Página de tags pendientes de aprobación
      */
-    public Page<UserTagDTO> getPendingApprovalTagsPaginated(Pageable pageable) {
-        List<UserTagDTO> allTags = getPendingApprovalTags();
+    public Page<UserTagResponseDTO> getPendingApprovalTagsPaginated(Pageable pageable) {
+        List<UserTagResponseDTO> allTags = getPendingApprovalTags();
         return createPageFromList(allTags, pageable);
     }
 
@@ -1061,7 +1061,7 @@ public class UserTagService {
      * Actualizar un tag existente
      */
     @Transactional
-    public UserTagDTO updateTag(Long tagId, String newName) {
+    public UserTagResponseDTO updateTag(Long tagId, String newName) {
         UserTag tag = userTagRepository.findById(tagId)
             .orElseThrow(() -> new NotFoundException("Tag no encontrado"));
 
@@ -1069,13 +1069,13 @@ public class UserTagService {
         // Note: UserTag entity doesn't have updatedAt field
 
         UserTag saved = userTagRepository.save(tag);
-        return new UserTagDTO(saved);
+        return new UserTagResponseDTO(saved);
     }
 
     /**
      * Crear página a partir de lista
      */
-    private Page<UserTagDTO> createPageFromList(List<UserTagDTO> list, Pageable pageable) {
+    private Page<UserTagResponseDTO> createPageFromList(List<UserTagResponseDTO> list, Pageable pageable) {
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), list.size());
 
@@ -1083,7 +1083,7 @@ public class UserTagService {
             return new PageImpl<>(List.of(), pageable, list.size());
         }
 
-        List<UserTagDTO> subList = list.subList(start, end);
+        List<UserTagResponseDTO> subList = list.subList(start, end);
         return new PageImpl<>(subList, pageable, list.size());
     }
 }

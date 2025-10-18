@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button, Card, CardBody, Divider } from '@heroui/react'
-import ErrorContext from '@context/ErrorContext'
+import ErrorContext from '@contexts/ErrorContext'
 import { Logger } from '@utils/logger.js'
 
 export class ErrorBoundary extends React.Component {

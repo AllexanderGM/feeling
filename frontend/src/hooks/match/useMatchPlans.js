@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { matchService } from '@services'
-import { useError } from '@hooks/utils/useError.js'
+import { useError } from '@hooks'
 
 export const useMatchPlans = () => {
   const [plans, setPlans] = useState([])
@@ -198,13 +198,11 @@ export const useMatchPlans = () => {
   )
 
   // ===============================
-  // INITIAL LOAD
+  // INITIAL LOAD - REMOVED
   // ===============================
-
-  useEffect(() => {
-    // Load available plans by default (public view)
-    fetchAvailablePlans()
-  }, []) // Only run on mount
+  // NOTE: Los planes ya NO se cargan automáticamente al montar el hook.
+  // Deben cargarse manualmente llamando a fetchAvailablePlans() cuando sea necesario
+  // (por ejemplo, cuando se abre el modal premium)
 
   return {
     // Data

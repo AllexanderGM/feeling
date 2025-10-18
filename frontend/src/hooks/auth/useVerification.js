@@ -1,8 +1,7 @@
 import { useContext, useCallback, useMemo } from 'react'
 import { verificationService } from '@services'
-import AuthContext from '@context/AuthContext.jsx'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import AuthContext from '@contexts/AuthContext.jsx'
+import { useError, useAsyncOperation } from '@hooks'
 
 export const useVerification = () => {
   const context = useContext(AuthContext)

@@ -4,6 +4,9 @@
 
 // Auth Hooks
 export { default as useAuth } from './auth/useAuth.js'
+export { default as useOAuth } from './auth/useOAuth.js'
+export { default as usePassword } from './auth/usePassword.js'
+export { default as useVerification } from './auth/useVerification.js'
 
 // Event Hooks
 export { default as useEvents } from './event/useEvents.js'
@@ -15,7 +18,12 @@ export { default as useLocation } from './location/useLocation.js'
 
 // Match Hooks
 export { default as useMatches } from './match/useMatches.js'
+export { default as useMatchInteractions } from './match/useMatchInteractions.js'
+export { default as useMatchQuery } from './match/useMatchQuery.js'
+export { default as useMatchFavorites } from './match/useMatchFavorites.js'
 export { default as useMatchPlans } from './match/useMatchPlans.js'
+export { default as useMatchStatistics } from './match/useMatchStatistics.js'
+export { default as useDiscoveryCards } from '../components/ui/userSuggestionCards/hooks/useDiscoveryCards.js'
 
 // Support Hooks
 export { default as useComplaints } from './support/useComplaints.js'
@@ -37,7 +45,7 @@ export { default as useUserSearch } from './user/useUserSearch.js'
 export { default as useUserFiltering } from './user/useUserFiltering.js'
 export { default as useUserStats } from './user/useUserStats.js'
 export { default as useCategoryInterests } from './user/useCategoryInterests.js'
-export { default as useProfileData } from '../pages/user/profile/hooks/useProfileData.js'
+export { default as useProfileData } from '../pages/user/me/hooks/useProfileData.js'
 
 // Utils Hooks
 export { default as useApi } from './utils/useApi.js'
@@ -54,6 +62,9 @@ export { default as useNotification } from './utils/useNotification.js'
 
 // Auth
 export * as AuthHooks from './auth/useAuth.js'
+export * as OAuthHooks from './auth/useOAuth.js'
+export * as PasswordHooks from './auth/usePassword.js'
+export * as VerificationHooks from './auth/useVerification.js'
 
 // Events
 export * as EventHooks from './event/useEvents.js'
@@ -65,7 +76,11 @@ export * as LocationHooks from './location/useLocation.js'
 
 // Matches
 export * as MatchHooks from './match/useMatches.js'
+export * as MatchInteractionHooks from './match/useMatchInteractions.js'
+export * as MatchQueryHooks from './match/useMatchQuery.js'
+export * as MatchFavoriteHooks from './match/useMatchFavorites.js'
 export * as MatchPlanHooks from './match/useMatchPlans.js'
+export * as MatchStatisticsHooks from './match/useMatchStatistics.js'
 
 // Support
 export * as SupportHooks from './support/useComplaints.js'
@@ -87,7 +102,7 @@ export * as UserSearchHooks from './user/useUserSearch.js'
 export * as UserFilteringHooks from './user/useUserFiltering.js'
 export * as UserStatsHooks from './user/useUserStats.js'
 export * as CategoryInterestHooks from './user/useCategoryInterests.js'
-export * as ProfileDataHooks from '../pages/user/profile/hooks/useProfileData.js'
+export * as ProfileDataHooks from '../pages/user/me/hooks/useProfileData.js'
 
 // Utils
 export * as ApiHooks from './utils/useApi.js'

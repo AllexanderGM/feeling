@@ -1,4 +1,4 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 import { Logger } from '@utils/logger.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
 
@@ -177,6 +177,27 @@ class MatchService extends ServiceREST {
   }
 
   /**
+   * Get pending received matches (awaiting response)
+   */
+  async getPendingReceivedMatches(page = 0, size = 10) {
+    const context = 'obtener matches recibidos pendientes'
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.RECEIVED_PENDING}?${params}`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
    * Get accepted matches (mutual matches)
    */
   async getAcceptedMatches(page = 0, size = 10) {
@@ -197,18 +218,60 @@ class MatchService extends ServiceREST {
     }
   }
 
+  /**
+   * Get match history with filters
+   */
+  async getMatchHistory(status = null, from = null, to = null, page = 0, size = 10) {
+    const context = 'obtener historial de matches'
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        size: size.toString()
+      })
+
+      if (status) params.append('status', status)
+      if (from) params.append('from', from)
+      if (to) params.append('to', to)
+
+      const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.HISTORY}?${params}`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Get single match details by ID
+   */
+  async getMatchById(matchId) {
+    const context = 'obtener detalle de match'
+
+    try {
+      const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
   // ===============================
   // FAVORITES MANAGEMENT
   // ===============================
 
   /**
    * Add user to favorites
+   * @param {number} favoriteUserId - ID del usuario a añadir a favoritos
    */
-  async addToFavorites(userId) {
+  async addToFavorites(favoriteUserId) {
     const context = 'añadir a favoritos'
 
     try {
-      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.FAVORITES, { userId })
+      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.FAVORITES, { favoriteUserId })
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
@@ -219,12 +282,13 @@ class MatchService extends ServiceREST {
 
   /**
    * Remove user from favorites
+   * @param {number} favoriteUserId - ID del usuario a remover de favoritos
    */
-  async removeFromFavorites(userId) {
+  async removeFromFavorites(favoriteUserId) {
     const context = 'quitar de favoritos'
 
     try {
-      const response = await ServiceREST.delete(`${API_ENDPOINTS.MATCHES.FAVORITES}/${encodeURIComponent(userId)}`)
+      const response = await ServiceREST.delete(`${API_ENDPOINTS.MATCHES.FAVORITES}/${encodeURIComponent(favoriteUserId)}`)
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
@@ -246,6 +310,23 @@ class MatchService extends ServiceREST {
       })
 
       const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.FAVORITES}?${params}`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Check if a user is in favorites
+   * @param {number} userId - ID del usuario a verificar
+   */
+  async checkIfFavorite(userId) {
+    const context = 'verificar si es favorito'
+
+    try {
+      const response = await ServiceREST.get(`${API_ENDPOINTS.MATCHES.FAVORITES}/${encodeURIComponent(userId)}/check`)
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {

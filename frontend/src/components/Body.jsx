@@ -1,5 +1,5 @@
 import { Spinner, Button } from '@heroui/react'
-import { useSearch } from '@context/SearchContext'
+import { useSearch } from '@contexts/SearchContext.jsx'
 import { useState, useEffect } from 'react'
 import { Plus, ArrowUp } from 'lucide-react'
 import { Logger } from '@utils/logger.js'

@@ -1,6 +1,6 @@
 package com.feeling.packages.auth.domain.dto.response;
 
-import com.feeling.packages.user.domain.dto.response.UserEssentialDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserEssentialDTO;
 
 /**
  * Respuesta compacta para flujos de login que solo requieren datos esenciales.
@@ -9,7 +9,7 @@ import com.feeling.packages.user.domain.dto.response.UserEssentialDTO;
  * manteniendo únicamente los tokens y la vista mínima del usuario.
  *
  * @param tokens Par de tokens JWT emitidos tras la autenticación
- * @param user Información esencial del usuario autenticado
+ * @param user   Información esencial del usuario autenticado
  */
 public record AuthLoginEssentialResponseDTO(
 

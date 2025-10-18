@@ -40,7 +40,7 @@ import { Logger } from '@utils/logger.js'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
-import UserCard from '@components/ui/UserCard.jsx'
+import UserCard from '@components/ui/userSuggestionCards/components/UserCard.jsx'
 
 const Search = () => {
   const { user, loading: authLoading } = useAuth()
@@ -412,7 +412,6 @@ const Search = () => {
                       showCompatibility={true}
                       showDistance={true}
                       user={currentProfile}
-                      variant='discovery'
                       onMessage={handleSendMessage}
                       onToggleFavorite={toggleFavorite}
                       onViewProfile={handleViewProfile}
@@ -480,7 +479,6 @@ const Search = () => {
                       showCompatibility={true}
                       showDistance={true}
                       user={profile}
-                      variant='default'
                       onMessage={handleSendMessage}
                       onToggleFavorite={toggleFavorite}
                       onViewProfile={handleViewProfile}

@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.dto.mapper;
 
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 
@@ -36,66 +36,35 @@ public class UserResponseFactory {
      * Vista pública: solo información básica (sin datos sensibles)
      */
     private static UserResponseDTO createPublicResponse(User user) {
-        return new UserResponseDTO(
-            UserDTOMapper.toUserStatusDTO(user),
-            UserDTOMapper.toUserProfileDataDTO(user),
-            null, null, null, null, null, null
-        );
+        return UserDTOMapper.toUserPublicResponseDTO(user);
     }
 
     /**
-     * Vista básica: datos del perfil sin información sensible
+     * Vista básica: datos del perfil con métricas básicas para sugerencias
      */
     private static UserResponseDTO createBasicResponse(User user) {
-        return new UserResponseDTO(
-            UserDTOMapper.toUserStatusDTO(user),
-            UserDTOMapper.toUserProfileDataDTO(user),
-            null, null, null, null, null, null
-        );
+        return UserDTOMapper.toUserStandardResponseDTO(user);
     }
 
     /**
      * Vista estándar: incluye métricas básicas
      */
     private static UserResponseDTO createStandardResponse(User user) {
-        return new UserResponseDTO(
-            UserDTOMapper.toUserStatusDTO(user),
-            UserDTOMapper.toUserProfileDataDTO(user),
-            null,
-            UserDTOMapper.toUserMetricsDTO(user),
-            null, null, null, null
-        );
+        return UserDTOMapper.toUserStandardResponseDTO(user);
     }
 
     /**
      * Vista extendida: incluye privacidad, métricas, matches, notificaciones
      */
     private static UserResponseDTO createExtendedResponse(User user) {
-        return new UserResponseDTO(
-            UserDTOMapper.toUserStatusDTO(user),
-            UserDTOMapper.toUserProfileDataDTO(user),
-            UserDTOMapper.toUserPrivacyDTO(user),
-            UserDTOMapper.toUserMetricsDTO(user),
-            UserDTOMapper.toUserMatchesDTO(user),
-            null, null,
-            UserDTOMapper.toUserNotificationDTO(user)
-        );
+        return UserDTOMapper.toUserExtendedResponseDTO(user);
     }
 
     /**
      * Vista completa: todos los datos incluyendo auth y account complaintStatus
      */
     private static UserResponseDTO createFullResponse(User user) {
-        return new UserResponseDTO(
-            UserDTOMapper.toUserStatusDTO(user),
-            UserDTOMapper.toUserProfileDataDTO(user),
-            UserDTOMapper.toUserPrivacyDTO(user),
-            UserDTOMapper.toUserMetricsDTO(user),
-            UserDTOMapper.toUserMatchesDTO(user),
-            UserDTOMapper.toAuthProviderInfoDTO(user),
-            UserDTOMapper.toUserAccountStatusDTO(user),
-            UserDTOMapper.toUserNotificationDTO(user)
-        );
+        return UserDTOMapper.toUserFullResponseDTO(user);
     }
 
     /**

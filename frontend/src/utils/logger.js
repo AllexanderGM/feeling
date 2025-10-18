@@ -135,6 +135,8 @@ export class Logger {
    * @param {Object} options - Opciones adicionales
    */
   static warn(category, operation, message, options = {}) {
+    if (!this.shouldLog(this.LEVELS.WARN)) return
+
     return this.log(this.LEVELS.WARN, category, operation, message, options)
   }
 
@@ -146,6 +148,8 @@ export class Logger {
    * @param {Object} options - Opciones adicionales
    */
   static info(category, operation, message, options = {}) {
+    if (!this.shouldLog(this.LEVELS.INFO)) return
+
     return this.log(this.LEVELS.INFO, category, operation, message, options)
   }
 
@@ -462,10 +466,19 @@ export class Logger {
    * @returns {boolean} Si debe loguear
    */
   static shouldLog(level) {
-    if (!this.logLevel) return true
+    // Obtener nivel de entorno
+    const envLevel = import.meta.env.VITE_LOG_LEVEL
+    const configuredLevel = this.logLevel || envLevel
+
+    // En producción, solo errores y warnings por defecto
+    if (import.meta.env.PROD && !this.logLevel && !envLevel) {
+      return ['error', 'warn'].includes(level)
+    }
+
+    if (!configuredLevel) return true
 
     const levels = ['debug', 'info', 'warn', 'error']
-    const currentIndex = levels.indexOf(this.logLevel)
+    const currentIndex = levels.indexOf(configuredLevel)
     const messageIndex = levels.indexOf(level)
 
     return messageIndex >= currentIndex

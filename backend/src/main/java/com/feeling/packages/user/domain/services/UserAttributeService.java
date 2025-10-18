@@ -4,9 +4,9 @@ import com.feeling.exception.AttributeNotFoundException;
 import com.feeling.exception.DuplicateAttributeException;
 import com.feeling.exception.InvalidAttributeTypeException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserAttributeDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeRequestDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeResponseDTO;
 import com.feeling.packages.user.domain.dto.attributes.UserAttributeStatisticsResponseDTO;
-import com.feeling.packages.user.domain.dto.request.UserAttributeCreateDTO;
 import com.feeling.packages.user.infrastructure.entities.UserAttribute;
 import com.feeling.packages.user.infrastructure.repositories.IUserAttributeRepository;
 import lombok.RequiredArgsConstructor;
@@ -60,12 +60,12 @@ public class UserAttributeService {
      *
      * @return Map con atributos agrupados por tipo y ordenados
      */
-    public Map<String, List<UserAttributeDTO>> getAllAttributesGrouped() {
+    public Map<String, List<UserAttributeResponseDTO>> getAllAttributesGrouped() {
         List<UserAttribute> attributes = userAttributeRepository.findAllActiveOrdered();
 
         return attributes.stream()
-            .map(UserAttributeDTO::new)
-            .collect(Collectors.groupingBy(UserAttributeDTO::attributeType));
+            .map(UserAttributeResponseDTO::new)
+            .collect(Collectors.groupingBy(UserAttributeResponseDTO::attributeType));
     }
 
     /**
@@ -74,10 +74,10 @@ public class UserAttributeService {
      * @param attributeType Tipo de atributo (GENDER, EYE_COLOR, etc.)
      * @return Lista de atributos activos del tipo especificado
      */
-    public List<UserAttributeDTO> getAttributesByType(String attributeType) {
+    public List<UserAttributeResponseDTO> getAttributesByType(String attributeType) {
         return userAttributeRepository.findByAttributeTypeAndActiveTrueOrderByDisplayOrderAsc(attributeType.toUpperCase())
             .stream()
-            .map(UserAttributeDTO::new)
+            .map(UserAttributeResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -87,9 +87,9 @@ public class UserAttributeService {
      * @param id ID del atributo
      * @return DTO del atributo o null si no existe
      */
-    public UserAttributeDTO getAttributeById(Long id) {
+    public UserAttributeResponseDTO getAttributeById(Long id) {
         return userAttributeRepository.findById(id)
-            .map(UserAttributeDTO::new)
+            .map(UserAttributeResponseDTO::new)
             .orElse(null);
     }
 
@@ -108,7 +108,7 @@ public class UserAttributeService {
      * @throws DuplicateAttributeException   Si ya existe un atributo duplicado
      * @throws IllegalArgumentException      Si un usuario intenta crear un tipo no permitido
      */
-    public UserAttributeDTO createAttribute(String attributeType, UserAttributeCreateDTO createDTO, boolean createdByAdmin) {
+    public UserAttributeResponseDTO createAttribute(String attributeType, UserAttributeRequestDTO createDTO, boolean createdByAdmin) {
         log.info("Iniciando creación de atributo tipo: {}, datos: {}, createdByAdmin: {}",
             attributeType, createDTO, createdByAdmin);
 
@@ -132,7 +132,7 @@ public class UserAttributeService {
         UserAttribute saved = userAttributeRepository.save(newAttribute);
 
         log.info("Atributo creado exitosamente: {} (activo: {})", saved, saved.isActive());
-        return new UserAttributeDTO(saved);
+        return new UserAttributeResponseDTO(saved);
     }
 
     /**
@@ -144,7 +144,7 @@ public class UserAttributeService {
      * @param createdByAdmin Si fue creado por admin (activo) o usuario (inactivo)
      * @return Nueva instancia de UserAttribute
      */
-    private UserAttribute buildNewAttribute(String attributeType, UserAttributeCreateDTO createDTO, String code, boolean createdByAdmin) {
+    private UserAttribute buildNewAttribute(String attributeType, UserAttributeRequestDTO createDTO, String code, boolean createdByAdmin) {
         return UserAttribute.builder()
             .code(code)
             .name(createDTO.name()) // Ya viene trimmed del DTO
@@ -279,7 +279,7 @@ public class UserAttributeService {
      * @return DTO del atributo actualizado
      * @throws AttributeNotFoundException Si el atributo no existe
      */
-    public UserAttributeDTO updateAttribute(Long attributeId, UserAttributeCreateDTO updateDTO) {
+    public UserAttributeResponseDTO updateAttribute(Long attributeId, UserAttributeRequestDTO updateDTO) {
         UserAttribute attribute = userAttributeRepository.findById(attributeId)
             .orElseThrow(() -> new AttributeNotFoundException(
                 "Atributo no encontrado con ID: " + attributeId,
@@ -293,7 +293,7 @@ public class UserAttributeService {
         UserAttribute saved = userAttributeRepository.save(attribute);
         log.info("Atributo actualizado exitosamente: {}", saved);
 
-        return new UserAttributeDTO(saved);
+        return new UserAttributeResponseDTO(saved);
     }
 
     /**
@@ -320,22 +320,22 @@ public class UserAttributeService {
      * Obtiene todos los atributos activos con paginación para panel de administración.
      *
      * @param pageable Configuración de paginación
-     * @return Página de UserAttributeDTO ordenados por tipo y displayOrder
+     * @return Página de UserAttributeResponseDTO ordenados por tipo y displayOrder
      */
-    public Page<UserAttributeDTO> getActiveAttributesPaged(Pageable pageable) {
+    public Page<UserAttributeResponseDTO> getActiveAttributesPaged(Pageable pageable) {
         return userAttributeRepository.findActiveAttributesPaged(pageable)
-            .map(UserAttributeDTO::new);
+            .map(UserAttributeResponseDTO::new);
     }
 
     /**
      * Obtiene todos los atributos (activos e inactivos) con paginación.
      *
      * @param pageable Configuración de paginación
-     * @return Página de UserAttributeDTO
+     * @return Página de UserAttributeResponseDTO
      */
-    public Page<UserAttributeDTO> getAllAttributesPaged(Pageable pageable) {
+    public Page<UserAttributeResponseDTO> getAllAttributesPaged(Pageable pageable) {
         return userAttributeRepository.findAll(pageable)
-            .map(UserAttributeDTO::new);
+            .map(UserAttributeResponseDTO::new);
     }
 
     /**
@@ -344,15 +344,15 @@ public class UserAttributeService {
      * @param attributeTypes Lista de tipos de atributos
      * @return Map con atributos agrupados por tipo
      */
-    public Map<String, List<UserAttributeDTO>> getAttributesByTypes(List<String> attributeTypes) {
+    public Map<String, List<UserAttributeResponseDTO>> getAttributesByTypes(List<String> attributeTypes) {
         List<String> normalizedTypes = attributeTypes.stream()
             .map(String::toUpperCase)
             .toList();
 
         return userAttributeRepository.findByAttributeTypeIn(normalizedTypes)
             .stream()
-            .map(UserAttributeDTO::new)
-            .collect(Collectors.groupingBy(UserAttributeDTO::attributeType));
+            .map(UserAttributeResponseDTO::new)
+            .collect(Collectors.groupingBy(UserAttributeResponseDTO::attributeType));
     }
 
     /**
@@ -470,12 +470,12 @@ public class UserAttributeService {
     /**
      * Obtiene todos los atributos inactivos para revisión administrativa.
      *
-     * @return Lista de UserAttributeDTO inactivos
+     * @return Lista de UserAttributeResponseDTO inactivos
      */
-    public List<UserAttributeDTO> getInactiveAttributes() {
+    public List<UserAttributeResponseDTO> getInactiveAttributes() {
         return userAttributeRepository.findInactiveAttributes()
             .stream()
-            .map(UserAttributeDTO::new)
+            .map(UserAttributeResponseDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -486,7 +486,7 @@ public class UserAttributeService {
      * @return DTO del atributo activado
      * @throws AttributeNotFoundException Si el atributo no existe
      */
-    public UserAttributeDTO activateAttribute(Long attributeId) {
+    public UserAttributeResponseDTO activateAttribute(Long attributeId) {
         UserAttribute attribute = userAttributeRepository.findById(attributeId)
             .orElseThrow(() -> new AttributeNotFoundException(
                 "Atributo no encontrado con ID: " + attributeId,
@@ -495,14 +495,14 @@ public class UserAttributeService {
 
         if (attribute.isActive()) {
             log.info("Atributo ya estaba activo: {}", attributeId);
-            return new UserAttributeDTO(attribute);
+            return new UserAttributeResponseDTO(attribute);
         }
 
         attribute.setActive(true);
         UserAttribute saved = userAttributeRepository.save(attribute);
         log.info("Atributo activado exitosamente: {}", attributeId);
 
-        return new UserAttributeDTO(saved);
+        return new UserAttributeResponseDTO(saved);
     }
 
     /**
@@ -512,7 +512,7 @@ public class UserAttributeService {
      * @return DTO del atributo desactivado
      * @throws AttributeNotFoundException Si el atributo no existe
      */
-    public UserAttributeDTO deactivateAttribute(Long attributeId) {
+    public UserAttributeResponseDTO deactivateAttribute(Long attributeId) {
         UserAttribute attribute = userAttributeRepository.findById(attributeId)
             .orElseThrow(() -> new AttributeNotFoundException(
                 "Atributo no encontrado con ID: " + attributeId,
@@ -521,13 +521,91 @@ public class UserAttributeService {
 
         if (!attribute.isActive()) {
             log.info("Atributo ya estaba inactivo: {}", attributeId);
-            return new UserAttributeDTO(attribute);
+            return new UserAttributeResponseDTO(attribute);
         }
 
         attribute.setActive(false);
         UserAttribute saved = userAttributeRepository.save(attribute);
         log.info("Atributo desactivado exitosamente: {}", attributeId);
 
-        return new UserAttributeDTO(saved);
+        return new UserAttributeResponseDTO(saved);
+    }
+
+    /**
+     * Busca un atributo por nombre y tipo, o lo crea si no existe.
+     * <p>
+     * Este método implementa la lógica de "buscar o crear":
+     * 1. Busca el atributo por nombre (case-insensitive) y tipo
+     * 2. Si existe (activo o inactivo), lo retorna
+     * 3. Si no existe, lo crea:
+     * - Si createdByAdmin=true: se crea activo (aprobado automáticamente)
+     * - Si createdByAdmin=false: se crea inactivo (requiere aprobación)
+     * <p>
+     * Casos de uso:
+     * - Usuario registra una iglesia personalizada → se crea inactiva
+     * - Admin asigna una iglesia nueva desde panel → se crea activa
+     *
+     * @param attributeName  Nombre del atributo a buscar o crear
+     * @param attributeType  Tipo de atributo (CHURCH, RELIGION, etc.)
+     * @param createdByAdmin true si es admin quien crea (activo), false si es usuario (inactivo)
+     * @return UserAttribute encontrado o recién creado
+     * @throws InvalidAttributeTypeException Si el tipo de atributo no es válido
+     * @throws IllegalArgumentException      Si un usuario intenta crear un tipo no permitido
+     */
+    public UserAttribute findOrCreateAttribute(String attributeName, String attributeType, boolean createdByAdmin) {
+        // Validar que el nombre no esté vacío
+        if (!StringUtils.hasText(attributeName)) {
+            throw new IllegalArgumentException("El nombre del atributo no puede estar vacío");
+        }
+
+        // Validar tipo de atributo
+        validateAttributeType(attributeType);
+
+        // Si no es admin, validar que pueda crear este tipo
+        if (!createdByAdmin) {
+            validateUserCanCreateType(attributeType);
+        }
+
+        String normalizedType = attributeType.toUpperCase();
+        String trimmedName = attributeName.trim();
+
+        log.debug("Buscando atributo: nombre='{}', tipo='{}', createdByAdmin={}",
+            trimmedName, normalizedType, createdByAdmin);
+
+        // Buscar atributo existente por nombre (case-insensitive) y tipo
+        // Incluye tanto activos como inactivos
+        java.util.Optional<UserAttribute> existing = userAttributeRepository
+            .findActiveByAttributeType(normalizedType)
+            .stream()
+            .filter(attr -> attr.getName().equalsIgnoreCase(trimmedName))
+            .findFirst();
+
+        // Si encontramos el atributo (activo o inactivo), retornarlo
+        if (existing.isPresent()) {
+            log.debug("Atributo encontrado: {}", existing.get());
+            return existing.get();
+        }
+
+        // No existe, crearlo
+        log.info("Atributo no encontrado, creando nuevo: nombre='{}', tipo='{}', activo={}",
+            trimmedName, normalizedType, createdByAdmin);
+
+        // Generar código único
+        String code = generateCodeFromName(trimmedName);
+
+        // Crear el nuevo atributo
+        UserAttribute newAttribute = UserAttribute.builder()
+            .code(code)
+            .name(trimmedName)
+            .attributeType(normalizedType)
+            .detail(null) // Sin detalle por defecto
+            .displayOrder(getNextDisplayOrder(normalizedType))
+            .active(createdByAdmin) // Admin: activo, Usuario: inactivo
+            .build();
+
+        UserAttribute saved = userAttributeRepository.save(newAttribute);
+        log.info("Nuevo atributo creado: {} (activo: {})", saved, saved.isActive());
+
+        return saved;
     }
 }

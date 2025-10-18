@@ -1,12 +1,12 @@
 package com.feeling.packages.user.application;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
+import com.feeling.packages.user.domain.dto.analytics.UserAnalyticsOverviewDTO;
+import com.feeling.packages.user.domain.dto.analytics.UserAnalyticsResponseDTO;
+import com.feeling.packages.user.domain.dto.analytics.UserPerformanceMetricsDTO;
+import com.feeling.packages.user.domain.dto.analytics.UserTopResponseDTO;
 import com.feeling.packages.user.domain.dto.attributes.UserAttributeStatisticsResponseDTO;
-import com.feeling.packages.user.domain.dto.interests.UserInterestStatisticsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserAnalyticsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserComprehensiveMetricsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UserMetricsResponseDTO;
-import com.feeling.packages.user.domain.dto.response.profile.UsersTopResponseDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestStatisticsResponseDTO;
 import com.feeling.packages.user.domain.dto.tags.UserTagStatisticsResponseDTO;
 import com.feeling.packages.user.domain.services.UserAnalyticsService;
 import com.feeling.packages.user.domain.services.UserAttributeService;
@@ -116,7 +116,7 @@ public class UserAnalyticsController {
      * <p>
      * Optimizado para cargar el dashboard principal con una sola llamada API.
      *
-     * @return ResponseEntity con UserComprehensiveMetricsResponseDTO agregando todas las métricas
+     * @return ResponseEntity con UserAnalyticsOverviewDTO agregando todas las métricas
      */
     @GetMapping("/user-metrics")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -127,9 +127,9 @@ public class UserAnalyticsController {
         @ApiResponse(responseCode = "401", description = "No autenticado o sin permisos de administrador"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    public ResponseEntity<UserComprehensiveMetricsResponseDTO> getComprehensiveUserMetrics() {
+    public ResponseEntity<UserAnalyticsOverviewDTO> getComprehensiveUserMetrics() {
         try {
-            UserComprehensiveMetricsResponseDTO comprehensiveMetrics = userAnalyticsService.getComprehensiveUserMetrics();
+            UserAnalyticsOverviewDTO comprehensiveMetrics = userAnalyticsService.getComprehensiveUserMetrics();
             return ResponseEntity.ok(comprehensiveMetrics);
         } catch (Exception e) {
             logger.error("Error al obtener métricas comprehensivas de usuarios", e);
@@ -154,7 +154,7 @@ public class UserAnalyticsController {
      * Usado en vistas de detalle de usuario en el panel administrativo.
      *
      * @param userId ID del usuario a consultar
-     * @return ResponseEntity con UserMetricsResponseDTO conteniendo métricas del usuario
+     * @return ResponseEntity con UserPerformanceMetricsDTO conteniendo métricas del usuario
      */
     @GetMapping("/metrics/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -166,10 +166,10 @@ public class UserAnalyticsController {
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    public ResponseEntity<UserMetricsResponseDTO> getUserDetailedMetrics(
+    public ResponseEntity<UserPerformanceMetricsDTO> getUserDetailedMetrics(
         @Parameter(description = "ID del usuario") @PathVariable Long userId) {
         try {
-            UserMetricsResponseDTO metrics = userAnalyticsService.getUserDetailedMetrics(userId);
+            UserPerformanceMetricsDTO metrics = userAnalyticsService.getUserDetailedMetrics(userId);
             return ResponseEntity.ok(metrics);
         } catch (Exception e) {
             logger.error("Error al obtener métricas detalladas del usuario", Map.of("userId", userId), e);
@@ -193,7 +193,7 @@ public class UserAnalyticsController {
      * Usado para identificar usuarios más exitosos y activos en la plataforma.
      *
      * @param limit Cantidad máxima de usuarios por ranking (default: 10)
-     * @return ResponseEntity con UsersTopResponseDTO conteniendo los tres rankings
+     * @return ResponseEntity con UserTopResponseDTO conteniendo los tres rankings
      */
     @GetMapping("/top-users")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -204,10 +204,10 @@ public class UserAnalyticsController {
         @ApiResponse(responseCode = "401", description = "No autenticado o sin permisos de administrador"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    public ResponseEntity<UsersTopResponseDTO> getTopUsers(
+    public ResponseEntity<UserTopResponseDTO> getTopUsers(
         @Parameter(description = "Límite de usuarios por ranking") @RequestParam(defaultValue = "10") int limit) {
         try {
-            UsersTopResponseDTO topUsers = userAnalyticsService.getTopUsers(limit);
+            UserTopResponseDTO topUsers = userAnalyticsService.getTopUsers(limit);
             return ResponseEntity.ok(topUsers);
         } catch (Exception e) {
             logger.error("Error al obtener top users", e);

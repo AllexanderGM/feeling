@@ -1,14 +1,13 @@
 import { useCallback, useState, useEffect, memo } from 'react'
 import { Tabs, Tab, Chip, Avatar } from '@heroui/react'
 import { Users, Clock, UserX, ShieldAlert, UserCheck, UserMinus, UserIcon } from 'lucide-react'
-import { useAuth, useUser, useUserAnalytics, useError } from '@hooks'
+import { useAuth, useUser, useUserAnalytics, useError, useTableActions } from '@hooks'
 import { Logger } from '@utils/logger.js'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
-import useTableActions from '@hooks/table/useTableActions.js'
 
 // Importar componentes de gestión de usuarios (modales)
 import CreateUserForm from '../user/management/components/CreateUserForm.jsx'

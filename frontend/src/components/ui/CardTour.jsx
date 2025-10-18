@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardFooter, CardBody, Image, Chip, Divider, Button, Tooltip } from '@heroui/react'
 import { normalizeWords } from '@utils/normalizeWords.js'
-import { useFavorites } from '@context/FavoritesContext'
+import { useFavorites } from '@contexts/FavoritesContext'
 import { Bookmark, Heart, Globe, MapPin, Calendar, User, Baby } from 'lucide-react'
 
 import './cardTour.scss'

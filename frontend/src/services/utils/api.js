@@ -98,16 +98,11 @@ api.interceptors.request.use(
 
     // Si es FormData, eliminar Content-Type para que el browser lo maneje automáticamente
     if (config.data instanceof FormData) {
-      Logger.debug('FormData detectado, eliminando Content-Type headers')
-      Logger.debug('Headers antes del ajuste', { headers: config.headers })
-
       // Eliminar todas las variantes de Content-Type
       delete config.headers['Content-Type']
       delete config.headers['content-type']
       delete config.headers['Content-type']
       delete config.headers['CONTENT-TYPE']
-
-      Logger.debug('Headers después del ajuste', { headers: config.headers })
     }
 
     return config
@@ -146,14 +141,17 @@ api.interceptors.response.use(
         const refreshToken = getCookieValue('refresh_token')
 
         if (refreshToken) {
-          Logger.debug('Intentando renovar token después de error 401')
+          Logger.debug(Logger.CATEGORIES.AUTH, 'renovar token automático', 'Intentando renovar token después de error 401', {
+            context: { hasRefreshToken: !!refreshToken, refreshTokenLength: refreshToken?.length }
+          })
 
           const response = await axios.post(`${API_URL}/auth/refresh-token`, {
             refreshToken
           })
 
-          const accessToken = response.data.accessToken || response.data.token
-          const refreshTokenNew = response.data.refreshToken
+          // El backend devuelve los tokens dentro de un objeto "tokens"
+          const accessToken = response.data.tokens?.accessToken || response.data.accessToken || response.data.token
+          const refreshTokenNew = response.data.tokens?.refreshToken || response.data.refreshToken
 
           if (accessToken) {
             Logger.info('Tokens renovados exitosamente en interceptor')
@@ -178,7 +176,17 @@ api.interceptors.response.use(
             throw new Error('No token received')
           }
         } else {
-          Logger.warn('No hay refresh token disponible')
+          // Debuggear todas las cookies disponibles
+          const allCookies = document.cookie
+          const cookieNames = allCookies.split(';').map(c => c.trim().split('=')[0])
+
+          Logger.warn(Logger.CATEGORIES.AUTH, 'renovar token', 'No hay refresh token disponible', {
+            context: {
+              allCookieNames: cookieNames,
+              hasAccessToken: !!getCookieValue('access_token'),
+              fullCookieString: document.cookie
+            }
+          })
           throw new Error('No refresh token available')
         }
       } catch (refreshError) {

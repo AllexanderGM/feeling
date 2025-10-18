@@ -15,4 +15,8 @@ public interface IMatchPlanRepository extends JpaRepository<MatchPlan, Long> {
 
     @Query("SELECT mp FROM MatchPlan mp WHERE mp.isActive = true")
     List<MatchPlan> findAllActive();
+
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 }

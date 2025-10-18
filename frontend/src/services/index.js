@@ -7,7 +7,7 @@
 // Servicios base
 export { ServiceREST } from '@services/utils/serviceREST.js'
 export { ServiceNoREST } from '@services/utils/serviceNoREST.js'
-export { default as api, registerAuthCallbacks } from '@services/utils/api.js'
+export { default as api, registerAuthCallbacks, registerRateLimitCallback } from '@services/utils/api.js'
 
 // Módulo de autenticación
 export { default as authService } from '@services/auth/authService.js'
@@ -44,6 +44,12 @@ export { default as bookingService } from '@services/event/bookingService.js'
 
 // Módulo de matches
 export { default as matchService } from '@services/match/matchService.js'
+export { default as matchInteractionService } from '@services/match/matchInteractionService.js'
+export { default as matchQueryService } from '@services/match/matchQueryService.js'
+export { default as matchFavoriteService } from '@services/match/matchFavoriteService.js'
+export { default as matchPlanService } from '@services/match/matchPlanService.js'
+export { default as matchStatisticsService } from '@services/match/matchStatisticsService.js'
+export { default as matchSuggestionService } from '@services/match/matchSuggestionService.js'
 
 // Módulo de ubicación
 export { default as geographicService } from '@services/location/geographicService.js'
@@ -86,7 +92,13 @@ export const eventServices = {
 }
 
 export const matchServices = {
-  matchService: () => import('./match/matchService.js')
+  matchService: () => import('./match/matchService.js'),
+  matchInteractionService: () => import('./match/matchInteractionService.js'),
+  matchQueryService: () => import('./match/matchQueryService.js'),
+  matchFavoriteService: () => import('./match/matchFavoriteService.js'),
+  matchPlanService: () => import('./match/matchPlanService.js'),
+  matchStatisticsService: () => import('./match/matchStatisticsService.js'),
+  matchSuggestionService: () => import('./match/matchSuggestionService.js')
 }
 
 export const locationServices = {
@@ -137,6 +149,12 @@ const services = {
 
   // Matches
   matchService: () => import('./match/matchService.js'),
+  matchInteractionService: () => import('./match/matchInteractionService.js'),
+  matchQueryService: () => import('./match/matchQueryService.js'),
+  matchFavoriteService: () => import('./match/matchFavoriteService.js'),
+  matchPlanService: () => import('./match/matchPlanService.js'),
+  matchStatisticsService: () => import('./match/matchStatisticsService.js'),
+  matchSuggestionService: () => import('./match/matchSuggestionService.js'),
 
   // Ubicación
   geographicService: () => import('./location/geographicService.js'),

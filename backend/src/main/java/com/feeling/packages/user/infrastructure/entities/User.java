@@ -339,12 +339,6 @@ public class User implements UserDetails {
     private UserAttribute church;
 
     /**
-     * Nombre personalizado de iglesia si no está en la lista predefinida.
-     * Permite especificar iglesias no incluidas en los atributos estándar.
-     */
-    private String customChurch;
-
-    /**
      * Religión o creencia espiritual del usuario.
      * Campo obligatorio para usuarios de categoría SPIRIT.
      */

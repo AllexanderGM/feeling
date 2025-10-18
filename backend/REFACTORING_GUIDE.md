@@ -1,6 +1,7 @@
 # Guía de Refactorización - Proyecto Feeling
 
 ## 📋 Tabla de Contenidos
+
 1. [Principios Generales](#principios-generales)
 2. [Proceso de Refactorización](#proceso-de-refactorización)
 3. [Guías por Tipo de Componente](#guías-por-tipo-de-componente)
@@ -11,7 +12,8 @@
 
 ## 🎯 Objetivo
 
-Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.java` y `UserService.java` como referencias de calidad, aplicando arquitectura DDD (Domain-Driven Design) y principios SOLID.
+Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.java` y `UserService.java` como
+referencias de calidad, aplicando arquitectura DDD (Domain-Driven Design) y principios SOLID.
 
 ---
 
@@ -20,6 +22,7 @@ Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.
 ### 1. Documentación JavaDoc
 
 #### Para Clases
+
 ```java
 /**
  * Descripción clara del propósito de la clase.
@@ -32,6 +35,7 @@ Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.
 ```
 
 #### Para Métodos
+
 ```java
 /**
  * Descripción concisa del propósito (1-2 líneas).
@@ -45,6 +49,7 @@ Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.
 ```
 
 **Reglas:**
+
 - ✅ Conciso y profesional
 - ✅ Enfocado en el "qué" y "por qué", no en el "cómo"
 - ❌ Sin información redundante o innecesaria
@@ -54,14 +59,14 @@ Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.
 
 ### 2. Eliminación de Código
 
-| Tipo | Acción | Notas |
-|------|--------|-------|
-| **Dead code** | ⚠️ **REPORTAR AL USUARIO** antes de eliminar | Puede ser funcionalidad planificada para admin panel |
-| **Duplicados** | ❌ Eliminar el método menos completo | Consolidar lógica, mantener el más eficiente |
-| **@Deprecated** | ❌ Eliminar completamente | NO mantener métodos deprecated, actualizar todas las referencias |
-| **Delegaciones innecesarias** | ❌ Eliminar, usar referencia directa | Evitar métodos que solo delegan a otros servicios |
-| **Hardcoded values** | ❌ Eliminar valores hardcodeados | Usar constantes, @Value o propiedades |
-| **Lógica duplicada entre servicios** | ❌ Consolidar en servicio correcto | Buscar y eliminar duplicados entre servicios relacionados |
+| Tipo                                 | Acción                                       | Notas                                                            |
+|--------------------------------------|----------------------------------------------|------------------------------------------------------------------|
+| **Dead code**                        | ⚠️ **REPORTAR AL USUARIO** antes de eliminar | Puede ser funcionalidad planificada para admin panel             |
+| **Duplicados**                       | ❌ Eliminar el método menos completo          | Consolidar lógica, mantener el más eficiente                     |
+| **@Deprecated**                      | ❌ Eliminar completamente                     | NO mantener métodos deprecated, actualizar todas las referencias |
+| **Delegaciones innecesarias**        | ❌ Eliminar, usar referencia directa          | Evitar métodos que solo delegan a otros servicios                |
+| **Hardcoded values**                 | ❌ Eliminar valores hardcodeados              | Usar constantes, @Value o propiedades                            |
+| **Lógica duplicada entre servicios** | ❌ Consolidar en servicio correcto            | Buscar y eliminar duplicados entre servicios relacionados        |
 
 #### ⚠️ Proceso para Métodos Sin Uso
 
@@ -69,31 +74,32 @@ Refactorizar el proyecto siguiendo las mejores prácticas establecidas en `User.
 
 1. **Usar Grep** para buscar llamadas al método
 2. **Si NO tiene usos → REPORTAR AL USUARIO**:
-   - ⏸️ **DETENER** y notificar sobre el método sin uso
-   - 📝 **EXPLICAR** el propósito según JavaDoc
-   - 🤔 **EVALUAR** con el usuario:
-     - ¿Debe implementarse endpoint en panel admin?
-     - ¿Es método básico del dominio para uso futuro?
-     - ¿Es realmente dead code a eliminar?
+    - ⏸️ **DETENER** y notificar sobre el método sin uso
+    - 📝 **EXPLICAR** el propósito según JavaDoc
+    - 🤔 **EVALUAR** con el usuario:
+        - ¿Debe implementarse endpoint en panel admin?
+        - ¿Es método básico del dominio para uso futuro?
+        - ¿Es realmente dead code a eliminar?
 3. **ESPERAR** decisión del usuario antes de proceder
 
 ---
 
 ### 3. Optimización de Queries
 
-| Técnica | Cuándo Usar | Ejemplo |
-|---------|-------------|---------|
-| **FETCH JOIN** | Queries que retornan entidades con relaciones | `LEFT JOIN FETCH u.roles` |
-| **Paginación** | Retornos de grandes volúmenes | `Page<T>` en vez de `List<T>` |
-| **Índices** | Queries frecuentes en campos de búsqueda | Verificar índices en BD |
-| **Batch Operations** | Múltiples búsquedas por ID | `findAllById()` en vez de loop con `findById()` |
-| **Evitar N+1** | Operaciones en lote | FETCH JOIN o DTOs con proyecciones |
+| Técnica              | Cuándo Usar                                   | Ejemplo                                         |
+|----------------------|-----------------------------------------------|-------------------------------------------------|
+| **FETCH JOIN**       | Queries que retornan entidades con relaciones | `LEFT JOIN FETCH u.roles`                       |
+| **Paginación**       | Retornos de grandes volúmenes                 | `Page<T>` en vez de `List<T>`                   |
+| **Índices**          | Queries frecuentes en campos de búsqueda      | Verificar índices en BD                         |
+| **Batch Operations** | Múltiples búsquedas por ID                    | `findAllById()` en vez de loop con `findById()` |
+| **Evitar N+1**       | Operaciones en lote                           | FETCH JOIN o DTOs con proyecciones              |
 
 ---
 
 ### 4. Naming Conventions
 
 #### Spring Data JPA
+
 ```java
 // ✅ Correcto - Spring Data genera automáticamente
 List<User> findByEmailAndActiveTrue(String email);
@@ -103,6 +109,7 @@ List<User> findByEmailAndActiveTrueOptimized(String email);
 ```
 
 #### Variables y Parámetros
+
 ```java
 // ✅ Correcto
 @Query("... WHERE ua.attributeType = :attributeType")
@@ -114,6 +121,7 @@ List<UserAttribute> findByType(@Param("type") String attributeType);
 ```
 
 **Reglas:**
+
 - ✅ Nombres claros y descriptivos
 - ✅ Consistencia en toda la clase
 - ❌ Evitar redeclarar variables en el mismo scope
@@ -150,6 +158,7 @@ List<UserAttribute> findByType(@Param("type") String attributeType);
 ```
 
 #### Comentarios de Sección
+
 ```java
 // ========================================
 // ESTADÍSTICAS
@@ -178,13 +187,13 @@ List<UserAttribute> findByType(@Param("type") String attributeType);
 
 #### Reglas de Imports
 
-| Regla | Ejemplo | Notas |
-|-------|---------|-------|
-| **Sin wildcards (*)** | ❌ `import com.feeling.packages.user.domain.dto.*;` | Expandir a imports específicos |
-| **Excepción permitida** | ✅ `import org.springframework.web.bind.annotation.*;` | Solo en controladores REST |
-| **Sin inline imports** | ❌ `new com.feeling.dto.UserDTO()` | Declarar import al inicio |
-| **Sin imports sin uso** | ❌ Imports no utilizados | Eliminar completamente |
-| **Organización** | Ver tabla abajo | Grupos separados por línea en blanco |
+| Regla                   | Ejemplo                                               | Notas                                |
+|-------------------------|-------------------------------------------------------|--------------------------------------|
+| **Sin wildcards (*)**   | ❌ `import com.feeling.packages.user.domain.dto.*;`    | Expandir a imports específicos       |
+| **Excepción permitida** | ✅ `import org.springframework.web.bind.annotation.*;` | Solo en controladores REST           |
+| **Sin inline imports**  | ❌ `new com.feeling.dto.UserDTO()`                     | Declarar import al inicio            |
+| **Sin imports sin uso** | ❌ Imports no utilizados                               | Eliminar completamente               |
+| **Organización**        | Ver tabla abajo                                       | Grupos separados por línea en blanco |
 
 #### Orden de Imports
 
@@ -213,13 +222,15 @@ import com.feeling.packages.user.infrastructure.entities.User;
 
 ```java
 // ✅ Importar la más usada
+
 import org.springframework.web.bind.annotation.RequestBody;
 
 // ✅ Usar ruta completa para la otra
+
 @Operation(
-    requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-        description = "..."
-    )
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "..."
+        )
 )
 public ResponseEntity<?> method(@RequestBody UserDTO dto) {
     // ...
@@ -235,12 +246,14 @@ public ResponseEntity<?> method(@RequestBody UserDTO dto) {
 Para cada método en la clase, ejecutar estas verificaciones en orden:
 
 #### 1. ¿Tiene usos activos?
+
 ```bash
 # Buscar llamadas al método
 grep -r "nombreMetodo" src/
 ```
 
 **Si NO tiene usos → REPORTAR AL USUARIO**
+
 - ⏸️ Detener y notificar
 - 📝 Explicar propósito
 - 🤔 Evaluar con usuario
@@ -249,16 +262,19 @@ grep -r "nombreMetodo" src/
 #### 2. ¿Está duplicado?
 
 **Buscar en la misma clase:**
+
 ```bash
 grep "public.*nombreSimilar" ArchivoActual.java
 ```
 
 **Buscar en servicios relacionados:**
+
 ```bash
 grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 ```
 
 **Acción:**
+
 - Si existe duplicado → Consolidar al más completo/eficiente
 - Si existe en otro servicio → Eliminar duplicado, mantener en servicio correcto
 - Actualizar todas las referencias
@@ -266,6 +282,7 @@ grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 #### 3. ¿Tiene optimizaciones?
 
 **Verificar:**
+
 - [ ] FETCH JOIN en relaciones
 - [ ] Paginación para colecciones grandes
 - [ ] @Query optimizada si es necesario
@@ -274,6 +291,7 @@ grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 #### 4. ¿El nombre es correcto?
 
 **Verificar:**
+
 - [ ] Sigue convenciones Spring Data JPA
 - [ ] Sin sufijos innecesarios
 - [ ] Claro y descriptivo
@@ -282,6 +300,7 @@ grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 #### 5. ¿Está documentado?
 
 **Agregar JavaDoc:**
+
 - [ ] Descripción concisa del propósito
 - [ ] @param con descripciones breves
 - [ ] @return explicando qué retorna
@@ -317,6 +336,7 @@ grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 ### 1️⃣ REPOSITORIOS
 
 #### Checklist
+
 - [ ] Eliminar métodos sin uso (previa consulta al usuario)
 - [ ] Consolidar métodos duplicados
 - [ ] Agregar FETCH JOIN donde corresponda
@@ -329,6 +349,7 @@ grep -r "nombreSimilar\|funcionSimilar" src/main/java/*/domain/services/
 #### Ejemplo de Refactorización
 
 **❌ Antes:**
+
 ```java
 // Sin documentación
 @Query("SELECT ua FROM UserAttribute ua WHERE ua.attributeType = :type")
@@ -343,6 +364,7 @@ List<UserAttribute> findByTypeOptimized(@Param("type") String type);
 ```
 
 **✅ Después:**
+
 ```java
 /**
  * Busca todos los atributos activos de un tipo específico ordenados por displayOrder.
@@ -401,6 +423,7 @@ public interface IEntityRepository extends JpaRepository<Entity, Long> {
 ### 2️⃣ SERVICIOS
 
 #### Checklist
+
 - [ ] **Verificar duplicados ENTRE servicios** (revisar servicios especializados)
 - [ ] Delegar lógica especializada a servicios dedicados
 - [ ] Actualizar llamadas a métodos renombrados
@@ -416,6 +439,7 @@ public interface IEntityRepository extends JpaRepository<Entity, Long> {
 #### Ejemplo: Delegación a Servicios Especializados
 
 **❌ Antes (UserService.java - Lógica mezclada):**
+
 ```java
 public MessageResponseDTO sendEmailsBatch(List<Long> userIds) {
     logger.info("Enviando correos en lote", Map.of("totalRequested", userIds.size()));
@@ -448,6 +472,7 @@ public MessageResponseDTO sendEmailsBatch(List<Long> userIds) {
 **✅ Después - Paso 1: Crear método en servicio especializado**
 
 **UserNotificationService.java:**
+
 ```java
 /**
  * Envía recordatorios de completar perfil a usuarios específicos seleccionados.
@@ -495,6 +520,7 @@ public MessageResponseDTO sendProfileCompletionRemindersBatch(List<Long> userIds
 **✅ Después - Paso 2: Delegar desde servicio principal**
 
 **UserService.java:**
+
 ```java
 /**
  * Envía emails de recordatorio de completar perfil en batch.
@@ -510,6 +536,7 @@ public MessageResponseDTO sendEmailsBatch(List<Long> userIds) {
 ```
 
 **Ventajas:**
+
 - ✅ Lógica de notificaciones centralizada
 - ✅ Responsabilidad única por servicio
 - ✅ Reducción de líneas (45 → 1)
@@ -519,25 +546,27 @@ public MessageResponseDTO sendEmailsBatch(List<Long> userIds) {
 #### Proceso de Identificación de Duplicados entre Servicios
 
 1. **Extraer métodos del servicio principal:**
+
 ```bash
 grep "public.*(" UserService.java
 ```
 
 2. **Buscar métodos similares en servicios especializados:**
+
 ```bash
 grep -r "sendEmail\|notify\|approve\|reject" src/main/java/*/domain/services/
 ```
 
 3. **Evaluar si debe delegarse:**
-   - ¿La responsabilidad pertenece al servicio especializado? → Delegar
-   - ¿El método hace lo mismo o similar? → Delegar
-   - ¿El método tiene lógica de negocio específica? → Mover a servicio especializado
+    - ¿La responsabilidad pertenece al servicio especializado? → Delegar
+    - ¿El método hace lo mismo o similar? → Delegar
+    - ¿El método tiene lógica de negocio específica? → Mover a servicio especializado
 
 4. **Refactorizar:**
-   - Crear método en servicio especializado (si no existe)
-   - Cambiar método en servicio principal a delegación simple
-   - Documentar con `DELEGADO A: {@link ...}`
-   - Actualizar todos los usos si es necesario
+    - Crear método en servicio especializado (si no existe)
+    - Cambiar método en servicio principal a delegación simple
+    - Documentar con `DELEGADO A: {@link ...}`
+    - Actualizar todos los usos si es necesario
 
 #### ⚠️ IMPORTANTE: Patrón Facade
 
@@ -546,6 +575,7 @@ grep -r "sendEmail\|notify\|approve\|reject" src/main/java/*/domain/services/
 Los servicios principales deben contener lógica de negocio, no solo delegar.
 
 **❌ Incorrecto (Facade innecesario):**
+
 ```java
 // UserService que solo delega - es un Facade innecesario
 public UserDTO getUser(Long id) {
@@ -558,11 +588,12 @@ public void updateUser(Long id, UserDTO dto) {
 ```
 
 **✅ Correcto (Lógica de negocio en servicio):**
+
 ```java
 // UserService con lógica de negocio real
 public UserDTO getUser(Long id) {
     User user = userRepository.findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     return userMapper.toDTO(user);
 }
 
@@ -703,7 +734,7 @@ public class EntityService {
      */
     private Entity findEntityOrThrow(Long id) {
         return entityRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Entity not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Entity not found: " + id));
     }
 }
 ```
@@ -713,6 +744,7 @@ public class EntityService {
 ### 3️⃣ CONTROLADORES
 
 #### Checklist
+
 - [ ] Verificar endpoints RESTful (GET, POST, PUT, DELETE)
 - [ ] **Usar DTOs en todos los endpoints** - NO retornar tipos genéricos
 - [ ] **NO orquestar lógica de negocio** - Delegar al servicio
@@ -724,13 +756,16 @@ public class EntityService {
 #### ❌ Antipatrón: Tipos Genéricos Directos
 
 **Problemas:**
+
 - ❌ No type-safe - fácil equivocarse con claves
 - ❌ Sin autocompletado en frontend
 - ❌ Documentación Swagger pobre
 - ❌ Difícil de mantener
 
 **❌ Antes (INCORRECTO):**
+
 ```java
+
 @GetMapping("/attributes/by-types")
 public ResponseEntity<Map<String, List<UserAttributeDTO>>> getAttributesByTypes(
         @RequestParam String types) {
@@ -752,22 +787,28 @@ public ResponseEntity<Map<String, Long>> countAttributes() {
 **✅ Después (CORRECTO):**
 
 **Paso 1: Crear DTOs específicos**
+
 ```java
 public record AttributesByTypeResponseDTO(
-    Map<String, List<UserAttributeDTO>> attributesByType
-) {}
+        Map<String, List<UserAttributeDTO>> attributesByType
+) {
+}
 
 public record AttributeTypesResponseDTO(
-    List<String> types
-) {}
+        List<String> types
+) {
+}
 
 public record CountResponseDTO(
-    Long count
-) {}
+        Long count
+) {
+}
 ```
 
 **Paso 2: Usar en controlador**
+
 ```java
+
 @GetMapping("/attributes/by-types")
 public ResponseEntity<AttributesByTypeResponseDTO> getAttributesByTypes(
         @RequestParam String types) {
@@ -789,6 +830,7 @@ public ResponseEntity<CountResponseDTO> countAttributes() {
 ```
 
 **Ventajas:**
+
 - ✅ Type-safe con validación en compilación
 - ✅ Autocompletado en IDEs y frontend TypeScript
 - ✅ Swagger genera esquemas claros
@@ -800,22 +842,24 @@ public ResponseEntity<CountResponseDTO> countAttributes() {
 **El controlador NO debe combinar múltiples llamadas al servicio.**
 
 **❌ Antes (INCORRECTO):**
+
 ```java
 // Controlador
-@GetMapping("/metrics/comprehensive")
+@GetMapping("/analytics/comprehensive")
 public ResponseEntity<UserComprehensiveMetricsDTO> getComprehensiveMetrics() {
     // ❌ Controlador orquestando múltiples llamadas y creando el DTO
     UserComprehensiveMetricsDTO metrics = new UserComprehensiveMetricsDTO(
-        userAnalyticsService.getUserTabsCount(),
-        userAnalyticsService.getEngagementStats(),
-        userAnalyticsService.getGrowthStats("monthly"),
-        userAnalyticsService.getGeographicDistribution()
+            userAnalyticsService.getUserTabsCount(),
+            userAnalyticsService.getEngagementStats(),
+            userAnalyticsService.getGrowthStats("monthly"),
+            userAnalyticsService.getGeographicDistribution()
     );
     return ResponseEntity.ok(metrics);
 }
 ```
 
 **Problemas:**
+
 - ❌ Lógica de negocio (orquestación) en controlador
 - ❌ Controlador conoce detalles de implementación
 - ❌ Difícil de testear la lógica de agregación
@@ -824,6 +868,7 @@ public ResponseEntity<UserComprehensiveMetricsDTO> getComprehensiveMetrics() {
 **✅ Después (CORRECTO):**
 
 **Paso 1: Crear método en servicio**
+
 ```java
 // UserAnalyticsService
 /**
@@ -836,18 +881,19 @@ public UserComprehensiveMetricsDTO getComprehensiveUserMetrics() {
     logger.info("Generando métricas comprehensivas de usuarios");
 
     return new UserComprehensiveMetricsDTO(
-        getUserTabsCount(),
-        getEngagementStats(),
-        getGrowthStats("monthly"),
-        getGeographicDistribution()
+            getUserTabsCount(),
+            getEngagementStats(),
+            getGrowthStats("monthly"),
+            getGeographicDistribution()
     );
 }
 ```
 
 **Paso 2: Delegar desde controlador**
+
 ```java
 // Controlador
-@GetMapping("/metrics/comprehensive")
+@GetMapping("/analytics/comprehensive")
 public ResponseEntity<UserComprehensiveMetricsDTO> getComprehensiveMetrics() {
     // ✅ Controlador solo delega al servicio
     return ResponseEntity.ok(userAnalyticsService.getComprehensiveUserMetrics());
@@ -855,55 +901,59 @@ public ResponseEntity<UserComprehensiveMetricsDTO> getComprehensiveMetrics() {
 ```
 
 **Ventajas:**
+
 - ✅ Lógica de negocio en la capa correcta
 - ✅ Thin controller
 - ✅ Fácil de testear
 - ✅ Respeta SRP
 - ✅ Reutilizable
 
-**Regla:** Si el controlador necesita combinar resultados de múltiples métodos del servicio, crear un método en el servicio que haga esa agregación.
+**Regla:** Si el controlador necesita combinar resultados de múltiples métodos del servicio, crear un método en el
+servicio que haga esa agregación.
 
 #### Documentación Swagger Concisa
 
 **❌ Antes (Excesivo):**
+
 ```java
 @Operation(
-    summary = "Obtener sugerencias de usuarios con control de respuesta optimizado",
-    description = "Recupera sugerencias de usuarios paginadas con niveles de inclusión de datos configurables. " +
-            "Endpoint optimizado que reemplaza /suggestions con mejor rendimiento y control de datos flexible. " +
-            "Los resultados se cachean automáticamente para mejorar el rendimiento.",
-    tags = {"User Matching"}
+        summary = "Obtener sugerencias de usuarios con control de respuesta optimizado",
+        description = "Recupera sugerencias de usuarios paginadas con niveles de inclusión de datos configurables. " +
+                "Endpoint optimizado que reemplaza /suggestions con mejor rendimiento y control de datos flexible. " +
+                "Los resultados se cachean automáticamente para mejorar el rendimiento.",
+        tags = {"User Matching"}
 )
 @ApiResponses({
-    @ApiResponse(
-        responseCode = "200",
-        description = "Sugerencias recuperadas exitosamente",
-        content = @Content(
-            schema = @Schema(implementation = Page.class),
-            examples = {
-                @ExampleObject(
-                    name = "Paginated Suggestions",
-                    summary = "Página de sugerencias de usuarios",
-                    description = "Respuesta paginada con usuarios sugeridos basados en preferencias y compatibilidad"
+        @ApiResponse(
+                responseCode = "200",
+                description = "Sugerencias recuperadas exitosamente",
+                content = @Content(
+                        schema = @Schema(implementation = Page.class),
+                        examples = {
+                                @ExampleObject(
+                                        name = "Paginated Suggestions",
+                                        summary = "Página de sugerencias de usuarios",
+                                        description = "Respuesta paginada con usuarios sugeridos basados en preferencias y compatibilidad"
+                                )
+                        }
                 )
-            }
-        )
-    ),
-    @ApiResponse(responseCode = "400", description = "Nivel de inclusión o parámetros de paginación inválidos"),
-    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+        ),
+        @ApiResponse(responseCode = "400", description = "Nivel de inclusión o parámetros de paginación inválidos"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
 })
 ```
 
 **✅ Después (Conciso):**
+
 ```java
 @Operation(
-    summary = "Obtener sugerencias de usuarios",
-    description = "Sugerencias paginadas basadas en compatibilidad"
+        summary = "Obtener sugerencias de usuarios",
+        description = "Sugerencias paginadas basadas en compatibilidad"
 )
 @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Sugerencias recuperadas exitosamente"),
-    @ApiResponse(responseCode = "400", description = "Parámetros inválidos"),
-    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+        @ApiResponse(responseCode = "200", description = "Sugerencias recuperadas exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Parámetros inválidos"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
 })
 ```
 
@@ -1015,6 +1065,7 @@ public class EntityController {
 ### 4️⃣ DTOs (Data Transfer Objects)
 
 #### Checklist
+
 - [ ] Usar `record` para DTOs inmutables (Java 17+)
 - [ ] Documentar con JavaDoc la clase y campos importantes
 - [ ] Agrupar DTOs por funcionalidad (request, response, analytics, etc.)
@@ -1053,16 +1104,17 @@ com.feeling.packages.[package].domain.dto/
  * @param createdAt Fecha de creación
  */
 public record EntityResponseDTO(
-    @Schema(description = "ID único de la entidad", example = "1")
-    Long id,
+                @Schema(description = "ID único de la entidad", example = "1")
+                Long id,
 
-    @Schema(description = "Nombre de la entidad", example = "Example")
-    @NotBlank(message = "El nombre no puede estar vacío")
-    String name,
+                @Schema(description = "Nombre de la entidad", example = "Example")
+                @NotBlank(message = "El nombre no puede estar vacío")
+                String name,
 
-    @Schema(description = "Fecha de creación")
-    LocalDateTime createdAt
-) {}
+                @Schema(description = "Fecha de creación")
+                LocalDateTime createdAt
+        ) {
+}
 ```
 
 #### DTOs para Tipos Genéricos
@@ -1098,6 +1150,7 @@ public record EntityStatsResponseDTO(
 ### 5️⃣ ENTIDADES
 
 #### Checklist
+
 - [ ] Verificar relaciones JPA (OneToMany, ManyToOne, etc.)
 - [ ] Documentar campos importantes con JavaDoc
 - [ ] Optimizar lazy/eager loading según casos de uso
@@ -1184,6 +1237,7 @@ public class Entity {
 ### 6️⃣ MAPPERS
 
 #### Checklist
+
 - [ ] Documentar métodos de mapeo
 - [ ] Manejar casos null de forma segura
 - [ ] Optimizar mapeo de colecciones (usar streams)
@@ -1258,12 +1312,14 @@ public class EntityDTOMapper {
 ### Servicios Principales vs Especializados
 
 #### Servicio Principal
+
 - Contiene métodos de dominio core (CRUD básico)
 - Coordina operaciones entre servicios especializados
 - Implementa lógica de negocio principal del dominio
 - **NO es un Facade** - tiene lógica propia
 
 #### Servicios Especializados
+
 - Responsabilidad única y bien definida
 - Contienen lógica de negocio específica
 - Son reutilizables desde múltiples puntos
@@ -1284,12 +1340,14 @@ UserService (Principal)
 ### Cuándo Delegar a Servicio Especializado
 
 **Delegar cuando:**
+
 - ✅ La responsabilidad pertenece claramente a otro dominio
 - ✅ El método tiene lógica de negocio específica y compleja
 - ✅ La funcionalidad es reutilizable desde múltiples puntos
 - ✅ Mejora la separación de responsabilidades (SRP)
 
 **NO delegar cuando:**
+
 - ❌ Es lógica core del dominio principal
 - ❌ Crea Facade innecesario (solo delega, sin lógica propia)
 - ❌ La delegación no aporta valor (solo mueve código)
@@ -1301,6 +1359,7 @@ UserService (Principal)
 ### Por Archivo
 
 #### ✅ Repositorios
+
 ```
 [ ] Eliminar métodos sin uso (previa consulta)
 [ ] Consolidar métodos duplicados
@@ -1314,6 +1373,7 @@ UserService (Principal)
 ```
 
 #### ✅ Servicios
+
 ```
 [ ] Verificar duplicados ENTRE servicios
 [ ] Delegar lógica especializada
@@ -1330,6 +1390,7 @@ UserService (Principal)
 ```
 
 #### ✅ Controladores
+
 ```
 [ ] Verificar endpoints RESTful
 [ ] Usar DTOs en todos los endpoints
@@ -1343,6 +1404,7 @@ UserService (Principal)
 ```
 
 #### ✅ Entidades
+
 ```
 [ ] Verificar relaciones JPA
 [ ] Documentar campos importantes
@@ -1354,6 +1416,7 @@ UserService (Principal)
 ```
 
 #### ✅ DTOs
+
 ```
 [ ] Usar record cuando sea posible
 [ ] Documentar clase y campos

@@ -156,12 +156,34 @@ const ProfileComplete = () => {
             navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
           } else {
             // Manejar errores específicos
-            if (result.status === 404) {
-              Logger.error('Error 404: El endpoint PUT /user no está disponible. Verifica que el backend esté ejecutándose correctamente.')
+            if (result.status === 500) {
+              Logger.error(
+                Logger.CATEGORIES.SERVICE,
+                'completar perfil',
+                'Error del servidor al actualizar perfil. Revisa los logs del backend.',
+                {
+                  context: {
+                    endpoint: '/user',
+                    method: 'PATCH',
+                    hasImages: images?.length > 0,
+                    profileDataKeys: Object.keys(profileData)
+                  }
+                }
+              )
+            } else if (result.status === 404) {
+              Logger.error(
+                Logger.CATEGORIES.SERVICE,
+                'completar perfil',
+                'El endpoint PATCH /user no está disponible. Verifica que el backend esté ejecutándose correctamente.'
+              )
             }
           }
         } catch (error) {
-          Logger.error('Error completando perfil:', error)
+          // El error ya fue manejado por useAsyncOperation y mostrado al usuario
+          // Solo logueamos detalles adicionales si es necesario
+          Logger.debug(Logger.CATEGORIES.UI, 'error al completar perfil', 'Catch block ejecutado', {
+            context: { errorType: error?.errorType, errorMessage: error?.message }
+          })
         }
       }
     }),

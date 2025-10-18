@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { eventService } from '@services'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import { useError, useAsyncOperation } from '@hooks'
 
 /**
  * Hook para manejar eventos

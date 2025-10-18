@@ -3,9 +3,9 @@ package com.feeling.packages.user.application;
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.validation.ValidAttributeType;
-import com.feeling.packages.user.domain.dto.UserAttributeDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeRequestDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeResponseDTO;
 import com.feeling.packages.user.domain.dto.attributes.UserAttributeStatisticsResponseDTO;
-import com.feeling.packages.user.domain.dto.request.UserAttributeCreateDTO;
 import com.feeling.packages.user.domain.services.UserAttributeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,7 +51,7 @@ import java.util.Map;
  * @author J. Alexander Gavilán M.
  * @version 1.0
  * @see UserAttributeService
- * @see UserAttributeDTO
+ * @see UserAttributeResponseDTO
  * @since 1.0
  */
 @RestController
@@ -82,9 +82,9 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "200", description = "Atributos obtenidos exitosamente"),
         @ApiResponse(responseCode = "401", description = "No autenticado")
     })
-    public ResponseEntity<Map<String, List<UserAttributeDTO>>> getAllAttributes() {
+    public ResponseEntity<Map<String, List<UserAttributeResponseDTO>>> getAllAttributes() {
         logger.info("Consultando todos los atributos agrupados");
-        Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAllAttributesGrouped();
+        Map<String, List<UserAttributeResponseDTO>> attributes = userAttributeService.getAllAttributesGrouped();
         return ResponseEntity.ok(attributes);
     }
 
@@ -102,10 +102,10 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "200", description = "Atributos obtenidos exitosamente"),
         @ApiResponse(responseCode = "401", description = "No autenticado")
     })
-    public ResponseEntity<List<UserAttributeDTO>> getAttributesByType(
+    public ResponseEntity<List<UserAttributeResponseDTO>> getAttributesByType(
         @Parameter(description = "Tipo de atributo") @PathVariable String attributeType) {
         logger.info("Consultando atributos por tipo", Map.of("attributeType", attributeType));
-        List<UserAttributeDTO> attributes = userAttributeService.getAttributesByType(attributeType);
+        List<UserAttributeResponseDTO> attributes = userAttributeService.getAttributesByType(attributeType);
         return ResponseEntity.ok(attributes);
     }
 
@@ -124,7 +124,7 @@ public class UserAttributeController {
     })
     public ResponseEntity<List<String>> getAttributeTypes() {
         logger.info("Consultando tipos de atributos disponibles");
-        Map<String, List<UserAttributeDTO>> grouped = userAttributeService.getAllAttributesGrouped();
+        Map<String, List<UserAttributeResponseDTO>> grouped = userAttributeService.getAllAttributesGrouped();
         List<String> types = List.copyOf(grouped.keySet());
         return ResponseEntity.ok(types);
     }
@@ -147,10 +147,10 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<Page<UserAttributeDTO>> getAllAttributesPaged(
+    public ResponseEntity<Page<UserAttributeResponseDTO>> getAllAttributesPaged(
         @PageableDefault(size = 20, sort = {"attributeType", "displayOrder"}) Pageable pageable) {
         logger.info("Admin consultando todos los atributos paginados", Map.of("page", pageable.getPageNumber()));
-        Page<UserAttributeDTO> attributes = userAttributeService.getAllAttributesPaged(pageable);
+        Page<UserAttributeResponseDTO> attributes = userAttributeService.getAllAttributesPaged(pageable);
         return ResponseEntity.ok(attributes);
     }
 
@@ -169,10 +169,10 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<UserAttributeDTO> getAttributeById(
+    public ResponseEntity<UserAttributeResponseDTO> getAttributeById(
         @Parameter(description = "ID del atributo") @PathVariable Long id) {
         logger.info("Admin consultando atributo por ID", Map.of("attributeId", id));
-        UserAttributeDTO attribute = userAttributeService.getAttributeById(id);
+        UserAttributeResponseDTO attribute = userAttributeService.getAttributeById(id);
         return ResponseEntity.ok(attribute);
     }
 
@@ -189,9 +189,9 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<List<UserAttributeDTO>> getInactiveAttributes() {
+    public ResponseEntity<List<UserAttributeResponseDTO>> getInactiveAttributes() {
         logger.info("Admin consultando atributos inactivos");
-        List<UserAttributeDTO> inactiveAttributes = userAttributeService.getInactiveAttributes();
+        List<UserAttributeResponseDTO> inactiveAttributes = userAttributeService.getInactiveAttributes();
         return ResponseEntity.ok(inactiveAttributes);
     }
 
@@ -237,10 +237,10 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "400", description = "Tipo no permitido, datos inválidos o atributo duplicado"),
         @ApiResponse(responseCode = "401", description = "No autenticado")
     })
-    public ResponseEntity<UserAttributeDTO> createAttributeByUser(
+    public ResponseEntity<UserAttributeResponseDTO> createAttributeByUser(
         @Parameter(description = "Tipo de atributo (CHURCH, RELIGION)")
         @PathVariable @ValidAttributeType String attributeType,
-        @Valid @RequestBody UserAttributeCreateDTO createDTO) {
+        @Valid @RequestBody UserAttributeRequestDTO createDTO) {
 
         logger.info("Usuario proponiendo nuevo atributo", Map.of(
             "attributeType", attributeType,
@@ -248,7 +248,7 @@ public class UserAttributeController {
         ));
 
         // createdByAdmin = false, se crea inactivo
-        UserAttributeDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, false);
+        UserAttributeResponseDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, false);
 
         logger.info("Atributo propuesto exitosamente (pendiente de aprobación)", Map.of(
             "id", createdAttribute.id(),
@@ -280,10 +280,10 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "400", description = "Tipo inválido o atributo duplicado"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<UserAttributeDTO> createAttribute(
+    public ResponseEntity<UserAttributeResponseDTO> createAttribute(
         @Parameter(description = "Tipo de atributo")
         @PathVariable @ValidAttributeType String attributeType,
-        @Valid @RequestBody UserAttributeCreateDTO createDTO) {
+        @Valid @RequestBody UserAttributeRequestDTO createDTO) {
 
         logger.info("Admin creando atributo", Map.of(
             "attributeType", attributeType,
@@ -291,7 +291,7 @@ public class UserAttributeController {
         ));
 
         // createdByAdmin = true, se crea activo
-        UserAttributeDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, true);
+        UserAttributeResponseDTO createdAttribute = userAttributeService.createAttribute(attributeType, createDTO, true);
 
         logger.info("Atributo creado exitosamente por admin (activo)", Map.of(
             "id", createdAttribute.id(),
@@ -318,16 +318,16 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "400", description = "Datos inválidos"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<UserAttributeDTO> updateAttribute(
+    public ResponseEntity<UserAttributeResponseDTO> updateAttribute(
         @Parameter(description = "ID del atributo") @PathVariable Long attributeId,
-        @Valid @RequestBody UserAttributeCreateDTO updateDTO) {
+        @Valid @RequestBody UserAttributeRequestDTO updateDTO) {
 
         logger.info("Admin actualizando atributo", Map.of(
             "attributeId", attributeId,
             "newName", updateDTO.name()
         ));
 
-        UserAttributeDTO updatedAttribute = userAttributeService.updateAttribute(attributeId, updateDTO);
+        UserAttributeResponseDTO updatedAttribute = userAttributeService.updateAttribute(attributeId, updateDTO);
 
         logger.info("Atributo actualizado exitosamente", Map.of("attributeId", attributeId));
         return ResponseEntity.ok(updatedAttribute);
@@ -376,11 +376,11 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<UserAttributeDTO> activateAttribute(
+    public ResponseEntity<UserAttributeResponseDTO> activateAttribute(
         @Parameter(description = "ID del atributo") @PathVariable Long attributeId) {
 
         logger.info("Admin activando atributo", Map.of("attributeId", attributeId));
-        UserAttributeDTO activatedAttribute = userAttributeService.activateAttribute(attributeId);
+        UserAttributeResponseDTO activatedAttribute = userAttributeService.activateAttribute(attributeId);
         logger.info("Atributo activado exitosamente", Map.of("attributeId", attributeId));
         return ResponseEntity.ok(activatedAttribute);
     }
@@ -400,11 +400,11 @@ public class UserAttributeController {
         @ApiResponse(responseCode = "404", description = "Atributo no encontrado"),
         @ApiResponse(responseCode = "403", description = "Acceso denegado - requiere rol ADMIN")
     })
-    public ResponseEntity<UserAttributeDTO> deactivateAttribute(
+    public ResponseEntity<UserAttributeResponseDTO> deactivateAttribute(
         @Parameter(description = "ID del atributo") @PathVariable Long attributeId) {
 
         logger.info("Admin desactivando atributo", Map.of("attributeId", attributeId));
-        UserAttributeDTO deactivatedAttribute = userAttributeService.deactivateAttribute(attributeId);
+        UserAttributeResponseDTO deactivatedAttribute = userAttributeService.deactivateAttribute(attributeId);
         logger.info("Atributo desactivado exitosamente", Map.of("attributeId", attributeId));
         return ResponseEntity.ok(deactivatedAttribute);
     }

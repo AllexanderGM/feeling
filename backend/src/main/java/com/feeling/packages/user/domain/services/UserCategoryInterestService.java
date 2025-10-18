@@ -1,9 +1,9 @@
 package com.feeling.packages.user.domain.services;
 
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
-import com.feeling.packages.user.domain.dto.request.UserCategoryInterestRequestDTO;
-import com.feeling.packages.user.domain.dto.interests.UserInterestStatisticsResponseDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestRequestDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestResponseDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestStatisticsResponseDTO;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.entities.UserCategoryInterest;
 import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;
@@ -43,7 +43,7 @@ public class UserCategoryInterestService {
      * @return Lista de categorías activas
      */
     @Transactional(readOnly = true)
-    public List<UserCategoryInterestDTO> getAllActiveCategories() {
+    public List<UserInterestResponseDTO> getAllActiveCategories() {
         return repository.findByIsActiveTrueOrderByDisplayOrder()
             .stream()
             .map(this::mapToDTO)
@@ -56,7 +56,7 @@ public class UserCategoryInterestService {
      * @return Lista de todas las categorías
      */
     @Transactional(readOnly = true)
-    public List<UserCategoryInterestDTO> getAllCategories() {
+    public List<UserInterestResponseDTO> getAllCategories() {
         return repository.findAllByOrderByDisplayOrder()
             .stream()
             .map(this::mapToDTO)
@@ -70,7 +70,7 @@ public class UserCategoryInterestService {
      * @return Optional con la categoría si existe
      */
     @Transactional(readOnly = true)
-    public Optional<UserCategoryInterestDTO> getCategoryByEnum(UserCategoryInterestList categoryEnum) {
+    public Optional<UserInterestResponseDTO> getCategoryByEnum(UserCategoryInterestList categoryEnum) {
         return repository.findByCategoryInterestEnum(categoryEnum)
             .map(this::mapToDTO);
     }
@@ -82,7 +82,7 @@ public class UserCategoryInterestService {
      * @return Optional con la categoría si existe
      */
     @Transactional(readOnly = true)
-    public Optional<UserCategoryInterestDTO> getCategoryById(Long id) {
+    public Optional<UserInterestResponseDTO> getCategoryById(Long id) {
         return repository.findById(id)
             .map(this::mapToDTO);
     }
@@ -96,13 +96,13 @@ public class UserCategoryInterestService {
      * @throws RuntimeException Si la categoría no existe
      */
     @Transactional
-    public UserCategoryInterestDTO updateCategory(Long id, UserCategoryInterestRequestDTO categoryDTO) {
+    public UserInterestResponseDTO updateCategory(Long id, UserInterestRequestDTO categoryDTO) {
         UserCategoryInterest category = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
         // Actualización usando los métodos de acceso del record
-        if (categoryDTO.categoryInterestEnum() != null) {
-            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.categoryInterestEnum()));
+        if (categoryDTO.interestEnum() != null) {
+            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.interestEnum()));
         }
         category.setName(categoryDTO.name());
         category.setDescription(categoryDTO.description());
@@ -127,7 +127,7 @@ public class UserCategoryInterestService {
      * @throws RuntimeException Si la categoría no existe
      */
     @Transactional
-    public UserCategoryInterestDTO toggleCategoryStatus(Long id) {
+    public UserInterestResponseDTO toggleCategoryStatus(Long id) {
         UserCategoryInterest category = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + id));
 
@@ -144,10 +144,10 @@ public class UserCategoryInterestService {
      * @throws RuntimeException Si hay error al crear la categoría
      */
     @Transactional
-    public UserCategoryInterestDTO createCategory(UserCategoryInterestRequestDTO categoryDTO) {
+    public UserInterestResponseDTO createCategory(UserInterestRequestDTO categoryDTO) {
         try {
             UserCategoryInterest category = new UserCategoryInterest();
-            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.categoryInterestEnum()));
+            category.setCategoryInterestEnum(parseCategoryEnum(categoryDTO.interestEnum()));
             category.setName(categoryDTO.name());
             category.setDescription(categoryDTO.description());
             category.setIcon(categoryDTO.icon());
@@ -272,7 +272,7 @@ public class UserCategoryInterestService {
      * @param entity Entidad a mapear
      * @return DTO mapeado con todos los datos
      */
-    private UserCategoryInterestDTO mapToDTO(UserCategoryInterest entity) {
+    private UserInterestResponseDTO mapToDTO(UserCategoryInterest entity) {
         // Inicializar features dentro de la sesión transaccional
         List<String> features = null;
         try {
@@ -287,7 +287,7 @@ public class UserCategoryInterestService {
             features = List.of(); // Lista vacía como fallback
         }
 
-        return new UserCategoryInterestDTO(
+        return new UserInterestResponseDTO(
             entity.getId(),
             entity.getCategoryInterestEnum() != null ? entity.getCategoryInterestEnum().name() : null,
             entity.getName(),
@@ -305,14 +305,14 @@ public class UserCategoryInterestService {
 
     private UserCategoryInterestList parseCategoryEnum(String enumValue) {
         if (enumValue == null || enumValue.isBlank()) {
-            throw new IllegalArgumentException("El campo categoryInterestEnum es obligatorio");
+            throw new IllegalArgumentException("El campo interestEnum es obligatorio");
         }
 
         try {
             return UserCategoryInterestList.valueOf(enumValue.trim().toUpperCase());
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException(
-                "Valor inválido para categoryInterestEnum: " + enumValue +
+                "Valor inválido para interestEnum: " + enumValue +
                     ". Valores permitidos: " + java.util.Arrays.toString(UserCategoryInterestList.values()),
                 ex
             );

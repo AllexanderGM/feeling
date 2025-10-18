@@ -1,5 +1,6 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
+import { Logger } from '@utils/logger.js'
 
 /**
  * Servicio de intereses de usuario para UserInterestController (/user-interests)

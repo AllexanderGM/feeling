@@ -2,9 +2,8 @@ import { useContext, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@services'
 import { Logger } from '@utils/logger.js'
-import AuthContext from '@context/AuthContext.jsx'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import AuthContext from '@contexts/AuthContext.jsx'
+import { useError, useAsyncOperation } from '@hooks'
 
 /**
  * Hook de autenticación - AuthController

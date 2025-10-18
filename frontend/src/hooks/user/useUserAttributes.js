@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { getUserAttributes, getUserAttributesByType, createUserAttribute } from '@services'
 import { Logger } from '@utils/logger.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import { useAsyncOperation } from '@hooks'
 
 export default function useUserAttributes() {
   const [attributes, setAttributes] = useState({})

@@ -1,6 +1,6 @@
 import { Input, Button, Image } from '@heroui/react'
 import { useState, useEffect, useRef } from 'react'
-import { useSearch } from '@context/SearchContext'
+import { useSearch } from '@contexts/SearchContext'
 import './hero.scss'
 import SearchIcon from '@components/SearchIcon.jsx'
 import SearchAutocomplete from '@components/SearchAutocomplete.jsx'

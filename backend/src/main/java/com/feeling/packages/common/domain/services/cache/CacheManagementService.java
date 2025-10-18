@@ -33,7 +33,7 @@ public class CacheManagementService {
         // Evict user suggestions with all include levels and pagination
         evictCacheWithPattern("userSuggestions", userEmail);
 
-        // Evict user metrics
+        // Evict user analytics
         evictCacheWithPattern("userMetrics", userEmail);
 
         // Evict compatibility calculations involving this user

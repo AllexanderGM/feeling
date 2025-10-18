@@ -43,7 +43,7 @@ import { useAuth, useUserInterests } from '@hooks'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
-import UserCard from '@components/ui/UserCard.jsx'
+import UserCard from '@components/ui/userSuggestionCards/components/UserCard.jsx'
 
 const Favorites = () => {
   const { user, loading: authLoading } = useAuth()

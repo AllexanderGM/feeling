@@ -11,6 +11,7 @@ import { useNotification } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
 import { validateImageFile, createPreviewUrl, cleanupPreviewUrl, cleanupPreviewUrls } from '../utils'
+import { smartCompress } from '../compression'
 
 const useImageManager = ({
   maxImages = 5,
@@ -136,7 +137,15 @@ const useImageManager = ({
         }
 
         // Continuar solo con archivos válidos
-        const validFilesOnly = validFileResults.map(result => result.file)
+        let validFilesOnly = validFileResults.map(result => result.file)
+
+        // ========================================
+        // COMPRESIÓN AUTOMÁTICA DE IMÁGENES
+        // ========================================
+        const compressionResults = await Promise.all(validFilesOnly.map(file => smartCompress(file)))
+
+        // Extraer los archivos comprimidos
+        validFilesOnly = compressionResults.map(result => result.file)
 
         // Encontrar posiciones disponibles
         const currentImages = [...normalizedImages]

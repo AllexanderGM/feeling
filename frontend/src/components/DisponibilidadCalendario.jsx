@@ -4,7 +4,7 @@ import { Clock, Users } from 'lucide-react'
 import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
 import { useNavigate } from 'react-router-dom'
 import { formatDateForDisplay, formatTimeForDisplay, normalizeAvailability } from '@utils/dateUtils.js'
-import { useAuth } from '@context/AuthContext.jsx'
+import { useAuth } from '@contexts/AuthContext.jsx'
 import { Logger } from '@utils/logger.js'
 
 const DisponibilidadCalendario = ({ tour, onSelectDate }) => {

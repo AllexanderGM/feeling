@@ -18,12 +18,13 @@ import Complete from '@pages/user/complete/complete.jsx'
 import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
 import Home from '@pages/home/Home.jsx'
-import Profile from '@pages/user/profile/Profile.jsx'
+import Profile from '@pages/user/me/Me.jsx'
 import Settings from '@pages/user/settings/Settings.jsx'
 import Help from '@pages/help/Help.jsx'
 import Matches from '@pages/matches/Matches.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
+import UserDetail from '@pages/user/profile/Profile.jsx'
 // Páginas de administración
 import AdminDashboard from '@pages/admin/AdminDashboard.jsx'
 import UsersManagement from '@pages/user/management/Management.jsx'
@@ -105,7 +106,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.PROFILE_BY_ID.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Ver Perfil de Usuario - Por implementar</div>
+                <UserDetail />
               </RequireCompleteProfile>
             )
           },

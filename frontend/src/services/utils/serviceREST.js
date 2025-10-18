@@ -196,6 +196,21 @@ export class ServiceREST {
   }
 
   /**
+   * Petición PATCH
+   * @param {string} url - URL del endpoint
+   * @param {*} data - Datos a enviar (JSON o FormData)
+   * @param {Object} config - Configuración adicional
+   * @returns {Promise<Object>} Respuesta formateada
+   */
+  static async patch(url, data, config = {}) {
+    if (data instanceof FormData) {
+      return this.handleFormDataRequest('PATCH', url, data, config)
+    }
+
+    return this.request({ ...config, method: 'PATCH', url, data })
+  }
+
+  /**
    * Petición DELETE
    * @param {string} url - URL del endpoint
    * @param {Object} config - Configuración adicional

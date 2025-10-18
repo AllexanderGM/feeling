@@ -86,7 +86,6 @@ public class RouteSecurityConfig {
         Pattern.compile("^/user/([^/]+)/?$"), // PUT /user/{email}
         Pattern.compile("^/user/([^/]+)/.*$"), // PUT /user/{email}/anything
         Pattern.compile("^/support/my-complaints/([^/]+)/?$"), // Quejas específicas
-        Pattern.compile("^/matches/favorites/([^/]+)/?$"), // Match favorites
         Pattern.compile("^/bookings/([^/]+)/?$"), // Booking cancellation
         Pattern.compile("^/event-registrations/([^/]+)/cancel/?$") // Event registration cancellation
     );
@@ -108,7 +107,7 @@ public class RouteSecurityConfig {
         "/user/incomplete-profile",
         "/user-analytics/**",
         "/user-tags/cleanup",
-        "/user-tags/update-metrics",
+        "/user-tags/update-analytics",
         // Event admin endpoints
         "/events/dashboard/stats",
         "/events/all-admin",

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useId } from 'react'
 import {
   Modal,
   ModalContent,
@@ -18,44 +18,27 @@ import {
   Accordion,
   AccordionItem
 } from '@heroui/react'
-import { Sparkles, Flame, Star, Heart, Filter, RotateCcw, MapPin, Calendar, Users } from 'lucide-react'
+import { Filter, RotateCcw, MapPin, Calendar, Users, Heart, Sparkles } from 'lucide-react'
 import { useUserInterests } from '@hooks'
+import { getCategoryIcon } from '@utils/categoryHelpers.jsx'
+
+import { DEFAULT_FILTERS } from '../constants/filterDefaults.js'
 
 const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters = {} }) => {
   const { interestOptions } = useUserInterests()
 
+  // IDs únicos para accesibilidad
+  const categorySelectId = useId()
+  const relationshipSelectId = useId()
+  const educationSelectId = useId()
+  const jobSelectId = useId()
+  const smokingSelectId = useId()
+  const drinkingSelectId = useId()
+
   // Estados de filtros locales
   const [filters, setFilters] = useState({
-    // Filtros básicos
-    categoryInterest: currentFilters.categoryInterest || 'all',
-    ageMin: currentFilters.ageMin || 18,
-    ageMax: currentFilters.ageMax || 65,
-    distance: currentFilters.distance || 50,
-
-    // Filtros avanzados de relación
-    relationshipType: currentFilters.relationshipType || 'all', // all, serious, casual, friendship
-
-    // Filtros de actividad
-    showOnlineOnly: currentFilters.showOnlineOnly || false,
-    showRecentActivity: currentFilters.showRecentActivity || false,
-
-    // Filtros de verificación
-    showVerifiedOnly: currentFilters.showVerifiedOnly || false,
-    showWithPhotosOnly: currentFilters.showWithPhotosOnly || true,
-
-    // Filtros de compatibilidad
-    minCompatibility: currentFilters.minCompatibility || 0,
-
-    // Filtros de educación y trabajo
-    educationLevel: currentFilters.educationLevel || 'all',
-    hasJob: currentFilters.hasJob || 'all',
-
-    // Filtros de preferencias
-    smokingPreference: currentFilters.smokingPreference || 'all',
-    drinkingPreference: currentFilters.drinkingPreference || 'all',
-
-    // Ordenamiento
-    sortBy: currentFilters.sortBy || 'compatibility' // compatibility, distance, activity, newest
+    ...DEFAULT_FILTERS,
+    ...currentFilters
   })
 
   // Opciones de filtros
@@ -97,20 +80,6 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
     { key: 'newest', label: 'Más recientes' }
   ]
 
-  // Obtener icono de categoría
-  const getCategoryIcon = categoryKey => {
-    switch (categoryKey?.toUpperCase()) {
-      case 'ESSENCE':
-        return <Sparkles className='w-4 h-4 text-blue-400' />
-      case 'ROUSE':
-        return <Flame className='w-4 h-4 text-red-400' />
-      case 'SPIRIT':
-        return <Star className='w-4 h-4 text-purple-400' />
-      default:
-        return <Heart className='w-4 h-4 text-gray-400' />
-    }
-  }
-
   // Manejadores de cambio
   const handleFilterChange = useCallback((filterName, value) => {
     setFilters(prev => ({
@@ -128,23 +97,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
   }, [])
 
   const resetFilters = useCallback(() => {
-    setFilters({
-      categoryInterest: 'all',
-      ageMin: 18,
-      ageMax: 65,
-      distance: 50,
-      relationshipType: 'all',
-      showOnlineOnly: false,
-      showRecentActivity: false,
-      showVerifiedOnly: false,
-      showWithPhotosOnly: true,
-      minCompatibility: 0,
-      educationLevel: 'all',
-      hasJob: 'all',
-      smokingPreference: 'all',
-      drinkingPreference: 'all',
-      sortBy: 'compatibility'
-    })
+    setFilters(DEFAULT_FILTERS)
   }, [])
 
   const applyFilters = useCallback(() => {
@@ -224,7 +177,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
 
                     {/* Categoría de interés */}
                     <div>
-                      <label className='text-sm text-gray-300 mb-2 block' htmlFor='categoryInterestSelect'>
+                      <label className='text-sm text-gray-300 mb-2 block' htmlFor={categorySelectId}>
                         Categoría de interés
                       </label>
                       <Select
@@ -232,7 +185,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
-                        id='categoryInterestSelect'
+                        id={categorySelectId}
                         placeholder='Selecciona una categoría'
                         selectedKeys={filters.categoryInterest ? [filters.categoryInterest] : []}
                         onSelectionChange={keys => handleFilterChange('categoryInterest', Array.from(keys)[0])}>
@@ -319,6 +272,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
+                        id={relationshipSelectId}
                         label='Tipo de relación buscada'
                         selectedKeys={filters.relationshipType ? [filters.relationshipType] : []}
                         onSelectionChange={keys => handleFilterChange('relationshipType', Array.from(keys)[0])}>
@@ -421,6 +375,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
+                        id={educationSelectId}
                         label='Nivel educativo'
                         selectedKeys={filters.educationLevel ? [filters.educationLevel] : []}
                         onSelectionChange={keys => handleFilterChange('educationLevel', Array.from(keys)[0])}>
@@ -436,6 +391,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
+                        id={jobSelectId}
                         label='Situación laboral'
                         selectedKeys={filters.hasJob ? [filters.hasJob] : []}
                         onSelectionChange={keys => handleFilterChange('hasJob', Array.from(keys)[0])}>
@@ -464,6 +420,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
+                        id={smokingSelectId}
                         label='Fumar'
                         selectedKeys={filters.smokingPreference ? [filters.smokingPreference] : []}
                         onSelectionChange={keys => handleFilterChange('smokingPreference', Array.from(keys)[0])}>
@@ -479,6 +436,7 @@ const AdvancedFilters = ({ isOpen, onOpenChange, onApplyFilters, currentFilters 
                           trigger: 'bg-gray-800/50 border-gray-600',
                           value: 'text-gray-200'
                         }}
+                        id={drinkingSelectId}
                         label='Beber alcohol'
                         selectedKeys={filters.drinkingPreference ? [filters.drinkingPreference] : []}
                         onSelectionChange={keys => handleFilterChange('drinkingPreference', Array.from(keys)[0])}>

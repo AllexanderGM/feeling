@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { DateRangePicker as HeroDateRangePicker } from '@heroui/react'
-import { useSearch } from '@context/SearchContext'
+import { useSearch } from '@contexts/SearchContext'
 import { toISOString } from '@utils/dateUtils.js'
 import { Logger } from '@utils/logger.js'
 

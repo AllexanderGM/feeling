@@ -577,7 +577,13 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("Usuario administrador creado con perfil completo: {}", normalizedAdminEmail);
         } else {
             // Si el administrador ya existe, verificar si necesita actualización de campos
-            User existingAdmin = userRepository.findByEmail(normalizedAdminEmail).get();
+            Optional<User> optionalAdmin = userRepository.findByEmail(normalizedAdminEmail);
+            if (optionalAdmin.isEmpty()) {
+                logger.warn("No se pudo encontrar el usuario administrador con email: {}", normalizedAdminEmail);
+                return;
+            }
+
+            User existingAdmin = optionalAdmin.get();
             boolean needsUpdate = false;
 
             // Verificar y actualizar campos faltantes
@@ -737,29 +743,12 @@ public class DataInitializer implements CommandLineRunner {
     // ==============================
     // CLASE AUXILIAR PARA DATOS DE ATRIBUTOS
     // ==============================
-    private static class AttributeData {
-        public final String code;
-        public final String name;
-        public final String description;
-        public final String detail;
-        public final Integer displayOrder;
-
+    private record AttributeData(String code, String name, String description, String detail, Integer displayOrder) {
         // Constructor con detail explícito
-        public AttributeData(String code, String name, String description, String detail, Integer displayOrder) {
-            this.code = code;
-            this.name = name;
-            this.description = description;
-            this.detail = detail;
-            this.displayOrder = displayOrder;
-        }
 
         // Constructor que mantiene compatibilidad (detail = null)
         public AttributeData(String code, String name, String description, Integer displayOrder) {
-            this.code = code;
-            this.name = name;
-            this.description = description;
-            this.detail = null;
-            this.displayOrder = displayOrder;
+            this(code, name, description, null, displayOrder);
         }
     }
 
@@ -786,14 +775,17 @@ public class DataInitializer implements CommandLineRunner {
             List<UserAttribute> eyeColors = userAttributeService.findByAttributeTypeAndActiveTrue("EYE_COLOR");
             List<UserAttribute> hairColors = userAttributeService.findByAttributeTypeAndActiveTrue("HAIR_COLOR");
             List<UserAttribute> bodyTypes = userAttributeService.findByAttributeTypeAndActiveTrue("BODY_TYPE");
+            List<UserAttribute> maritalStatuses = userAttributeService.findByAttributeTypeAndActiveTrue("MARITAL_STATUS");
+            List<UserAttribute> educationLevels = userAttributeService.findByAttributeTypeAndActiveTrue("EDUCATION_LEVEL");
 
             Random random = new Random();
             int usuariosCreados = 0;
 
-            // 1. USUARIOS ACTIVOS (15 usuarios): verified=true, userApprovalStatus=APPROVED, profileComplete=true, accountDeactivated=false
+            // 1. USUARIOS ACTIVOS (50 usuarios): verified=true, userApprovalStatus=APPROVED, profileComplete=true, accountDeactivated=false
             logger.info("Creando usuarios activos...");
-            for (int i = 0; i < 15; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "ACTIVE", i);
+            for (int i = 0; i < 50; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "ACTIVE", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -801,10 +793,11 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 2. USUARIOS PENDIENTES DE APROBACIÓN (8 usuarios): verified=true, profileComplete=true, userApprovalStatus=PENDING, accountDeactivated=false
+            // 2. USUARIOS PENDIENTES DE APROBACIÓN (12 usuarios): verified=true, profileComplete=true, userApprovalStatus=PENDING, accountDeactivated=false
             logger.info("Creando usuarios pendientes de aprobación...");
-            for (int i = 0; i < 8; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "PENDING_APPROVAL", i);
+            for (int i = 0; i < 12; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "PENDING_APPROVAL", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -812,10 +805,11 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 3. USUARIOS CON PERFILES INCOMPLETOS (4 usuarios): verified=true, profileComplete=false, userApprovalStatus=PENDING, accountDeactivated=false
+            // 3. USUARIOS CON PERFILES INCOMPLETOS (8 usuarios): verified=true, profileComplete=false, userApprovalStatus=PENDING, accountDeactivated=false
             logger.info("Creando usuarios con perfiles incompletos...");
-            for (int i = 0; i < 4; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "INCOMPLETE_PROFILE", i);
+            for (int i = 0; i < 8; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "INCOMPLETE_PROFILE", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -823,10 +817,11 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 4. USUARIOS CON EMAIL NO VERIFICADO (3 usuarios): verified=false, accountDeactivated=false
+            // 4. USUARIOS CON EMAIL NO VERIFICADO (5 usuarios): verified=false, accountDeactivated=false
             logger.info("Creando usuarios con email no verificado...");
-            for (int i = 0; i < 3; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "UNVERIFIED", i);
+            for (int i = 0; i < 5; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "UNVERIFIED", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -834,10 +829,11 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 5. USUARIOS RECHAZADOS (5 usuarios): verified=true, userApprovalStatus=REJECTED, accountDeactivated=false, perfil completo
+            // 5. USUARIOS RECHAZADOS (8 usuarios): verified=true, userApprovalStatus=REJECTED, accountDeactivated=false, perfil completo
             logger.info("Creando usuarios rechazados...");
-            for (int i = 0; i < 5; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "REJECTED", i);
+            for (int i = 0; i < 8; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "REJECTED", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -845,10 +841,11 @@ public class DataInitializer implements CommandLineRunner {
                 }
             }
 
-            // 6. USUARIOS DESACTIVADOS (5 usuarios): accountDeactivated=true, perfil completo
+            // 6. USUARIOS DESACTIVADOS (7 usuarios): accountDeactivated=true, perfil completo
             logger.info("Creando usuarios desactivados...");
-            for (int i = 0; i < 5; i++) {
-                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes, "DEACTIVATED", i);
+            for (int i = 0; i < 7; i++) {
+                User user = createSpecificUser(random, clientRole, categories, genders, eyeColors, hairColors, bodyTypes,
+                    maritalStatuses, educationLevels, "DEACTIVATED", i);
                 if (userRepository.isEmailAvailable(user.getEmail())) {
                     userRepository.save(user);
                     usuariosCreados++;
@@ -858,8 +855,8 @@ public class DataInitializer implements CommandLineRunner {
 
             logger.info("Se crearon {} usuarios de prueba distribuidos en las 6 categorías", usuariosCreados);
             logger.info("RESUMEN: {} activos, {} pendientes, {} incompletos, {} no verificados, {} rechazados, {} desactivados",
-                15, 8, 4, 3, 5, 5);
-            logger.info("NOTA: La mayoría de usuarios tienen perfiles COMPLETOS para facilitar las pruebas");
+                50, 12, 8, 5, 8, 7);
+            logger.info("NOTA: La mayoría de usuarios tienen perfiles COMPLETOS para facilitar las pruebas de matching");
 
         } catch (Exception e) {
             logger.error("Error en creación de usuarios de prueba: {}", e.getMessage());
@@ -872,36 +869,48 @@ public class DataInitializer implements CommandLineRunner {
                                     List<UserAttribute> eyeColors,
                                     List<UserAttribute> hairColors,
                                     List<UserAttribute> bodyTypes,
+                                    List<UserAttribute> maritalStatuses,
+                                    List<UserAttribute> educationLevels,
                                     String categoria, int indice) {
 
-        // Datos para generar usuarios falsos
+        // Datos para generar usuarios falsos - AMPLIADOS
         String[] nombresMasculinos = {
             "Alejandro", "Carlos", "Diego", "Eduardo", "Fernando", "Gabriel", "Hugo", "Iván",
             "Javier", "Kevin", "Luis", "Miguel", "Nicolás", "Oscar", "Pablo", "Rafael",
-            "Santiago", "Tomás", "Víctor", "William", "Andrés", "Daniel", "Sergio", "Ricardo"
+            "Santiago", "Tomás", "Víctor", "William", "Andrés", "Daniel", "Sergio", "Ricardo",
+            "Mateo", "Lucas", "Sebastián", "Martín", "Benjamín", "Samuel", "David", "Leonardo",
+            "Emiliano", "Maximiliano", "Joaquín", "Manuel", "Felipe", "Rodrigo", "Jorge", "Mario",
+            "Alberto", "Roberto", "Francisco", "Ignacio", "Cristian", "Camilo", "Mauricio", "Esteban"
         };
 
         String[] nombresFemeninos = {
             "Alejandra", "Beatriz", "Carmen", "Diana", "Elena", "Fernanda", "Gabriela", "Helena",
             "Isabel", "Julia", "Karen", "Laura", "María", "Natalia", "Olivia", "Patricia",
-            "Rosa", "Sofia", "Teresa", "Valentina", "Andrea", "Carolina", "Daniela", "Marcela"
+            "Rosa", "Sofia", "Teresa", "Valentina", "Andrea", "Carolina", "Daniela", "Marcela",
+            "Emma", "Mia", "Isabella", "Camila", "Martina", "Victoria", "Lucía", "Mariana",
+            "Catalina", "Paula", "Ana", "Juliana", "Sara", "Valeria", "Melissa", "Paola",
+            "Tatiana", "Viviana", "Ángela", "Lorena", "Mónica", "Claudia", "Sandra", "Adriana"
         };
 
         String[] apellidos = {
             "García", "Rodríguez", "González", "Fernández", "López", "Martínez", "Sánchez", "Pérez",
             "Gómez", "Martín", "Jiménez", "Ruiz", "Hernández", "Díaz", "Moreno", "Muñoz",
-            "Álvarez", "Romero", "Alonso", "Gutiérrez", "Navarro", "Torres", "Domínguez", "Vázquez"
+            "Álvarez", "Romero", "Alonso", "Gutiérrez", "Navarro", "Torres", "Domínguez", "Vázquez",
+            "Ramírez", "Castro", "Ortiz", "Rubio", "Molina", "Delgado", "Morales", "Suárez",
+            "Blanco", "Vargas", "Medina", "Reyes", "Cruz", "Ramos", "Herrera", "Flores",
+            "Aguilar", "Mendoza", "Silva", "Rivera", "Cortés", "León", "Peña", "Rojas"
         };
 
+        // 75% de usuarios en Bogotá para maximizar matches en desarrollo
         String[][] ciudadesCol = {
-            {"Colombia", "Bogotá", "Cundinamarca"},    // 60% de usuarios
-            {"Colombia", "Bogotá", "Cundinamarca"},    // concentrar en Bogotá
-            {"Colombia", "Bogotá", "Cundinamarca"},    // para más matches
+            {"Colombia", "Bogotá", "Cundinamarca"},    // 75% de usuarios en Bogotá
+            {"Colombia", "Bogotá", "Cundinamarca"},    // para tener muchos matches
+            {"Colombia", "Bogotá", "Cundinamarca"},    // y facilitar las pruebas
+            {"Colombia", "Bogotá", "Cundinamarca"},    // de matching
             {"Colombia", "Bogotá", "Cundinamarca"},    //
             {"Colombia", "Bogotá", "Cundinamarca"},    //
-            {"Colombia", "Medellín", "Antioquia"},      // 20% en otras ciudades
-            {"Colombia", "Cali", "Valle del Cauca"},    // principales
-            {"Colombia", "Barranquilla", "Atlántico"}   //
+            {"Colombia", "Medellín", "Antioquia"},      // 12.5% Medellín
+            {"Colombia", "Cali", "Valle del Cauca"}     // 12.5% Cali
         };
 
         // Descripciones específicas por categoría
@@ -940,9 +949,16 @@ public class DataInitializer implements CommandLineRunner {
         };
 
         String[] profesiones = {
-            "Ingeniero de Software", "Médico", "Abogado", "Arquitecto", "Diseñador Gráfico",
-            "Contador", "Marketing Digital", "Psicólogo", "Periodista", "Chef",
-            "Profesor", "Enfermero", "Dentista", "Veterinario", "Fisioterapeuta"
+            "Ingeniero de Software", "Médico General", "Abogado", "Arquitecto", "Diseñador Gráfico",
+            "Contador Público", "Marketing Digital", "Psicólogo Clínico", "Periodista", "Chef Profesional",
+            "Profesor de Universidad", "Enfermero Profesional", "Odontólogo", "Médico Veterinario", "Fisioterapeuta",
+            "Administrador de Empresas", "Economista", "Ingeniero Civil", "Ingeniero Industrial", "Diseñador UX/UI",
+            "Desarrollador Full Stack", "Analista de Datos", "Community Manager", "Fotógrafo Profesional", "Músico",
+            "Artista Visual", "Publicista", "Gerente de Proyectos", "Consultor", "Terapeuta Ocupacional",
+            "Nutricionista", "Personal Trainer", "Estilista", "Barista Profesional", "Emprendedor",
+            "Influencer", "Productor Audiovisual", "Editor de Video", "Ingeniero de Sistemas", "Científico de Datos",
+            "Diseñador de Moda", "Asistente Virtual", "Piloto Comercial", "Auxiliar de Vuelo", "Guía Turístico",
+            "Traductor", "Intérprete", "Investigador", "Biólogo", "Químico Farmacéutico"
         };
 
         // Determinar género
@@ -990,6 +1006,11 @@ public class DataInitializer implements CommandLineRunner {
         // Nota: profileComplete se calculará automáticamente por la entidad User
         // basándose en si los campos requeridos están presentes
 
+        // Configurar visibilidad y privacidad según categoría
+        boolean isActive = categoria.equals("ACTIVE");
+        boolean publicAccountEnabled = isActive || random.nextDouble() < 0.7; // 100% activos, 70% otros
+        boolean searchVisibilityEnabled = isActive || random.nextDouble() < 0.6; // 100% activos, 60% otros
+
         User.UserBuilder userBuilder = User.builder()
             .name(nombre)
             .lastName(apellido)
@@ -1006,48 +1027,31 @@ public class DataInitializer implements CommandLineRunner {
             .country(ubicacion[0])
             .city(ubicacion[1])
             .department(ubicacion[2])
-            .showMeInSearch(categoria.equals("ACTIVE")) // Solo usuarios activos aparecen en búsquedas
+            // CAMPOS CRÍTICOS PARA APARECER EN SUGERENCIAS
+            .showMeInSearch(isActive) // Solo usuarios activos aparecen en búsquedas
+            .publicAccount(publicAccountEnabled) // 100% activos tienen cuenta pública
+            .searchVisibility(searchVisibilityEnabled) // 100% activos tienen visibilidad de búsqueda
             .allowNotifications(random.nextDouble() < 0.8) // 80% notificaciones
             .showAge(random.nextDouble() < 0.85)
             .showLocation(random.nextDouble() < 0.9)
             .showPhone(random.nextDouble() < 0.3)
+            .locationPublic(random.nextDouble() < 0.85) // 85% muestran ubicación pública
             .profileViews(random.nextLong(1000))
             .likesReceived(random.nextLong(100))
             .matchesCount(random.nextLong(50))
             .popularityScore(random.nextDouble() * 100);
 
         // Configurar campos según la categoría para lograr el estado deseado
-        if (categoria.equals("ACTIVE") || categoria.equals("PENDING_APPROVAL") ||
-            categoria.equals("REJECTED") || categoria.equals("DEACTIVATED")) {
-            // USUARIOS CON PERFIL COMPLETO: activos, pendientes, rechazados y desactivados
-            userBuilder
-                .phone(generatePhone(random))
-                .phoneCode("+57")
-                .document(generateDocument(random))
-                .description("TEMPORAL_DESCRIPTION") // Se reemplazará después según la categoría
-                .profession(profesiones[random.nextInt(profesiones.length)])
-                .height(150 + random.nextInt(50)) // 150-200 cm
-                .agePreferenceMin(Math.max(18, edad - 10))
-                .agePreferenceMax(Math.min(65, edad + 15))
-                .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25); // 25km o 50km
-        } else if (categoria.equals("INCOMPLETE_PROFILE")) {
-            // PERFILES INCOMPLETOS: solo algunos campos básicos
-            userBuilder
-                .phone(generatePhone(random))
-                .phoneCode("+57");
-            // Faltan: document, description, profession, height, preferences -> perfil incompleto
-        } else if (categoria.equals("UNVERIFIED")) {
-            // NO VERIFICADOS: perfil mínimo pero completo para testing
-            userBuilder
-                .phone(generatePhone(random))
-                .phoneCode("+57")
-                .document(generateDocument(random))
-                .description("TEMPORAL_DESCRIPTION") // Se reemplazará después según la categoría
-                .profession(profesiones[random.nextInt(profesiones.length)])
-                .height(150 + random.nextInt(50))
-                .agePreferenceMin(Math.max(18, edad - 10))
-                .agePreferenceMax(Math.min(65, edad + 15))
-                .locationPreferenceRadius(random.nextInt(3) == 0 ? 50 : 25);
+        switch (categoria) {
+            case "ACTIVE", "PENDING_APPROVAL", "REJECTED", "DEACTIVATED" ->
+                // USUARIOS CON PERFIL COMPLETO: activos, pendientes, rechazados y desactivados
+                configureCompleteProfile(userBuilder, random, profesiones, edad, categoria);
+            case "INCOMPLETE_PROFILE" ->
+                // PERFILES INCOMPLETOS: solo algunos campos básicos
+                configureIncompleteProfile(userBuilder, random);
+            case "UNVERIFIED" ->
+                // NO VERIFICADOS: perfil mínimo pero completo para testing
+                configureUnverifiedProfile(userBuilder, random, profesiones, edad);
         }
 
         User user = userBuilder.build();
@@ -1084,32 +1088,27 @@ public class DataInitializer implements CommandLineRunner {
         if (!categories.isEmpty()) {
             UserCategoryInterest selectedCategory;
 
-            // Para usuarios ACTIVOS, distribución específica para testing
-            if (categoria.equals("ACTIVE")) {
-                // 40% ESSENCE, 30% ROUSE, 30% SPIRIT para usuarios activos
-                double random_category = random.nextDouble();
-                if (random_category < 0.40) {
-                    // Buscar ESSENCE
-                    selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ESSENCE)
-                        .findFirst()
-                        .orElse(categories.get(0));
-                } else if (random_category < 0.70) {
-                    // Buscar ROUSE
-                    selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE)
-                        .findFirst()
-                        .orElse(categories.get(0));
-                } else {
-                    // Buscar SPIRIT
-                    selectedCategory = categories.stream()
-                        .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT)
-                        .findFirst()
-                        .orElse(categories.get(0));
-                }
+            // Distribución equilibrada de categorías para todos los usuarios
+            // 33% ESSENCE, 33% ROUSE, 33% SPIRIT para maximizar matches dentro de cada categoría
+            double random_category = random.nextDouble();
+            if (random_category < 0.33) {
+                // Buscar ESSENCE
+                selectedCategory = categories.stream()
+                    .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ESSENCE)
+                    .findFirst()
+                    .orElse(categories.getFirst());
+            } else if (random_category < 0.66) {
+                // Buscar ROUSE
+                selectedCategory = categories.stream()
+                    .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.ROUSE)
+                    .findFirst()
+                    .orElse(categories.getFirst());
             } else {
-                // Para otros estados, distribución más equilibrada
-                selectedCategory = categories.get(random.nextInt(categories.size()));
+                // Buscar SPIRIT
+                selectedCategory = categories.stream()
+                    .filter(cat -> cat.getCategoryInterestEnum() == UserCategoryInterestList.SPIRIT)
+                    .findFirst()
+                    .orElse(categories.getFirst());
             }
 
             user.setCategoryInterest(selectedCategory);
@@ -1131,6 +1130,13 @@ public class DataInitializer implements CommandLineRunner {
             if (!bodyTypes.isEmpty()) {
                 user.setBodyType(bodyTypes.get(random.nextInt(bodyTypes.size())));
             }
+            // Agregar estado civil y educación para perfiles completos
+            if (!maritalStatuses.isEmpty()) {
+                user.setMaritalStatus(maritalStatuses.get(random.nextInt(maritalStatuses.size())));
+            }
+            if (!educationLevels.isEmpty()) {
+                user.setEducation(educationLevels.get(random.nextInt(educationLevels.size())));
+            }
 
             // Agregar atributos específicos según la categoría del usuario
             UserCategoryInterest userCategory = user.getCategoryInterest();
@@ -1144,7 +1150,7 @@ public class DataInitializer implements CommandLineRunner {
                             .filter(r -> r.getCode().contains("CHRISTIAN") || r.getCode().contains("CATHOLIC") ||
                                 r.getCode().contains("PROTESTANT") || r.getCode().contains("EVANGELICAL") ||
                                 r.getCode().contains("PENTECOSTAL"))
-                            .collect(java.util.stream.Collectors.toList());
+                            .toList();
 
                         if (!christianReligions.isEmpty()) {
                             user.setReligion(christianReligions.get(random.nextInt(christianReligions.size())));
@@ -1447,34 +1453,83 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    /**
+     * Configura los campos básicos comunes del perfil
+     */
+    private void configureBasicProfileFields(User.UserBuilder userBuilder, Random random, String[] profesiones, int edad) {
+        // Preferencias de edad más amplias para más matches
+        // 70% de usuarios con rango amplio (±15 años), 30% con rango normal (±10 años)
+        int rangoMin = random.nextDouble() < 0.7 ? 15 : 10;
+        int rangoMax = random.nextDouble() < 0.7 ? 20 : 15;
+
+        userBuilder
+            .phone(generatePhone(random))
+            .phoneCode("+57")
+            .document(generateDocument(random))
+            .description("TEMPORAL_DESCRIPTION") // Se reemplazará después según la categoría
+            .profession(profesiones[random.nextInt(profesiones.length)])
+            .height(150 + random.nextInt(50)) // 150-200 cm
+            .agePreferenceMin(Math.max(18, edad - rangoMin))
+            .agePreferenceMax(Math.min(65, edad + rangoMax))
+            .locationPreferenceRadius(random.nextInt(4) == 0 ? 100 : 50); // 50km mayoría, 100km algunos
+    }
+
+    /**
+     * Configura campos de perfil completo para usuarios activos, pendientes, rechazados y desactivados
+     */
+    private void configureCompleteProfile(User.UserBuilder userBuilder, Random random, String[] profesiones, int edad, String categoria) {
+        // Configurar campos básicos
+        configureBasicProfileFields(userBuilder, random, profesiones, edad);
+
+        // Agregar más variación en métricas sociales para usuarios activos
+        userBuilder
+            .profileViews(categoria.equals("ACTIVE") ? random.nextLong(50, 500) : random.nextLong(10, 100))
+            .likesReceived(categoria.equals("ACTIVE") ? random.nextLong(10, 150) : random.nextLong(0, 30))
+            .matchesCount(categoria.equals("ACTIVE") ? random.nextLong(5, 50) : random.nextLong(0, 10))
+            .availableAttempts(categoria.equals("ACTIVE") ? random.nextInt(10, 30) : random.nextInt(0, 10));
+    }
+
+    /**
+     * Configura perfil incompleto con solo campos básicos
+     */
+    private void configureIncompleteProfile(User.UserBuilder userBuilder, Random random) {
+        userBuilder
+            .phone(generatePhone(random))
+            .phoneCode("+57");
+        // Faltan: document, description, profession, height, preferences -> perfil incompleto
+    }
+
+    /**
+     * Configura perfil no verificado pero con campos completos para testing
+     */
+    private void configureUnverifiedProfile(User.UserBuilder userBuilder, Random random, String[] profesiones, int edad) {
+        // Usa la misma configuración base que los perfiles completos, sin métricas sociales mejoradas
+        configureBasicProfileFields(userBuilder, random, profesiones, edad);
+    }
+
     private String[][] getEventsDataForCategory(EventCategory category) {
-        switch (category) {
-            case CULTURAL:
-                return new String[][]{
-                    {"Exposición de Arte Contemporáneo", "Descubre las últimas tendencias del arte contemporáneo en esta increíble exposición. Artistas locales e internacionales muestran sus obras más innovadoras.", "15", "25000", "50", "12", "https://picsum.photos/600/400?random=1001", "Museo de Arte Moderno - Bogotá"},
-                    {"Teatro: Romeo y Julieta", "La clásica obra de Shakespeare interpretada por la compañía nacional de teatro. Una experiencia única e inolvidable.", "22", "45000", "200", "85", "https://picsum.photos/600/400?random=1002", "Teatro Colón - Centro de Bogotá"},
-                    {"Festival de Cine Independiente", "Tres días de proyecciones de películas independientes de todo el mundo. Incluye charlas con directores y actores.", "30", "35000", "150", "67", "https://picsum.photos/600/400?random=1003", "Cinemateca Distrital - Chapinero"}
-                };
-            case DEPORTIVO:
-                return new String[][]{
-                    {"Torneo de Fútbol Amateur", "Participa en nuestro torneo de fútbol amateur. Equipos de toda la ciudad compiten por el primer lugar.", "18", "20000", "80", "24", "https://picsum.photos/600/400?random=2001", "Parque Simón Bolívar - Bogotá"},
-                    {"Maratón Ciudad 10K", "Únete a nuestra carrera de 10 kilómetros por los lugares más emblemáticos de la ciudad. Para todos los niveles.", "25", "15000", "300", "156", "https://picsum.photos/600/400?random=2002", "Carrera 7ma - Centro Histórico"},
-                    {"Clase de Yoga al Aire Libre", "Sesión de yoga en el parque principal de la ciudad. Perfecto para relajarse y conectar con la naturaleza.", "12", "12000", "30", "18", "https://picsum.photos/600/400?random=2003", "Parque Nacional - Bogotá"}
-                };
-            case MUSICAL:
-                return new String[][]{
-                    {"Concierto de Rock Nacional", "Los mejores exponentes del rock nacional se presentan en un solo escenario. Una noche épica de música.", "20", "55000", "500", "245", "https://picsum.photos/600/400?random=3001", "Movistar Arena - Bogotá"},
-                    {"Festival de Jazz", "Dos días de jazz con artistas nacionales e internacionales. Una experiencia única para los amantes de este género.", "35", "65000", "300", "134", "https://picsum.photos/600/400?random=3002", "Teatro Mayor Julio Mario Santo Domingo"},
-                    {"Concierto Sinfónico", "La orquesta sinfónica de la ciudad interpreta las mejores piezas clásicas. Una noche de elegancia y cultura.", "28", "40000", "250", "98", "https://picsum.photos/600/400?random=3003", "Auditorio León de Greiff - Universidad Nacional"}
-                };
-            case SOCIAL:
-                return new String[][]{
-                    {"Networking para Emprendedores", "Conecta con otros emprendedores y expande tu red de contactos. Incluye conferencias magistrales y espacios de networking.", "14", "30000", "100", "45", "https://picsum.photos/600/400?random=4001", "WeWork - Zona T, Bogotá"},
-                    {"Cena de Gala Benéfica", "Elegante cena a beneficio de organizaciones locales. Una noche de buena comida y mejores causas.", "40", "120000", "150", "67", "https://picsum.photos/600/400?random=4002", "Hotel Sofitel Victoria Regia - Bogotá"},
-                    {"Speed Dating Profesional", "Conoce personas afines en un ambiente profesional y relajado. Para profesionales de 25 a 45 años.", "17", "25000", "40", "23", "https://picsum.photos/600/400?random=4003", "Andrés Carne de Res - Zona Rosa"}
-                };
-            default:
-                return new String[0][0];
-        }
+        return switch (category) {
+            case CULTURAL -> new String[][]{
+                {"Exposición de Arte Contemporáneo", "Descubre las últimas tendencias del arte contemporáneo en esta increíble exposición. Artistas locales e internacionales muestran sus obras más innovadoras.", "15", "25000", "50", "12", "https://picsum.photos/600/400?random=1001", "Museo de Arte Moderno - Bogotá"},
+                {"Teatro: Romeo y Julieta", "La clásica obra de Shakespeare interpretada por la compañía nacional de teatro. Una experiencia única e inolvidable.", "22", "45000", "200", "85", "https://picsum.photos/600/400?random=1002", "Teatro Colón - Centro de Bogotá"},
+                {"Festival de Cine Independiente", "Tres días de proyecciones de películas independientes de todo el mundo. Incluye charlas con directores y actores.", "30", "35000", "150", "67", "https://picsum.photos/600/400?random=1003", "Cinemateca Distrital - Chapinero"}
+            };
+            case DEPORTIVO -> new String[][]{
+                {"Torneo de Fútbol Amateur", "Participa en nuestro torneo de fútbol amateur. Equipos de toda la ciudad compiten por el primer lugar.", "18", "20000", "80", "24", "https://picsum.photos/600/400?random=2001", "Parque Simón Bolívar - Bogotá"},
+                {"Maratón Ciudad 10K", "Únete a nuestra carrera de 10 kilómetros por los lugares más emblemáticos de la ciudad. Para todos los niveles.", "25", "15000", "300", "156", "https://picsum.photos/600/400?random=2002", "Carrera 7ma - Centro Histórico"},
+                {"Clase de Yoga al Aire Libre", "Sesión de yoga en el parque principal de la ciudad. Perfecto para relajarse y conectar con la naturaleza.", "12", "12000", "30", "18", "https://picsum.photos/600/400?random=2003", "Parque Nacional - Bogotá"}
+            };
+            case MUSICAL -> new String[][]{
+                {"Concierto de Rock Nacional", "Los mejores exponentes del rock nacional se presentan en un solo escenario. Una noche épica de música.", "20", "55000", "500", "245", "https://picsum.photos/600/400?random=3001", "Movistar Arena - Bogotá"},
+                {"Festival de Jazz", "Dos días de jazz con artistas nacionales e internacionales. Una experiencia única para los amantes de este género.", "35", "65000", "300", "134", "https://picsum.photos/600/400?random=3002", "Teatro Mayor Julio Mario Santo Domingo"},
+                {"Concierto Sinfónico", "La orquesta sinfónica de la ciudad interpreta las mejores piezas clásicas. Una noche de elegancia y cultura.", "28", "40000", "250", "98", "https://picsum.photos/600/400?random=3003", "Auditorio León de Greiff - Universidad Nacional"}
+            };
+            case SOCIAL -> new String[][]{
+                {"Networking para Emprendedores", "Conecta con otros emprendedores y expande tu red de contactos. Incluye conferencias magistrales y espacios de networking.", "14", "30000", "100", "45", "https://picsum.photos/600/400?random=4001", "WeWork - Zona T, Bogotá"},
+                {"Cena de Gala Benéfica", "Elegante cena a beneficio de organizaciones locales. Una noche de buena comida y mejores causas.", "40", "120000", "150", "67", "https://picsum.photos/600/400?random=4002", "Hotel Sofitel Victoria Regia - Bogotá"},
+                {"Speed Dating Profesional", "Conoce personas afines en un ambiente profesional y relajado. Para profesionales de 25 a 45 años.", "17", "25000", "40", "23", "https://picsum.photos/600/400?random=4003", "Andrés Carne de Res - Zona Rosa"}
+            };
+            default -> new String[0][0];
+        };
     }
 }

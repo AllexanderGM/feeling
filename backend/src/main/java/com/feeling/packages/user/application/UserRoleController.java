@@ -5,7 +5,7 @@ import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
-import com.feeling.packages.user.domain.dto.response.UserEssentialDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserEssentialDTO;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.domain.services.UserRoleService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,9 +1,9 @@
 package com.feeling.domain.dto.user;
 
-import com.feeling.packages.auth.domain.dto.response.UserProfileDataDTO;
-import com.feeling.packages.auth.domain.dto.response.UserStatusDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserDataDTO;
+import com.feeling.packages.user.domain.dto.profile.core.UserStatusDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -61,7 +61,7 @@ public class UserDTOMapperTest {
 
     @Test
     void testToUserProfileDataDTO() {
-        UserProfileDataDTO profileDTO = UserDTOMapper.toUserProfileDataDTO(testUser);
+        UserDataDTO profileDTO = UserDTOMapper.toUserProfileDataDTO(testUser);
 
         assertNotNull(profileDTO);
         assertEquals(testUser.getName(), profileDTO.name());

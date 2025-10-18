@@ -5,7 +5,7 @@ import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;

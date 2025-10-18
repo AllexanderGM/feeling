@@ -3,8 +3,9 @@ package com.feeling.packages.match.domain.services;
 import com.feeling.packages.match.domain.dto.FavoriteRequestDTO;
 import com.feeling.packages.match.domain.dto.FavoriteResponseDTO;
 import com.feeling.packages.match.infrastructure.entities.UserFavorite;
+import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
 import com.feeling.packages.match.infrastructure.repositories.IUserFavoriteRepository;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -23,20 +24,31 @@ public class FavoriteService {
     private final IUserFavoriteRepository userFavoriteRepository;
     private final IUserRepository userRepository;
     private final UserService userService;
+    private final MatchSuggestionService matchSuggestionService;
+    private final IMatchRepository matchRepository;
 
     @Transactional
     public FavoriteResponseDTO addFavorite(User user, FavoriteRequestDTO request) {
         log.info("User {} adding user {} to favorites", user.getId(), request.getFavoriteUserId());
 
         if (user.getId().equals(request.getFavoriteUserId())) {
-            throw new RuntimeException("Cannot add yourself to favorites");
+            throw new RuntimeException("No puedes agregarte a favoritos.");
         }
 
         User favoriteUser = userRepository.findById(request.getFavoriteUserId())
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getFavoriteUserId()));
+            .orElseThrow(() -> new RuntimeException("No se encontró al usuario con id: " + request.getFavoriteUserId()));
 
         if (userFavoriteRepository.existsByUserAndFavoriteUser(user, favoriteUser)) {
-            throw new RuntimeException("User is already in favorites");
+            throw new RuntimeException("Este usuario ya está en tus favoritos.");
+        }
+
+        // Un usuario descartado no puede añadirse a favoritos
+        // Si estaba descartado, eliminamos el descarte para permitir el favorito
+        matchSuggestionService.removeDismissed(user, request.getFavoriteUserId());
+
+        // Si existe un match rechazado entre ambos, no permitir favorito
+        if (matchRepository.existsRejectedMatchBetweenUsers(user, favoriteUser)) {
+            throw new RuntimeException("No puedes agregar a favoritos un usuario con quien ya rechazaste un match.");
         }
 
         UserFavorite userFavorite = new UserFavorite(user, favoriteUser);
@@ -52,10 +64,10 @@ public class FavoriteService {
         log.info("User {} removing user {} from favorites", user.getId(), favoriteUserId);
 
         User favoriteUser = userRepository.findById(favoriteUserId)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + favoriteUserId));
+            .orElseThrow(() -> new RuntimeException("No se encontró al usuario con id: " + favoriteUserId));
 
         UserFavorite userFavorite = userFavoriteRepository.findByUserAndFavoriteUser(user, favoriteUser)
-            .orElseThrow(() -> new RuntimeException("Favorite not found"));
+            .orElseThrow(() -> new RuntimeException("No se encontró este favorito."));
 
         userFavoriteRepository.delete(userFavorite);
 

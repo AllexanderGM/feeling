@@ -15,9 +15,9 @@ import {
 import { Heart } from 'lucide-react'
 import { userInterestsService } from '@services'
 import { Logger } from '@utils/logger.js'
+import { useTableActions } from '@hooks'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
-import useTableActions from '@hooks/table/useTableActions.js'
 
 /**
  * Sección de gestión de categorías de interés

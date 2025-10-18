@@ -1,4 +1,4 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 
 /**
  * Servicio para monitoreo del estado de la API con manejo de errores optimizado

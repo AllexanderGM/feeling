@@ -24,7 +24,7 @@ import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepositor
 import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCodeRepository;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
-import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
+import com.feeling.packages.auth.domain.dto.mapper.AuthUserFactory;
 import com.feeling.packages.user.domain.services.UserFactory;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -79,6 +79,7 @@ public class AuthService {
     private final EmailService emailService;
     private final GoogleOAuthService googleOAuthService;
     private final UserFactory userFactory;
+    private final AuthUserFactory authUserFactory;
 
     // ==============================
     // REGISTRO
@@ -629,21 +630,7 @@ public class AuthService {
             // Actualizar última actividad
             updateUserLastActive(user);
 
-            // Usar el mapper básico para crear la respuesta (sin métricas de matches para evitar dependencia circular)
-            var userExtended = UserDTOMapper.toUserExtendedResponseDTO(user);
-
-            return new AuthLoginResponseDTO(
-                accessToken,
-                refreshToken,
-                userExtended.status(),
-                userExtended.profile(),
-                userExtended.privacy(),
-                userExtended.notifications(),
-                userExtended.metrics(),
-                userExtended.matches(),
-                userExtended.auth(),
-                userExtended.account()
-            );
+            return authUserFactory.buildLoginResponse(accessToken, refreshToken, user);
         } catch (Exception e) {
             logger.error("Error al generar tokens", Map.of("userEmail", user.getEmail()), e);
             throw new RuntimeException("Error al generar tokens de autenticación: " + e.getMessage(), e);

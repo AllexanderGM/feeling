@@ -2,7 +2,7 @@ package com.feeling.packages.user.application;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserMediaService;
 import com.feeling.packages.user.domain.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;

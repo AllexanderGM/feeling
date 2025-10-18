@@ -5,7 +5,7 @@ import { Logger } from '@utils/logger.js'
 
 import authService from '../services/auth/authService.js'
 import loginImg from '../assets/Backgrounds/forestwoman.webp'
-import { useAuth } from '../context/AuthContext.jsx'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 const LoginForm = ({ loginMessage }) => {
   const [password, setPassword] = useState('')

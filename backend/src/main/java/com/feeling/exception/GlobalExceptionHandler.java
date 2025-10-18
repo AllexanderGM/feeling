@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
@@ -66,7 +67,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExistEmailException.class)
     public ResponseEntity<ErrorResponseDTO> handleExistEmailException(ExistEmailException ex) {
-        logger.warn("Email ya existe: {}", ex.getMessage());
+        // Extraer información adicional del mensaje si está disponible
+        String logMessage = String.format("Business validation - Email conflict: %s", ex.getMessage());
+        logger.warn(logMessage);
+
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponseDTO.conflict(ex.getMessage()));
     }
@@ -158,22 +162,63 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponseDTO.badRequest(ex.getMessage()));
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponseDTO> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        String detailedMessage = "Error al procesar la solicitud JSON";
+
+        // Extraer información más específica del error
+        if (ex.getCause() != null) {
+            String causeMessage = ex.getCause().getMessage();
+            if (causeMessage != null) {
+                if (causeMessage.contains("Cannot deserialize")) {
+                    detailedMessage = "Formato JSON inválido: verifique que los datos enviados coincidan con el formato esperado";
+                } else if (causeMessage.contains("Unexpected character")) {
+                    detailedMessage = "JSON mal formado: caracteres inesperados en la solicitud";
+                }
+            }
+        }
+
+        logger.warn("Error de deserialización JSON: {}. Causa: {}",
+                    detailedMessage,
+                    ex.getCause() != null ? ex.getCause().getMessage() : "desconocida");
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponseDTO.badRequest(detailedMessage));
+    }
+
     // ========================================
     // EXCEPCIONES DE ARCHIVOS
     // ========================================
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponseDTO> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
-        logger.warn("Archivo demasiado grande: {}", ex.getMessage());
-        
-        String message = "El archivo es demasiado grande. El tamaño máximo permitido es de 15MB por archivo.";
-        
+        // LOG DETALLADO del error
+        logger.warn("⚠️ Archivo demasiado grande - DETALLES:");
+        logger.warn("   Mensaje: {}", ex.getMessage());
+        logger.warn("   Tamaño máximo configurado: {} bytes ({} MB)",
+            ex.getMaxUploadSize(),
+            ex.getMaxUploadSize() > 0 ? String.format("%.2f", ex.getMaxUploadSize() / (1024.0 * 1024.0)) : "unknown"
+        );
+
+        // Intentar extraer el tamaño real del archivo si está disponible
+        if (ex.getRootCause() != null) {
+            logger.warn("   Causa raíz: {}", ex.getRootCause().getMessage());
+        }
+
+        String message = "La solicitud excede el tamaño máximo permitido.";
+
         // Extraer información específica del error si está disponible
         if (ex.getMaxUploadSize() > 0) {
             long maxSizeMB = ex.getMaxUploadSize() / (1024 * 1024);
-            message = String.format("El archivo excede el tamaño máximo permitido de %dMB.", maxSizeMB);
+            message = String.format(
+                "La solicitud excede el tamaño máximo permitido de %dMB. " +
+                "Verifica: 1) Cada imagen debe ser máximo 5MB. " +
+                "2) Total de imágenes no debe exceder 25MB. " +
+                "3) El JSON de datos no debe ser excesivamente grande.",
+                maxSizeMB
+            );
         }
-        
+
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(new ErrorResponseDTO("FILE_TOO_LARGE", message, "413"));
     }

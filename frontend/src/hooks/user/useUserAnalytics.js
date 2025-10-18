@@ -1,8 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
-import userAnalyticsService from '@services/user/userAnalyticsService.js'
+import userAnalyticsService from '@services'
 import { Logger } from '@utils/logger.js'
-import { useError } from '@hooks/utils/useError.js'
-import { useAsyncOperation } from '@hooks/utils/useAsyncOperation.js'
+import { useError, useAsyncOperation } from '@hooks'
 
 export const useUserAnalytics = () => {
   const { handleApiResponse } = useError()

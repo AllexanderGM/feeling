@@ -1,4 +1,4 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 import { Logger } from '@utils/logger.js'
 import { API_ENDPOINTS } from '@constants/apiRoutes'
 import { HTTP_STATUS } from '@schemas'

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useError } from '@hooks/utils/useError'
+import { useError } from '@hooks'
 
 /**
  * Hook centralizado para manejar operaciones asíncronas con loading y manejo de errores

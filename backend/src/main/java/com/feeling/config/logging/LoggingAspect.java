@@ -1,5 +1,6 @@
 package com.feeling.config.logging;
 
+import com.feeling.exception.*;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Aspecto para logging automático de métodos críticos
@@ -17,8 +19,20 @@ import java.util.Map;
 @Component
 public class LoggingAspect {
 
-    private static final StructuredLoggerFactory.StructuredLogger logger = 
+    private static final StructuredLoggerFactory.StructuredLogger logger =
             StructuredLoggerFactory.create(LoggingAspect.class);
+
+    // Excepciones de negocio que no deberían loggearse como ERROR
+    private static final Set<Class<? extends Exception>> BUSINESS_EXCEPTIONS = Set.of(
+        ExistEmailException.class,
+        EmailNotVerifiedException.class,
+        NotFoundException.class,
+        BadRequestException.class,
+        UnauthorizedException.class,
+        DuplicateNameException.class,
+        DuplicateAttributeException.class,
+        TooManyRequestsException.class
+    );
 
     /**
      * Intercepta métodos de controladores para logging automático
@@ -30,8 +44,10 @@ public class LoggingAspect {
 
     /**
      * Intercepta métodos de servicios para logging automático
+     * Excluye servicios de auth para evitar duplicación
      */
-    @Around("execution(* com.feeling.packages.*.domain.services..*.*(..))")
+    @Around("execution(* com.feeling.packages.*.domain.services..*.*(..)) && " +
+            "!execution(* com.feeling.packages.auth.domain.services..*.*(..))")
     public Object logServiceMethods(ProceedingJoinPoint joinPoint) throws Throwable {
         return logMethodExecution(joinPoint, "SERVICE");
     }
@@ -49,9 +65,11 @@ public class LoggingAspect {
      * Solo loggea operaciones lentas (>100ms) o con errores para reducir ruido
      */
     private Object logMethodExecution(ProceedingJoinPoint joinPoint, String category) throws Throwable {
-        String className = joinPoint.getTarget().getClass().getSimpleName();
+        // Obtener nombre real de la clase (sin proxies de Spring)
+        String className = joinPoint.getSignature().getDeclaringTypeName();
+        className = className.substring(className.lastIndexOf('.') + 1);
         String methodName = joinPoint.getSignature().getName();
-        String fullMethodName = className + "." + methodName;
+        String fullMethodName = className + "." + methodName + "()";
 
         long startMillis = System.currentTimeMillis();
 
@@ -67,7 +85,7 @@ public class LoggingAspect {
                 context.put("method", fullMethodName);
                 context.put("category", category);
                 context.put("duration", duration + "ms");
-                context.put("status", "OK");
+                context.put("status", "SUCCESS");
 
                 if (duration > 1000) {
                     logger.warn("Slow operation detected", context);
@@ -85,14 +103,31 @@ public class LoggingAspect {
             errorContext.put("method", fullMethodName);
             errorContext.put("category", category);
             errorContext.put("duration", duration + "ms");
-            errorContext.put("error", e.getClass().getSimpleName());
+            errorContext.put("exceptionType", e.getClass().getSimpleName());
             errorContext.put("message", e.getMessage());
 
-            // Siempre loggear errores
-            logger.error("Method execution failed", errorContext, e);
+            // Determinar si es una excepción de negocio o técnica
+            boolean isBusinessException = isBusinessException(e);
+            errorContext.put("businessException", isBusinessException);
+
+            if (isBusinessException) {
+                // Excepciones de negocio se loggean como WARN (sin stack trace)
+                logger.warn("Business exception in method execution", errorContext);
+            } else {
+                // Excepciones técnicas se loggean como ERROR (con stack trace)
+                logger.error("Technical exception in method execution", errorContext, e);
+            }
 
             throw e;
         }
+    }
+
+    /**
+     * Determina si una excepción es de negocio o técnica
+     */
+    private boolean isBusinessException(Exception e) {
+        return BUSINESS_EXCEPTIONS.stream()
+                .anyMatch(exceptionClass -> exceptionClass.isInstance(e));
     }
 
     /**

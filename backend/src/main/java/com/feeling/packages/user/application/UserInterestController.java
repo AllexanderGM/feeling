@@ -2,8 +2,8 @@ package com.feeling.packages.user.application;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.UserCategoryInterestDTO;
-import com.feeling.packages.user.domain.dto.request.UserCategoryInterestRequestDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestRequestDTO;
+import com.feeling.packages.user.domain.dto.interest.UserInterestResponseDTO;
 import com.feeling.packages.user.domain.services.UserCategoryInterestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -58,9 +58,9 @@ public class UserInterestController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener todas las categorías de interés",
         description = "Obtiene todas las categorías de interés disponibles (usuarios autenticados)")
-    public ResponseEntity<List<UserCategoryInterestDTO>> getAllInterests() {
+    public ResponseEntity<List<UserInterestResponseDTO>> getAllInterests() {
         try {
-            List<UserCategoryInterestDTO> categories = categoryService.getAllActiveCategories();
+            List<UserInterestResponseDTO> categories = categoryService.getAllActiveCategories();
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
             logger.error("Error obteniendo categorías de interés", e);
@@ -72,7 +72,7 @@ public class UserInterestController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener categoría de interés por ID",
         description = "Obtiene una categoría de interés específica por ID (usuarios autenticados)")
-    public ResponseEntity<UserCategoryInterestDTO> getInterestById(
+    public ResponseEntity<UserInterestResponseDTO> getInterestById(
         @Parameter(description = "ID del interés") @PathVariable Long id) {
         try {
             return categoryService.getCategoryById(id)
@@ -92,10 +92,10 @@ public class UserInterestController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Crear nueva categoría de interés",
         description = "Agrega una nueva categoría de interés (solo admin)")
-    public ResponseEntity<UserCategoryInterestDTO> createInterest(
-        @Valid @RequestBody UserCategoryInterestRequestDTO categoryDTO) {
+    public ResponseEntity<UserInterestResponseDTO> createInterest(
+        @Valid @RequestBody UserInterestRequestDTO categoryDTO) {
         try {
-            UserCategoryInterestDTO createdCategory = categoryService.createCategory(categoryDTO);
+            UserInterestResponseDTO createdCategory = categoryService.createCategory(categoryDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
         } catch (Exception e) {
             logger.error("Error creando categoría de interés", e);
@@ -107,11 +107,11 @@ public class UserInterestController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar categoría de interés",
         description = "Actualiza una categoría de interés existente (solo admin)")
-    public ResponseEntity<UserCategoryInterestDTO> updateInterest(
+    public ResponseEntity<UserInterestResponseDTO> updateInterest(
         @Parameter(description = "ID del interés") @PathVariable Long interestId,
-        @Valid @RequestBody UserCategoryInterestRequestDTO categoryDTO) {
+        @Valid @RequestBody UserInterestRequestDTO categoryDTO) {
         try {
-            UserCategoryInterestDTO updated = categoryService.updateCategory(interestId, categoryDTO);
+            UserInterestResponseDTO updated = categoryService.updateCategory(interestId, categoryDTO);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             logger.error("Error actualizando categoría de interés", Map.of("interestId", interestId), e);
@@ -150,9 +150,9 @@ public class UserInterestController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todas las categorías de interés (admin)",
         description = "Obtiene todas las categorías de interés incluyendo las inactivas (solo admin)")
-    public ResponseEntity<List<UserCategoryInterestDTO>> getAllInterestsAdmin() {
+    public ResponseEntity<List<UserInterestResponseDTO>> getAllInterestsAdmin() {
         try {
-            List<UserCategoryInterestDTO> categories = categoryService.getAllCategories();
+            List<UserInterestResponseDTO> categories = categoryService.getAllCategories();
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
             logger.error("Error obteniendo todas las categorías de interés (admin)", e);
@@ -164,10 +164,10 @@ public class UserInterestController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Alternar estado de categoría de interés",
         description = "Activa/desactiva una categoría de interés (solo admin)")
-    public ResponseEntity<UserCategoryInterestDTO> toggleInterestStatus(
+    public ResponseEntity<UserInterestResponseDTO> toggleInterestStatus(
         @Parameter(description = "ID del interés") @PathVariable Long interestId) {
         try {
-            UserCategoryInterestDTO updated = categoryService.toggleCategoryStatus(interestId);
+            UserInterestResponseDTO updated = categoryService.toggleCategoryStatus(interestId);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             logger.error("Error cambiando estado de categoría de interés", Map.of("interestId", interestId), e);

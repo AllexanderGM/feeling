@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +37,28 @@ public interface IUserMatchPlanRepository extends JpaRepository<UserMatchPlan, L
 
     @Query("SELECT ump FROM UserMatchPlan ump WHERE ump.matchPlan = :matchPlan")
     List<UserMatchPlan> findByMatchPlan(@Param("matchPlan") MatchPlan matchPlan);
+
+    @Query("SELECT COALESCE(SUM(ump.matchPlan.attempts), 0) FROM UserMatchPlan ump " +
+            "WHERE (:from IS NULL OR ump.createdAt >= :from) " +
+            "AND (:to IS NULL OR ump.createdAt <= :to)")
+    Long sumTotalAttemptsSold(@Param("from") LocalDateTime from,
+                              @Param("to") LocalDateTime to);
+
+    @Query("SELECT COALESCE(SUM(ump.matchPlan.attempts - ump.remainingAttempts), 0) FROM UserMatchPlan ump " +
+            "WHERE (:from IS NULL OR ump.createdAt >= :from) " +
+            "AND (:to IS NULL OR ump.createdAt <= :to)")
+    Long sumTotalAttemptsConsumed(@Param("from") LocalDateTime from,
+                                  @Param("to") LocalDateTime to);
+
+    @Query("SELECT COALESCE(SUM(ump.matchPlan.price), 0) FROM UserMatchPlan ump " +
+            "WHERE (:from IS NULL OR ump.createdAt >= :from) " +
+            "AND (:to IS NULL OR ump.createdAt <= :to)")
+    BigDecimal sumTotalRevenue(@Param("from") LocalDateTime from,
+                               @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(ump) FROM UserMatchPlan ump " +
+            "WHERE (:from IS NULL OR ump.createdAt >= :from) " +
+            "AND (:to IS NULL OR ump.createdAt <= :to)")
+    Long countPurchases(@Param("from") LocalDateTime from,
+                        @Param("to") LocalDateTime to);
 }

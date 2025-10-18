@@ -3,17 +3,16 @@ package com.feeling.packages.user.application;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feeling.config.logging.StructuredLoggerFactory;
-import com.feeling.domain.dto.views.UserViews;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.match.domain.dto.MatchCompatibilityDTO;
+import com.feeling.packages.match.domain.dto.UserSuggestionDTO;
 import com.feeling.packages.match.domain.services.MatchDiscoveryService;
-import com.feeling.packages.user.domain.dto.AttributeTypesResponseDTO;
-import com.feeling.packages.user.domain.dto.AttributesByTypeResponseDTO;
-import com.feeling.packages.user.domain.dto.UserAttributeDTO;
-import com.feeling.packages.user.domain.dto.request.UserPartialUpdateDTO;
-import com.feeling.packages.user.domain.dto.response.UserCompatibilityDTO;
-import com.feeling.packages.user.domain.dto.response.UserCountResponseDTO;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.analytics.UserCountDTO;
+import com.feeling.packages.user.domain.dto.attributes.UserAttributeResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.views.UserViews;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.domain.services.UserAttributeService;
 import com.feeling.packages.user.domain.services.UserMediaService;
@@ -25,7 +24,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -158,12 +156,12 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Calcular compatibilidad de usuario",
         description = "Calcula el puntaje de compatibilidad detallado con desglose por factores (categoría, edad, ubicación, tags)")
-    public ResponseEntity<UserCompatibilityDTO> calculateCompatibility(
+    public ResponseEntity<MatchCompatibilityDTO> calculateCompatibility(
         @Parameter(description = "Email del otro usuario") @PathVariable String otherUserEmail,
         Authentication authentication) {
         try {
             String currentUserEmail = authentication.getName();
-            UserCompatibilityDTO compatibility = matchDiscoveryService.calculateUserCompatibility(currentUserEmail, otherUserEmail);
+            MatchCompatibilityDTO compatibility = matchDiscoveryService.calculateUserCompatibility(currentUserEmail, otherUserEmail);
             return ResponseEntity.ok(compatibility);
         } catch (Exception e) {
             logger.error("Error calculando compatibilidad", Map.of(
@@ -184,7 +182,7 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Parámetros inválidos"),
         @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
-    public ResponseEntity<Page<UserResponseDTO>> getUserSuggestions(
+    public ResponseEntity<Page<UserSuggestionDTO>> getUserSuggestions(
         @Parameter(description = "Nivel de inclusión: public, basic, standard")
         @RequestParam(name = "include", defaultValue = "public") String includeLevel,
         @PageableDefault(size = 10) Pageable pageable,
@@ -196,7 +194,7 @@ public class UserController {
             }
 
             String currentUserEmail = authentication.getName();
-            Page<UserResponseDTO> suggestions = matchDiscoveryService.getUserSuggestions(currentUserEmail, includeLevel, pageable);
+            Page<UserSuggestionDTO> suggestions = matchDiscoveryService.getUserSuggestions(currentUserEmail, includeLevel, pageable);
             return ResponseEntity.ok(suggestions);
         } catch (Exception e) {
             logger.error("Error obteniendo sugerencias para el usuario", Map.of(
@@ -219,7 +217,7 @@ public class UserController {
             String userEmail = authentication.getName();
 
             // Parsear y validar datos
-            UserPartialUpdateDTO profileRequest = parseProfileData(profileDataJson);
+            UserRequestDTO profileRequest = parseProfileData(profileDataJson);
             String validationErrors = validateProfileRequest(profileRequest);
             if (validationErrors != null) {
                 return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
@@ -261,11 +259,12 @@ public class UserController {
         }
     }
 
-    @PatchMapping("/profile")
+    @PatchMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(
         summary = "Actualización parcial del perfil de usuario",
         description = "Actualiza campos específicos del perfil de usuario usando operación PATCH. " +
+            "Soporta multipart/form-data con imágenes. " +
             "Solo los campos proporcionados serán actualizados. Usa campos Optional para distinguir entre " +
             "valores nulos y campos no enviados. Soporta actualizaciones anidadas para ubicación, preferencias, privacidad, etc.",
         tags = {"User Profile Management"}
@@ -276,12 +275,54 @@ public class UserController {
         @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
     public ResponseEntity<?> partialUpdateProfile(
-        @Valid @RequestBody UserPartialUpdateDTO partialUpdate,
-        Authentication authentication) {
+        @RequestParam(value = "profileData", required = false) String profileDataJson,
+        @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages,
+        Authentication authentication) throws IOException {
         try {
             String userEmail = authentication.getName();
-            UserResponseDTO updatedUser = userService.update(userEmail, partialUpdate);
+            UserRequestDTO partialUpdate;
+
+            // Verificar que se envió profileData
+            if (profileDataJson == null || profileDataJson.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron datos para actualizar"));
+            }
+
+            // Parsear y validar datos
+            partialUpdate = parseProfileData(profileDataJson);
+            String validationErrors = validateProfileRequest(partialUpdate);
+            if (validationErrors != null) {
+                return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
+            }
+
+            // Orquestación: actualizar datos y/o imágenes
+            UserResponseDTO updatedUser = null;
+
+            // Actualizar datos si hay cambios
+            if (partialUpdate.hasAnyUpdate()) {
+                updatedUser = userService.update(userEmail, partialUpdate);
+            }
+
+            // Procesar tags si se proporcionan
+            if (partialUpdate.tags().isPresent()) {
+                List<String> tagNames = partialUpdate.tags().get();
+                if (!tagNames.isEmpty()) {
+                    userTagService.addTagsToUser(userEmail, tagNames);
+                    updatedUser = userService.get(userEmail);
+                }
+            }
+
+            // Subir imágenes si se proporcionan
+            if (profileImages != null && !profileImages.isEmpty()) {
+                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
+            }
+
+            // Si no se actualizó nada, retornar error
+            if (updatedUser == null) {
+                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron campos para actualizar"));
+            }
+
             return ResponseEntity.ok(updatedUser);
+
         } catch (UnauthorizedException e) {
             logger.error("Usuario no autorizado para actualización parcial", Map.of(
                 "userEmail", authentication.getName()
@@ -290,7 +331,9 @@ public class UserController {
                 .body(new MessageResponseDTO("No autorizado para actualizar perfil"));
         } catch (Exception e) {
             logger.error("Error en actualización parcial del perfil del usuario", Map.of(
-                "userEmail", authentication.getName()
+                "userEmail", authentication.getName(),
+                "errorMessage", e.getMessage(),
+                "errorType", e.getClass().getSimpleName()
             ), e);
             return ResponseEntity.badRequest()
                 .body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
@@ -323,7 +366,6 @@ public class UserController {
 
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @JsonView(UserViews.Admin.class)
     @Operation(summary = "Obtener todos los usuarios",
         description = "Obtiene todos los usuarios con paginación y búsqueda")
     public ResponseEntity<Page<UserResponseDTO>> getAllUsers(
@@ -345,7 +387,6 @@ public class UserController {
 
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    @JsonView(UserViews.Admin.class)
     @Operation(summary = "Obtener usuarios por estado",
         description = "Obtiene usuarios filtrados por estado (active, pending-approval, unverified, non-approved, deactivated, incomplete-profile)")
     public ResponseEntity<Page<UserResponseDTO>> getUsersByStatus(
@@ -371,7 +412,7 @@ public class UserController {
         @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages) throws IOException {
         try {
             // Parsear y validar datos
-            UserPartialUpdateDTO profileRequest = parseProfileData(profileDataJson);
+            UserRequestDTO profileRequest = parseProfileData(profileDataJson);
             String validationErrors = validateProfileRequest(profileRequest);
             if (validationErrors != null) {
                 return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
@@ -510,23 +551,23 @@ public class UserController {
     // ========================================
 
     /**
-     * Parsea JSON a UserPartialUpdateDTO usando el ObjectMapper configurado
+     * Parsea JSON a UserRequestDTO usando el ObjectMapper configurado
      */
-    private UserPartialUpdateDTO parseProfileData(String profileDataJson) throws IOException {
-        return objectMapper.readValue(profileDataJson, UserPartialUpdateDTO.class);
+    private UserRequestDTO parseProfileData(String profileDataJson) throws IOException {
+        return objectMapper.readValue(profileDataJson, UserRequestDTO.class);
     }
 
     /**
      * Valida un DTO y retorna los errores formateados si existen
      */
-    private String validateProfileRequest(UserPartialUpdateDTO profileRequest) {
-        Set<ConstraintViolation<UserPartialUpdateDTO>> violations = validator.validate(profileRequest);
+    private String validateProfileRequest(UserRequestDTO profileRequest) {
+        Set<ConstraintViolation<UserRequestDTO>> violations = validator.validate(profileRequest);
         if (violations.isEmpty()) {
             return null;
         }
 
         StringBuilder sb = new StringBuilder();
-        for (ConstraintViolation<UserPartialUpdateDTO> violation : violations) {
+        for (ConstraintViolation<UserRequestDTO> violation : violations) {
             sb.append(violation.getMessage()).append("; ");
         }
         return sb.toString();
@@ -545,10 +586,10 @@ public class UserController {
     @GetMapping("/attributes/admin")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener todos los atributos paginados", description = "Obtiene todos los atributos activos con paginación para panel de administración")
-    public ResponseEntity<Page<UserAttributeDTO>> getAllAttributesPaged(
+    public ResponseEntity<Page<UserAttributeResponseDTO>> getAllAttributesPaged(
         @PageableDefault(size = 20, sort = {"attributeType", "displayOrder"}) Pageable pageable) {
         try {
-            Page<UserAttributeDTO> attributes = userAttributeService.getActiveAttributesPaged(pageable);
+            Page<UserAttributeResponseDTO> attributes = userAttributeService.getActiveAttributesPaged(pageable);
             return ResponseEntity.ok(attributes);
         } catch (Exception e) {
             logger.error("Error obteniendo atributos paginados", e);
@@ -566,12 +607,12 @@ public class UserController {
     @GetMapping("/attributes/multiple")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Obtener atributos por múltiples tipos", description = "Obtiene atributos activos de múltiples tipos en una sola consulta")
-    public ResponseEntity<AttributesByTypeResponseDTO> getAttributesByTypes(
+    public ResponseEntity<Map<String, List<UserAttributeResponseDTO>>> getAttributesByTypes(
         @Parameter(description = "Tipos de atributos separados por coma") @RequestParam String types) {
         try {
             List<String> typeList = List.of(types.split(","));
-            Map<String, List<UserAttributeDTO>> attributes = userAttributeService.getAttributesByTypes(typeList);
-            return ResponseEntity.ok(new AttributesByTypeResponseDTO(attributes));
+            Map<String, List<UserAttributeResponseDTO>> attributes = userAttributeService.getAttributesByTypes(typeList);
+            return ResponseEntity.ok(attributes);
         } catch (Exception e) {
             logger.error("Error obteniendo atributos por tipos", Map.of("types", types), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -586,10 +627,10 @@ public class UserController {
     @GetMapping("/attributes/types")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener tipos de atributos activos", description = "Obtiene lista de tipos de atributos activos disponibles")
-    public ResponseEntity<AttributeTypesResponseDTO> getActiveAttributeTypes() {
+    public ResponseEntity<List<String>> getActiveAttributeTypes() {
         try {
             List<String> types = userAttributeService.getActiveAttributeTypes();
-            return ResponseEntity.ok(new AttributeTypesResponseDTO(types));
+            return ResponseEntity.ok(types);
         } catch (Exception e) {
             logger.error("Error obteniendo tipos de atributos activos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -604,10 +645,10 @@ public class UserController {
     @GetMapping("/attributes/inactive/count")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Contar atributos inactivos", description = "Obtiene la cantidad de atributos inactivos pendientes de aprobación")
-    public ResponseEntity<UserCountResponseDTO> countInactiveAttributes() {
+    public ResponseEntity<UserCountDTO> countInactiveAttributes() {
         try {
             long count = userAttributeService.countInactiveAttributes();
-            return ResponseEntity.ok(new UserCountResponseDTO(count));
+            return ResponseEntity.ok(new UserCountDTO(count));
         } catch (Exception e) {
             logger.error("Error contando atributos inactivos", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -622,9 +663,9 @@ public class UserController {
     @GetMapping("/attributes/inactive")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener atributos inactivos", description = "Obtiene todos los atributos inactivos para revisión administrativa")
-    public ResponseEntity<List<UserAttributeDTO>> getInactiveAttributes() {
+    public ResponseEntity<List<UserAttributeResponseDTO>> getInactiveAttributes() {
         try {
-            List<UserAttributeDTO> attributes = userAttributeService.getInactiveAttributes();
+            List<UserAttributeResponseDTO> attributes = userAttributeService.getInactiveAttributes();
             return ResponseEntity.ok(attributes);
         } catch (Exception e) {
             logger.error("Error obteniendo atributos inactivos", e);

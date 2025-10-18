@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Button, Chip } from '@heroui/react'
 import { Heart, Users, Zap } from 'lucide-react'
-import UserCard from '@components/ui/UserCard.jsx'
+import UserCard from '@components/ui/userSuggestionCards/components/UserCard.jsx'
 import { Logger } from '@utils/logger.js'
 
 const NewMatchesSection = ({ matches, searchTerm }) => {
@@ -67,7 +67,6 @@ const NewMatchesSection = ({ matches, searchTerm }) => {
             showCompatibility={true}
             showDistance={true}
             user={match}
-            variant='default'
             onMessage={handleStartConversation}
             onViewProfile={handleViewProfile}
           />

@@ -1,20 +1,7 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button, Chip, Modal, ModalContent, ModalHeader, ModalBody } from '@heroui/react'
-import {
-  Heart,
-  MapPin,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Bookmark,
-  Star,
-  Sparkles,
-  Flame,
-  Briefcase,
-  GraduationCap,
-  Clock,
-  Shield
-} from 'lucide-react'
+import { Heart, MapPin, ChevronLeft, ChevronRight, X, Bookmark, Star, Briefcase, GraduationCap, Clock, Shield } from 'lucide-react'
+import { getCategoryIcon } from '@utils/categoryHelpers.jsx'
 
 const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuperLike, isMobile = false }) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
@@ -68,20 +55,6 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
   const userData = getUserData()
   const images = userData.images || [userData.mainImage].filter(Boolean)
   const hasMultipleImages = images.length > 1
-
-  // Obtener icono de categoría
-  const getCategoryIcon = categoryKey => {
-    switch (categoryKey?.toUpperCase()) {
-      case 'ESSENCE':
-        return <Sparkles className='w-5 h-5 text-blue-400' />
-      case 'ROUSE':
-        return <Flame className='w-5 h-5 text-red-400' />
-      case 'SPIRIT':
-        return <Star className='w-5 h-5 text-purple-400' />
-      default:
-        return <Heart className='w-5 h-5 text-gray-400' />
-    }
-  }
 
   const nextPhoto = () => {
     if (hasMultipleImages) {
@@ -154,7 +127,7 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
               <div>
                 <div className='flex items-center gap-3 mb-2'>
                   <h2 className='text-2xl font-bold text-white drop-shadow-md'>{userData.name}</h2>
-                  {getCategoryIcon(userData.categoryInterest)}
+                  {getCategoryIcon(userData.categoryInterest, 'w-5 h-5')}
                 </div>
                 <p className='text-white/90 text-lg drop-shadow-sm'>{userData.age} años</p>
                 {userData.city && (
@@ -321,4 +294,4 @@ const UserProfileDetail = ({ user, isOpen, onOpenChange, onLike, onPass, onSuper
   return isOpen ? <ProfileContent /> : null
 }
 
-export default UserProfileDetail
+export default React.memo(UserProfileDetail)

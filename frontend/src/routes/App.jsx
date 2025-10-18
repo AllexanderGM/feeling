@@ -1,8 +1,7 @@
 import { Outlet } from 'react-router-dom'
-import LibrariesProvider from '@context/LibrariesProvider'
-import GeneralProvider from '@context/GeneralProvider'
-
-import { RateLimitProvider } from '../contexts/RateLimitContext'
+import LibrariesProvider from '@contexts/LibrariesProvider'
+import GeneralProvider from '@contexts/GeneralProvider'
+import { RateLimitProvider } from '@contexts/RateLimitContext'
 
 import '@styles/globals.css'
 

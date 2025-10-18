@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
-import com.feeling.packages.user.domain.dto.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -99,7 +99,7 @@ public class UserDTOStructureIntegrationTest {
         assertTrue(jsonNode.has("profile"), "Must have profile object");
         assertTrue(jsonNode.has("privacy"), "Must have privacy object");
         assertTrue(jsonNode.has("notifications"), "Must have notifications object");
-        assertTrue(jsonNode.has("metrics"), "Must have metrics object");
+        assertTrue(jsonNode.has("analytics"), "Must have analytics object");
         assertTrue(jsonNode.has("matches"), "Must have matches object");
         assertTrue(jsonNode.has("auth"), "Must have auth object");
         assertTrue(jsonNode.has("account"), "Must have account object");
@@ -191,7 +191,7 @@ public class UserDTOStructureIntegrationTest {
         // Verificar secciones principales (note: account is null in extended, only in admin operations)
         List<String> requiredSections = Arrays.asList(
             "complaintStatus", "profile", "privacy", "notifications",
-            "metrics", "auth"
+            "analytics", "auth"
         );
 
         for (String section : requiredSections) {
@@ -206,7 +206,7 @@ public class UserDTOStructureIntegrationTest {
         JsonNode notifications = jsonNode.get("notifications");
         assertTrue(notifications.has("notificationsEmailEnabled"), "Notifications must have email settings");
 
-        JsonNode metrics = jsonNode.get("metrics");
+        JsonNode metrics = jsonNode.get("analytics");
         assertTrue(metrics.has("profileViews"), "Metrics must have profileViews");
         assertTrue(metrics.has("likesReceived"), "Metrics must have likesReceived");
 
@@ -291,7 +291,7 @@ public class UserDTOStructureIntegrationTest {
         JsonNode jsonNode = objectMapper.readTree(json);
 
         // Contar campos esperados en el nivel superior (note: account is null, matches is null in this version)
-        int expectedTopLevelFields = 8; // complaintStatus, profile, privacy, notifications, metrics, matches, auth, account
+        int expectedTopLevelFields = 8; // complaintStatus, profile, privacy, notifications, analytics, matches, auth, account
         assertEquals(expectedTopLevelFields, jsonNode.size(),
             "Expected exactly " + expectedTopLevelFields + " top-level fields in UserResponseDTO");
 

@@ -1,5 +1,6 @@
-import { ServiceREST } from '@services/utils/serviceREST.js'
+import { ServiceREST } from '@services'
 import { API_ENDPOINTS } from '@constants/apiRoutes.js'
+import { Logger } from '@utils/logger.js'
 
 /**
  * Servicio de usuario actualizado para UserController (/user)
@@ -50,6 +51,26 @@ class UserService extends ServiceREST {
       return ServiceREST.handleServiceResponse(result, 'obtener perfil de usuario')
     } catch (error) {
       this.logError('obtener perfil de usuario', error)
+      throw error
+    }
+  }
+
+  /**
+   * GET /user/profile - Obtener perfil de otro usuario por ID con nivel de detalle
+   * @param {string|number} userId - ID del usuario
+   * @param {string} include - Nivel de detalle: public, basic, etc.
+   */
+  async getUserProfileById(userId, include = 'public') {
+    try {
+      const params = new URLSearchParams({
+        userId: userId.toString(),
+        include: include
+      })
+      const result = await ServiceREST.get(`${API_ENDPOINTS.USER.CURRENT}?${params}`)
+
+      return ServiceREST.handleServiceResponse(result, 'obtener perfil de usuario por ID')
+    } catch (error) {
+      this.logError('obtener perfil de usuario por ID', error)
       throw error
     }
   }
@@ -257,11 +278,11 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * PUT /user/{userId}/approve - Aprobar usuario
+   * PUT /user-approval/{userId}/approve - Aprobar usuario
    */
   async approveUser(userId) {
     try {
-      const url = API_ENDPOINTS.USER.APPROVE.replace('{userId}', userId)
+      const url = API_ENDPOINTS.USER_APPROVAL.APPROVE.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
 
       return ServiceREST.handleServiceResponse(result, 'aprobar usuario')
@@ -272,11 +293,11 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * POST /user/approve-batch - Aprobar usuarios en lote
+   * POST /user-approval/approve-batch - Aprobar usuarios en lote
    */
   async approveUsersBatch(userIds) {
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.USER.APPROVE_BATCH, userIds)
+      const result = await ServiceREST.post(API_ENDPOINTS.USER_APPROVAL.APPROVE_BATCH, userIds)
 
       return ServiceREST.handleServiceResponse(result, 'aprobar usuarios en lote')
     } catch (error) {
@@ -286,12 +307,13 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * PUT /user/{userId}/reject - Rechazar usuario
+   * PUT /user-approval/{userId}/reject - Rechazar usuario
    */
-  async rejectUser(userId) {
+  async rejectUser(userId, reason = null) {
     try {
-      const url = API_ENDPOINTS.USER.REJECT.replace('{userId}', userId)
-      const result = await ServiceREST.put(url)
+      const url = API_ENDPOINTS.USER_APPROVAL.REJECT.replace('{userId}', userId)
+      const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
+      const result = await ServiceREST.put(`${url}${params}`)
 
       return ServiceREST.handleServiceResponse(result, 'rechazar usuario')
     } catch (error) {
@@ -301,11 +323,12 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * POST /user/reject-batch - Rechazar usuarios en lote
+   * POST /user-approval/reject-batch - Rechazar usuarios en lote
    */
-  async rejectUsersBatch(userIds) {
+  async rejectUsersBatch(userIds, reason = null) {
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.USER.REJECT_BATCH, userIds)
+      const params = reason ? `?reason=${encodeURIComponent(reason)}` : ''
+      const result = await ServiceREST.post(`${API_ENDPOINTS.USER_APPROVAL.REJECT_BATCH}${params}`, userIds)
 
       return ServiceREST.handleServiceResponse(result, 'rechazar usuarios en lote')
     } catch (error) {
@@ -315,11 +338,11 @@ class UserService extends ServiceREST {
   }
 
   /**
-   * PUT /user/{userId}/pending - Resetear a pendiente
+   * PUT /user-approval/{userId}/pending - Resetear a pendiente
    */
   async resetUserToPending(userId) {
     try {
-      const url = API_ENDPOINTS.USER.RESET_PENDING.replace('{userId}', userId)
+      const url = API_ENDPOINTS.USER_APPROVAL.RESET_PENDING.replace('{userId}', userId)
       const result = await ServiceREST.put(url)
 
       return ServiceREST.handleServiceResponse(result, 'resetear usuario a pendiente')

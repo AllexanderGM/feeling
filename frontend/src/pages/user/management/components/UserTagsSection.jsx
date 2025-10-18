@@ -16,9 +16,9 @@ import {
 import { Zap, TrendingUp } from 'lucide-react'
 import { userTagsService } from '@services'
 import { Logger } from '@utils/logger.js'
+import { useTableActions } from '@hooks'
 import GenericDataTable from '@components/common/GenericDataTable.jsx'
 import GenericTableActions from '@components/common/GenericTableActions.jsx'
-import useTableActions from '@hooks/table/useTableActions.js'
 
 /**
  * Sección de gestión de tags de usuario con aprobaciones
