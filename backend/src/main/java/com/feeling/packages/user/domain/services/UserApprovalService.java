@@ -5,7 +5,7 @@ import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -49,6 +49,7 @@ public class UserApprovalService {
     private final UserValidationService userValidationService;
     private final UserCachedService userCachedService;
     private final UserBatchOperationHelper userBatchOperationHelper;
+    private final UserResponseFactory userResponseFactory;
 
     // ========================================
     // CONSULTAS POR ESTADO DE APROBACIÓN
@@ -69,7 +70,7 @@ public class UserApprovalService {
         Page<User> pendingUsers = userRepository.findPendingApprovalUsers(search, pageable);
 
         return pendingUsers.map(user ->
-            UserResponseFactory.create(user, UserResponseLevel.ADMIN));
+            userResponseFactory.create(user, UserResponseLevel.ADMIN));
     }
 
     /**
@@ -84,7 +85,7 @@ public class UserApprovalService {
         Page<User> rejectedUsers = userRepository.findNonApprovedUsers(search, pageable);
 
         return rejectedUsers.map(user ->
-            UserResponseFactory.create(user, UserResponseLevel.ADMIN));
+            userResponseFactory.create(user, UserResponseLevel.ADMIN));
     }
 
     // ========================================

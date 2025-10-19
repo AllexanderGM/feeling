@@ -1,12 +1,10 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.request.AppleTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.FacebookTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.UnlinkOAuthRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.GoogleTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.OAuthProvidersDTO;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.feeling.packages.auth.domain.dto.auth.AuthLoginResponseDTO;
+import com.feeling.packages.auth.domain.dto.oauth.*;
+import com.feeling.packages.auth.domain.dto.verification.AuthMethodInfoDTO;
+import com.feeling.packages.auth.domain.dto.views.AuthViews;
 import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,12 +58,13 @@ public class OAuthController {
             description = "Demasiados intentos de registro"
         )
     })
+    @JsonView(AuthViews.Session.Full.class)
     public ResponseEntity<AuthLoginResponseDTO> registerWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
         logger.info("Intento de registro con Google - Token recibido");
 
         AuthLoginResponseDTO response = authService.registerWithGoogle(googleRequest);
 
-        logger.info("Registro con Google exitoso para usuario: {}", response.profile().email());
+        logger.info("Registro con Google exitoso para usuario: {}", response.user().email());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -93,12 +92,13 @@ public class OAuthController {
             description = "Demasiados intentos de login"
         )
     })
+    @JsonView(AuthViews.Session.Full.class)
     public ResponseEntity<AuthLoginResponseDTO> loginWithGoogle(@Valid @RequestBody GoogleTokenRequestDTO googleRequest) {
         logger.info("Intento de login con Google - Token recibido");
 
         AuthLoginResponseDTO response = authService.loginWithGoogle(googleRequest);
 
-        logger.info("Login con Google exitoso para usuario: {}", response.profile().email());
+        logger.info("Login con Google exitoso para usuario: {}", response.user().email());
         return ResponseEntity.ok(response);
     }
 
@@ -174,6 +174,7 @@ public class OAuthController {
             description = "Email no encontrado"
         )
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<AuthMethodInfoDTO> getAuthMethods(@PathVariable String email) {
         logger.debug("Consultando métodos de autenticación para: {}", email);
 

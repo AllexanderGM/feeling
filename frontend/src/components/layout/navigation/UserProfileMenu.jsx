@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@hooks'
 import { APP_PATHS } from '@constants/paths.js'
 import { Logger } from '@utils/logger.js'
+import { getUserName, getUserFullName, getUserEmail, getUserAvatar } from '@schemas'
 
 import imgProfile from '/profile.png'
 
@@ -26,13 +27,11 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
   const { logout } = useAuth()
   const { isOpen: isLogoutModalOpen, onOpen: onLogoutModalOpen, onClose: onLogoutModalClose } = useDisclosure()
 
-  // Obtener datos del usuario simplificado
-  const userData = {
-    displayName: user?.profile?.name || user?.name || (isAdmin ? 'Admin' : 'Usuario'),
-    fullName: `${user?.profile?.name || user?.name || ''} ${user?.profile?.lastName || user?.lastName || ''}`.trim(),
-    email: user?.profile?.email || user?.email,
-    avatar: user?.profile?.images?.[0] || user?.images?.[0] || user?.avatar || imgProfile
-  }
+  // Obtener datos del usuario usando accessors individuales
+  const displayName = getUserName(user) || (isAdmin ? 'Admin' : 'Usuario')
+  const fullName = getUserFullName(user) || displayName
+  const email = getUserEmail(user)
+  const avatar = getUserAvatar(user, imgProfile)
 
   // ========================================
   // HANDLERS
@@ -112,9 +111,9 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
             `}
             color={isActive ? 'primary' : 'default'}
             isBordered={true}
-            name={userData.displayName}
+            name={displayName}
             size='sm'
-            src={userData.avatar}
+            src={avatar}
           />
         </PopoverTrigger>
         <PopoverContent className='p-1'>
@@ -122,10 +121,10 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
             {/* Header del usuario */}
             <div className='px-4 py-3 border-b border-gray-200'>
               <div className='flex items-center gap-3'>
-                <Avatar className='flex-shrink-0' name={userData.displayName} size='md' src={userData.avatar} />
+                <Avatar className='flex-shrink-0' name={displayName} size='md' src={avatar} />
                 <div className='flex flex-col flex-1 min-w-0'>
-                  <p className='text-sm font-medium text-gray-200 truncate'>{userData.fullName}</p>
-                  <p className='text-xs text-gray-500 truncate'>{userData.email}</p>
+                  <p className='text-sm font-medium text-gray-200 truncate'>{fullName}</p>
+                  <p className='text-xs text-gray-500 truncate'>{email}</p>
                   {isAdmin && (
                     <div className='flex items-center gap-1 mt-1'>
                       <Chip className='text-xs text-orange-600 '>

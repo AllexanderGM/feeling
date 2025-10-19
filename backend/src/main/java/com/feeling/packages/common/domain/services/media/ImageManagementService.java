@@ -152,7 +152,7 @@ public class ImageManagementService {
      * Sube múltiples imágenes al storage.
      *
      * @param images    Lista de archivos a subir
-     * @param folder    Carpeta de destino en el storage (ej: "profile", "events")
+     * @param folder    Carpeta de destino en el storage (ej: "user", "events")
      * @param maxImages Máximo número de imágenes en el batch
      * @return Lista de URLs de las imágenes subidas
      * @throws IOException         Si ocurre un error durante la subida

@@ -41,8 +41,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithGoogle(accessTokenGoogle, tokenType, scope)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Registro con Google')
@@ -62,8 +68,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithGoogle(accessTokenGoogle, tokenType, scope)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens para guardar en localStorage
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Inicio de sesión con Google')
@@ -82,8 +94,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithFacebook(accessTokenFacebook)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Registro con Facebook')
@@ -103,8 +121,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithFacebook(accessTokenFacebook)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Inicio de sesión con Facebook')
@@ -123,8 +147,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.registerWithApple(identityToken, authorizationCode)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Registro con Apple')
@@ -144,8 +174,14 @@ export const useOAuth = () => {
       const result = await withLoading(async () => {
         const data = await oauthService.loginWithApple(identityToken, authorizationCode)
 
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Inicio de sesión con Apple')

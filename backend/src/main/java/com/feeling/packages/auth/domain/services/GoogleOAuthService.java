@@ -1,7 +1,7 @@
 package com.feeling.packages.auth.domain.services;
 
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.packages.auth.domain.dto.external.GoogleUserInfoDTO;
+import com.feeling.packages.auth.domain.dto.oauth.GoogleUserInfoDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

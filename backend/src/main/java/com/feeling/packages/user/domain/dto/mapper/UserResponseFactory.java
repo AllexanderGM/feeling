@@ -1,19 +1,25 @@
 package com.feeling.packages.user.domain.dto.mapper;
 
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 /**
  * Factory para crear UserResponseDTO con diferentes niveles de inclusión
  * Phase 4.2: Query Parameters for Response Control - API Modernization
  */
+@Component
+@RequiredArgsConstructor
 public class UserResponseFactory {
+
+    private final IUserResponseMapper userResponseMapper;
 
     /**
      * Crea UserResponseDTO según el nivel de inclusión especificado
      */
-    public static UserResponseDTO create(User user, UserResponseLevel level) {
+    public UserResponseDTO create(User user, UserResponseLevel level) {
         return switch (level) {
             case PUBLIC -> createPublicResponse(user);
             case BASIC -> createBasicResponse(user);
@@ -27,7 +33,7 @@ public class UserResponseFactory {
     /**
      * Crea UserResponseDTO según el nivel de inclusión especificado (string)
      */
-    public static UserResponseDTO create(User user, String includeLevel, UserResponseLevel defaultLevel) {
+    public UserResponseDTO create(User user, String includeLevel, UserResponseLevel defaultLevel) {
         UserResponseLevel level = UserResponseLevel.fromString(includeLevel, defaultLevel);
         return create(user, level);
     }
@@ -35,42 +41,42 @@ public class UserResponseFactory {
     /**
      * Vista pública: solo información básica (sin datos sensibles)
      */
-    private static UserResponseDTO createPublicResponse(User user) {
-        return UserDTOMapper.toUserPublicResponseDTO(user);
+    private UserResponseDTO createPublicResponse(User user) {
+        return userResponseMapper.toPublicResponse(user);
     }
 
     /**
      * Vista básica: datos del perfil con métricas básicas para sugerencias
      */
-    private static UserResponseDTO createBasicResponse(User user) {
-        return UserDTOMapper.toUserStandardResponseDTO(user);
+    private UserResponseDTO createBasicResponse(User user) {
+        return userResponseMapper.toStandardResponse(user);
     }
 
     /**
      * Vista estándar: incluye métricas básicas
      */
-    private static UserResponseDTO createStandardResponse(User user) {
-        return UserDTOMapper.toUserStandardResponseDTO(user);
+    private UserResponseDTO createStandardResponse(User user) {
+        return userResponseMapper.toStandardResponse(user);
     }
 
     /**
      * Vista extendida: incluye privacidad, métricas, matches, notificaciones
      */
-    private static UserResponseDTO createExtendedResponse(User user) {
-        return UserDTOMapper.toUserExtendedResponseDTO(user);
+    private UserResponseDTO createExtendedResponse(User user) {
+        return userResponseMapper.toExtendedResponse(user);
     }
 
     /**
      * Vista completa: todos los datos incluyendo auth y account complaintStatus
      */
-    private static UserResponseDTO createFullResponse(User user) {
-        return UserDTOMapper.toUserFullResponseDTO(user);
+    private UserResponseDTO createFullResponse(User user) {
+        return userResponseMapper.toFullResponse(user);
     }
 
     /**
      * Vista administrativa: todos los datos + campos de admin
      */
-    private static UserResponseDTO createAdminResponse(User user) {
+    private UserResponseDTO createAdminResponse(User user) {
         // Para admin, devolvemos la vista completa (ya incluye todos los campos necesarios)
         return createFullResponse(user);
     }
@@ -78,7 +84,7 @@ public class UserResponseFactory {
     /**
      * Determina el nivel apropiado basado en el contexto del usuario
      */
-    public static UserResponseLevel determineAppropriateLevel(User currentUser, User targetUser, String requestedLevel) {
+    public UserResponseLevel determineAppropriateLevel(User currentUser, User targetUser, String requestedLevel) {
         UserResponseLevel requested = UserResponseLevel.fromString(requestedLevel, UserResponseLevel.BASIC);
 
         // Si no hay usuario logueado, solo público
@@ -104,7 +110,7 @@ public class UserResponseFactory {
         };
     }
 
-    private static boolean isAdmin(User user) {
+    private boolean isAdmin(User user) {
         return user.getUserRole() != null &&
             ("ADMIN".equals(user.getUserRole().getAuthority()) || "SUPER_ADMIN".equals(user.getUserRole().getAuthority()));
     }

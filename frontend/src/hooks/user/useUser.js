@@ -1,6 +1,6 @@
 import { useCallback, useState, useContext } from 'react'
 import { userService, matchService } from '@services'
-import { USER_PROFILE_REQUIRED_FIELDS, USER_PROFILE_OPTIONAL_FIELDS, isSpecialField } from '@schemas'
+import { USER_USER_REQUIRED_FIELDS, USER_USER_OPTIONAL_FIELDS, isSpecialField } from '@schemas'
 import AuthContext from '@contexts/AuthContext.jsx'
 import { useError, useAsyncOperation } from '@hooks'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
@@ -10,8 +10,8 @@ const dedupeSuggestions = suggestions => {
   const seen = new Map()
 
   suggestions.forEach(suggestion => {
-    // Usar user.status.id como clave única (estructura de la API)
-    const key = suggestion.user?.status?.id ?? suggestion.status?.id ?? JSON.stringify(suggestion)
+    // Usar user.user.id como clave única (estructura actualizada de la API)
+    const key = suggestion.user?.user?.id ?? suggestion.user?.id ?? JSON.stringify(suggestion)
 
     if (!seen.has(key)) {
       seen.set(key, suggestion)
@@ -85,7 +85,7 @@ const useUser = () => {
       // Primero intentar encontrar en sugerencias cargadas
       const foundUser = suggestions.find(
         suggestion =>
-          suggestion?.user?.status?.id?.toString() === userId?.toString() || suggestion?.status?.id?.toString() === userId?.toString()
+          suggestion?.user?.user?.id?.toString() === userId?.toString() || suggestion?.user?.id?.toString() === userId?.toString()
       )
 
       if (foundUser) {
@@ -197,11 +197,15 @@ const useUser = () => {
 
   /**
    * Actualizar perfil actual con imágenes
+   * @param {Object} profileData - Datos del perfil a actualizar
+   * @param {Array} profileImages - Array de imágenes (File objects) a subir
+   * @param {boolean} replaceImages - Si es true, reemplaza todas las imágenes existentes; si es false, las agrega
+   * @param {boolean} showNotifications - Si se deben mostrar notificaciones
    */
   const updateCurrentProfile = useCallback(
-    async (profileData, profileImages = null, showNotifications = true) => {
+    async (profileData, profileImages = null, replaceImages = false, showNotifications = true) => {
       const result = await withSubmitting(async () => {
-        const updatedProfile = await userService.updateCurrentProfile(profileData, profileImages)
+        const updatedProfile = await userService.updateCurrentProfile(profileData, profileImages, replaceImages)
 
         updateUser(updatedProfile)
 
@@ -488,8 +492,8 @@ const useUser = () => {
   const getProfileStats = useCallback(() => {
     if (!user) return null
 
-    const requiredFields = USER_PROFILE_REQUIRED_FIELDS
-    const optionalFields = USER_PROFILE_OPTIONAL_FIELDS
+    const requiredFields = USER_USER_REQUIRED_FIELDS
+    const optionalFields = USER_USER_OPTIONAL_FIELDS
 
     const requiredComplete = requiredFields.filter(field => {
       const value = user[field]

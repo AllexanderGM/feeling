@@ -6,7 +6,7 @@ import { Form, Input, Button } from '@heroui/react'
 import { usePassword } from '@hooks'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
-import { resetPasswordSchema, extractResetPasswordData } from '@schemas'
+import { resetPasswordSchema } from '@schemas'
 import { APP_PATHS } from '@constants/paths.js'
 import { CheckCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -36,8 +36,7 @@ const ResetPassword = () => {
   const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
   const onSubmit = async formData => {
-    const data = extractResetPasswordData(formData)
-    const result = await resetPassword(token, data.password, data.confirmPassword)
+    const result = await resetPassword(token, formData.password, formData.confirmPassword)
 
     if (result.success) {
       setStatus('success')

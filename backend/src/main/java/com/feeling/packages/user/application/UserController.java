@@ -1,30 +1,22 @@
 package com.feeling.packages.user.application;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feeling.config.logging.StructuredLoggerFactory;
-import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.match.domain.dto.MatchCompatibilityDTO;
 import com.feeling.packages.match.domain.dto.UserSuggestionDTO;
 import com.feeling.packages.match.domain.services.MatchDiscoveryService;
 import com.feeling.packages.user.domain.dto.analytics.UserCountDTO;
 import com.feeling.packages.user.domain.dto.attributes.UserAttributeResponseDTO;
-import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.views.UserViews;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
-import com.feeling.packages.user.domain.services.UserAttributeService;
-import com.feeling.packages.user.domain.services.UserMediaService;
-import com.feeling.packages.user.domain.services.UserService;
-import com.feeling.packages.user.domain.services.UserTagService;
+import com.feeling.packages.user.domain.services.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,7 +31,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Controlador principal para gestión de usuarios.
@@ -81,11 +72,10 @@ public class UserController {
     private final UserTagService userTagService;
     private final UserAttributeService userAttributeService;
     private final MatchDiscoveryService matchDiscoveryService;
-    private final Validator validator;
-    private final ObjectMapper objectMapper;
 
     // Servicios especializados para operaciones específicas
     private final UserMediaService userMediaService;
+    private final UserProfileOrchestrator userProfileOrchestrator;
 
     // ========================================
     // CLIENT ENDPOINTS (AUTHENTICATED)
@@ -209,54 +199,23 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Actualizar perfil del usuario actual",
         description = "Actualiza el perfil del usuario actual con imágenes")
-    public ResponseEntity<?> updateCurrentUser(
+    public ResponseEntity<UserResponseDTO> updateCurrentUser(
         @RequestParam("profileData") String profileDataJson,
         @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages,
-        Authentication authentication) throws IOException {
-        try {
-            String userEmail = authentication.getName();
+        @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages,
+        Authentication authentication
+    ) throws IOException {
+        String userEmail = authentication.getName();
 
-            // Parsear y validar datos
-            UserRequestDTO profileRequest = parseProfileData(profileDataJson);
-            String validationErrors = validateProfileRequest(profileRequest);
-            if (validationErrors != null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
-            }
+        // Delegar al Orchestrator (PUT y PATCH usan la misma lógica)
+        UserResponseDTO updatedUser = userProfileOrchestrator.updateProfile(
+            userEmail,
+            profileDataJson,
+            profileImages,
+            replaceImages
+        );
 
-            // Orquestación: actualizar datos y/o imágenes
-            UserResponseDTO updatedUser = null;
-
-            // Actualizar datos si hay cambios
-            if (profileRequest.hasAnyUpdate()) {
-                updatedUser = userService.update(userEmail, profileRequest);
-            }
-
-            // Procesar tags si se proporcionan
-            if (profileRequest.tags().isPresent()) {
-                List<String> tagNames = profileRequest.tags().get();
-                if (!tagNames.isEmpty()) {
-                    userTagService.addTagsToUser(userEmail, tagNames);
-                    // Recargar usuario actualizado con los tags usando el método get que retorna DTO
-                    updatedUser = userService.get(userEmail);
-                }
-            }
-
-            // Subir imágenes si se proporcionan
-            if (profileImages != null && !profileImages.isEmpty()) {
-                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
-            }
-
-            // Si no se actualizó nada, retornar error
-            if (updatedUser == null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron campos para actualizar"));
-            }
-
-            return ResponseEntity.ok(updatedUser);
-
-        } catch (Exception e) {
-            logger.error("Error actualizando perfil del usuario", e);
-            return ResponseEntity.badRequest().body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
-        }
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PatchMapping
@@ -266,78 +225,31 @@ public class UserController {
         description = "Actualiza campos específicos del perfil de usuario usando operación PATCH. " +
             "Soporta multipart/form-data con imágenes. " +
             "Solo los campos proporcionados serán actualizados. Usa campos Optional para distinguir entre " +
-            "valores nulos y campos no enviados. Soporta actualizaciones anidadas para ubicación, preferencias, privacidad, etc.",
+            "valores nulos y campos no enviados. Soporta actualizaciones anidadas para ubicación, preferencias, privacidad, etc. " +
+            "Con replaceImages=true, reemplaza todas las imágenes existentes con las nuevas (útil para eliminar imágenes).",
         tags = {"User Profile Management"}
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Perfil actualizado exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Datos inválidos"),
-        @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+        @ApiResponse(responseCode = "400", description = "Datos inválidos (manejado por GlobalExceptionHandler)"),
+        @ApiResponse(responseCode = "401", description = "Usuario no autenticado (manejado por GlobalExceptionHandler)")
     })
-    public ResponseEntity<?> partialUpdateProfile(
+    public ResponseEntity<UserResponseDTO> update(
         @RequestParam(value = "profileData", required = false) String profileDataJson,
         @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages,
-        Authentication authentication) throws IOException {
-        try {
-            String userEmail = authentication.getName();
-            UserRequestDTO partialUpdate;
+        @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages,
+        Authentication authentication
+    ) throws IOException {
+        String userEmail = authentication.getName();
 
-            // Verificar que se envió profileData
-            if (profileDataJson == null || profileDataJson.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron datos para actualizar"));
-            }
+        UserResponseDTO updatedUser = userProfileOrchestrator.updateProfile(
+            userEmail,
+            profileDataJson,
+            profileImages,
+            replaceImages
+        );
 
-            // Parsear y validar datos
-            partialUpdate = parseProfileData(profileDataJson);
-            String validationErrors = validateProfileRequest(partialUpdate);
-            if (validationErrors != null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
-            }
-
-            // Orquestación: actualizar datos y/o imágenes
-            UserResponseDTO updatedUser = null;
-
-            // Actualizar datos si hay cambios
-            if (partialUpdate.hasAnyUpdate()) {
-                updatedUser = userService.update(userEmail, partialUpdate);
-            }
-
-            // Procesar tags si se proporcionan
-            if (partialUpdate.tags().isPresent()) {
-                List<String> tagNames = partialUpdate.tags().get();
-                if (!tagNames.isEmpty()) {
-                    userTagService.addTagsToUser(userEmail, tagNames);
-                    updatedUser = userService.get(userEmail);
-                }
-            }
-
-            // Subir imágenes si se proporcionan
-            if (profileImages != null && !profileImages.isEmpty()) {
-                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
-            }
-
-            // Si no se actualizó nada, retornar error
-            if (updatedUser == null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron campos para actualizar"));
-            }
-
-            return ResponseEntity.ok(updatedUser);
-
-        } catch (UnauthorizedException e) {
-            logger.error("Usuario no autorizado para actualización parcial", Map.of(
-                "userEmail", authentication.getName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new MessageResponseDTO("No autorizado para actualizar perfil"));
-        } catch (Exception e) {
-            logger.error("Error en actualización parcial del perfil del usuario", Map.of(
-                "userEmail", authentication.getName(),
-                "errorMessage", e.getMessage(),
-                "errorType", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.badRequest()
-                .body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
-        }
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PutMapping("/deactivate")
@@ -388,7 +300,7 @@ public class UserController {
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Obtener usuarios por estado",
-        description = "Obtiene usuarios filtrados por estado (active, pending-approval, unverified, non-approved, deactivated, incomplete-profile)")
+        description = "Obtiene usuarios filtrados por estado (active, pending-approval, unverified, non-approved, deactivated, incomplete-user)")
     public ResponseEntity<Page<UserResponseDTO>> getUsersByStatus(
         @Parameter(description = "Estado del usuario") @PathVariable String status,
         @RequestParam(required = false) String search,
@@ -406,45 +318,24 @@ public class UserController {
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Actualizar perfil de usuario (admin)",
         description = "Actualiza el perfil de usuario con imágenes (solo admin)")
-    public ResponseEntity<?> updateUserProfile(
+    public ResponseEntity<UserResponseDTO> updateUserProfile(
         @Parameter(description = "ID del usuario") @PathVariable String userId,
         @RequestParam("profileData") String profileDataJson,
-        @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages) throws IOException {
-        try {
-            // Parsear y validar datos
-            UserRequestDTO profileRequest = parseProfileData(profileDataJson);
-            String validationErrors = validateProfileRequest(profileRequest);
-            if (validationErrors != null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO(validationErrors));
-            }
+        @RequestParam(value = "profileImages", required = false) List<MultipartFile> profileImages,
+        @RequestParam(value = "replaceImages", defaultValue = "false") boolean replaceImages
+    ) throws IOException {
+        // Obtener email del usuario
+        String userEmail = userService.getUserEmailById(userId);
 
-            // Obtener email del usuario
-            String userEmail = userService.getUserEmailById(userId);
+        // Delegar al Orchestrator
+        UserResponseDTO updatedUser = userProfileOrchestrator.updateProfile(
+            userEmail,
+            profileDataJson,
+            profileImages,
+            replaceImages
+        );
 
-            // Orquestación: actualizar datos y/o imágenes
-            UserResponseDTO updatedUser = null;
-
-            // Actualizar datos si hay cambios
-            if (profileRequest.hasAnyUpdate()) {
-                updatedUser = userService.update(userEmail, profileRequest);
-            }
-
-            // Subir imágenes si se proporcionan
-            if (profileImages != null && !profileImages.isEmpty()) {
-                updatedUser = userMediaService.uploadImages(userEmail, profileImages);
-            }
-
-            // Si no se actualizó nada, retornar error
-            if (updatedUser == null) {
-                return ResponseEntity.badRequest().body(new MessageResponseDTO("No se enviaron campos para actualizar"));
-            }
-
-            return ResponseEntity.ok(updatedUser);
-
-        } catch (Exception e) {
-            logger.error("Error actualizando perfil del usuario", Map.of("userId", userId), e);
-            return ResponseEntity.badRequest().body(new MessageResponseDTO("Error al actualizar perfil: " + e.getMessage()));
-        }
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PutMapping("/{userId}/deactivate")
@@ -549,29 +440,8 @@ public class UserController {
     // ========================================
     // MÉTODOS HELPER PRIVADOS
     // ========================================
-
-    /**
-     * Parsea JSON a UserRequestDTO usando el ObjectMapper configurado
-     */
-    private UserRequestDTO parseProfileData(String profileDataJson) throws IOException {
-        return objectMapper.readValue(profileDataJson, UserRequestDTO.class);
-    }
-
-    /**
-     * Valida un DTO y retorna los errores formateados si existen
-     */
-    private String validateProfileRequest(UserRequestDTO profileRequest) {
-        Set<ConstraintViolation<UserRequestDTO>> violations = validator.validate(profileRequest);
-        if (violations.isEmpty()) {
-            return null;
-        }
-
-        StringBuilder sb = new StringBuilder();
-        for (ConstraintViolation<UserRequestDTO> violation : violations) {
-            sb.append(violation.getMessage()).append("; ");
-        }
-        return sb.toString();
-    }
+    // NOTA: Los métodos parseProfileData y validateProfileRequest fueron movidos
+    // al UserProfileOrchestrator para mantener el controlador delgado y centrado en HTTP.
 
     // ========================================
     // ADMINISTRACIÓN DE ATRIBUTOS

@@ -47,7 +47,7 @@ const DeleteUserModal = ({ isOpen, onClose, onSuccess, userData }) => {
     try {
       setError(null)
 
-      const result = await deleteUser(userData.profile.email)
+      const result = await deleteUser(userData.user.email)
 
       if (result.success) {
         handleSuccess('Usuario eliminado exitosamente')

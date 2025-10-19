@@ -6,7 +6,9 @@ import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.media.ImageManagementService;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,7 @@ import java.util.Map;
  * - Subida de imágenes de perfil
  * - Eliminación de imágenes
  * - Reordenamiento de imágenes
- * - Configuración de imagen principal (profile picture)
+ * - Configuración de imagen principal (user picture)
  * - Validación de formato y tamaño de archivos
  * - Gestión de avatares externos (OAuth providers)
  * - Metadatos de imágenes
@@ -48,6 +50,7 @@ public class UserMediaService {
     private final IUserRepository userRepository;
     private final ImageManagementService imageManagementService;
     private final UserCachedService userCachedService;
+    private final UserResponseFactory userResponseFactory;
 
     // Constantes de validación específicas para usuarios
     private static final int MAX_IMAGES_PER_USER = 6;
@@ -91,26 +94,86 @@ public class UserMediaService {
         allEntries = false
     )
     public UserResponseDTO uploadImages(String email, List<MultipartFile> images) throws IOException {
-        logger.info("Subiendo imágenes de usuario", Map.of("email", email, "count", images.size()));
+        return uploadImages(email, images, false);
+    }
+
+    /**
+     * Sube múltiples imágenes de perfil para un usuario con opción de reemplazar.
+     * <p>
+     * Validaciones aplicadas:
+     * - Usuario debe existir y estar autenticado
+     * - Máximo {@value MAX_IMAGES_PER_USER} imágenes por usuario
+     * - Tamaño máximo por imagen: 10MB
+     * - Formatos soportados: JPEG, PNG, WEBP
+     * <p>
+     * Efectos:
+     * - Si replaceExisting=true: Elimina las imágenes antiguas y reemplaza con las nuevas
+     * - Si replaceExisting=false: Agrega las nuevas URLs a la lista de imágenes existente
+     * - Invalida cache del usuario
+     * - Recalcula estado de completitud del perfil
+     * <p>
+     * Comportamiento:
+     * - replaceExisting=false: Si el total de imágenes supera MAX_IMAGES_PER_USER, se rechaza
+     * - replaceExisting=true: Solo valida que las nuevas imágenes no superen MAX_IMAGES_PER_USER
+     * <p>
+     * Transaccional: Rollback si falla la subida al storage
+     *
+     * @param email           Email del usuario que sube las imágenes
+     * @param images          Lista de archivos MultipartFile con las imágenes
+     * @param replaceExisting Si es true, reemplaza todas las imágenes existentes; si es false, las agrega
+     * @return DTO con la información actualizada del usuario incluyendo URLs de imágenes
+     * @throws UnauthorizedException Si el usuario no existe
+     * @throws BadRequestException   Si se excede el límite de imágenes o validación falla
+     * @throws IOException           Si ocurre un error durante la subida o procesamiento
+     */
+    @Transactional
+    @CacheEvict(
+        value = {"userProfiles", "userSuggestions", "userMetrics"},
+        key = "#email",
+        allEntries = false
+    )
+    public UserResponseDTO uploadImages(String email, List<MultipartFile> images, boolean replaceExisting) throws IOException {
+        logger.info("Subiendo imágenes de usuario", Map.of(
+            "email", email,
+            "count", images.size(),
+            "replaceExisting", replaceExisting
+        ));
 
         User user = getUserByEmail(email);
+        List<String> oldImages = user.getImages() != null ? new java.util.ArrayList<>(user.getImages()) : null;
 
         // Validar que no se exceda el límite de imágenes
-        int currentCount = user.getImages() != null ? user.getImages().size() : 0;
-        imageManagementService.validateImageCount(currentCount, images.size(), MAX_IMAGES_PER_USER);
+        if (replaceExisting) {
+            // Si vamos a reemplazar, solo validamos que las nuevas imágenes no excedan el límite
+            imageManagementService.validateImageCount(0, images.size(), MAX_IMAGES_PER_USER);
+        } else {
+            // Si vamos a agregar, validamos que el total no exceda el límite
+            int currentCount = user.getImages() != null ? user.getImages().size() : 0;
+            imageManagementService.validateImageCount(currentCount, images.size(), MAX_IMAGES_PER_USER);
+        }
 
         try {
             // Delegar la subida al ImageManagementService
-            List<String> imageUrls = imageManagementService.uploadImages(images, "profile", MAX_IMAGES_PER_USER);
+            List<String> imageUrls = imageManagementService.uploadImages(images, "user", MAX_IMAGES_PER_USER);
 
             if (!imageUrls.isEmpty()) {
-                // Agregar nuevas URLs a las existentes
-                List<String> currentImages = user.getImages();
-                if (currentImages == null) {
-                    currentImages = new java.util.ArrayList<>();
+                if (replaceExisting) {
+                    // Reemplazar completamente la lista de imágenes
+                    user.setImages(imageUrls);
+                    logger.info("Reemplazando imágenes existentes", Map.of(
+                        "email", email,
+                        "old_count", oldImages != null ? oldImages.size() : 0,
+                        "new_count", imageUrls.size()
+                    ));
+                } else {
+                    // Agregar nuevas URLs a las existentes
+                    List<String> currentImages = user.getImages();
+                    if (currentImages == null) {
+                        currentImages = new java.util.ArrayList<>();
+                    }
+                    currentImages.addAll(imageUrls);
+                    user.setImages(currentImages);
                 }
-                currentImages.addAll(imageUrls);
-                user.setImages(currentImages);
 
                 // Recalcular completitud del perfil
                 user.setProfileComplete(user.isProfileComplete());
@@ -119,15 +182,35 @@ public class UserMediaService {
                 // Invalidar cache
                 userCachedService.evictUserCache(email);
 
+                // Si reemplazamos, eliminar las imágenes antiguas del storage
+                if (replaceExisting && oldImages != null && !oldImages.isEmpty()) {
+                    for (String oldImageUrl : oldImages) {
+                        try {
+                            imageManagementService.deleteImage(oldImageUrl);
+                            logger.debug("Imagen antigua eliminada del storage", Map.of("imageUrl", oldImageUrl));
+                        } catch (Exception e) {
+                            logger.warn("No se pudo eliminar imagen antigua del storage", Map.of(
+                                "imageUrl", oldImageUrl,
+                                "error", e.getMessage()
+                            ));
+                            // No lanzamos error aquí, las nuevas imágenes ya fueron guardadas
+                        }
+                    }
+                }
+
                 logger.logUserOperation("user_images_uploaded", email,
-                    Map.of("images_count", imageUrls.size(), "total_images", currentImages.size()));
+                    Map.of(
+                        "images_count", imageUrls.size(),
+                        "total_images", user.getImages().size(),
+                        "operation", replaceExisting ? "replace" : "add"
+                    ));
             }
         } catch (Exception e) {
             logger.error("Error al subir imágenes de perfil", Map.of("email", email), e);
             throw new IOException("Error al subir imágenes de perfil: " + e.getMessage(), e);
         }
 
-        return new UserResponseDTO(user);
+        return userResponseFactory.create(user, UserResponseLevel.FULL);
     }
 
     // ========================================

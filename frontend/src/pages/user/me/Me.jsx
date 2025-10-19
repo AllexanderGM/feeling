@@ -19,7 +19,34 @@ import {
   Users,
   Eye
 } from 'lucide-react'
-import { useAuth, useLocation, useUser, useUserInterests, useProfileData } from '@hooks'
+import { useNavigate } from 'react-router-dom'
+import { APP_PATHS } from '@constants/paths'
+import { useAuth, useLocation, useUser, useUserInterests } from '@hooks'
+import {
+  getUserId,
+  getUserName,
+  getUserLastName,
+  getUserEmail,
+  getUserCountry,
+  getUserCity,
+  getUserVerified,
+  getUserApproved,
+  getUserProfileComplete,
+  getUserCreatedAt,
+  getUserLastActive,
+  getUserCategoryInterest,
+  getUserGender,
+  getUserTags,
+  getUserAgePreferenceMin,
+  getUserAgePreferenceMax,
+  getUserMatches,
+  getUserPrivacy,
+  getUserMetrics,
+  getUserDateOfBirth,
+  getUserMainImage,
+  getUserAccountDeactivated
+} from '@schemas'
+
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
@@ -33,6 +60,7 @@ const CharacteristicsSection = lazy(() => import('./components/CharacteristicsSe
 const PreferencesSection = lazy(() => import('./components/PreferencesSection.jsx'))
 
 const Profile = () => {
+  const navigate = useNavigate()
   const { user, loading: authLoading, updateUser } = useAuth()
   const { getProfileStats, getCurrentUser } = useUser()
   const { getInterestByEnum, loading: interestLoading, error: interestError } = useUserInterests()
@@ -40,57 +68,110 @@ const Profile = () => {
   const [hasLoadedUser, setHasLoadedUser] = useState(false)
   const [isLoadingUser, setIsLoadingUser] = useState(false)
 
+  // Navigation handlers
+  const handleReportError = () => {
+    navigate(APP_PATHS.GENERAL.CONTACT, { state: { type: 'bug' } })
+  }
+
+  const handleSuggestImprovement = () => {
+    navigate(APP_PATHS.GENERAL.CONTACT, { state: { type: 'suggestion' } })
+  }
+
+  const handleContactSupport = () => {
+    navigate(APP_PATHS.USER.SUPPORT)
+  }
+
+  const handlePrivacyPolicy = () => {
+    navigate(APP_PATHS.LEGAL.PRIVACY)
+  }
+
+  const handleDataTreatment = () => {
+    navigate(APP_PATHS.LEGAL.PRIVACY)
+  }
+
   // Custom hook for user data helpers
-  const {
-    getUserName,
-    getUserLastName,
-    getUserEmail,
-    getUserCountry,
-    getUserCity,
-    getUserId,
-    isUserVerified,
-    isUserApproved,
-    isProfileComplete,
-    getUserCreatedAt,
-    getUserLastActive,
-    getMatchAttempts,
-    getTodayMatches,
-    getTotalMatches,
-    getMaxDailyAttempts,
-    getPendingSentMatches,
-    getPendingReceivedMatches,
-    getAcceptedMatches,
-    getFavoritesCount,
-    getRemainingAttempts,
-    getProfilePrivacy,
-    isSearchable,
-    isLocationShared,
-    showInSearch,
-    getAccountType,
-    getRegion,
-    isAccountActive,
-    profileData,
-    // Nuevas funciones disponibles
-    getUserGender,
-    getUserTags,
-    getUserAgePreferenceMin,
-    getUserAgePreferenceMax,
-    getProfileViews,
-    getLikesReceived,
-    getPopularityScore,
-    getProfileCompletenessPercentage,
-    showAge,
-    showPhone
-  } = useProfileData(user)
+  // Helper functions using centralized accessors
+  const userHelpers = useMemo(() => {
+    if (!user) return {}
+
+    const matches = getUserMatches(user)
+    const privacy = getUserPrivacy(user)
+    const metrics = getUserMetrics(user)
+
+    return {
+      // Match Information
+      getMatchAttempts: () => matches?.availableAttempts || 0,
+      getTodayMatches: () => matches?.todayMatches || 0,
+      getTotalMatches: () => matches?.totalMatches || 0,
+      getMaxDailyAttempts: () => matches?.maxDailyAttempts || 10,
+      getPendingSentMatches: () => matches?.pendingSent || 0,
+      getPendingReceivedMatches: () => matches?.pendingReceived || 0,
+      getAcceptedMattempts: () => matches?.accepted || 0,
+      getFavoritesCount: () => matches?.favorites || 0,
+      getRemainingAttempts: () => matches?.availableAttempts || 0,
+
+      // Privacy helpers
+      getProfilePrivacy: () => (privacy?.publicAccount ? 'Público' : 'Privado'),
+      isSearchable: () => privacy?.searchVisibility || false,
+      isLocationShared: () => privacy?.locationPublic || false,
+      showInSearch: () => privacy?.showMeInSearch || false,
+      showAge: () => privacy?.showAge || false,
+      showPhone: () => privacy?.showPhone || false,
+
+      // Metrics helpers
+      getProfileViews: () => metrics?.profileViews || 0,
+      getLikesReceived: () => metrics?.likesReceived || 0,
+      getPopularityScore: () => metrics?.popularityScore || 0,
+      getProfileCompletenessPercentage: () => metrics?.profileCompleteness || 0,
+
+      // Account helpers
+      getAccountType: () => user?.accountType || 'Básica',
+      getRegion: () => user?.region || 'América',
+      isAccountActive: () => !getUserAccountDeactivated(user)
+    }
+  }, [user])
+
+  // Profile data calculations
+  const profileData = useMemo(() => {
+    if (!user) return null
+
+    const calculateAge = birthDate => {
+      if (!birthDate) return null
+
+      let birth
+
+      if (Array.isArray(birthDate) && birthDate.length >= 3) {
+        birth = new Date(birthDate[0], birthDate[1] - 1, birthDate[2])
+      } else {
+        birth = new Date(birthDate)
+      }
+
+      const today = new Date()
+      let age = today.getFullYear() - birth.getFullYear()
+      const monthDiff = today.getMonth() - birth.getMonth()
+
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--
+      }
+
+      return age
+    }
+
+    return {
+      mainImage: getUserMainImage(user),
+      age: calculateAge(getUserDateOfBirth(user)),
+      categoryInterest: getUserCategoryInterest(user)
+    }
+  }, [user])
 
   // Hook para obtener datos geográficos y banderas
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: getUserCountry() || 'Colombia',
-      defaultCity: getUserCity() || 'Bogotá',
+      defaultCountry: getUserCountry(user) || 'Colombia',
+      defaultCity: getUserCity(user) || 'Bogotá',
       loadAll: true
     }),
-    [getUserCountry(), getUserCity()]
+    [user]
   )
 
   const { formattedCountries } = useLocation(locationConfig)
@@ -100,24 +181,23 @@ const Profile = () => {
 
   // Obtener categoría de interés con icono
   const categoryInterestDetails = useMemo(() => {
-    // Verificar múltiples formas de obtener la categoría
-    const categoryEnum = user?.profile?.categoryInterest || user?.categoryInterest
+    const categoryEnum = profileData?.categoryInterest
 
     if (!categoryEnum) return null
 
     const categoryDetails = getInterestByEnum(categoryEnum)
 
     return categoryDetails
-  }, [user?.profile?.categoryInterest, user?.categoryInterest, getInterestByEnum])
+  }, [profileData?.categoryInterest, getInterestByEnum])
 
   // Obtener datos del país con bandera
   const getCountryData = useMemo(() => {
-    const country = getUserCountry()
+    const country = getUserCountry(user)
 
     if (!country || !formattedCountries) return null
 
     return formattedCountries.find(c => c.name === country)
-  }, [getUserCountry(), formattedCountries])
+  }, [user, formattedCountries])
 
   // Cargar datos del usuario actual del backend una sola vez
   useEffect(() => {
@@ -162,39 +242,15 @@ const Profile = () => {
       {/* Profile Header */}
       <ProfileHeader
         categoryInterestDetails={categoryInterestDetails}
-        getAccountType={getAccountType}
         getCountryData={getCountryData}
-        getProfilePrivacy={getProfilePrivacy}
-        getRegion={getRegion}
-        getUserCity={getUserCity}
-        getUserCountry={getUserCountry}
-        getUserCreatedAt={getUserCreatedAt}
-        getUserEmail={getUserEmail}
-        getUserId={getUserId}
-        getUserLastActive={getUserLastActive}
-        getUserLastName={getUserLastName}
-        getUserName={getUserName}
-        isAccountActive={isAccountActive}
-        isLocationShared={isLocationShared}
-        isProfileComplete={isProfileComplete}
-        isSearchable={isSearchable}
-        isUserVerified={isUserVerified}
         profileData={profileData}
         profileStats={profileStats}
+        user={user}
+        userHelpers={userHelpers}
       />
 
       {/* Match Section */}
-      <MatchSection
-        getAcceptedMatches={getAcceptedMatches}
-        getFavoritesCount={getFavoritesCount}
-        getMatchAttempts={getMatchAttempts}
-        getMaxDailyAttempts={getMaxDailyAttempts}
-        getPendingReceivedMatches={getPendingReceivedMatches}
-        getPendingSentMatches={getPendingSentMatches}
-        getRemainingAttempts={getRemainingAttempts}
-        getTodayMatches={getTodayMatches}
-        getTotalMatches={getTotalMatches}
-      />
+      <MatchSection userHelpers={userHelpers} />
 
       {/* Profile Metrics Section */}
       <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
@@ -215,7 +271,7 @@ const Profile = () => {
               <div className='w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
                 <Eye className='w-4 h-4 text-blue-400' />
               </div>
-              <div className='text-lg font-bold text-blue-300'>{getProfileViews()}</div>
+              <div className='text-lg font-bold text-blue-300'>{userHelpers.getProfileViews()}</div>
               <div className='text-xs text-gray-400'>Visualizaciones</div>
             </div>
 
@@ -224,7 +280,7 @@ const Profile = () => {
               <div className='w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
                 <Star className='w-4 h-4 text-pink-400' />
               </div>
-              <div className='text-lg font-bold text-pink-300'>{getLikesReceived()}</div>
+              <div className='text-lg font-bold text-pink-300'>{userHelpers.getLikesReceived()}</div>
               <div className='text-xs text-gray-400'>Likes recibidos</div>
             </div>
 
@@ -233,7 +289,7 @@ const Profile = () => {
               <div className='w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
                 <Users className='w-4 h-4 text-yellow-400' />
               </div>
-              <div className='text-lg font-bold text-yellow-300'>{getPopularityScore()}</div>
+              <div className='text-lg font-bold text-yellow-300'>{userHelpers.getPopularityScore()}</div>
               <div className='text-xs text-gray-400'>Puntuación</div>
             </div>
 
@@ -242,7 +298,7 @@ const Profile = () => {
               <div className='w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
                 <CheckCircle className='w-4 h-4 text-green-400' />
               </div>
-              <div className='text-lg font-bold text-green-300'>{getProfileCompletenessPercentage()}%</div>
+              <div className='text-lg font-bold text-green-300'>{userHelpers.getProfileCompletenessPercentage()}%</div>
               <div className='text-xs text-gray-400'>Completitud</div>
             </div>
           </div>
@@ -272,11 +328,11 @@ const Profile = () => {
               <div className='bg-gray-800/50 rounded-lg p-3'>
                 <div className='flex items-center justify-between text-sm'>
                   <span className='text-gray-400'>Mínima:</span>
-                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMin()} años</span>
+                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMin(user)} años</span>
                 </div>
                 <div className='flex items-center justify-between text-sm mt-2'>
                   <span className='text-gray-400'>Máxima:</span>
-                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMax()} años</span>
+                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMax(user)} años</span>
                 </div>
               </div>
             </div>
@@ -294,11 +350,11 @@ const Profile = () => {
           </div>
 
           {/* Tags */}
-          {getUserTags().length > 0 && (
+          {getUserTags(user).length > 0 && (
             <div className='mt-6 space-y-3'>
               <h4 className='text-sm font-medium text-gray-300'>Intereses</h4>
               <div className='flex flex-wrap gap-2'>
-                {getUserTags().map((tag, index) => (
+                {getUserTags(user).map((tag, index) => (
                   <Chip key={index} className='bg-purple-500/20 text-purple-300 border border-purple-500/30' size='sm' variant='flat'>
                     {tag}
                   </Chip>
@@ -380,7 +436,7 @@ const Profile = () => {
                     size='sm'
                     startContent={<AlertTriangle className='w-3 h-3' />}
                     variant='bordered'>
-                    Reportar
+                    Reportar onPress={handleReportError}
                   </Button>
                 </div>
               </div>
@@ -402,7 +458,7 @@ const Profile = () => {
                     size='sm'
                     startContent={<Send className='w-3 h-3' />}
                     variant='bordered'>
-                    Sugerir
+                    Sugerir onPress={handleSuggestImprovement}
                   </Button>
                 </div>
               </div>
@@ -424,6 +480,7 @@ const Profile = () => {
                     size='sm'
                     startContent={<MessageCircle className='w-3 h-3' />}
                     variant='bordered'>
+                    onPress={handleContactSupport}
                     Contactar
                   </Button>
                 </div>
@@ -687,6 +744,7 @@ const Profile = () => {
                 size='sm'
                 startContent={<FileText className='w-4 h-4' />}
                 variant='bordered'>
+                onPress={handlePrivacyPolicy}
                 Política de Privacidad
               </Button>
               <Button
@@ -696,6 +754,7 @@ const Profile = () => {
                 size='sm'
                 startContent={<Shield className='w-4 h-4' />}
                 variant='bordered'>
+                onPress={handleDataTreatment}
                 Tratamiento de Datos
               </Button>
             </div>

@@ -4,9 +4,10 @@ import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
-import com.feeling.packages.user.domain.dto.profile.response.UserEssentialDTO;
+import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserRoleList;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.domain.services.UserRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -70,6 +71,7 @@ public class UserRoleController {
         StructuredLoggerFactory.create(UserRoleController.class);
 
     private final UserRoleService userRoleService;
+    private final UserResponseFactory userResponseFactory;
 
     // ========================================
     // CONSULTAS - USUARIOS POR ROL
@@ -88,13 +90,13 @@ public class UserRoleController {
         @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    public ResponseEntity<Page<UserEssentialDTO>> getAdminUsers(
+    public ResponseEntity<Page<UserResponseDTO>> getAdminUsers(
         @PageableDefault(size = 20) Pageable pageable
     ) {
         try {
             logger.info("Consultando usuarios con rol ADMIN", Map.of("page", pageable.getPageNumber()));
-            Page<UserEssentialDTO> admins = userRoleService.getUsersByRole(UserRoleList.ADMIN, pageable)
-                .map(UserDTOMapper::toUserEssentialDTO);
+            Page<UserResponseDTO> admins = userRoleService.getUsersByRole(UserRoleList.ADMIN, pageable)
+                .map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
             return ResponseEntity.ok(admins);
         } catch (Exception e) {
             logger.error("Error obteniendo usuarios administradores", e);
@@ -115,13 +117,13 @@ public class UserRoleController {
         @ApiResponse(responseCode = "200", description = "Lista obtenida exitosamente"),
         @ApiResponse(responseCode = "500", description = "Error interno del servidor")
     })
-    public ResponseEntity<Page<UserEssentialDTO>> getClientUsers(
+    public ResponseEntity<Page<UserResponseDTO>> getClientUsers(
         @PageableDefault(size = 20) Pageable pageable
     ) {
         try {
             logger.info("Consultando usuarios con rol CLIENT", Map.of("page", pageable.getPageNumber()));
-            Page<UserEssentialDTO> clients = userRoleService.getUsersByRole(UserRoleList.CLIENT, pageable)
-                .map(UserDTOMapper::toUserEssentialDTO);
+            Page<UserResponseDTO> clients = userRoleService.getUsersByRole(UserRoleList.CLIENT, pageable)
+                .map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
             return ResponseEntity.ok(clients);
         } catch (Exception e) {
             logger.error("Error obteniendo usuarios clientes", e);

@@ -1,6 +1,8 @@
 package com.feeling.exception;
 
 import com.feeling.domain.dto.response.ErrorResponseDTO;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -10,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +23,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import javax.naming.AuthenticationNotSupportedException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -184,6 +188,49 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponseDTO.badRequest(detailedMessage));
+    }
+
+    /**
+     * Maneja errores de validación de Jakarta Validation directos
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleConstraintViolation(ConstraintViolationException ex) {
+        String validationErrors = ex.getConstraintViolations().stream()
+            .map(ConstraintViolation::getMessage)
+            .collect(Collectors.joining(", "));
+
+        logger.warn("Errores de validación Jakarta: {}", validationErrors);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ErrorResponseDTO.badRequest(validationErrors));
+    }
+
+    /**
+     * Maneja errores de transacción que contienen validaciones anidadas.
+     * Esto ocurre cuando las validaciones en la entidad JPA fallan durante el commit.
+     */
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<ErrorResponseDTO> handleTransactionSystemException(TransactionSystemException ex) {
+        // Intentar extraer ConstraintViolationException anidada
+        Throwable cause = ex.getCause();
+        if (cause instanceof jakarta.persistence.RollbackException rollbackEx) {
+            Throwable validationCause = rollbackEx.getCause();
+            if (validationCause instanceof ConstraintViolationException constraintEx) {
+                String validationMessages = constraintEx.getConstraintViolations().stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining(", "));
+
+                logger.warn("Errores de validación durante transacción: {}", validationMessages);
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ErrorResponseDTO.badRequest(validationMessages));
+            }
+        }
+
+        // Si no es una validación, retornar error genérico
+        logger.error("Error de transacción no relacionado con validación: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(ErrorResponseDTO.internalServerError("Error al procesar la transacción"));
     }
 
     // ========================================

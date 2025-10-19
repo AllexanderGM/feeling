@@ -4,6 +4,7 @@ import { authService } from '@services'
 import { Logger } from '@utils/logger.js'
 import AuthContext from '@contexts/AuthContext.jsx'
 import { useError, useAsyncOperation } from '@hooks'
+import { isValidLoginResponse } from '@schemas'
 
 /**
  * Hook de autenticación - AuthController
@@ -56,7 +57,6 @@ export const useAuth = () => {
     updateUserPrivacy,
     updateUserNotifications,
     updateUserAuth,
-    updateUserAccount,
     updateUserMetadata,
     updateUserSections,
 
@@ -92,8 +92,20 @@ export const useAuth = () => {
       const result = await withLoading(async () => {
         const data = await authService.login(email, password)
 
+        // Validar que la respuesta del login tenga la estructura correcta
+        if (!isValidLoginResponse(data)) {
+          Logger.error(Logger.CATEGORIES.AUTH, 'login', 'Respuesta de login con estructura inválida', { data })
+          throw new Error('Respuesta del servidor inválida')
+        }
+
+        // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-        updateUser(data)
+
+        // Extraer datos del usuario sin los tokens para guardar en localStorage
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tokens, ...userDataWithoutTokens } = data
+
+        updateUser(userDataWithoutTokens)
 
         return data
       }, 'Inicio de sesión')
@@ -121,9 +133,14 @@ export const useAuth = () => {
           Logger.info(Logger.CATEGORIES.AUTH, 'renovar tokens', 'Iniciando renovación manual de token')
           const data = await authService.refreshToken(refreshToken)
 
-          if (data.success && data.accessToken) {
+          // El backend devuelve: { tokens: { accessToken, refreshToken } }
+          if (data.tokens?.accessToken) {
             Logger.authSuccess('renovar tokens', null, { manual: true })
-            updateAccessToken(data.accessToken)
+            updateAccessToken(data.tokens.accessToken)
+            // Si el backend envía un nuevo refreshToken, actualizarlo también
+            if (data.tokens.refreshToken) {
+              updateRefreshToken(data.tokens.refreshToken)
+            }
 
             return data
           } else {
@@ -140,7 +157,7 @@ export const useAuth = () => {
 
       return handleApiResponse(result, 'Token renovado correctamente', { showNotifications })
     },
-    [withLoading, updateAccessToken, clearAllAuth, handleApiResponse, refreshToken]
+    [withLoading, updateAccessToken, updateRefreshToken, clearAllAuth, handleApiResponse, refreshToken]
   )
 
   const logout = useCallback(
@@ -268,7 +285,6 @@ export const useAuth = () => {
     updateUserPrivacy,
     updateUserNotifications,
     updateUserAuth,
-    updateUserAccount,
     updateUserMetadata,
     updateUserSections,
 

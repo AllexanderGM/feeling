@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { registerSchema, extractRegisterData } from '@schemas'
+import { registerSchema } from '@schemas'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useAuth, useOAuth } from '@hooks'
 import LiteContainer from '@components/layout/LiteContainer'
@@ -54,13 +54,12 @@ const Register = () => {
 
     setTermsError('')
 
-    const userData = extractRegisterData(formData)
-    const result = await register(userData)
+    const result = await register(formData)
 
     if (result.success) {
       navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
         state: {
-          email: userData.email,
+          email: formData.email,
           fromRegister: true,
           userType: 'local'
         },
@@ -70,7 +69,7 @@ const Register = () => {
       // Usuario ya existe pero email no verificado - redirigir a verify-email
       navigate(APP_PATHS.AUTH.VERIFY_EMAIL, {
         state: {
-          email: userData.email,
+          email: formData.email,
           fromRegister: false,
           userType: 'local',
           autoResend: true, // Flag para indicar que debe reenviar automáticamente
@@ -94,7 +93,9 @@ const Register = () => {
       }
     },
     onError: () => setIsGoogleAuthenticating(false),
-    onNonOAuthError: () => setIsGoogleAuthenticating(false),
+    onNonOAuthError: () => {
+      setIsGoogleAuthenticating(false)
+    },
     flow: 'implicit'
   })
 

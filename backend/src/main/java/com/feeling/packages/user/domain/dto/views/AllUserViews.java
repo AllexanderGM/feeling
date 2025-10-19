@@ -20,6 +20,7 @@ import java.lang.annotation.Target;
     UserViews.Internal.class,
     UserViews.Suggestions.class,
     UserViews.Matched.class,
+    com.feeling.packages.auth.domain.dto.views.AuthViews.Session.Basic.class
 })
 public @interface AllUserViews {
 }

@@ -8,8 +8,8 @@ const useUserFiltering = (users, currentUser) => {
       // Si es admin: Ve a clientes regulares y aprobados, y a sí mismo
       if (currentUser?.role === 'ADMIN' || currentUser?.status?.role === 'ADMIN') {
         // Se incluye a sí mismo
-        const userEmail = user.email || user.profile?.email
-        const currentEmail = currentUser?.email || currentUser?.profile?.email
+        const userEmail = user.email || user.user?.email
+        const currentEmail = currentUser?.email || currentUser?.user?.email
 
         if (userEmail === currentEmail) return true
 

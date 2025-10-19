@@ -39,8 +39,9 @@ class AuthService extends ServiceREST {
     try {
       const loginData = { email, password }
       const result = await ServiceREST.post(API_ENDPOINTS.AUTH.LOGIN, loginData)
+      const res = ServiceREST.handleServiceResponse(result, context)
 
-      return ServiceREST.handleServiceResponse(result, context)
+      return res
     } catch (error) {
       this.logError(context, error.response?.data || error)
       throw error

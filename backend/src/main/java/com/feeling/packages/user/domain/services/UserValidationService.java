@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
+import com.feeling.packages.user.domain.dto.user.UserRequestDTO;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;

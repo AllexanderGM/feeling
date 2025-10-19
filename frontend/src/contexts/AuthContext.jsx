@@ -1,8 +1,8 @@
 import { createContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { useCookies } from '@hooks'
+import { useCookies, useLocalStorage } from '@hooks'
 import { registerAuthCallbacks } from '@services'
-import { getDefaultValuesForUser } from '@schemas'
-import { COOKIE_KEYS } from '@constants/cookieKeys'
+import { getDefaultValuesForUser, getUserId } from '@schemas'
+import { COOKIE_KEYS, clearUserSpecificData } from '@constants/cookieKeys'
 import { Logger } from '@utils/logger.js'
 
 import { useRateLimitInterceptor } from '../hooks/utils/useRateLimitInterceptor'
@@ -21,7 +21,6 @@ const createUserStructure = (userData = {}) => {
 
   userStructure._metadata = {
     lastLogin: new Date().toISOString(),
-    loginCount: (userData._metadata?.loginCount || 0) + 1,
     lastSyncWithServer: new Date().toISOString(),
     ...userData._metadata
   }
@@ -32,17 +31,21 @@ const createUserStructure = (userData = {}) => {
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  // Usar el hook de cookies
-  const cookieHandler = useCookies()
+  // Hooks de gestión de almacenamiento
+  const cookieHandler = useCookies() // Para tokens (pequeños, seguros)
+  const localStorage = useLocalStorage() // Para usuario (grande, encriptado)
 
   // Inicializar interceptor de rate limiting
   useRateLimitInterceptor()
 
-  // Estados del usuario obtenido de cookies al inicializar
+  // Estados del usuario obtenido de localStorage al inicializar
+  // NOTA: Usamos localStorage en lugar de cookies porque los datos del usuario
+  // pueden exceder el límite de 4KB de las cookies (típicamente ~3.6KB)
+  // El hook useLocalStorage maneja encriptación automáticamente en producción
   const [user, setUser] = useState(() => {
-    const userCookie = cookieHandler.get(COOKIE_KEYS.USER)
+    const userStorage = localStorage.get(COOKIE_KEYS.USER)
 
-    return userCookie ? createUserStructure(userCookie) : null
+    return userStorage ? createUserStructure(userStorage) : null
   })
 
   // Estados de tokens obtenidos de cookies al inicializar
@@ -124,9 +127,18 @@ export const AuthProvider = ({ children }) => {
     userData => {
       if (!userData) {
         setUser(null)
-        cookieHandler.remove(COOKIE_KEYS.USER)
+        localStorage.remove(COOKIE_KEYS.USER)
 
         return null
+      }
+
+      // Verificar si es un usuario diferente al actual
+      const currentUserId = user ? getUserId(user) : null
+      const newUserId = getUserId(userData)
+
+      if (currentUserId && newUserId && currentUserId !== newUserId) {
+        // Es un usuario diferente, limpiar datos del usuario anterior
+        clearUserSpecificData(currentUserId, localStorage)
       }
 
       // Crear estructura combinando usuario actual con datos nuevos
@@ -142,13 +154,21 @@ export const AuthProvider = ({ children }) => {
 
       // Usar createUserStructure que ya utiliza los esquemas
       const updatedUser = createUserStructure(combinedData)
-k
+
       setUser(updatedUser)
-      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
+
+      // Guardar en localStorage usando el hook (con encriptación automática en producción)
+      const saved = localStorage.set(COOKIE_KEYS.USER, updatedUser)
+
+      if (!saved) {
+        Logger.error(Logger.CATEGORIES.SYSTEM, 'updateUser', 'Error guardando usuario en localStorage', {
+          userDataSize: JSON.stringify(updatedUser).length
+        })
+      }
 
       return updatedUser
     },
-    [user, cookieHandler]
+    [user, localStorage]
   )
 
   const updateUserField = useCallback(
@@ -169,11 +189,11 @@ k
       }
 
       setUser(updatedUser)
-      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
+      localStorage.set(COOKIE_KEYS.USER, updatedUser)
 
       return updatedUser
     },
-    [user, cookieHandler]
+    [user, localStorage]
   )
 
   const updateUserFields = useCallback(
@@ -195,11 +215,11 @@ k
       const updatedUser = createUserStructure(combinedData)
 
       setUser(updatedUser)
-      cookieHandler.set(COOKIE_KEYS.USER, updatedUser)
+      localStorage.set(COOKIE_KEYS.USER, updatedUser)
 
       return updatedUser
     },
-    [user, cookieHandler]
+    [user, localStorage]
   )
 
   // ========================================
@@ -256,15 +276,6 @@ k
       if (!user) return null
 
       return updateUserFields({ auth: authData })
-    },
-    [user, updateUserFields]
-  )
-
-  const updateUserAccount = useCallback(
-    accountData => {
-      if (!user) return null
-
-      return updateUserFields({ account: accountData })
     },
     [user, updateUserFields]
   )
@@ -334,9 +345,16 @@ k
   )
 
   const clearUser = useCallback(() => {
+    // Limpiar datos user-specific del usuario actual antes de eliminar
+    if (user) {
+      const userId = getUserId(user)
+
+      if (userId) clearUserSpecificData(userId, localStorage)
+    }
+
     setUser(null)
-    cookieHandler.remove(COOKIE_KEYS.USER)
-  }, [cookieHandler])
+    localStorage.remove(COOKIE_KEYS.USER)
+  }, [user, localStorage])
 
   const clearAllAuth = useCallback(() => {
     clearUser()
@@ -428,15 +446,15 @@ k
 
         if (response.ok) {
           const data = await response.json()
-          // El backend devuelve los tokens dentro de un objeto "tokens"
-          const accessToken = data.tokens?.accessToken || data.accessToken || data.token
-          const refreshTokenNew = data.tokens?.refreshToken || data.refreshToken
+          // El backend devuelve: { tokens: { accessToken, refreshToken } }
+          const newAccessToken = data.tokens?.accessToken
+          const newRefreshToken = data.tokens?.refreshToken
 
-          if (accessToken) {
-            updateAccessToken(accessToken)
+          if (newAccessToken) {
+            updateAccessToken(newAccessToken)
             // Si el backend retorna un nuevo refresh token, actualizarlo también
-            if (refreshTokenNew) {
-              updateRefreshToken(refreshTokenNew)
+            if (newRefreshToken) {
+              updateRefreshToken(newRefreshToken)
             }
 
             return true
@@ -468,25 +486,27 @@ k
   }, [accessToken, refreshToken, renewTokenIfNeeded])
 
   // ========================================
-  // SINCRONIZACIÓN CON COOKIES
+  // SINCRONIZACIÓN CON COOKIES Y LOCALSTORAGE
   // ========================================
 
   // Ejecutar al iniciar el contexto
   useEffect(() => {
     const initializeAuth = () => {
-      const userCookie = cookieHandler.get(COOKIE_KEYS.USER)
-      const accessTokenCookie = cookieHandler.get(COOKIE_KEYS.ACCESS_TOKEN)
-      const refreshTokenCookie = cookieHandler.get(COOKIE_KEYS.REFRESH_TOKEN)
+      // Leer usuario desde localStorage usando el hook (con desencriptación automática)
+      const userStorage = localStorage.get(COOKIE_KEYS.USER)
 
-      // Verificación más robusta del usuario
-      if (userCookie && (userCookie.email || userCookie.profile?.email)) {
-        setUser(createUserStructure(userCookie))
+      if (userStorage && (userStorage.user?.email || userStorage.user?.id)) {
+        setUser(createUserStructure(userStorage))
       } else {
-        if (userCookie) {
-          cookieHandler.remove(COOKIE_KEYS.USER)
+        if (userStorage) {
+          localStorage.remove(COOKIE_KEYS.USER)
         }
         setUser(null)
       }
+
+      // Leer tokens desde cookies
+      const accessTokenCookie = cookieHandler.get(COOKIE_KEYS.ACCESS_TOKEN)
+      const refreshTokenCookie = cookieHandler.get(COOKIE_KEYS.REFRESH_TOKEN)
 
       if (accessTokenCookie) {
         setAccessToken(accessTokenCookie)
@@ -509,7 +529,7 @@ k
     if (!isInitialized) {
       initializeAuth()
     }
-  }, [isInitialized, cookieHandler])
+  }, [isInitialized, cookieHandler, localStorage])
 
   // ========================================
   // CONTEXT VALUE
@@ -540,7 +560,6 @@ k
       updateUserPrivacy,
       updateUserNotifications,
       updateUserAuth,
-      updateUserAccount,
       updateUserMetadata,
       updateUserSections,
 
@@ -560,13 +579,16 @@ k
       // Acceso al cookieHandler para casos especiales
       cookieHandler,
 
-      // Valores reactivos de cookies observadas
+      // Valores reactivos de cookies y localStorage
       allCookies: cookieHandler.allCookies,
-      cookieStatus: {
-        hasUser: cookieHandler.exists(COOKIE_KEYS.USER),
+      storageStatus: {
+        hasUser: localStorage.exists(COOKIE_KEYS.USER), // Usuario en localStorage
         hasAccessToken: cookieHandler.exists(COOKIE_KEYS.ACCESS_TOKEN),
-        hasRefreshToken: cookieHandler.exists(COOKIE_KEYS.REFRESH_TOKEN)
-      }
+        hasRefreshToken: cookieHandler.exists(COOKIE_KEYS.REFRESH_TOKEN),
+        isEncrypted: localStorage.isEncrypted
+      },
+      // Acceso al localStorage handler
+      localStorage
     }),
     [
       user,
@@ -586,7 +608,6 @@ k
       updateUserPrivacy,
       updateUserNotifications,
       updateUserAuth,
-      updateUserAccount,
       updateUserMetadata,
       updateUserSections,
 
@@ -597,7 +618,8 @@ k
       updateTokens,
       clearTokens,
       clearAllAuth,
-      cookieHandler
+      cookieHandler,
+      localStorage
     ]
   )
 

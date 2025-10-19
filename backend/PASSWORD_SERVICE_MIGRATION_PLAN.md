@@ -8,7 +8,8 @@
 
 ## 🎯 OBJETIVO
 
-Separar toda la lógica de gestión de contraseñas de `AuthService` a un servicio dedicado `PasswordService`, mejorando la arquitectura DDD y la separación de responsabilidades.
+Separar toda la lógica de gestión de contraseñas de `AuthService` a un servicio dedicado `PasswordService`, mejorando la
+arquitectura DDD y la separación de responsabilidades.
 
 ---
 
@@ -22,24 +23,41 @@ Separar toda la lógica de gestión de contraseñas de `AuthService` a un servic
 
 ```java
 // Recuperación de contraseña
-✅ forgotPassword(ForgotPasswordRequestDTO)
-✅ resetPassword(ResetPasswordRequestDTO)
-✅ validateResetToken(String token)
+✅forgotPassword(ForgotPasswordRequestDTO)
+✅
+
+resetPassword(ResetPasswordRequestDTO)
+✅
+
+validateResetToken(String token)
 
 // Cambio de contraseña
-✅ changePassword(ChangePasswordRequestDTO, String authHeader)
+✅
+
+changePassword(ChangePasswordRequestDTO, String authHeader)
 
 // Validación (delega a PasswordValidationService)
-✅ validatePassword(String password, String userEmail)
-✅ isPasswordCompromised(String password)
-✅ generatePasswordSuggestions()
+✅
+
+validatePassword(String password, String userEmail)
+✅
+
+isPasswordCompromised(String password)
+✅
+
+generatePasswordSuggestions()
 
 // Métodos privados
-✅ generatePasswordResetToken()
-✅ revokeAllUserAuthTokens(User user)
+✅
+
+generatePasswordResetToken()
+✅
+
+revokeAllUserAuthTokens(User user)
 ```
 
 **Características:**
+
 - ✅ JavaDoc completo en todos los métodos
 - ✅ Logging estructurado
 - ✅ Transaccionalidad correcta
@@ -103,19 +121,19 @@ MessageResponseDTO response = passwordService.changePassword(request, authHeader
 
 ```java
 // ❌ ELIMINAR - Línea 527
-public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request) { ... }
+public MessageResponseDTO forgotPassword(ForgotPasswordRequestDTO request) { ...}
 
 // ❌ ELIMINAR - Línea 596
-public MessageResponseDTO resetPassword(ResetPasswordRequestDTO request) { ... }
+public MessageResponseDTO resetPassword(ResetPasswordRequestDTO request) { ...}
 
 // ❌ ELIMINAR - Línea 666
-public TokenValidationDTO validateResetToken(String token) { ... }
+public TokenValidationDTO validateResetToken(String token) { ...}
 
 // ❌ ELIMINAR - Línea 1145
-public MessageResponseDTO changePassword(ChangePasswordRequestDTO request, String authHeader) { ... }
+public MessageResponseDTO changePassword(ChangePasswordRequestDTO request, String authHeader) { ...}
 
 // ❌ ELIMINAR - Línea 799 (método privado)
-private String generatePasswordResetToken() { ... }
+private String generatePasswordResetToken() { ...}
 ```
 
 **Imports a ELIMINAR de AuthService:**
@@ -123,7 +141,7 @@ private String generatePasswordResetToken() { ... }
 ```java
 import com.feeling.packages.auth.domain.dto.ForgotPasswordRequestDTO;
 import com.feeling.packages.auth.domain.dto.ResetPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ChangePasswordRequestDTO;
+
 ```
 
 **Nota:** MANTENER `TokenValidationDTO` si se usa en otros métodos.
@@ -133,6 +151,7 @@ import com.feeling.packages.auth.domain.dto.request.ChangePasswordRequestDTO;
 ### PASO 3: Verificar Dependencias Cruzadas
 
 **Verificar que NO haya código en AuthService que llame a:**
+
 - `forgotPassword()`
 - `resetPassword()`
 - `validateResetToken()`
@@ -259,21 +278,25 @@ Response: "Contraseña cambiada"
 ## 🎨 BENEFICIOS DE LA SEPARACIÓN
 
 ### 1. Separación de Responsabilidades (SRP)
+
 - **AuthService:** Autenticación y autorización
 - **PasswordService:** Gestión de contraseñas
 - **PasswordValidationService:** Validación y políticas
 
 ### 2. Mantenibilidad
+
 - Código más fácil de encontrar
 - Menos acoplamiento
 - Pruebas más focalizadas
 
 ### 3. Reutilización
+
 - PasswordService puede usarse independientemente
 - Otros servicios pueden delegar a PasswordService
 - Validación centralizada
 
 ### 4. Testabilidad
+
 - Tests unitarios más simples
 - Mocking más fácil
 - Cobertura más clara
@@ -283,32 +306,35 @@ Response: "Contraseña cambiada"
 ## ✅ CHECKLIST DE IMPLEMENTACIÓN
 
 ### Pre-implementación
+
 - [x] Crear PasswordService con todos los métodos
 - [x] Documentar con JavaDoc completo
 - [x] Integrar PasswordValidationService
 - [ ] Revisar este plan con el equipo
 
 ### Implementación
+
 - [ ] **PASO 1:** Actualizar PasswordController
-  - [ ] Cambiar dependencia a PasswordService
-  - [ ] Actualizar 4 endpoints
-  - [ ] Verificar imports
+    - [ ] Cambiar dependencia a PasswordService
+    - [ ] Actualizar 4 endpoints
+    - [ ] Verificar imports
 
 - [ ] **PASO 2:** Eliminar métodos de AuthService
-  - [ ] Eliminar `forgotPassword()`
-  - [ ] Eliminar `resetPassword()`
-  - [ ] Eliminar `validateResetToken()`
-  - [ ] Eliminar `changePassword()`
-  - [ ] Eliminar `generatePasswordResetToken()`
-  - [ ] Limpiar imports no usados
+    - [ ] Eliminar `forgotPassword()`
+    - [ ] Eliminar `resetPassword()`
+    - [ ] Eliminar `validateResetToken()`
+    - [ ] Eliminar `changePassword()`
+    - [ ] Eliminar `generatePasswordResetToken()`
+    - [ ] Limpiar imports no usados
 
 - [ ] **PASO 3:** Verificación
-  - [ ] Compilar: `./mvnw clean compile`
-  - [ ] Ejecutar tests: `./mvnw test`
-  - [ ] Probar endpoints en Postman
-  - [ ] Verificar logs estructurados
+    - [ ] Compilar: `./mvnw clean compile`
+    - [ ] Ejecutar tests: `./mvnw test`
+    - [ ] Probar endpoints en Postman
+    - [ ] Verificar logs estructurados
 
 ### Post-implementación
+
 - [ ] Actualizar documentación de API
 - [ ] Crear/actualizar tests unitarios
 - [ ] Crear/actualizar tests de integración
@@ -322,6 +348,7 @@ Response: "Contraseña cambiada"
 ### ⚠️ Cambios Breaking
 
 **NO hay cambios breaking** - Los endpoints mantienen las mismas rutas y contratos:
+
 - `POST /auth/password/forgot`
 - `POST /auth/password/reset`
 - `GET /auth/password/validate-reset-token/{token}`
@@ -330,6 +357,7 @@ Response: "Contraseña cambiada"
 ### 🔒 Seguridad
 
 El nuevo `PasswordService` **MEJORA** la seguridad:
+
 - ✅ Validación de contraseñas más robusta
 - ✅ Integración con `PasswordValidationService`
 - ✅ Verifica contraseñas comprometidas
@@ -339,6 +367,7 @@ El nuevo `PasswordService` **MEJORA** la seguridad:
 ### 📧 Emails
 
 Todos los emails de contraseñas ahora se envían desde `PasswordService`:
+
 - Email de recuperación (forgot password)
 - Email de confirmación (reset password)
 - Email de notificación (change password)

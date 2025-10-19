@@ -1,7 +1,7 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.packages.auth.domain.dto.external.GoogleUserInfoDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthRegisterRequestDTO;
+import com.feeling.packages.auth.domain.dto.auth.AuthRegisterRequestDTO;
+import com.feeling.packages.auth.domain.dto.oauth.GoogleUserInfoDTO;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.domain.services.GoogleOAuthService;
 import com.feeling.packages.user.domain.enums.UserRoleList;

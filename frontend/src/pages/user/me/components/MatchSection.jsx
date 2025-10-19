@@ -1,7 +1,19 @@
 import { Card, CardBody, Button, Progress } from '@heroui/react'
+import { useNavigate } from 'react-router-dom'
+import { APP_PATHS } from '@constants/paths'
 import { Zap, Sparkles, Crown, Heart, Star } from 'lucide-react'
 
-const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getMaxDailyAttempts }) => {
+const MatchSection = ({ userHelpers }) => {
+  const navigate = useNavigate()
+
+  const handleSearchMatch = () => {
+    navigate(APP_PATHS.ROOT)
+  }
+
+  const handleGetMoreAttempts = () => {
+    navigate(APP_PATHS.USER.SETTINGS)
+  }
+
   return (
     <Card className='w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30'>
       <CardBody className='p-4 sm:p-6'>
@@ -29,17 +41,17 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
           {/* Estadísticas móvil */}
           <div className='flex items-center justify-center gap-4 w-full'>
             <div className='text-center'>
-              <div className='text-xl font-bold text-primary-400'>{getMatchAttempts()}</div>
+              <div className='text-xl font-bold text-primary-400'>{userHelpers.getMatchAttempts()}</div>
               <div className='text-xs text-gray-400'>Disponibles</div>
             </div>
             <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
-              <div className='text-xl font-bold text-purple-400'>{getTodayMatches()}</div>
+              <div className='text-xl font-bold text-purple-400'>{userHelpers.getTodayMatches()}</div>
               <div className='text-xs text-gray-400'>Hoy</div>
             </div>
             <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
-              <div className='text-xl font-bold text-green-400'>{getTotalMatches()}</div>
+              <div className='text-xl font-bold text-green-400'>{userHelpers.getTotalMatches()}</div>
               <div className='text-xs text-gray-400'>Total</div>
             </div>
           </div>
@@ -53,6 +65,7 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               size='sm'
               startContent={<Heart className='w-4 h-4' />}
               variant='solid'>
+              onPress={handleSearchMatch}
               Buscar Match
             </Button>
             <Button
@@ -61,6 +74,7 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
+              onPress={handleGetMoreAttempts}
               variant='bordered'>
               Obtener Más
             </Button>
@@ -87,17 +101,17 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               </div>
               <div className='flex items-center gap-3'>
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-primary-400'>{getMatchAttempts()}</div>
+                  <div className='text-2xl font-bold text-primary-400'>{userHelpers.getMatchAttempts()}</div>
                   <div className='text-xs text-gray-400'>Disponibles</div>
                 </div>
                 <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-purple-400'>{getTodayMatches()}</div>
+                  <div className='text-2xl font-bold text-purple-400'>{userHelpers.getTodayMatches()}</div>
                   <div className='text-xs text-gray-400'>Hoy</div>
                 </div>
                 <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-green-400'>{getTotalMatches()}</div>
+                  <div className='text-2xl font-bold text-green-400'>{userHelpers.getTotalMatches()}</div>
                   <div className='text-xs text-gray-400'>Total</div>
                 </div>
               </div>
@@ -113,6 +127,7 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               size='sm'
               startContent={<Heart className='w-4 h-4' />}
               variant='solid'>
+              onPress={handleSearchMatch}
               Buscar Match
             </Button>
             <Button
@@ -121,6 +136,7 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
+              onPress={handleGetMoreAttempts}
               variant='bordered'>
               Obtener Más
             </Button>
@@ -132,26 +148,26 @@ const MatchSection = ({ getMatchAttempts, getTodayMatches, getTotalMatches, getM
           <div className='flex justify-between items-center'>
             <span className='text-sm text-gray-400'>Intentos restantes hoy</span>
             <span className='text-sm font-medium text-gray-300'>
-              {getMatchAttempts()} / {getMaxDailyAttempts()}
+              {userHelpers.getMatchAttempts()} / {userHelpers.getMaxDailyAttempts()}
             </span>
           </div>
           <Progress
-            aria-label={`Intentos de match restantes: ${getMatchAttempts()} de ${getMaxDailyAttempts()}`}
+            aria-label={`Intentos de match restantes: ${userHelpers.getMatchAttempts()} de ${userHelpers.getMaxDailyAttempts()}`}
             className='h-2'
             classNames={{
               indicator: 'bg-gradient-to-r from-primary-400 via-purple-400 to-pink-400',
               track: 'bg-gray-700/50'
             }}
-            value={(getMatchAttempts() / getMaxDailyAttempts()) * 100}
+            value={(userHelpers.getMatchAttempts() / userHelpers.getMaxDailyAttempts()) * 100}
           />
         </div>
 
         {/* Mensaje motivacional */}
         <div className='mt-3 text-center'>
           <p className='text-sm text-gray-300'>
-            {getMatchAttempts() > 0 ? (
+            {userHelpers.getMatchAttempts() > 0 ? (
               <>
-                <span className='text-primary-400 font-medium'>¡Tienes {getMatchAttempts()} intentos!</span>
+                <span className='text-primary-400 font-medium'>¡Tienes {userHelpers.getMatchAttempts()} intentos!</span>
                 <span className='text-gray-400'> Encuentra tu conexión perfecta hoy.</span>
               </>
             ) : (

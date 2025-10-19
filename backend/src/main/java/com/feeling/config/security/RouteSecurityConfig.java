@@ -104,7 +104,7 @@ public class RouteSecurityConfig {
         // User admin endpoints
         "/user/pending-approval",
         "/user/all",
-        "/user/incomplete-profile",
+        "/user/incomplete-user",
         "/user-analytics/**",
         "/user-tags/cleanup",
         "/user-tags/update-analytics",

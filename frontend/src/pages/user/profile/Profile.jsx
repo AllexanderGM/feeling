@@ -1,15 +1,36 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { Button, Spinner, Chip, Card, CardBody, Avatar } from '@heroui/react'
-import { ArrowLeft, MapPin, Heart, X, Bookmark, Clock, CheckCircle2, Mail, Eye, Star, Users, Briefcase, Menu, Shield, Camera, Brain, Target, Sparkles } from 'lucide-react'
+import {
+  Button,
+  Chip,
+  Card,
+  CardBody,
+  Avatar,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure
+} from '@heroui/react'
+import { ArrowLeft, MapPin, Heart, X, Bookmark, Clock, CheckCircle2, Mail, Eye, Star, Users, Briefcase, Menu, Shield } from 'lucide-react'
 import { useUser, useMatchInteractions, useMatchFavorites } from '@hooks'
 import { useState, useEffect, useCallback } from 'react'
-import LightGallery from 'lightgallery/react'
-import lgThumbnail from 'lightgallery/plugins/thumbnail'
-import lgZoom from 'lightgallery/plugins/zoom'
-import 'lightgallery/css/lightgallery.css'
-import 'lightgallery/css/lg-zoom.css'
-import 'lightgallery/css/lg-thumbnail.css'
-import { Logger } from '@utils/logger.js'
+import LoadData from '@components/layout/LoadData.jsx'
+import LoadDataError from '@components/layout/LoadDataError.jsx'
+import {
+  getUserName,
+  getUserLastName,
+  getUserAge,
+  getUserProfession,
+  getUserCity,
+  getUserDepartment,
+  getUserLocality,
+  getUserDescription,
+  getUserImages,
+  getUserGender,
+  getUserLastActive,
+  getUserVerified
+} from '@schemas'
 
 // Función auxiliar para formatear última actividad
 const formatLastActive = lastActiveDate => {
@@ -57,6 +78,9 @@ const UserDetail = () => {
   const { userId } = useParams()
   const navigate = useNavigate()
   const [userData, setUserData] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const { isOpen: isImageOpen, onOpen: onImageOpen, onOpenChange: onImageOpenChange } = useDisclosure()
 
   // Hooks
   const { getUserProfileById } = useUser()
@@ -69,21 +93,16 @@ const UserDetail = () => {
   useEffect(() => {
     const fetchUser = async () => {
       if (userId) {
-        try {
-          setLoading(true)
-          const result = await getUserProfileById(userId, 'public', false)
+        setLoading(true)
+        const result = await getUserProfileById(userId, 'public', false)
 
-          if (result?.success && result?.data) {
-            setUserData(result.data)
-            const favoriteStatus = await checkIfFavorite(userId)
+        if (result?.success && result?.data) {
+          setUserData(result.data)
+          const favoriteStatus = await checkIfFavorite(userId)
 
-            setIsFavorite(favoriteStatus)
-          }
-        } catch (error) {
-          Logger.error(Logger.CATEGORIES.USER, 'fetch_user_profile', 'Error al obtener perfil de usuario', { error, userId })
-        } finally {
-          setLoading(false)
+          setIsFavorite(favoriteStatus)
         }
+        setLoading(false)
       }
     }
 
@@ -96,73 +115,61 @@ const UserDetail = () => {
 
   // Handlers para acciones de match
   const handleLike = useCallback(async () => {
-    try {
-      await sendMatch(userId)
-      handleBack()
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'send_match', 'Error al enviar match', { error, userId })
-    }
-  }, [userId, sendMatch])
+    await sendMatch(userId)
+    handleBack()
+  }, [userId, sendMatch, handleBack])
 
   const handlePass = useCallback(async () => {
-    try {
-      await dismissSuggestion(userId)
-      handleBack()
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'dismiss_suggestion', 'Error al descartar sugerencia', { error, userId })
-    }
-  }, [userId, dismissSuggestion])
+    await dismissSuggestion(userId)
+    handleBack()
+  }, [userId, dismissSuggestion, handleBack])
 
   const handleToggleFavorite = useCallback(async () => {
-    try {
-      const newFavoriteStatus = await toggleFavorite(userId)
+    const newFavoriteStatus = await toggleFavorite(userId)
 
-      setIsFavorite(newFavoriteStatus)
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'toggle_favorite', 'Error al cambiar favorito', { error, userId })
-    }
+    setIsFavorite(newFavoriteStatus)
   }, [userId, toggleFavorite])
 
-  if (loading) {
-    return (
-      <div className='flex items-center justify-center min-h-screen bg-gray-950'>
-        <Spinner color='primary' size='lg' />
-      </div>
-    )
+  // Funciones para la galería de imágenes
+  const openImageModal = (image, index) => {
+    setSelectedImage(image)
+    setCurrentImageIndex(index)
+    onImageOpen()
   }
 
-  if (!userData) {
-    return (
-      <div className='flex flex-col items-center justify-center min-h-screen bg-gray-950 text-gray-300 px-4'>
-        <h2 className='text-2xl font-bold mb-4'>Usuario no encontrado</h2>
-        <Button color='primary' onPress={handleBack}>
-          Volver
-        </Button>
-      </div>
-    )
+  const navigateImage = direction => {
+    if (!images || images.length === 0) return
+
+    const newIndex =
+      direction === 'next' ? (currentImageIndex + 1) % images.length : (currentImageIndex - 1 + images.length) % images.length
+
+    setCurrentImageIndex(newIndex)
+    setSelectedImage(images[newIndex])
   }
 
-  // Extraer datos
-  const profile = userData?.user?.profile || userData?.profile
-  const status = userData?.user?.status || userData?.status
+  if (loading) return <LoadData />
+  if (!userData) return <LoadDataError message='Usuario no encontrado' />
+
+  // Extraer datos usando accessors centralizados
   const compatibility = userData?.compatibility
   const hasPendingMatch = userData?.hasPendingMatch
   const hasAcceptedMatch = userData?.hasAcceptedMatch
 
-  // Datos del perfil
-  const name = profile?.name
-  const lastName = profile?.lastName
-  const age = profile?.age
-  const profession = profile?.profession
-  const city = profile?.city
-  const department = profile?.department
-  const locality = profile?.locality
-  const description = profile?.description
-  const images = profile?.images || []
-  const gender = profile?.gender
+  // Datos del perfil usando accessors
+  const name = getUserName(userData)
+  const lastName = getUserLastName(userData)
+  const age = getUserAge(userData)
+  const profession = getUserProfession(userData)
+  const city = getUserCity(userData)
+  const department = getUserDepartment(userData)
+  const locality = getUserLocality(userData)
+  const description = getUserDescription(userData)
+  const images = getUserImages(userData) || []
+  const gender = getUserGender(userData)
+  const isVerified = getUserVerified(userData)
 
   // Datos de status
-  const lastActive = status?.lastActive
+  const lastActive = getUserLastActive(userData)
 
   // Datos de compatibilidad
   const compatibilityPercentage = compatibility?.totalPercentage
@@ -203,7 +210,7 @@ const UserDetail = () => {
             <div className='absolute inset-0 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 opacity-75 blur-md animate-pulse' />
             <Avatar isBordered alt={name} className='w-28 h-28 sm:w-32 sm:h-32 border-4 border-gray-900 relative z-10' src={images[0]} />
             {/* Badge de verificación si aplica */}
-            {profile?.isVerified && (
+            {isVerified && (
               <div className='absolute bottom-1 right-1 z-20 bg-blue-500 rounded-full p-1.5 border-2 border-gray-900'>
                 <CheckCircle2 className='w-4 h-4 text-white' />
               </div>
@@ -374,15 +381,22 @@ const UserDetail = () => {
               )}
             </div>
 
-            {/* Galería interactiva con LightGallery */}
+            {/* Galería de imágenes */}
             {images.length > 0 ? (
-              <LightGallery elementClassNames='grid grid-cols-2 gap-2' plugins={[lgThumbnail, lgZoom]} speed={500}>
+              <div className='grid grid-cols-2 gap-2'>
                 {images.map((image, index) => (
-                  <a
+                  <div
                     key={index}
-                    className='relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gray-800 block'
-                    data-src={image}
-                    href={image}>
+                    className='relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gray-800'
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => openImageModal(image, index)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        openImageModal(image, index)
+                      }
+                    }}>
                     <img alt={`${name} - Foto ${index + 1}`} className='w-full h-full object-cover' src={image} />
                     {/* Overlay hover */}
                     <div className='absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center'>
@@ -391,9 +405,9 @@ const UserDetail = () => {
                         <span>Ver</span>
                       </div>
                     </div>
-                  </a>
+                  </div>
                 ))}
-              </LightGallery>
+              </div>
             ) : (
               <div className='text-center py-8 text-gray-500 text-sm'>
                 <Eye className='w-8 h-8 mx-auto mb-2 opacity-50' />
@@ -449,6 +463,84 @@ const UserDetail = () => {
           </Button>
         </div>
       </div>
+
+      {/* Modal para visualizar imágenes */}
+      <Modal
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50',
+          closeButton: 'hover:bg-gray-800/50'
+        }}
+        isOpen={isImageOpen}
+        size='5xl'
+        onOpenChange={onImageOpenChange}>
+        <ModalContent>
+          <ModalHeader className='flex flex-col gap-1'>
+            <div className='flex items-center justify-between w-full'>
+              <h3 className='text-lg font-bold text-gray-200'>
+                Foto {currentImageIndex + 1} de {images.length}
+              </h3>
+            </div>
+          </ModalHeader>
+          <ModalBody className='p-0'>
+            <div className='relative'>
+              {selectedImage && (
+                <img
+                  alt={`Foto ${currentImageIndex + 1} del perfil`}
+                  className='w-full h-auto max-h-[70vh] object-contain'
+                  src={selectedImage}
+                />
+              )}
+
+              {/* Navegación */}
+              {images.length > 1 && (
+                <>
+                  <Button
+                    isIconOnly
+                    className='absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70'
+                    variant='flat'
+                    onPress={() => navigateImage('prev')}>
+                    <svg className='w-6 h-6 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path d='M15 19l-7-7 7-7' strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} />
+                    </svg>
+                  </Button>
+                  <Button
+                    isIconOnly
+                    className='absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70'
+                    variant='flat'
+                    onPress={() => navigateImage('next')}>
+                    <svg className='w-6 h-6 text-white' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                      <path d='M9 5l7 7-7 7' strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} />
+                    </svg>
+                  </Button>
+                </>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <div className='flex justify-between items-center w-full'>
+              <div className='flex items-center gap-2'>
+                {images.length > 1 && (
+                  <div className='flex gap-1'>
+                    {images.map((_, index) => (
+                      <div
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-colors ${
+                          index === currentImageIndex ? 'bg-primary-500' : 'bg-gray-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button color='danger' variant='light' onPress={onImageOpenChange}>
+                Cerrar
+              </Button>
+            </div>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

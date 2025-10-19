@@ -2,20 +2,15 @@ package com.feeling.packages.auth.domain.services;
 
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.*;
-import com.feeling.packages.auth.domain.dto.external.GoogleUserInfoDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthLoginRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthRegisterRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
-import com.feeling.packages.auth.domain.dto.request.GoogleTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.RefreshTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.UnlinkOAuthRequestDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
-import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
-import com.feeling.packages.auth.domain.dto.response.RefreshTokenResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.SessionInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
+import com.feeling.packages.auth.domain.dto.auth.*;
+import com.feeling.packages.auth.domain.dto.mapper.AuthResponseFactory;
+import com.feeling.packages.auth.domain.dto.oauth.GoogleTokenRequestDTO;
+import com.feeling.packages.auth.domain.dto.oauth.GoogleUserInfoDTO;
+import com.feeling.packages.auth.domain.dto.oauth.UnlinkOAuthRequestDTO;
+import com.feeling.packages.auth.domain.dto.verification.AuthMethodInfoDTO;
+import com.feeling.packages.auth.domain.dto.verification.AuthUserStatusDTO;
+import com.feeling.packages.auth.domain.dto.verification.AuthVerifyCodeDTO;
+import com.feeling.packages.auth.domain.dto.verification.EmailAvailabilityDTO;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.domain.enums.AuthTokenType;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
@@ -24,7 +19,6 @@ import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepositor
 import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCodeRepository;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
-import com.feeling.packages.auth.domain.dto.mapper.AuthUserFactory;
 import com.feeling.packages.user.domain.services.UserFactory;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -79,7 +73,7 @@ public class AuthService {
     private final EmailService emailService;
     private final GoogleOAuthService googleOAuthService;
     private final UserFactory userFactory;
-    private final AuthUserFactory authUserFactory;
+    private final AuthResponseFactory authResponseFactory;
 
     // ==============================
     // REGISTRO
@@ -299,7 +293,7 @@ public class AuthService {
 
             // Verificar estado de aprobación (informativo, no bloquea login)
             if (!user.isApproved()) {
-                logger.logAuth("login", auth.email(), "success - user not approved");
+                logger.logAuth("login", auth.email(), "success - usuario no aprobado");
                 // Nota: No bloqueamos el login, solo informamos
             }
 
@@ -590,7 +584,7 @@ public class AuthService {
         saveAuthToken(user, newRefreshToken, AuthTokenType.REFRESH);
 
         logger.logAuth("refresh_token", userEmail, "success - tokens rotated");
-        return new RefreshTokenResponseDTO(newAccessToken, newRefreshToken, "Tokens refrescados exitosamente");
+        return authResponseFactory.createRefreshTokenResponse(newAccessToken, newRefreshToken);
     }
 
     // ==============================
@@ -630,7 +624,7 @@ public class AuthService {
             // Actualizar última actividad
             updateUserLastActive(user);
 
-            return authUserFactory.buildLoginResponse(accessToken, refreshToken, user);
+            return authResponseFactory.createAuthLoginResponse(new TokenResponseDTO(accessToken, refreshToken), user);
         } catch (Exception e) {
             logger.error("Error al generar tokens", Map.of("userEmail", user.getEmail()), e);
             throw new RuntimeException("Error al generar tokens de autenticación: " + e.getMessage(), e);
@@ -925,21 +919,18 @@ public class AuthService {
             Optional<User> existingUser = userRepository.findByEmail(email.toLowerCase().trim());
 
             if (existingUser.isEmpty()) {
-                return new EmailAvailabilityDTO(email, true, null, "Email disponible", List.of("LOCAL", "GOOGLE"), "Puedes registrarte con este email");
+                return authResponseFactory.createEmailAvailable(
+                    email,
+                    "Email disponible",
+                    "Puedes registrarte con este email"
+                );
             }
 
             User user = existingUser.get();
-            String conflictMessage = switch (user.getUserAuthProvider()) {
-                case GOOGLE -> "Este email ya está registrado con Google";
-                case FACEBOOK -> "Este email ya está registrado con Facebook";
-                case LOCAL -> "Este email ya está registrado";
-                default -> "Este email ya está registrado con otro método";
-            };
-
-            return new EmailAvailabilityDTO(email, false, user.getUserAuthProvider().toString(), conflictMessage, List.of(), "Ve a 'Iniciar Sesión' para usar este email");
+            return authResponseFactory.createEmailConflict(user, null);
         } catch (Exception e) {
             logger.error("Error al verificar disponibilidad de email", e);
-            return new EmailAvailabilityDTO(email, false, null, "Error al verificar email", List.of(), "Intenta nuevamente");
+            return authResponseFactory.createEmailAvailabilityError(email, "Error al verificar email", "Intenta nuevamente");
         }
     }
 
@@ -958,19 +949,14 @@ public class AuthService {
             Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().trim());
 
             if (userOpt.isEmpty()) {
-                return new AuthUserStatusDTO(email, false, false, false);
+                return authResponseFactory.createAuthUserStatus(email, false, Optional.empty());
             }
 
             User user = userOpt.get();
-            return new AuthUserStatusDTO(
-                email,
-                true,
-                user.isVerified(),
-                user.isProfileComplete()
-            );
+            return authResponseFactory.createAuthUserStatus(email, true, Optional.of(user));
         } catch (Exception e) {
             logger.error("Error al obtener estado de verificación", e);
-            return new AuthUserStatusDTO(email, false, false, false);
+            return authResponseFactory.createAuthUserStatus(email, false, Optional.empty());
         }
     }
 
@@ -1088,20 +1074,20 @@ public class AuthService {
             Optional<User> userOpt = userRepository.findByEmail(userEmail);
 
             if (userOpt.isEmpty()) {
-                return new TokenValidationDTO(false, userEmail, "Usuario no encontrado", null);
+                return authResponseFactory.createTokenValidation(false, userEmail, "Usuario no encontrado", null);
             }
 
             User user = userOpt.get();
             boolean isValid = jwtService.isTokenValid(token, user);
 
             if (isValid) {
-                return new TokenValidationDTO(true, userEmail, "Token válido", null);
+                return authResponseFactory.createTokenValidation(true, userEmail, "Token válido", null);
             } else {
-                return new TokenValidationDTO(false, userEmail, "Token inválido o expirado", null);
+                return authResponseFactory.createTokenValidation(false, userEmail, "Token inválido o expirado", null);
             }
         } catch (Exception e) {
             logger.error("Error validando token", e);
-            return new TokenValidationDTO(false, null, "Error validando token", null);
+            return authResponseFactory.createTokenValidation(false, null, "Error validando token", null);
         }
     }
 
@@ -1120,16 +1106,7 @@ public class AuthService {
             }
 
             User user = userOpt.get();
-            return new SessionInfoDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getName(),
-                user.getLastName(),
-                user.getUserRole().getUserRoleList().name(),
-                user.isVerified(),
-                user.getProfileComplete(),
-                user.getLastActive()
-            );
+            return authResponseFactory.createSessionInfo(user);
         } catch (Exception e) {
             logger.error("Error obteniendo información de sesión", e);
             throw new UnauthorizedException("Error obteniendo información de sesión");
@@ -1150,42 +1127,10 @@ public class AuthService {
     public AuthMethodInfoDTO getAuthMethodInfo(String email) {
         try {
             Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().trim());
-
-            if (userOpt.isEmpty()) {
-                return new AuthMethodInfoDTO(
-                    email,
-                    null,
-                    false,
-                    "Email no registrado",
-                    List.of("LOCAL", "GOOGLE")
-                );
-            }
-
-            User user = userOpt.get();
-            String provider = user.getUserAuthProvider().toString();
-            String message = switch (user.getUserAuthProvider()) {
-                case GOOGLE -> "Esta cuenta está registrada con Google";
-                case FACEBOOK -> "Esta cuenta está registrada con Facebook";
-                case LOCAL -> "Esta cuenta está registrada con email y contraseña";
-                default -> "Esta cuenta está registrada con otro método";
-            };
-
-            return new AuthMethodInfoDTO(
-                email,
-                provider,
-                true,
-                message,
-                List.of(provider)
-            );
+            return authResponseFactory.resolveAuthMethodInfo(email, userOpt, null, "Email no registrado");
         } catch (Exception e) {
             logger.error("Error obteniendo método de autenticación", e);
-            return new AuthMethodInfoDTO(
-                email,
-                null,
-                false,
-                "Error al verificar método de autenticación",
-                List.of()
-            );
+            return authResponseFactory.createAuthMethodInfoError(email, "Error al verificar método de autenticación");
         }
     }
 

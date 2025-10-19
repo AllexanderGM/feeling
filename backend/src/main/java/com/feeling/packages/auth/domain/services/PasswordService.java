@@ -3,11 +3,11 @@ package com.feeling.packages.auth.domain.services;
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
-import com.feeling.packages.auth.domain.dto.internal.PasswordValidationResultDTO;
-import com.feeling.packages.auth.domain.dto.request.ChangePasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ForgotPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ResetPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
+import com.feeling.packages.auth.domain.dto.auth.TokenValidationDTO;
+import com.feeling.packages.auth.domain.dto.password.ChangePasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.password.ForgotPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.password.PasswordValidationResultDTO;
+import com.feeling.packages.auth.domain.dto.password.ResetPasswordRequestDTO;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.domain.enums.PasswordStrength;
 import com.feeling.packages.auth.infrastructure.entities.AuthPasswordResetToken;
@@ -25,11 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**

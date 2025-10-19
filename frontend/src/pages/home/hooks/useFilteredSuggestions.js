@@ -12,12 +12,12 @@ export const useFilteredSuggestions = (suggestions, filters, removedCards) => {
     if (!suggestions || suggestions.length === 0) return []
 
     // Usar email como identificador único en lugar de id
-    let filtered = suggestions.filter(user => !removedCards.has(user.profile?.email))
+    let filtered = suggestions.filter(user => !removedCards.has(user.user?.email))
 
     // Aplicar filtros por categoría
     if (filters.categoryInterest !== 'all') {
       filtered = filtered.filter(user => {
-        const userCategory = user.status?.categoryInterest || user.profile?.categoryInterest
+        const userCategory = user.status?.categoryInterest || user.user?.categoryInterest
 
         return userCategory?.toLowerCase() === filters.categoryInterest.toLowerCase()
       })
@@ -26,7 +26,7 @@ export const useFilteredSuggestions = (suggestions, filters, removedCards) => {
     // Filtro por edad
     if (filters.ageMin || filters.ageMax) {
       filtered = filtered.filter(user => {
-        const age = user.profile?.age || 0
+        const age = user.user?.age || 0
 
         return age >= filters.ageMin && age <= filters.ageMax
       })
@@ -39,7 +39,7 @@ export const useFilteredSuggestions = (suggestions, filters, removedCards) => {
 
     // Filtro por fotos
     if (filters.showWithPhotosOnly) {
-      filtered = filtered.filter(user => user.profile?.images && user.profile.images.length > 0)
+      filtered = filtered.filter(user => user.user?.images && user.user.images.length > 0)
     }
 
     // Ordenamiento

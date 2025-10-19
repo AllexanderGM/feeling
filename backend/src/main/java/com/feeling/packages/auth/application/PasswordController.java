@@ -1,17 +1,10 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.internal.PasswordValidationResultDTO;
-import com.feeling.packages.auth.domain.dto.request.ChangePasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.CompromisedCheckRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.PasswordValidationRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ForgotPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ResetPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.response.CompromisedCheckResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.PasswordPolicyResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.PasswordStrengthInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.PasswordSuggestionsResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.PasswordValidationResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.feeling.packages.auth.domain.dto.auth.TokenValidationDTO;
+import com.feeling.packages.auth.domain.dto.mapper.PasswordResponseFactory;
+import com.feeling.packages.auth.domain.dto.password.*;
+import com.feeling.packages.auth.domain.dto.views.AuthViews;
 import com.feeling.packages.auth.domain.services.PasswordService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +30,7 @@ public class PasswordController {
 
     private static final Logger logger = LoggerFactory.getLogger(PasswordController.class);
     private final PasswordService passwordService;
+    private final PasswordResponseFactory passwordResponseFactory;
 
     // ==============================
     // RECUPERACIÓN DE CONTRASEÑA
@@ -126,6 +120,7 @@ public class PasswordController {
             description = "Token no encontrado"
         )
     })
+    @JsonView(AuthViews.Password.Basic.class)
     public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
         logger.debug("Validando token de recuperación: {}...",
             token.substring(0, Math.min(10, token.length())));
@@ -208,22 +203,7 @@ public class PasswordController {
 
         boolean isCompromised = passwordService.isPasswordCompromised(request.password());
 
-        PasswordValidationResponseDTO response = new PasswordValidationResponseDTO(
-            result.isValid(),
-            result.errors(),
-            result.suggestions(),
-            new PasswordStrengthInfoDTO(
-                result.strength().name(),
-                result.strength().getDescription(),
-                result.strength().getColor(),
-                result.strength().getLevel(),
-                result.strengthPercentage()
-            ),
-            isCompromised,
-            isCompromised
-                ? List.of("Esta contraseña ha sido comprometida en brechas de seguridad")
-                : List.of()
-        );
+        PasswordValidationResponseDTO response = passwordResponseFactory.buildValidationResponse(result, isCompromised);
 
         logger.debug("Validación completada - Válida: {}, Fuerza: {}, Comprometida: {}",
             result.isValid(), result.strength(), isCompromised);
@@ -248,17 +228,7 @@ public class PasswordController {
 
         List<String> suggestions = passwordService.generatePasswordSuggestions();
 
-        PasswordSuggestionsResponseDTO response = new PasswordSuggestionsResponseDTO(
-            suggestions,
-            List.of(
-                "Usa al menos 8 caracteres",
-                "Combina letras mayúsculas y minúsculas",
-                "Incluye números y símbolos",
-                "Evita información personal",
-                "No uses contraseñas comunes",
-                "Considera usar frases con símbolos"
-            )
-        );
+        PasswordSuggestionsResponseDTO response = passwordResponseFactory.buildPasswordSuggestions(suggestions);
 
         return ResponseEntity.ok(response);
     }
@@ -282,19 +252,7 @@ public class PasswordController {
 
         boolean isCompromised = passwordService.isPasswordCompromised(request.password());
 
-        CompromisedCheckResponseDTO response = new CompromisedCheckResponseDTO(
-            isCompromised,
-            isCompromised
-                ? "Esta contraseña ha sido encontrada en brechas de seguridad"
-                : "Contraseña no encontrada en brechas conocidas",
-            isCompromised
-                ? List.of(
-                    "Cambia esta contraseña inmediatamente",
-                    "Nunca reutilices contraseñas comprometidas",
-                    "Considera usar un gestor de contraseñas"
-                )
-                : List.of("Continúa usando buenas prácticas de seguridad")
-        );
+        CompromisedCheckResponseDTO response = passwordResponseFactory.buildCompromisedCheckResponse(isCompromised);
 
         logger.debug("Verificación completada - Comprometida: {}", isCompromised);
 
@@ -307,24 +265,7 @@ public class PasswordController {
         description = "Devuelve los requisitos y políticas actuales para contraseñas"
     )
     public ResponseEntity<PasswordPolicyResponseDTO> getPasswordPolicy() {
-        PasswordPolicyResponseDTO policy = new PasswordPolicyResponseDTO(
-            8,
-            128,
-            true,
-            true,
-            true,
-            true,
-            List.of("@", "$", "!", "%", "*", "?", "&"),
-            List.of(
-                "La contraseña debe tener al menos 8 caracteres",
-                "Debe contener al menos una letra minúscula",
-                "Debe contener al menos una letra mayúscula",
-                "Debe contener al menos un número",
-                "Debe contener al menos un símbolo (@$!%*?&)",
-                "No debe contener información personal",
-                "No debe ser una contraseña común"
-            )
-        );
+        PasswordPolicyResponseDTO policy = passwordResponseFactory.buildPasswordPolicy();
 
         return ResponseEntity.ok(policy);
     }

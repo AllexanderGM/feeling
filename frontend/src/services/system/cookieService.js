@@ -1,5 +1,5 @@
 import { ServiceNoREST } from '@services'
-import { COOKIE_OPTIONS } from '@config/config'
+import { getCookieConfig, COOKIE_CONFIG } from '@constants/cookieKeys'
 
 /**
  * Servicio centralizado para manejo de cookies extendiendo ServiceNoREST
@@ -114,7 +114,8 @@ class CookieService extends ServiceNoREST {
 
       this.validateParams({ name }, { name: { required: true, type: 'string' } })
 
-      const cookieOptions = options || COOKIE_OPTIONS
+      // Obtener configuración específica para esta cookie, o usar la sesión por defecto
+      const cookieOptions = options || getCookieConfig(name) || COOKIE_CONFIG.SESSION
 
       // Serialización automática para objetos
       const valueToSave = typeof value === 'object' && value !== null ? JSON.stringify(value) : value

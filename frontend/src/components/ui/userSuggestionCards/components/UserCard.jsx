@@ -58,9 +58,9 @@ const UserCard = ({
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [imageLoading, setImageLoading] = useState(false)
 
-  // Extraer datos usando estructura anidada con fallbacks (API: user.user.profile / user.user.status)
-  // Soporta ambas estructuras: anidada (user.user.profile) y plana (user.profile)
-  const profile = user?.user?.profile || user?.profile
+  // Extraer datos usando estructura anidada con fallbacks (API: user.user.user / user.user.status)
+  // Soporta ambas estructuras: anidada (user.user.user) y plana (user.user)
+  const profile = user?.user?.user || user?.user
   const status = user?.user?.status || user?.status
   const compatibility = user?.compatibility
   const hasPendingMatch = user?.hasPendingMatch
@@ -78,8 +78,8 @@ const UserCard = ({
   const images = profile?.images || []
   const gender = profile?.gender
 
-  // Datos de status
-  const userId = status?.id
+  // Datos del perfil y status
+  const userId = profile?.id
   const lastActive = status?.lastActive
 
   // Datos de compatibilidad

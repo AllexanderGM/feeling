@@ -86,6 +86,53 @@ const base64ToFile = (base64String, fileName = 'image.jpg') => {
 }
 
 /**
+ * Convierte una URL de imagen a File object descargándola
+ */
+const urlToFile = async (url, fileName = 'image.jpg') => {
+  if (!url || typeof url !== 'string') {
+    return null
+  }
+
+  try {
+    // Fetch la imagen
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`)
+    }
+
+    // Convertir a blob
+    const blob = await response.blob()
+
+    // Crear File object
+    return new File([blob], fileName, { type: blob.type || 'image/jpeg' })
+  } catch (error) {
+    Logger.error('Error converting URL to file:', error, { category: Logger.CATEGORIES.SYSTEM })
+
+    return null
+  }
+}
+
+/**
+ * Convierte una imagen (File, URL o base64) a formato persistente (string)
+ */
+const imageToStorageFormat = async image => {
+  if (!image) return null
+
+  // Si ya es string (base64 o URL), mantenerlo
+  if (typeof image === 'string') {
+    return image
+  }
+
+  // Si es File, convertir a base64
+  if (image instanceof File) {
+    return await fileToBase64(image)
+  }
+
+  return null
+}
+
+/**
  * Hook para manejar imágenes persistentes
  */
 export const usePersistentImages = (initialImages = [], onImagesChange) => {
@@ -96,6 +143,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
   // Convertir imágenes iniciales a base64 si son File objects
   useEffect(() => {
+    // Si no hay imágenes, resetear
     if (initialImages.length === 0) {
       setPersistentImages([])
       setHasInitialized(true)
@@ -103,36 +151,27 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
       return
     }
 
-    if (conversionInProgress.current) {
-      return
-    }
+    // Evitar conversión duplicada solo si ya estamos en proceso
+    if (conversionInProgress.current) return
 
     const convertInitialImages = async () => {
       conversionInProgress.current = true
       setIsConverting(true)
 
       try {
-        const convertedImages = await Promise.all(
-          initialImages.map(async image => {
-            if (!image) return null
-
-            // Si ya es base64, mantenerlo
-            if (typeof image === 'string') {
-              return image
-            }
-
-            // Si es File, convertir a base64
-            if (image instanceof File) {
-              return await fileToBase64(image)
-            }
-
-            return null
-          })
-        )
+        const convertedImages = await Promise.all(initialImages.map(imageToStorageFormat))
 
         const validImages = convertedImages.filter(img => img !== null)
 
-        setPersistentImages(validImages)
+        // Solo actualizar si realmente hay un cambio
+        setPersistentImages(prev => {
+          const prevStr = JSON.stringify(prev)
+          const newStr = JSON.stringify(validImages)
+
+          if (prevStr === newStr) return prev
+
+          return validImages
+        })
         setHasInitialized(true)
       } catch (error) {
         Logger.error('Error converting initial images:', error, { category: Logger.CATEGORIES.UI })
@@ -144,48 +183,49 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
     }
 
     convertInitialImages()
-  }, [initialImages])
+  }, [initialImages.length, JSON.stringify(initialImages.map(img => (typeof img === 'string' ? img : img?.name)))])
 
   // Función para manejar cambios completos en las imágenes (reemplazar todo)
   const handleImagesChange = useCallback(
     async newImages => {
-      if (!Array.isArray(newImages)) {
-        return
-      }
+      if (!Array.isArray(newImages)) return
 
       setIsConverting(true)
 
       try {
-        // Convertir todas las imágenes a base64
-        const convertedImages = await Promise.all(
-          newImages.map(async image => {
-            if (!image) return null
-
-            if (typeof image === 'string') {
-              return image
-            }
-
-            if (image instanceof File) {
-              return await fileToBase64(image)
-            }
-
-            return null
-          })
-        )
+        // Convertir todas las imágenes a formato de almacenamiento
+        const convertedImages = await Promise.all(newImages.map(imageToStorageFormat))
 
         const validImages = convertedImages.filter(img => img !== null)
 
         // Actualizar estado local
         setPersistentImages(validImages)
 
-        // Notificar cambio con File objects
-        const fileObjects = await Promise.all(
-          validImages.map(async (base64String, index) => {
-            return base64ToFile(base64String, `image_${index}.jpg`)
-          })
-        ).then(files => files.filter(file => file !== null))
+        // Notificar cambio - SIEMPRE convertir todas las imágenes a Files
+        // Esto permite que el backend pueda manejar eliminaciones correctamente
+        // usando el parámetro replaceImages=true
+        const processedImages = await Promise.all(
+          validImages.map(async (imageData, index) => {
+            // Si es una URL (empieza con http), descargarla y convertirla a File
+            if (typeof imageData === 'string' && imageData.startsWith('http')) {
+              return await urlToFile(imageData, `image_${index}.jpg`)
+            }
+            // Si es base64, convertir a File
+            if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+              return base64ToFile(imageData, `image_${index}.jpg`)
+            }
+            // Si ya es un File, retornarlo directamente
+            if (imageData instanceof File) {
+              return imageData
+            }
 
-        onImagesChange?.(fileObjects)
+            return null
+          })
+        )
+
+        const validProcessedImages = processedImages.filter(img => img !== null)
+
+        onImagesChange?.(validProcessedImages)
       } catch (error) {
         Logger.error('Error updating images:', error, { category: Logger.CATEGORIES.UI })
       } finally {
@@ -204,8 +244,21 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
       // Convertir a File objects y notificar
       Promise.all(
-        updatedImages.map(async (base64String, idx) => {
-          return base64ToFile(base64String, `image_${idx}.jpg`)
+        updatedImages.map(async (imageData, idx) => {
+          // Si es URL, descargar y convertir a File
+          if (typeof imageData === 'string' && imageData.startsWith('http')) {
+            return await urlToFile(imageData, `image_${idx}.jpg`)
+          }
+          // Si es base64, convertir a File
+          if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+            return base64ToFile(imageData, `image_${idx}.jpg`)
+          }
+          // Si ya es File, retornar directamente
+          if (imageData instanceof File) {
+            return imageData
+          }
+
+          return null
         })
       ).then(files => {
         const validFiles = files.filter(file => file !== null)
@@ -228,8 +281,21 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
       // Convertir a File objects y notificar
       Promise.all(
-        reorderedImages.map(async (base64String, idx) => {
-          return base64ToFile(base64String, `image_${idx}.jpg`)
+        reorderedImages.map(async (imageData, idx) => {
+          // Si es URL, descargar y convertir a File
+          if (typeof imageData === 'string' && imageData.startsWith('http')) {
+            return await urlToFile(imageData, `image_${idx}.jpg`)
+          }
+          // Si es base64, convertir a File
+          if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+            return base64ToFile(imageData, `image_${idx}.jpg`)
+          }
+          // Si ya es File, retornar directamente
+          if (imageData instanceof File) {
+            return imageData
+          }
+
+          return null
         })
       ).then(files => {
         const validFiles = files.filter(file => file !== null)
@@ -252,12 +318,31 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
   }, [persistentImages])
 
   // Generar File objects solo después de la inicialización
+  // NOTA: Este useMemo es solo para MOSTRAR las imágenes en el UI (ImageManager)
+  // Para enviar al backend, se usan las conversiones asíncronas en handleImagesChange/removeImage/reorderImages
   const fileObjects = useMemo(() => {
     if (!hasInitialized) {
       return []
     }
 
-    return persistentImages.map((base64, index) => base64ToFile(base64, `image_${index}.jpg`)).filter(Boolean)
+    return persistentImages
+      .map((imageData, index) => {
+        // Si es base64, convertir a File
+        if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+          return base64ToFile(imageData, `image_${index}.jpg`)
+        }
+        // Si es URL, retornar la URL directamente (el ImageManager puede mostrarla)
+        if (typeof imageData === 'string') {
+          return imageData
+        }
+        // Si ya es File, retornar directamente
+        if (imageData instanceof File) {
+          return imageData
+        }
+
+        return null
+      })
+      .filter(Boolean)
   }, [persistentImages, hasInitialized])
 
   return {

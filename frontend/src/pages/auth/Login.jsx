@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import { Mail, Lock } from 'lucide-react'
 import { useAuth, useOAuth } from '@hooks'
-import { loginSchema, extractLoginData } from '@schemas'
+import { loginSchema } from '@schemas'
 import { Logger } from '@utils/logger.js'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
@@ -42,8 +42,7 @@ const Login = () => {
   })
 
   const onSubmit = async formData => {
-    const data = extractLoginData(formData)
-    const result = await login(data.email, data.password)
+    const result = await login(formData.email, formData.password)
 
     if (result.success) navigate(fromPath, { replace: true })
   }
@@ -64,8 +63,7 @@ const Login = () => {
       Logger.error('Google login error:', error, { category: Logger.CATEGORIES.AUTH })
       setIsGoogleAuthenticating(false)
     },
-    onNonOAuthError: error => {
-      Logger.error('Google non-OAuth error:', error, { category: Logger.CATEGORIES.AUTH })
+    onNonOAuthError: () => {
       setIsGoogleAuthenticating(false)
     },
     flow: 'implicit'

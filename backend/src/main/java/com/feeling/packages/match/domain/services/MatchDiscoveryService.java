@@ -9,7 +9,7 @@ import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
 import com.feeling.packages.match.infrastructure.repositories.IUserDismissedRepository;
 import com.feeling.packages.match.infrastructure.repositories.IUserFavoriteRepository;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserTag;
@@ -58,6 +58,7 @@ public class MatchDiscoveryService {
     private final IUserFavoriteRepository userFavoriteRepository;
     private final IUserDismissedRepository userDismissedRepository;
     private final IMatchRepository matchRepository;
+    private final UserResponseFactory userResponseFactory;
 
     // ========================================
     // SUGERENCIAS PERSONALIZADAS
@@ -209,7 +210,7 @@ public class MatchDiscoveryService {
                 // Calcular compatibilidad entre el usuario actual y el candidato
                 MatchCompatibilityDTO compatibility = calculateUserCompatibility(currentUserEmailFinal, user.getEmail());
 
-                UserResponseDTO responseDTO = UserResponseFactory.create(user, finalLevel);
+                UserResponseDTO responseDTO = userResponseFactory.create(user, finalLevel);
                 return new UserSuggestionDTO(responseDTO, compatibility, isFavorite, hasPendingMatch, hasAcceptedMatch, isDismissed);
             })
             .toList();
@@ -307,7 +308,7 @@ public class MatchDiscoveryService {
         List<UserResponseDTO> matches = matchedEmails.stream()
             .map(email -> userRepository.findByEmail(email).orElse(null))
             .filter(u -> u != null)
-            .map(u -> UserResponseFactory.create(u, level))
+            .map(u -> userResponseFactory.create(u, level))
             .toList();
 
         logger.info("Usuarios con tags similares encontrados (DTO)", Map.of(
@@ -370,7 +371,7 @@ public class MatchDiscoveryService {
         List<UserResponseDTO> candidates = matchedEmails.stream()
             .map(email -> userRepository.findByEmail(email).orElse(null))
             .filter(u -> u != null)
-            .map(u -> UserResponseFactory.create(u, level))
+            .map(u -> userResponseFactory.create(u, level))
             .toList();
 
         logger.info("Candidatos de matching encontrados", Map.of(
@@ -459,7 +460,7 @@ public class MatchDiscoveryService {
 
         // Convertir a DTOs
         Page<UserResponseDTO> result = compatibleUsers.map(user ->
-            UserResponseFactory.create(user, level)
+            userResponseFactory.create(user, level)
         );
 
         logger.info("Usuarios compatibles encontrados", Map.of(

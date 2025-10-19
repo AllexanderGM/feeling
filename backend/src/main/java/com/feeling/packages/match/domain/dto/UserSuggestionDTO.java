@@ -1,7 +1,7 @@
 package com.feeling.packages.match.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.views.UserViews;
 
 /**

@@ -1,9 +1,14 @@
 /**
- * UTILIDADES PARA CONVERSIÓN DE TIMESTAMPS
+ * UTILIDADES PARA CONVERSIÓN DE TIMESTAMPS Y FECHAS
  *
  * Funciones para convertir timestamps del backend que vienen en formato array
- * a formato ISO string para uso en el frontend
+ * a diferentes formatos para uso en el frontend:
+ * - ISO String (para almacenamiento y transmisión)
+ * - CalendarDate (para DatePicker de HeroUI)
+ * - Date objects (para manipulación en JavaScript)
  */
+import { CalendarDate } from '@internationalized/date'
+
 import { Logger } from './logger.js'
 
 /**
@@ -14,16 +19,15 @@ import { Logger } from './logger.js'
  * @returns {string|null} - Timestamp en formato ISO string o null
  *
  * @example
- * // Array del backend
+ * Array del backend
  * convertTimestamp([2024, 1, 15, 10, 30, 0, 0]) // "2024-01-15T10:30:00.000Z"
  *
- * // String ISO
+ * String ISO
  * convertTimestamp("2024-01-15T10:30:00Z") // "2024-01-15T10:30:00.000Z"
  *
- * // Date object
+ * Date object
  * convertTimestamp(new Date()) // "2024-01-15T10:30:00.000Z"
  *
- * // Null o undefined
  * convertTimestamp(null) // null
  */
 export const convertTimestamp = timestamp => {
@@ -84,11 +88,11 @@ export const convertTimestamp = timestamp => {
  * }
  *
  * convertMultipleTimestamps(user, ['createdAt', 'lastActive'])
- * // {
- * //   createdAt: "2024-01-15T10:30:00.000Z",
- * //   lastActive: "2024-01-16T14:20:00.000Z",
- * //   name: "Juan"
- * // }
+ * {
+ *   createdAt: "2024-01-15T10:30:00.000Z",
+ *   lastActive: "2024-01-16T14:20:00.000Z",
+ *   name: "Juan"
+ * }
  */
 export const convertMultipleTimestamps = (obj, fields) => {
   if (!obj || !fields || !Array.isArray(fields)) return obj
@@ -138,10 +142,10 @@ export const isTimestampArray = value => {
  *
  * @example
  * formatTimestampForDisplay([2024, 1, 15, 10, 30, 0, 0])
- * // "15/01/2024 10:30"
+ * "15/01/2024 10:30"
  *
  * formatTimestampForDisplay(timestamp, { dateOnly: true })
- * // "15/01/2024"
+ * "15/01/2024"
  */
 export const formatTimestampForDisplay = (timestamp, options = {}) => {
   const { dateOnly = false, locale = 'es-ES' } = options
@@ -163,4 +167,120 @@ export const formatTimestampForDisplay = (timestamp, options = {}) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// ========================================
+// CONVERSIÓN A CALENDARDATE (HEROUI)
+// ========================================
+
+/**
+ * Convertir timestamp a CalendarDate para DatePicker de HeroUI
+ *
+ * @param {Array|string|Date|null} timestamp - Timestamp en formato array, string o Date
+ * @returns {CalendarDate|null} - CalendarDate object o null
+ *
+ * @example
+ * Array del backend
+ * toCalendarDate([2024, 1, 15]) // CalendarDate(2024, 1, 15)
+ *
+ * String ISO
+ * toCalendarDate("2024-01-15") // CalendarDate(2024, 1, 15)
+ *
+ * Date object
+ * toCalendarDate(new Date(2024, 0, 15)) // CalendarDate(2024, 1, 15)
+ *
+ * Null
+ * toCalendarDate(null) // null
+ */
+export const toCalendarDate = timestamp => {
+  if (!timestamp) return null
+
+  try {
+    // Si es un array [year, month, day]
+    if (Array.isArray(timestamp) && timestamp.length >= 3) {
+      const [year, month, day] = timestamp
+
+      return new CalendarDate(parseInt(year), parseInt(month), parseInt(day))
+    }
+
+    // Si es string ISO "2024-01-15" o "2024-01-15T10:30:00Z"
+    if (typeof timestamp === 'string') {
+      const dateStr = timestamp.split('T')[0] // Tomar solo la parte de fecha
+      const [year, month, day] = dateStr.split('-').map(Number)
+
+      if (!year || !month || !day) {
+        Logger.warn(Logger.CATEGORIES.NETWORK, 'convertir a CalendarDate', `String de fecha inválido: ${timestamp}`)
+
+        return null
+      }
+
+      return new CalendarDate(year, month, day)
+    }
+
+    // Si es Date object
+    if (timestamp instanceof Date) {
+      if (isNaN(timestamp.getTime())) {
+        Logger.warn(Logger.CATEGORIES.NETWORK, 'convertir a CalendarDate', 'Date object inválido')
+
+        return null
+      }
+
+      return new CalendarDate(timestamp.getFullYear(), timestamp.getMonth() + 1, timestamp.getDate())
+    }
+
+    // Si ya es CalendarDate, retornarlo
+    if (timestamp instanceof CalendarDate) {
+      return timestamp
+    }
+
+    Logger.warn(Logger.CATEGORIES.NETWORK, 'convertir a CalendarDate', `Tipo de timestamp no soportado: ${typeof timestamp}`)
+
+    return null
+  } catch (error) {
+    Logger.error(Logger.CATEGORIES.NETWORK, 'convertir a CalendarDate', error, {
+      context: { timestamp }
+    })
+
+    return null
+  }
+}
+
+/**
+ * Convertir CalendarDate a array para el backend
+ *
+ * @param {CalendarDate|null} calendarDate - CalendarDate object
+ * @returns {Array|null} - Array [year, month, day] o null
+ *
+ * @example
+ * const date = new CalendarDate(2024, 1, 15)
+ * fromCalendarDate(date) // [2024, 1, 15]
+ */
+export const fromCalendarDate = calendarDate => {
+  if (!calendarDate || !(calendarDate instanceof CalendarDate)) {
+    return null
+  }
+
+  return [calendarDate.year, calendarDate.month, calendarDate.day]
+}
+
+/**
+ * Convertir CalendarDate a string ISO
+ *
+ * @param {CalendarDate|null} calendarDate - CalendarDate object
+ * @returns {string|null} - String en formato "YYYY-MM-DD" o null
+ *
+ * @example
+ * const date = new CalendarDate(2024, 1, 15)
+ * calendarDateToISOString(date) // "2024-01-15"
+ */
+export const calendarDateToISOString = calendarDate => {
+  if (!calendarDate || !(calendarDate instanceof CalendarDate)) {
+    return null
+  }
+
+  const year = calendarDate.year
+  const month = String(calendarDate.month).padStart(2, '0')
+  const day = String(calendarDate.day).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
 }

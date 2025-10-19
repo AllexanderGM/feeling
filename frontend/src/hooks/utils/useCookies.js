@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react'
 import { useCookies as useReactCookies } from 'react-cookie'
-import { COOKIE_OPTIONS } from '@config/config'
+import { getCookieConfig, COOKIE_CONFIG } from '@constants/cookieKeys'
 import { Logger } from '@utils/logger.js'
 
 /**
@@ -23,20 +23,6 @@ export const useCookies = () => {
           return null
         }
 
-        // Parsing especial para user
-        if (name === 'user' && typeof value === 'string') {
-          try {
-            const parsed = JSON.parse(value)
-
-            return parsed && typeof parsed === 'object' ? parsed : null
-          } catch (error) {
-            Logger.warn(Logger.CATEGORIES.SYSTEM, `Corrupted cookie '${name}', removing`, { name, error: error.message })
-            removeCookie(name, { path: '/' })
-
-            return null
-          }
-        }
-
         // Parsing automático para JSON
         if (typeof value === 'string') {
           try {
@@ -55,20 +41,21 @@ export const useCookies = () => {
         return null
       }
     },
-    [cookies, removeCookie]
+    [cookies]
   )
 
   const set = useCallback(
     (name, value, options = null) => {
       try {
-        const cookieOptions = options || COOKIE_OPTIONS
+        // Obtener configuración específica para esta cookie, o usar la sesión por defecto
+        const cookieOptions = options || getCookieConfig(name) || COOKIE_CONFIG.SESSION
         const valueToSave = typeof value === 'object' && value !== null ? JSON.stringify(value) : value
 
         setCookie(name, valueToSave, cookieOptions)
 
         return true
       } catch (error) {
-        Logger.error(Logger.CATEGORIES.SYSTEM, `Error saving cookie '${name}'`, { name, error: error.message })
+        Logger.error(Logger.CATEGORIES.SYSTEM, `Error guardando cookie '${name}'`, { name, error: error.message })
 
         return false
       }
@@ -135,7 +122,7 @@ export const useCookies = () => {
   )
 
   const clearAuthCookies = useCallback(() => {
-    const authCookies = ['access_token', 'refresh_token', 'user']
+    const authCookies = ['access_token', 'refresh_token']
     const results = {
       successful: [],
       failed: []

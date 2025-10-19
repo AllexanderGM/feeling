@@ -8,7 +8,7 @@ import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.enums.MatchParticipantRole;
 import com.feeling.packages.match.infrastructure.entities.Match;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;

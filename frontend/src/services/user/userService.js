@@ -146,8 +146,11 @@ class UserService extends ServiceREST {
 
   /**
    * PATCH /user - Modificar perfil actual con imágenes
+   * @param {Object} profileData - Datos del perfil a actualizar
+   * @param {Array} profileImages - Array de imágenes (File objects) a subir
+   * @param {boolean} replaceImages - Si es true, reemplaza todas las imágenes existentes; si es false, las agrega
    */
-  async updateCurrentProfile(profileData, profileImages = null) {
+  async updateCurrentProfile(profileData, profileImages = null, replaceImages = false) {
     try {
       const formData = new FormData()
 
@@ -158,6 +161,9 @@ class UserService extends ServiceREST {
           formData.append('profileImages', image)
         })
       }
+
+      // Agregar el parámetro replaceImages
+      formData.append('replaceImages', replaceImages.toString())
 
       const result = await ServiceREST.patch(API_ENDPOINTS.USER.UPDATE_PROFILE, formData)
 

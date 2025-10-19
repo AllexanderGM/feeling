@@ -4,7 +4,7 @@ import { Form, Input, Button, Link } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useVerification, useNotification } from '@hooks'
-import { verifyEmailSchema, extractVerifyEmailData } from '@schemas'
+import { verifyEmailSchema } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -139,8 +139,7 @@ const VerifyEmail = () => {
   }
 
   const onSubmit = async formData => {
-    const { email, code } = extractVerifyEmailData(formData)
-    const result = await verifyEmail(email, code)
+    const result = await verifyEmail(formData.email, formData.code)
 
     if (result.success) {
       setStatus('success')
@@ -153,7 +152,7 @@ const VerifyEmail = () => {
           navigate(APP_PATHS.AUTH.LOGIN, {
             state: {
               message: 'Cuenta verificada correctamente. Ya puedes iniciar sesión.',
-              email: email
+              email: formData.email
             },
             replace: true
           })

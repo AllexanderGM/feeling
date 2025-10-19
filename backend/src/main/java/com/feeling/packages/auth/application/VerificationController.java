@@ -1,13 +1,13 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.packages.auth.domain.dto.request.AuthResendCodeRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
-import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
-import com.feeling.packages.auth.domain.dto.response.CodeValidationDTO;
-import com.feeling.packages.auth.domain.dto.response.UserVerificationStatusDTO;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.feeling.packages.auth.domain.dto.mapper.AuthResponseFactory;
+import com.feeling.packages.auth.domain.dto.verification.*;
+import com.feeling.packages.auth.domain.dto.views.AuthViews;
+import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
+import com.feeling.packages.user.infrastructure.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,6 +29,7 @@ public class VerificationController {
 
     private static final Logger logger = LoggerFactory.getLogger(VerificationController.class);
     private final AuthService authService;
+    private final AuthResponseFactory authResponseFactory;
 
     // ==============================
     // VERIFICACIÓN DE EMAIL
@@ -120,6 +121,7 @@ public class VerificationController {
             description = "Email con formato inválido"
         )
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<EmailAvailabilityDTO> checkEmailAvailability(@PathVariable String email) {
         logger.debug("Verificando disponibilidad de email: {}", email);
 
@@ -145,17 +147,18 @@ public class VerificationController {
             description = "Usuario no encontrado"
         )
     })
+    @JsonView(AuthViews.Verification.Extended.class)
     public ResponseEntity<UserVerificationStatusDTO> getUserVerificationStatus(@PathVariable String email) {
         logger.debug("Obteniendo estado de verificación para: {}", email);
 
         AuthUserStatusDTO authStatus = authService.getUserVerificationStatus(email);
-        UserVerificationStatusDTO status = new UserVerificationStatusDTO(
-            authStatus.email(),
-            authStatus.fullyRegistered(),
-            authStatus.verified(),
-            authStatus.profileComplete(),
-            "LOCAL", // Default, would need to be retrieved from user if needed
-            null // Code expiration not available from auth complaintStatus
+        AuthProvider provider = authService.getUserByEmail(email)
+            .map(User::getUserAuthProvider)
+            .orElse(null);
+        UserVerificationStatusDTO status = authResponseFactory.createUserVerificationStatus(
+            authStatus,
+            provider,
+            null
         );
 
         logger.debug("Estado de verificación para {}: verified={}, profileComplete={}",
@@ -183,6 +186,7 @@ public class VerificationController {
             description = "Código inválido o expirado"
         )
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<CodeValidationDTO> validateVerificationCode(
         @RequestParam String email,
         @RequestParam String code) {
@@ -190,8 +194,7 @@ public class VerificationController {
         logger.debug("Validando código para email: {}", email);
 
         boolean isValid = authService.isVerificationCodeValid(email, code);
-        CodeValidationDTO validation = new CodeValidationDTO(isValid,
-            isValid ? "Código válido" : "Código inválido o expirado");
+        CodeValidationDTO validation = authResponseFactory.createCodeValidation(isValid);
 
         logger.debug("Validación de código para {}: {}", email, isValid ? "VÁLIDO" : "INVÁLIDO");
         return ResponseEntity.ok(validation);

@@ -565,7 +565,7 @@ public class DataInitializer implements CommandLineRunner {
                 // Usuario protegido contra eliminación
                 .protectedUser(true)
                 // Imágenes de perfil para completitud
-                .images(List.of("/profile.png"))
+                .images(List.of("/user.png"))
                 .build();
 
             User savedAdmin = userRepository.save(admin);

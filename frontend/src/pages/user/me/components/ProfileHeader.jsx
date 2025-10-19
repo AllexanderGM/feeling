@@ -1,28 +1,40 @@
 import { Avatar, Chip, Progress, Button } from '@heroui/react'
-import { Eye, Calendar, Mail, Clock, Activity, Share2, Settings, Shield, Globe, Users, Database, CheckCircle, User } from 'lucide-react'
-
-const ProfileHeader = ({
-  profileData,
+import { useNavigate } from 'react-router-dom'
+import { APP_PATHS } from '@constants/paths'
+import {
+  getUserId,
   getUserName,
   getUserLastName,
   getUserEmail,
-  getUserCreatedAt,
-  getUserLastActive,
-  getUserId,
-  getAccountType,
-  getRegion,
-  profileStats,
-  categoryInterestDetails,
-  getCountryData,
-  getUserCity,
   getUserCountry,
-  getProfilePrivacy,
-  isSearchable,
-  isLocationShared,
-  isUserVerified,
-  isProfileComplete,
-  isAccountActive
-}) => {
+  getUserCity,
+  getUserVerified,
+  getUserProfileComplete,
+  getUserCreatedAt,
+  getUserLastActive
+} from '@schemas'
+import { Eye, Calendar, Mail, Clock, Activity, Share2, Settings, Shield, Globe, Users, Database, CheckCircle, User } from 'lucide-react'
+
+const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileData, profileStats, userHelpers }) => {
+  const navigate = useNavigate()
+
+  const handleShareProfile = () => {
+    const profileUrl = window.location.origin + APP_PATHS.USER.PROFILE + '/' + getUserId(user)
+
+    navigator.clipboard
+      .writeText(profileUrl)
+      .then(() => {
+        console.log('Profile URL copied to clipboard')
+      })
+      .catch(err => {
+        console.error('Failed to copy profile URL:', err)
+      })
+  }
+
+  const handleSettings = () => {
+    navigate(APP_PATHS.USER.SETTINGS)
+  }
+
   return (
     <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 sm:p-6'>
       {/* Header para vista previa */}
@@ -41,7 +53,7 @@ const ProfileHeader = ({
         {/* Avatar */}
         <div className='relative shrink-0'>
           <Avatar
-            alt={`${getUserName()} ${getUserLastName()}`}
+            alt={`${getUserName(user)} ${getUserLastName(user)}`}
             className='w-24 h-24 sm:w-28 sm:h-28 text-large border-2 border-gray-600'
             src={profileData?.mainImage}
           />
@@ -64,7 +76,7 @@ const ProfileHeader = ({
         <div className='flex-1 text-center sm:text-left'>
           <div className='space-y-2'>
             <h1 className='text-xl sm:text-2xl font-bold text-gray-100'>
-              {getUserName()} {getUserLastName()}
+              {getUserName(user)} {getUserLastName(user)}
             </h1>
 
             <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-gray-300 text-sm sm:text-base'>
@@ -82,7 +94,7 @@ const ProfileHeader = ({
                   <img alt={`Bandera de ${getCountryData.name}`} className='w-4 h-4 rounded-full object-cover' src={getCountryData.image} />
                 )}
                 <span className='truncate'>
-                  {getUserCity()}, {getUserCountry()}
+                  {getUserCity(user)}, {getUserCountry(user)}
                 </span>
               </div>
             </div>
@@ -92,24 +104,24 @@ const ProfileHeader = ({
               {/* Correo */}
               <div className='flex items-center gap-2'>
                 <Mail className='w-4 h-4 text-gray-400' />
-                <span className='text-gray-200 truncate'>{getUserEmail()}</span>
+                <span className='text-gray-200 truncate'>{getUserEmail(user)}</span>
               </div>
 
               {/* Fecha de registro */}
-              {getUserCreatedAt() && (
+              {getUserCreatedAt(user) && (
                 <div className='flex items-center gap-2'>
                   <Clock className='w-4 h-4 text-gray-400' />
                   <span className='text-gray-300'>
-                    Miembro desde {new Date(getUserCreatedAt()).toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}
+                    Miembro desde {new Date(getUserCreatedAt(user)).toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })}
                   </span>
                 </div>
               )}
 
               {/* Actividad reciente */}
-              {getUserLastActive() && (
+              {getUserLastActive(user) && (
                 <div className='flex items-center gap-2'>
                   <Activity className='w-4 h-4 text-gray-400' />
-                  <span className='text-gray-300'>Última actividad: {new Date(getUserLastActive()).toLocaleDateString('es-ES')}</span>
+                  <span className='text-gray-300'>Última actividad: {new Date(getUserLastActive(user)).toLocaleDateString('es-ES')}</span>
                 </div>
               )}
             </div>
@@ -148,26 +160,26 @@ const ProfileHeader = ({
             {/* Visibilidad del perfil */}
             <div className='flex items-center gap-2'>
               <Globe className='w-3 h-3' />
-              <span>Perfil: {getProfilePrivacy()}</span>
+              <span>Perfil: {userHelpers.getProfilePrivacy()}</span>
             </div>
 
             {/* Búsqueda */}
             <div className='flex items-center gap-2'>
               <Users className='w-3 h-3' />
-              <span>Búsqueda: {isSearchable() ? 'Visible' : 'Oculto'}</span>
+              <span>Búsqueda: {userHelpers.isSearchable() ? 'Visible' : 'Oculto'}</span>
             </div>
 
             {/* Datos compartidos */}
             <div className='flex items-center gap-2'>
               <Database className='w-3 h-3' />
-              <span>Ubicación: {isLocationShared() ? 'Compartida' : 'Privada'}</span>
+              <span>Ubicación: {userHelpers.isLocationShared() ? 'Compartida' : 'Privada'}</span>
             </div>
 
             {/* Estado de verificación */}
             <div className='flex items-center gap-2'>
               <CheckCircle className='w-3 h-3' />
-              <span className={isUserVerified() ? 'text-green-400' : 'text-yellow-400'}>
-                {isUserVerified() ? 'Cuenta verificada' : 'Sin verificar'}
+              <span className={getUserVerified(user) ? 'text-green-400' : 'text-yellow-400'}>
+                {getUserVerified(user) ? 'Cuenta verificada' : 'Sin verificar'}
               </span>
             </div>
           </div>
@@ -180,6 +192,7 @@ const ProfileHeader = ({
               size='sm'
               startContent={<Share2 className='w-3 h-3' />}
               variant='light'>
+              onPress={handleShareProfile}
               Compartir Perfil
             </Button>
             <Button
@@ -188,6 +201,7 @@ const ProfileHeader = ({
               size='sm'
               startContent={<Settings className='w-3 h-3' />}
               variant='light'>
+              onPress={handleSettings}
               Configuración
             </Button>
           </div>
@@ -199,31 +213,31 @@ const ProfileHeader = ({
             {/* ID de usuario */}
             <div className='flex items-center gap-1'>
               <span>ID:</span>
-              <span className='text-gray-300 font-mono'>{getUserId()}</span>
+              <span className='text-gray-300 font-mono'>{getUserId(user)}</span>
             </div>
 
             {/* Tipo de cuenta */}
             <div className='flex items-center gap-1'>
               <span>Tipo:</span>
-              <span className='text-gray-300'>{getAccountType()}</span>
+              <span className='text-gray-300'>{userHelpers.getAccountType()}</span>
             </div>
 
             {/* Región */}
             <div className='flex items-center gap-1'>
               <span>Región:</span>
-              <span className='text-gray-300'>{getRegion()}</span>
+              <span className='text-gray-300'>{userHelpers.getRegion()}</span>
             </div>
           </div>
 
           {/* Estado del perfil */}
           <div className='flex items-center justify-center sm:justify-start gap-2 sm:gap-3 flex-wrap'>
             <Chip
-              className={`${isProfileComplete() ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}
-              color={isProfileComplete() ? 'success' : 'warning'}
+              className={`${getUserProfileComplete(user) ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}
+              color={getUserProfileComplete(user) ? 'success' : 'warning'}
               size='sm'
               startContent={<User className='w-3 h-3' />}
               variant='flat'>
-              {isProfileComplete() ? 'Perfil completo' : 'Perfil incompleto'}
+              {getUserProfileComplete(user) ? 'Perfil completo' : 'Perfil incompleto'}
             </Chip>
 
             {/* Estado de actividad */}
@@ -233,7 +247,7 @@ const ProfileHeader = ({
               size='sm'
               startContent={<Activity className='w-3 h-3' />}
               variant='flat'>
-              {isAccountActive() ? 'Activo' : 'Inactivo'}
+              {userHelpers.isAccountActive() ? 'Activo' : 'Inactivo'}
             </Chip>
           </div>
         </div>

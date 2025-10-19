@@ -7,10 +7,9 @@ import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
-import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
-import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserRequestDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
@@ -26,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Servicio principal para la gestión de usuarios en la plataforma Feeling.
@@ -76,6 +74,7 @@ public class UserService {
     private final UserProfileUpdater userProfileUpdater;
     private final UserValidationService userValidationService;
     private final UserBatchOperationHelper userBatchOperationHelper;
+    private final UserResponseFactory userResponseFactory;
 
     /**
      * Email del administrador principal del sistema.
@@ -104,7 +103,7 @@ public class UserService {
     public UserResponseDTO get(String email) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        return new UserResponseDTO(user);
+        return userResponseFactory.create(user, UserResponseLevel.FULL);
     }
 
     /**
@@ -134,7 +133,7 @@ public class UserService {
     public UserResponseDTO get(String email, String includeLevel) {
         User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        return UserResponseFactory.create(user, includeLevel, UserResponseLevel.BASIC);
+        return userResponseFactory.create(user, includeLevel, UserResponseLevel.BASIC);
     }
 
     /**
@@ -158,11 +157,11 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserResponseDTO get(String targetEmail, String currentUserEmail, String requestedLevel) {
-        return getUserResponseDTO(targetEmail, currentUserEmail, requestedLevel, userRepository);
+        return getUserResponseDTO(targetEmail, currentUserEmail, requestedLevel);
     }
 
     /**
-     * Método helper estático para obtener usuario con contexto de seguridad.
+     * Método helper interno para obtener usuario con contexto de seguridad.
      * <p>
      * Este método es package-private (visible solo en el paquete) y se utiliza
      * para compartir lógica entre diferentes servicios sin duplicación de código.
@@ -171,21 +170,20 @@ public class UserService {
      * @param targetEmail      Email del usuario objetivo
      * @param currentUserEmail Email del usuario actual (null si anónimo)
      * @param requestedLevel   Nivel solicitado
-     * @param userRepository   Repositorio de usuarios
      * @return DTO con nivel apropiado de información
      * @throws NotFoundException Si el usuario objetivo no existe
      */
-    static UserResponseDTO getUserResponseDTO(String targetEmail, String currentUserEmail,
-                                              String requestedLevel, IUserRepository userRepository) {
+    private UserResponseDTO getUserResponseDTO(String targetEmail, String currentUserEmail,
+                                               String requestedLevel) {
         User targetUser = userRepository.findByEmail(targetEmail)
             .orElseThrow(() -> new NotFoundException("Usuario no encontrado con email: " + targetEmail));
         User currentUser = currentUserEmail != null ?
             userRepository.findByEmail(currentUserEmail).orElse(null) : null;
 
-        UserResponseLevel appropriateLevel = UserResponseFactory
+        UserResponseLevel appropriateLevel = userResponseFactory
             .determineAppropriateLevel(currentUser, targetUser, requestedLevel);
 
-        return UserResponseFactory.create(targetUser, appropriateLevel);
+        return userResponseFactory.create(targetUser, appropriateLevel);
     }
 
     /**
@@ -221,22 +219,6 @@ public class UserService {
     }
 
     /**
-     * Obtiene lista completa de todos los usuarios del sistema.
-     * <p>
-     * ⚠️ ADVERTENCIA: Este método carga TODOS los usuarios en memoria.
-     * Solo debe usarse para operaciones administrativas específicas o
-     * exportaciones. Para listados normales, usar {@link #getListPaginated(Pageable)}.
-     *
-     * @return Lista de DTOs con todos los usuarios
-     */
-    public List<UserResponseDTO> getList() {
-        List<User> users = userRepository.findAll();
-        return users.stream()
-            .map(UserResponseDTO::new)
-            .collect(Collectors.toList());
-    }
-
-    /**
      * Obtiene lista paginada de usuarios ordenada por fecha de creación.
      * <p>
      * Este método implementa paginación optimizada con ordenamiento descendente
@@ -252,7 +234,7 @@ public class UserService {
             pageable.getPageSize(),
             Sort.by(Sort.Direction.DESC, "createdAt")
         ));
-        return users.map(UserResponseDTO::new);
+        return users.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
     /**
@@ -272,7 +254,7 @@ public class UserService {
      */
     public Page<UserResponseDTO> searchUsers(String searchTerm, Pageable pageable) {
         Page<User> users = userRepository.findBySearchTerm(searchTerm, pageable);
-        return users.map(UserResponseDTO::new);
+        return users.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
     // ========================================
@@ -322,7 +304,7 @@ public class UserService {
         logger.logUserOperation("user_partial_updated", email,
             Map.of("fields_updated", userRequestDTO.countUpdates()));
 
-        return new UserResponseDTO(savedUser);
+        return userResponseFactory.create(savedUser, UserResponseLevel.FULL);
     }
 
 
@@ -408,7 +390,7 @@ public class UserService {
     public Page<UserResponseDTO> getActiveUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> activeUsers = userRepository.findActiveUsers(search, pageable);
-        return activeUsers.map(UserResponseDTO::new);
+        return activeUsers.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
     /**
@@ -428,7 +410,7 @@ public class UserService {
     public Page<UserResponseDTO> getUnverifiedUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> unverifiedUsers = userRepository.findUnverifiedUsers(search, pageable);
-        return unverifiedUsers.map(UserResponseDTO::new);
+        return unverifiedUsers.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
 
@@ -451,7 +433,7 @@ public class UserService {
     public Page<UserResponseDTO> getDeactivatedUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> deactivatedUsers = userRepository.findDeactivatedUsers(search, pageable);
-        return deactivatedUsers.map(UserResponseDTO::new);
+        return deactivatedUsers.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
     /**
@@ -477,7 +459,7 @@ public class UserService {
     public Page<UserResponseDTO> getIncompleteUsers(Pageable pageable, String searchTerm) {
         String search = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
         Page<User> users = userRepository.findIncompleteProfileUsers(search, pageable);
-        return users.map(UserResponseDTO::new);
+        return users.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
 
@@ -529,7 +511,7 @@ public class UserService {
      * - "unverified": Email no verificado
      * - "non-approved": Rechazados por admin
      * - "deactivated": Cuenta desactivada
-     * - "incomplete-profile": Perfil incompleto
+     * - "incomplete-user": Perfil incompleto
      * <p>
      * Cada estado puede incluir búsqueda opcional por nombre/email/ciudad.
      * <p>
@@ -551,11 +533,11 @@ public class UserService {
             case "unverified" -> userRepository.findUnverifiedUsers(searchTerm, pageable);
             case "non-approved" -> userRepository.findNonApprovedUsers(searchTerm, pageable);
             case "deactivated" -> userRepository.findDeactivatedUsers(searchTerm, pageable);
-            case "incomplete-profile" -> userRepository.findIncompleteProfileUsers(searchTerm, pageable);
+            case "incomplete-user" -> userRepository.findIncompleteProfileUsers(searchTerm, pageable);
             default -> throw new BadRequestException("Estado de usuario no válido: " + status);
         };
 
-        return users.map(UserResponseDTO::new);
+        return users.map(user -> userResponseFactory.create(user, UserResponseLevel.FULL));
     }
 
     /**

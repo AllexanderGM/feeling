@@ -4,7 +4,20 @@ import { MapPin, Calendar, Phone, Check, X, IdCard, Camera, User, ZoomIn, Settin
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useUser, useLocation } from '@hooks'
-import { stepBasicInfoSchema, getDefaultValuesForStep } from '@schemas'
+import {
+  stepBasicInfoSchema,
+  getDefaultValuesForStep,
+  getUserName,
+  getUserLastName,
+  getUserDocument,
+  getUserDateOfBirth,
+  getUserPhone,
+  getUserPhoneCode,
+  getUserCountry,
+  getUserCity,
+  getUserLocality,
+  getUserImages
+} from '@schemas'
 import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
 import { Logger } from '@utils/logger.js'
 
@@ -20,11 +33,11 @@ const PersonalInfoSection = ({ user }) => {
   // Hooks necesarios para StepBasicInfo
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: user?.profile?.country || user?.country || 'Colombia',
-      defaultCity: user?.profile?.city || user?.city || 'Bogotá',
+      defaultCountry: getUserCountry(user) || 'Colombia',
+      defaultCity: getUserCity(user) || 'Bogotá',
       loadAll: true
     }),
-    [user?.profile?.country, user?.profile?.city, user?.country, user?.city]
+    [user]
   )
 
   const location = useLocation(locationConfig)
@@ -91,21 +104,21 @@ const PersonalInfoSection = ({ user }) => {
 
   // Obtener datos del país con bandera
   const getCountryData = useMemo(() => {
-    const country = user?.profile?.country || user?.country
+    const country = getUserCountry(user)
 
     if (!country || !location.formattedCountries) return null
 
     return location.formattedCountries.find(c => c.name === country)
-  }, [user?.profile?.country, user?.country, location.formattedCountries])
+  }, [user, location.formattedCountries])
 
   // Obtener datos del país para teléfono
   const getPhoneCountryData = useMemo(() => {
-    const phoneCode = user?.profile?.phoneCode || user?.phoneCode
+    const phoneCode = getUserPhoneCode(user)
 
     if (!phoneCode || !location.formattedCountries) return null
 
     return location.formattedCountries.find(country => country.phone === phoneCode)
-  }, [user?.profile?.phoneCode, user?.phoneCode, location.formattedCountries])
+  }, [user, location.formattedCountries])
 
   // Datos para StepBasicInfo
   const stepBasicInfoProps = {
@@ -127,7 +140,7 @@ const PersonalInfoSection = ({ user }) => {
 
   // Preparar imágenes para la galería
   const prepareGalleryImages = () => {
-    const allImages = user?.profile?.images || user?.images || []
+    const allImages = getUserImages(user) || []
 
     return allImages.filter(img => img && img.trim() !== '')
   }
@@ -179,9 +192,7 @@ const PersonalInfoSection = ({ user }) => {
             <span>
               Nombre:{' '}
               <span className='text-gray-300'>
-                {(user?.profile?.name || user?.name) && (user?.profile?.lastName || user?.lastName)
-                  ? `${user?.profile?.name || user?.name} ${user?.profile?.lastName || user?.lastName}`
-                  : 'No especificado'}
+                {getUserName(user) && getUserLastName(user) ? `${getUserName(user)} ${getUserLastName(user)}` : 'No especificado'}
               </span>
             </span>
           </div>
@@ -190,7 +201,7 @@ const PersonalInfoSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             <IdCard className='w-3 h-3' />
             <span>
-              Documento: <span className='text-gray-300'>{user?.profile?.document || user?.document || 'No especificado'}</span>
+              Documento: <span className='text-gray-300'>{getUserDocument(user) || 'No especificado'}</span>
             </span>
           </div>
 
@@ -200,11 +211,10 @@ const PersonalInfoSection = ({ user }) => {
             <span>
               Nacimiento:{' '}
               <span className='text-gray-300'>
-                {user?.profile?.dateOfBirth || user?.dateOfBirth ? (
+                {getUserDateOfBirth(user) ? (
                   <>
-                    {new Date(user?.profile?.dateOfBirth || user?.dateOfBirth).toLocaleDateString('es-ES')}
-                    {calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth) &&
-                      ` (${calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth)} años)`}
+                    {new Date(getUserDateOfBirth(user)).toLocaleDateString('es-ES')}
+                    {calculateAge(getUserDateOfBirth(user)) && ` (${calculateAge(getUserDateOfBirth(user))} años)`}
                   </>
                 ) : (
                   'No especificado'
@@ -217,7 +227,7 @@ const PersonalInfoSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             <Phone className='w-3 h-3' />
             <span>Teléfono: </span>
-            {(user?.profile?.phoneCode || user?.phoneCode) && (user?.profile?.phone || user?.phone) ? (
+            {getUserPhoneCode(user) && getUserPhone(user) ? (
               <div className='flex items-center gap-1'>
                 {getPhoneCountryData && (
                   <img
@@ -227,7 +237,7 @@ const PersonalInfoSection = ({ user }) => {
                   />
                 )}
                 <span className='text-gray-300'>
-                  {user?.profile?.phoneCode || user?.phoneCode} {user?.profile?.phone || user?.phone}
+                  {getUserPhoneCode(user)} {getUserPhone(user)}
                 </span>
               </div>
             ) : (
@@ -239,14 +249,14 @@ const PersonalInfoSection = ({ user }) => {
           <div className='flex items-center gap-2 sm:col-span-2'>
             <MapPin className='w-3 h-3' />
             <span>Ubicación: </span>
-            {(user?.profile?.city || user?.city) && (user?.profile?.country || user?.country) ? (
+            {getUserCity(user) && getUserCountry(user) ? (
               <div className='flex items-center gap-1'>
                 {getCountryData && (
                   <img alt={`Bandera de ${getCountryData.name}`} className='w-3 h-3 rounded-full object-cover' src={getCountryData.image} />
                 )}
                 <span className='text-gray-300'>
-                  {user?.profile?.locality || user?.locality ? `${user?.profile?.locality || user?.locality}, ` : ''}
-                  {user?.profile?.city || user?.city}, {user?.profile?.country || user?.country}
+                  {getUserLocality(user) ? `${getUserLocality(user)}, ` : ''}
+                  {getUserCity(user)}, {getUserCountry(user)}
                 </span>
               </div>
             ) : (

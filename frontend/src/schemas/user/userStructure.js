@@ -2,30 +2,115 @@
  * ESTRUCTURA ORGANIZADA DEL USUARIO
  *
  * Define la estructura de datos del usuario que refleja
- * la organización del backend: { status, profile, metrics }
+ * la organización del backend: { status, user, metrics, privacy, notifications, auth, matches }
+ *
+ * Este archivo es la ÚNICA FUENTE DE VERDAD para:
+ * - Definición de campos y sus tipos
+ * - Valores por defecto
+ * - Accessors para acceder a los datos
+ * - Utilidades de transformación y validación
  */
 
+import { convertTimestamp } from '@utils/convertTimestamp'
+
 // ========================================
-// ESTRUCTURA ORGANIZADA DEL USUARIO
+// DEFINICIÓN DE CAMPOS POR SECCIÓN
 // ========================================
 
 /**
  * Campos de STATUS (estado del usuario)
+ * Refleja UserStatusDTO del backend
  */
 export const USER_STATUS_FIELDS = {
   verified: 'boolean',
   profileComplete: 'boolean',
+  lastActive: 'array|string',
   approved: 'boolean',
+  approvalStatus: 'string',
   role: 'string',
   availableAttempts: 'number',
   createdAt: 'array|string',
-  lastActive: 'array|string'
+  accountDeactivated: 'boolean',
+  deactivationDate: 'array|string',
+  deactivationReason: 'string',
+  dismissed: 'boolean',
+  favorite: 'boolean',
+  hasAcceptedMatch: 'boolean',
+  hasPendingMatch: 'boolean'
 }
 
 /**
- * Campos requeridos del PROFILE para completar el perfil
+ * Campos de METRICS (métricas sociales)
+ * Refleja UserPerformanceMetricsDTO del backend
  */
-export const USER_PROFILE_REQUIRED_FIELDS = [
+export const USER_METRICS_FIELDS = {
+  profileViews: 'number',
+  likesReceived: 'number',
+  matchesCount: 'number',
+  popularityScore: 'number',
+  profileCompleteness: 'number'
+}
+
+/**
+ * Campos de PRIVACY (privacidad)
+ */
+export const USER_PRIVACY_FIELDS = {
+  showAge: 'boolean',
+  showLocation: 'boolean',
+  showPhone: 'boolean',
+  publicAccount: 'boolean',
+  searchVisibility: 'boolean',
+  locationPublic: 'boolean',
+  showMeInSearch: 'boolean',
+  allowNotifications: 'boolean'
+}
+
+/**
+ * Campos de NOTIFICATIONS (notificaciones)
+ */
+export const USER_NOTIFICATIONS_FIELDS = {
+  notificationsEmailEnabled: 'boolean',
+  notificationsPhoneEnabled: 'boolean',
+  notificationsMatchesEnabled: 'boolean',
+  notificationsEventsEnabled: 'boolean',
+  notificationsLoginEnabled: 'boolean',
+  notificationsPaymentsEnabled: 'boolean'
+}
+
+/**
+ * Campos de AUTH (autenticación OAuth)
+ * Refleja AuthProviderInfoDTO del backend
+ */
+export const USER_AUTH_FIELDS = {
+  userAuthProvider: 'string',
+  externalId: 'string',
+  externalAvatarUrl: 'string',
+  lastExternalSync: 'array|string'
+}
+
+/**
+ * Campos de MATCHES (matches del usuario)
+ * Refleja UserMatchesDTO del backend
+ */
+export const USER_MATCHES_FIELDS = {
+  availableAttempts: 'number',
+  todayMatches: 'number',
+  totalMatches: 'number',
+  maxDailyAttempts: 'number',
+  pendingSent: 'number',
+  pendingReceived: 'number',
+  accepted: 'number',
+  favorites: 'number'
+}
+
+// ========================================
+// CAMPOS REQUERIDOS Y OPCIONALES DEL PERFIL
+// ========================================
+
+/**
+ * Campos requeridos del USER para completar el perfil
+ */
+export const USER_USER_REQUIRED_FIELDS = [
   // STEP 1: Información básica
   'name',
   'lastName',
@@ -45,19 +130,9 @@ export const USER_PROFILE_REQUIRED_FIELDS = [
 ]
 
 /**
- * Campos opcionales del PROFILE
+ * Campos opcionales del USER
  */
-export const USER_PROFILE_OPTIONAL_FIELDS = ['age', 'document', 'department', 'locality', 'mainImage']
-
-/**
- * Campos de METRICS (métricas sociales)
- */
-export const USER_METRICS_FIELDS = {
-  profileViews: 'number',
-  likesReceived: 'number',
-  matchesCount: 'number',
-  popularityScore: 'number'
-}
+export const USER_USER_OPTIONAL_FIELDS = ['age', 'document', 'department', 'locality', 'mainImage']
 
 /**
  * Campos adicionales OBLIGATORIOS específicos por categoría
@@ -117,21 +192,32 @@ export const USER_PERSONAL_FIELDS = ['genderId', 'maritalStatusId', 'educationLe
 // ========================================
 
 /**
- * Valores por defecto usando la nueva estructura organizada
+ * Valores por defecto para la estructura organizada del usuario
+ * IMPORTANTE: Los tokens NO forman parte de esta estructura.
+ * Se gestionan por separado en sus propias cookies (access_token, refresh_token).
  */
 export const USER_DEFAULT_VALUES = {
   status: {
     verified: false,
     profileComplete: false,
+    lastActive: null,
     approved: false,
+    approvalStatus: 'PENDING',
     role: 'CLIENT',
     availableAttempts: 0,
-    totalAttemptsPurchased: 0,
-    attemptsExpiryDate: null,
     createdAt: null,
-    lastActive: null
+    accountDeactivated: false,
+    deactivationDate: null,
+    deactivationReason: null,
+    dismissed: false,
+    favorite: false,
+    hasAcceptedMatch: false,
+    hasPendingMatch: false
   },
-  profile: {
+  user: {
+    // ID del usuario
+    id: null,
+
     // Información básica
     name: '',
     lastName: '',
@@ -196,7 +282,8 @@ export const USER_DEFAULT_VALUES = {
     profileViews: 0,
     likesReceived: 0,
     matchesCount: 0,
-    popularityScore: 0.0
+    popularityScore: 0.0,
+    profileCompleteness: 0.0
   },
   privacy: {
     showAge: true,
@@ -222,105 +309,201 @@ export const USER_DEFAULT_VALUES = {
     externalAvatarUrl: null,
     lastExternalSync: null
   },
-  account: {
-    accountDeactivated: false,
-    deactivationDate: null,
-    deactivationReason: null
-  },
-  _metadata: {
-    lastLogin: null,
-    loginCount: 0,
-    lastSyncWithServer: null
+  matches: {
+    availableAttempts: 0,
+    todayMatches: 0,
+    totalMatches: 0,
+    maxDailyAttempts: 10,
+    pendingSent: 0,
+    pendingReceived: 0,
+    accepted: 0,
+    favorites: 0
   }
 }
 
 // ========================================
-// UTILIDADES PARA VALIDACIÓN
+// ACCESSORS CENTRALIZADOS - ÚNICA FUENTE DE VERDAD
 // ========================================
 
 /**
- * Función para validar si un campo es especial (arrays u objetos)
+ * ACCESSORS PARA ACCEDER A LA ESTRUCTURA DEL USUARIO
+ * Estos son la ÚNICA forma correcta de acceder a los datos del usuario.
+ * Encapsulan la estructura interna y permiten cambios futuros sin romper código.
+ */
+
+/**
+ * Acceso seguro a user.user (datos del perfil)
+ * @private - Usar accessors específicos en lugar de este
+ */
+const getUserProfile = user => user?.user || {}
+
+/**
+ * Acceso seguro a user.status (estado del usuario)
+ */
+export const getUserStatus = user => user?.status || {}
+
+/**
+ * Acceso seguro a user.metrics (métricas)
+ */
+export const getUserMetrics = user => user?.metrics || {}
+
+/**
+ * Acceso seguro a user.privacy (privacidad)
+ */
+export const getUserPrivacy = user => user?.privacy || {}
+
+/**
+ * Acceso seguro a user.notifications (notificaciones)
+ */
+export const getUserNotifications = user => user?.notifications || {}
+
+/**
+ * Acceso seguro a user.auth (autenticación OAuth)
+ */
+export const getUserAuth = user => user?.auth || {}
+
+/**
+ * Acceso seguro a user.matches (matches)
+ */
+export const getUserMatches = user => user?.matches || {}
+
+// ========================================
+// ACCESSORS PARA CAMPOS INDIVIDUALES
+// ========================================
+
+// Información básica
+export const getUserId = user => getUserProfile(user).id
+export const getUserName = user => getUserProfile(user).name
+export const getUserLastName = user => getUserProfile(user).lastName
+export const getUserFullName = user => {
+  const profile = getUserProfile(user)
+
+  return `${profile.name || ''} ${profile.lastName || ''}`.trim()
+}
+export const getUserEmail = user => getUserProfile(user).email
+export const getUserPhone = user => getUserProfile(user).phone
+export const getUserPhoneCode = user => getUserProfile(user).phoneCode
+export const getUserDateOfBirth = user => getUserProfile(user).dateOfBirth
+export const getUserAge = user => getUserProfile(user).age
+export const getUserDocument = user => getUserProfile(user).document
+
+// Ubicación
+export const getUserCountry = user => getUserProfile(user).country
+export const getUserCity = user => getUserProfile(user).city
+export const getUserDepartment = user => getUserProfile(user).department
+export const getUserLocality = user => getUserProfile(user).locality
+
+// Perfil y descripción
+export const getUserDescription = user => getUserProfile(user).description
+export const getUserImages = user => getUserProfile(user).images || []
+export const getUserMainImage = user => {
+  const images = getUserImages(user)
+
+  return images[0] || null
+}
+export const getUserAvatar = (user, defaultAvatar = null) => getUserMainImage(user) || defaultAvatar
+
+// Categoría e intereses
+export const getUserCategoryInterest = user => getUserProfile(user).categoryInterest
+export const getUserTags = user => getUserProfile(user).tags || []
+
+// Características físicas
+export const getUserGender = user => getUserProfile(user).gender
+export const getUserGenderId = user => getUserProfile(user).genderId
+export const getUserMaritalStatus = user => getUserProfile(user).maritalStatus
+export const getUserMaritalStatusId = user => getUserProfile(user).maritalStatusId
+export const getUserHeight = user => getUserProfile(user).height
+export const getUserEyeColor = user => getUserProfile(user).eyeColor
+export const getUserEyeColorId = user => getUserProfile(user).eyeColorId
+export const getUserHairColor = user => getUserProfile(user).hairColor
+export const getUserHairColorId = user => getUserProfile(user).hairColorId
+export const getUserBodyType = user => getUserProfile(user).bodyType
+export const getUserBodyTypeId = user => getUserProfile(user).bodyTypeId
+export const getUserEducation = user => getUserProfile(user).education
+export const getUserEducationLevelId = user => getUserProfile(user).educationLevelId
+export const getUserProfession = user => getUserProfile(user).profession
+
+// Campos específicos de categorías
+export const getUserReligion = user => getUserProfile(user).religion
+export const getUserReligionId = user => getUserProfile(user).religionId
+export const getUserSpiritualMoments = user => getUserProfile(user).spiritualMoments
+export const getUserSpiritualPractices = user => getUserProfile(user).spiritualPractices
+export const getUserSexualRole = user => getUserProfile(user).sexualRole
+export const getUserSexualRoleId = user => getUserProfile(user).sexualRoleId
+export const getUserRelationshipType = user => getUserProfile(user).relationshipType
+export const getUserRelationshipId = user => getUserProfile(user).relationshipId
+
+// Preferencias de matching
+export const getUserAgePreferenceMin = user => getUserProfile(user).agePreferenceMin
+export const getUserAgePreferenceMax = user => getUserProfile(user).agePreferenceMax
+export const getUserLocationPreferenceRadius = user => getUserProfile(user).locationPreferenceRadius
+
+// Status
+export const getUserVerified = user => getUserStatus(user).verified
+export const getUserProfileComplete = user => getUserStatus(user).profileComplete
+export const getUserLastActive = user => getUserStatus(user).lastActive
+export const getUserApproved = user => getUserStatus(user).approved
+export const getUserApprovalStatus = user => getUserStatus(user).approvalStatus
+export const getUserRole = user => getUserStatus(user).role
+export const getUserAvailableAttempts = user => getUserStatus(user).availableAttempts
+export const getUserCreatedAt = user => getUserStatus(user).createdAt
+export const getUserAccountDeactivated = user => getUserStatus(user).accountDeactivated
+export const getUserDeactivationDate = user => getUserStatus(user).deactivationDate
+export const getUserDeactivationReason = user => getUserStatus(user).deactivationReason
+export const getUserDismissed = user => getUserStatus(user).dismissed
+export const getUserFavorite = user => getUserStatus(user).favorite
+export const getUserHasAcceptedMatch = user => getUserStatus(user).hasAcceptedMatch
+export const getUserHasPendingMatch = user => getUserStatus(user).hasPendingMatch
+
+// ========================================
+// UTILIDADES DE VALIDACIÓN
+// ========================================
+
+/**
+ * Validar si un campo tiene valor válido
+ * Maneja casos especiales como arrays
  */
 export const isSpecialField = (field, value) => {
-  if (field === 'images') return value && value.length > 0
-  if (field === 'tags') return value && value.length > 0
+  if (field === 'images' || field === 'tags') {
+    return value && value.length > 0
+  }
 
   return value && value.toString().trim() !== ''
 }
 
 /**
- * Validar si un usuario tiene perfil completo usando la nueva estructura
+ * Validar si un usuario tiene perfil completo
  */
 export const isProfileComplete = user => {
-  if (!user?.profile) return false
+  if (!user?.user) return false
 
-  return USER_PROFILE_REQUIRED_FIELDS.every(field => {
-    const value = user.profile[field]
+  return USER_USER_REQUIRED_FIELDS.every(field => {
+    const value = user.user[field]
 
     return isSpecialField(field, value)
   })
 }
 
-/**
- * Campos de privacidad
- */
-export const USER_PRIVACY_FIELDS = {
-  showAge: 'boolean',
-  showLocation: 'boolean',
-  showPhone: 'boolean',
-  publicAccount: 'boolean',
-  searchVisibility: 'boolean',
-  locationPublic: 'boolean',
-  showMeInSearch: 'boolean',
-  allowNotifications: 'boolean'
-}
+// ========================================
+// UTILIDADES DE TRANSFORMACIÓN
+// ========================================
 
 /**
- * Campos de notificaciones
- */
-export const USER_NOTIFICATIONS_FIELDS = {
-  notificationsEmailEnabled: 'boolean',
-  notificationsPhoneEnabled: 'boolean',
-  notificationsMatchesEnabled: 'boolean',
-  notificationsEventsEnabled: 'boolean',
-  notificationsLoginEnabled: 'boolean',
-  notificationsPaymentsEnabled: 'boolean'
-}
-
-/**
- * Campos de autenticación OAuth
- */
-export const USER_AUTH_FIELDS = {
-  userAuthProvider: 'string',
-  externalId: 'string',
-  externalAvatarUrl: 'string',
-  lastExternalSync: 'array|string'
-}
-
-/**
- * Campos de gestión de cuenta
- */
-export const USER_ACCOUNT_FIELDS = {
-  accountDeactivated: 'boolean',
-  deactivationDate: 'array|string',
-  deactivationReason: 'string'
-}
-
-/**
- * Formatear datos del formulario para enviar al backend usando la nueva estructura
+ * Formatear datos del formulario para enviar al backend
+ * Convierte estructura plana a estructura organizada por secciones
  */
 export const formatFormDataToApi = formData => {
   if (!formData) return {}
 
-  // Si los datos ya vienen organizados por secciones
+  // Si los datos ya vienen organizados por secciones, retornarlos tal cual
   if (
-    formData.profile ||
+    formData.user ||
     formData.status ||
     formData.metrics ||
     formData.privacy ||
     formData.notifications ||
     formData.auth ||
-    formData.account
+    formData.matches
   ) {
     return formData
   }
@@ -328,12 +511,12 @@ export const formatFormDataToApi = formData => {
   // Si vienen datos planos, organizarlos en la estructura correcta
   const organizedData = {
     status: {},
-    profile: {},
+    user: {},
     metrics: {},
     privacy: {},
     notifications: {},
     auth: {},
-    account: {}
+    matches: {}
   }
 
   Object.keys(formData).forEach(key => {
@@ -347,10 +530,11 @@ export const formatFormDataToApi = formData => {
       organizedData.notifications[key] = formData[key]
     } else if (USER_AUTH_FIELDS[key] !== undefined) {
       organizedData.auth[key] = formData[key]
-    } else if (USER_ACCOUNT_FIELDS[key] !== undefined) {
-      organizedData.account[key] = formData[key]
+    } else if (USER_MATCHES_FIELDS[key] !== undefined) {
+      organizedData.matches[key] = formData[key]
     } else {
-      organizedData.profile[key] = formData[key]
+      // Por defecto, va a user
+      organizedData.user[key] = formData[key]
     }
   })
 
@@ -358,66 +542,70 @@ export const formatFormDataToApi = formData => {
 }
 
 /**
- * Formatear datos para completar perfil - solo campos que espera UserProfileRequestDTO
+ * Campos esperados por UserProfileRequestDTO del backend
+ * Usados para completar/actualizar perfil
+ */
+const PROFILE_COMPLETION_FIELDS = [
+  'name',
+  'lastName',
+  'document',
+  'phone',
+  'phoneCode',
+  'dateOfBirth',
+  'description',
+  'country',
+  'city',
+  'department',
+  'locality',
+  'categoryInterest',
+  'genderId',
+  'maritalStatusId',
+  'height',
+  'eyeColorId',
+  'hairColorId',
+  'bodyTypeId',
+  'educationId',
+  'profession',
+  'tags',
+  'religionId',
+  'spiritualMoments',
+  'spiritualPractices',
+  'sexualRoleId',
+  'relationshipId',
+  'agePreferenceMin',
+  'agePreferenceMax',
+  'locationPreferenceRadius',
+  'allowNotifications',
+  'showAge',
+  'showLocation',
+  'showMeInSearch'
+]
+
+/**
+ * Formatear datos para completar perfil
+ * Extrae solo los campos que espera UserProfileRequestDTO
  */
 export const formatProfileCompletionData = formData => {
   if (!formData) return {}
 
-  // Campos que espera el UserProfileRequestDTO del backend
-  const expectedFields = [
-    'name',
-    'lastName',
-    'document',
-    'phone',
-    'phoneCode',
-    'dateOfBirth',
-    'description',
-    'country',
-    'city',
-    'department',
-    'locality',
-    'categoryInterest',
-    'genderId',
-    'maritalStatusId',
-    'height',
-    'eyeColorId',
-    'hairColorId',
-    'bodyTypeId',
-    'educationId',
-    'profession',
-    'tags',
-    'religionId',
-    'spiritualMoments',
-    'spiritualPractices',
-    'sexualRoleId',
-    'relationshipId',
-    'agePreferenceMin',
-    'agePreferenceMax',
-    'locationPreferenceRadius',
-    'allowNotifications',
-    'showAge',
-    'showLocation',
-    'showMeInSearch'
-  ]
-
   const profileData = {}
 
-  // Si los datos vienen organizados por secciones, extraer de todas las secciones
-  if (formData.profile || formData.privacy || formData.notifications) {
+  // Si los datos vienen organizados por secciones, aplanarlos primero
+  if (formData.user || formData.privacy || formData.notifications) {
     const allData = {
-      ...formData.profile,
+      ...formData.user,
       ...formData.privacy,
       ...formData.notifications
     }
 
-    expectedFields.forEach(field => {
+    PROFILE_COMPLETION_FIELDS.forEach(field => {
       if (allData[field] !== undefined) {
         profileData[field] = allData[field]
       }
     })
   } else {
     // Si los datos vienen planos, extraer directamente
-    expectedFields.forEach(field => {
+    PROFILE_COMPLETION_FIELDS.forEach(field => {
       if (formData[field] !== undefined) {
         profileData[field] = formData[field]
       }
@@ -427,20 +615,17 @@ export const formatProfileCompletionData = formData => {
   return profileData
 }
 
-// ========================================
-// UTILIDADES PARA CREACIÓN DE USUARIO
-// ========================================
-
-import { convertTimestamp } from '@utils/convertTimestamp'
-
 /**
- * Obtener valores por defecto para un usuario específico preservando su estructura
- * Incluye conversión automática de timestamps del backend
+ * Obtener valores por defecto para un usuario específico
+ * Preserva estructura y convierte timestamps del backend
  */
 export const getDefaultValuesForUser = (existingUser = null) => {
-  if (!existingUser) return { ...USER_DEFAULT_VALUES }
+  // Si no hay usuario existente, retornar estructura por defecto
+  if (!existingUser) {
+    return { ...USER_DEFAULT_VALUES }
+  }
 
-  // Convertir timestamps en existingUser antes de procesar
+  // Copiar usuario existente
   const processedUser = { ...existingUser }
 
   // Convertir timestamps en status
@@ -449,7 +634,7 @@ export const getDefaultValuesForUser = (existingUser = null) => {
       ...processedUser.status,
       createdAt: convertTimestamp(processedUser.status.createdAt),
       lastActive: convertTimestamp(processedUser.status.lastActive),
-      attemptsExpiryDate: convertTimestamp(processedUser.status.attemptsExpiryDate)
+      deactivationDate: convertTimestamp(processedUser.status.deactivationDate)
     }
   }
 
@@ -461,22 +646,15 @@ export const getDefaultValuesForUser = (existingUser = null) => {
     }
   }
 
-  // Convertir timestamps en account
-  if (processedUser.account) {
-    processedUser.account = {
-      ...processedUser.account,
-      deactivationDate: convertTimestamp(processedUser.account.deactivationDate)
-    }
-  }
-
+  // Merge con valores por defecto
   return {
     status: {
       ...USER_DEFAULT_VALUES.status,
       ...processedUser.status
     },
-    profile: {
-      ...USER_DEFAULT_VALUES.profile,
-      ...processedUser.profile
+    user: {
+      ...USER_DEFAULT_VALUES.user,
+      ...processedUser.user
     },
     metrics: {
       ...USER_DEFAULT_VALUES.metrics,
@@ -494,13 +672,9 @@ export const getDefaultValuesForUser = (existingUser = null) => {
       ...USER_DEFAULT_VALUES.auth,
       ...processedUser.auth
     },
-    account: {
-      ...USER_DEFAULT_VALUES.account,
-      ...processedUser.account
-    },
-    _metadata: {
-      ...USER_DEFAULT_VALUES._metadata,
-      ...processedUser._metadata
+    matches: {
+      ...USER_DEFAULT_VALUES.matches,
+      ...processedUser.matches
     }
   }
 }

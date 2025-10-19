@@ -5,7 +5,7 @@ import com.feeling.packages.match.domain.dto.FavoriteResponseDTO;
 import com.feeling.packages.match.infrastructure.entities.UserFavorite;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
 import com.feeling.packages.match.infrastructure.repositories.IUserFavoriteRepository;
-import com.feeling.packages.user.domain.dto.profile.response.UserResponseDTO;
+import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.services.UserService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;

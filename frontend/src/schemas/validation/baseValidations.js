@@ -20,11 +20,11 @@ export const baseValidations = {
   // Autenticación y seguridad
   email: yup.string().trim().lowercase().email('Ingresa un email válido').required('El email es requerido'),
 
-  password: yup.string().min(8, 'La contraseña debe tener al menos 8 caracteres').required('La contraseña es requerida'),
+  password: yup.string().min(6, 'La contraseña debe tener al menos 6 caracteres').required('La contraseña es requerida'),
 
   strongPassword: yup
     .string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .min(6, 'La contraseña debe tener al menos 6 caracteres')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'La contraseña debe contener al menos una mayúscula, una minúscula y un número')
     .required('La contraseña es requerida'),
 
@@ -34,6 +34,7 @@ export const baseValidations = {
     .trim()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(50, 'El nombre no puede tener más de 50 caracteres')
+    .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El nombre solo puede contener letras')
     .required('El nombre es requerido'),
 
   lastName: yup
@@ -41,13 +42,19 @@ export const baseValidations = {
     .trim()
     .min(2, 'El apellido debe tener al menos 2 caracteres')
     .max(50, 'El apellido no puede tener más de 50 caracteres')
+    .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, 'El apellido solo puede contener letras')
     .required('El apellido es requerido'),
 
-  document: yup.string().min(7, 'El documento debe tener al menos 7 caracteres').required('El documento es requerido'),
+  document: yup
+    .string()
+    .min(7, 'El documento debe tener al menos 7 caracteres')
+    .max(20, 'El documento no puede tener más de 20 caracteres')
+    .required('El documento es requerido'),
 
   phone: yup
     .string()
-    .min(10, 'El teléfono debe tener al menos 10 dígitos')
+    .min(7, 'El teléfono debe tener al menos 7 dígitos')
+    .max(15, 'El teléfono no puede tener más de 15 dígitos')
     .matches(/^[0-9]+$/, 'El teléfono solo debe contener números')
     .required('El teléfono es requerido'),
 
@@ -96,8 +103,10 @@ export const baseValidations = {
 
   height: yup
     .number()
+    .typeError('La estatura debe ser un número')
     .min(140, 'La estatura mínima es 140 cm')
     .max(220, 'La estatura máxima es 220 cm')
+    .integer('La estatura debe ser un número entero')
     .required('La estatura es requerida'),
 
   tags: yup.array().min(1, 'Agrega al menos un interés').max(10, 'Máximo 10 intereses'),
@@ -105,11 +114,20 @@ export const baseValidations = {
   categoryInterest: yup.string().required('Selecciona una categoría'),
 
   // Preferencias
-  agePreferenceMin: yup.number().min(18, 'La edad mínima debe ser 18 años').required('Define la edad mínima'),
+  agePreferenceMin: yup
+    .number()
+    .typeError('La edad mínima debe ser un número')
+    .min(18, 'La edad mínima debe ser 18 años')
+    .max(80, 'La edad mínima no puede ser mayor a 80 años')
+    .integer('La edad debe ser un número entero')
+    .required('Define la edad mínima'),
 
   agePreferenceMax: yup
     .number()
+    .typeError('La edad máxima debe ser un número')
+    .min(18, 'La edad máxima debe ser al menos 18 años')
     .max(80, 'La edad máxima no puede ser mayor a 80 años')
+    .integer('La edad debe ser un número entero')
     .test('min-max', 'La edad máxima debe ser mayor a la mínima', function (value) {
       const { agePreferenceMin } = this.parent
 
@@ -119,8 +137,10 @@ export const baseValidations = {
 
   locationPreferenceRadius: yup
     .number()
+    .typeError('El radio de búsqueda debe ser un número')
     .min(5, 'El radio mínimo es 5 km')
     .max(200, 'El radio máximo es 200 km')
+    .integer('El radio debe ser un número entero')
     .required('Define el radio de búsqueda'),
 
   // Códigos y verificación
@@ -216,31 +236,55 @@ export const fileValidations = {
     .mixed()
     .test('fileSize', 'La imagen no puede exceder 5MB', value => {
       if (!value) return true
+      // Si es una URL (string), no validar tamaño
+      if (typeof value === 'string') return true
 
       return value.size <= 5 * 1024 * 1024 // 5MB
     })
     .test('fileType', 'Solo se permiten imágenes JPG, PNG o WEBP', value => {
       if (!value) return true
+      // Si es una URL (string), no validar tipo
+      if (typeof value === 'string') return true
 
       return ['image/jpeg', 'image/png', 'image/webp'].includes(value.type)
     }),
 
-  multipleImages: yup.array().of(yup.mixed()).min(1, 'Debes subir al menos una imagen').max(6, 'Máximo 6 imágenes permitidas')
+  multipleImages: yup
+    .array()
+    .of(yup.mixed())
+    .min(1, 'Debes subir al menos una imagen')
+    .max(6, 'Máximo 6 imágenes permitidas')
+    .test('images-valid', 'Todas las imágenes deben ser válidas', function (value) {
+      if (!value || value.length === 0) return false
+      // Verificar que al menos hay una imagen válida (no null/undefined)
+      const validImages = value.filter(img => img != null && img !== '')
+
+      return validImages.length >= 1 && validImages.length <= 6
+    })
 }
 
 /**
  * Validaciones para campos opcionales con formato específico
  */
 export const optionalValidations = {
-  profession: yup.string().max(100, 'La profesión no puede exceder 100 caracteres'),
+  profession: yup.string().max(100, 'La profesión no puede exceder 100 caracteres').trim(),
 
   socialMedia: yup.string().url('Ingresa una URL válida'),
 
   website: yup.string().url('Ingresa una URL válida'),
 
-  phoneCode: yup.string().required('Selecciona el código de país'),
+  phoneCode: yup
+    .string()
+    .matches(/^\+\d{1,4}$/, 'El código de país debe tener formato +XX')
+    .required('Selecciona el código de país'),
 
-  department: yup.string().max(50, 'El departamento no puede exceder 50 caracteres'),
+  department: yup.string().max(50, 'El departamento no puede exceder 50 caracteres').trim(),
 
-  locality: yup.string().max(50, 'La localidad no puede exceder 50 caracteres')
+  locality: yup.string().max(50, 'La localidad no puede exceder 50 caracteres').trim(),
+
+  churchName: yup.string().max(100, 'El nombre de la iglesia no puede exceder 100 caracteres').trim(),
+
+  spiritualMoments: yup.string().max(500, 'Los momentos espirituales no pueden superar los 500 caracteres').trim(),
+
+  spiritualPractices: yup.string().max(500, 'Las prácticas espirituales no pueden superar los 500 caracteres').trim()
 }

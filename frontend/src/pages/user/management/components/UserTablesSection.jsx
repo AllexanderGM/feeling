@@ -187,9 +187,9 @@ const UserTablesSection = memo(() => {
   const handleOpenEditModal = useCallback(user => {
     setSelectedUser({
       id: user.id,
-      name: user.profile?.name || '',
-      lastName: user.profile?.lastName || '',
-      email: user.profile?.email,
+      name: user.user?.name || '',
+      lastName: user.user?.lastName || '',
+      email: user.user?.email,
       role: user.status?.role
     })
     setIsEditModalOpen(true)
@@ -300,17 +300,14 @@ const UserTablesSection = memo(() => {
         case 'user':
         case 'name':
           const hasImage =
-            user.profile?.mainImage ||
-            user.profile?.image ||
-            (user.profile?.images && user.profile.images[0]) ||
-            user.auth?.externalAvatarUrl
-          const isCurrentUser = user.profile?.email === currentUser?.email
+            user.user?.mainImage || user.user?.image || (user.user?.images && user.user.images[0]) || user.auth?.externalAvatarUrl
+          const isCurrentUser = user.user?.email === currentUser?.email
 
           return (
             <div className='flex items-center gap-3'>
               {hasImage ? (
                 <Avatar
-                  alt={`${user.profile?.name || 'Usuario'}`}
+                  alt={`${user.user?.name || 'Usuario'}`}
                   className='w-10 h-10'
                   radius='lg'
                   src={hasImage}
@@ -324,7 +321,7 @@ const UserTablesSection = memo(() => {
               <div className='flex flex-col'>
                 <div className='flex items-center gap-2'>
                   <p className='text-sm font-semibold text-foreground'>
-                    {`${user.profile?.name || 'Usuario'} ${user.profile?.lastName || ''}`.trim()}
+                    {`${user.user?.name || 'Usuario'} ${user.user?.lastName || ''}`.trim()}
                   </p>
                   {isCurrentUser && (
                     <Chip color='primary' size='sm' variant='flat'>
@@ -332,12 +329,12 @@ const UserTablesSection = memo(() => {
                     </Chip>
                   )}
                 </div>
-                <p className='text-xs text-default-500'>{user.profile?.email}</p>
+                <p className='text-xs text-default-500'>{user.user?.email}</p>
               </div>
             </div>
           )
         case 'age':
-          const age = calculateAge(user.profile?.dateOfBirth || user.profile?.birthDate)
+          const age = calculateAge(user.user?.dateOfBirth || user.user?.birthDate)
 
           return (
             <div className='flex flex-col items-center'>
@@ -348,15 +345,15 @@ const UserTablesSection = memo(() => {
         case 'location':
           return (
             <div className='flex flex-col'>
-              <p className='text-bold text-sm'>{user.profile?.country || 'No especificado'}</p>
-              <p className='text-bold text-sm text-default-400'>{user.profile?.city || ''}</p>
-              {user.profile?.locality && <p className='text-sm text-default-400'>{user.profile.locality}</p>}
+              <p className='text-bold text-sm'>{user.user?.country || 'No especificado'}</p>
+              <p className='text-bold text-sm text-default-400'>{user.user?.city || ''}</p>
+              {user.user?.locality && <p className='text-sm text-default-400'>{user.user.locality}</p>}
             </div>
           )
         case 'categoryInterest':
           return (
-            <Chip className='capitalize' color={USER_INTEREST_COLORS[user.profile?.categoryInterest] || 'default'} size='sm' variant='flat'>
-              {user.profile?.categoryInterest || 'No especificado'}
+            <Chip className='capitalize' color={USER_INTEREST_COLORS[user.user?.categoryInterest] || 'default'} size='sm' variant='flat'>
+              {user.user?.categoryInterest || 'No especificado'}
             </Chip>
           )
         case 'matches':
@@ -455,7 +452,7 @@ const UserTablesSection = memo(() => {
           return (
             <div className='flex flex-col'>
               <p className='text-sm font-semibold text-foreground'>
-                {user.profile?.phone ? `${user.profile.phoneCode || ''} ${user.profile.phone}`.trim() : 'No especificado'}
+                {user.user?.phone ? `${user.user.phoneCode || ''} ${user.user.phone}`.trim() : 'No especificado'}
               </p>
             </div>
           )
@@ -480,7 +477,7 @@ const UserTablesSection = memo(() => {
   // Función para obtener acciones según el tipo de usuario (usando acciones predefinidas)
   const getActionsForUserType = useCallback(
     (userType, user) => {
-      const isCurrentUser = user.profile?.email === currentUser?.email
+      const isCurrentUser = user.user?.email === currentUser?.email
 
       if (isCurrentUser) {
         return [
@@ -758,7 +755,7 @@ const UserTablesSection = memo(() => {
           data={currentUsers || []}
           emptyMessage={`No hay usuarios ${userType} para mostrar.`}
           enableSelection={false}
-          getItemKey={(item, index) => `user-${item.status?.id || item.id || item.profile?.email || index}`}
+          getItemKey={(item, index) => `user-${item.user?.id || item.id || item.user?.email || index}`}
           loading={tableLoading[userType] || loading}
           loadingMessage='Cargando usuarios...'
           pagination={localPagination}

@@ -1,6 +1,6 @@
 package com.feeling.packages.user.domain.services;
 
-import com.feeling.packages.user.domain.dto.profile.request.UserRequestDTO;
+import com.feeling.packages.user.domain.dto.user.UserRequestDTO;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserCategoryInterestRepository;

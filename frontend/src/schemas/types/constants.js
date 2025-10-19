@@ -1,8 +1,19 @@
 /**
  * CONSTANTES Y ENUMS DE LA APLICACIÓN
  *
- * Define todos los valores constantes utilizados en la aplicación,
- * organizados por categorías para fácil mantenimiento.
+ * Define todos los valores constantes y enumeraciones utilizados en la aplicación.
+ * Este archivo contiene ÚNICAMENTE enums y constantes globales, NO lógica.
+ *
+ * RESPONSABILIDAD:
+ * - Definir enums (roles, estados, categorías, etc.)
+ * - Definir constantes de configuración
+ * - Definir constantes de UI
+ *
+ * NO INCLUYE:
+ * - Límites de validación (ver validation/validationConstants.js)
+ * - Mensajes de error (ver validation/validationConstants.js)
+ * - Regex patterns (ver validation/validationConstants.js)
+ * - Endpoints de API (deben estar en servicios)
  */
 
 // ========================================
@@ -26,7 +37,7 @@ export const AUTH_PROVIDERS = {
 }
 
 // ========================================
-// CONSTANTES DE ESTADO
+// ENUMS DE ESTADO
 // ========================================
 
 export const USER_STATUS = {
@@ -46,36 +57,6 @@ export const VERIFICATION_STATUS = {
   EXPIRED: 'expired',
   FAILED: 'failed'
 }
-
-// ========================================
-// CONSTANTES DE VALIDACIÓN
-// ========================================
-
-export const VALIDATION_LIMITS = {
-  PASSWORD_MIN_LENGTH: 8,
-  NAME_MIN_LENGTH: 2,
-  NAME_MAX_LENGTH: 50,
-  DESCRIPTION_MIN_LENGTH: 10,
-  DESCRIPTION_MAX_LENGTH: 500,
-  TAGS_MIN: 1,
-  TAGS_MAX: 10,
-  IMAGES_MIN: 1,
-  IMAGES_MAX: 6,
-  HEIGHT_MIN: 140,
-  HEIGHT_MAX: 220,
-  AGE_MIN: 18,
-  AGE_MAX: 80,
-  RADIUS_MIN: 5,
-  RADIUS_MAX: 200,
-  VERIFICATION_CODE_LENGTH: 6,
-  FILE_SIZE_MAX: 5 * 1024 * 1024, // 5MB
-  PHONE_MIN_LENGTH: 10,
-  DOCUMENT_MIN_LENGTH: 7
-}
-
-export const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
 // ========================================
 // CONSTANTES DE CONFIGURACIÓN
@@ -101,26 +82,8 @@ export const STEP_NAMES = {
 }
 
 // ========================================
-// CONSTANTES DE API
+// ENUMS DE HTTP
 // ========================================
-
-export const API_ENDPOINTS = {
-  AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    REFRESH: '/auth/refresh',
-    VERIFY_EMAIL: '/auth/verify-email',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
-    LOGOUT: '/auth/logout'
-  },
-  USER: {
-    PROFILE: '/user/profile',
-    UPDATE: '/user/update',
-    UPLOAD_IMAGE: '/user/upload-image',
-    DELETE_IMAGE: '/user/delete-image'
-  }
-}
 
 export const HTTP_STATUS = {
   OK: 200,
@@ -181,20 +144,7 @@ export const INPUT_TYPES = {
 }
 
 // ========================================
-// REGEX PATTERNS
-// ========================================
-
-export const REGEX_PATTERNS = {
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE: /^[0-9]+$/,
-  STRONG_PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-  ONLY_LETTERS: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/,
-  ONLY_NUMBERS: /^[0-9]+$/,
-  ALPHANUMERIC: /^[a-zA-Z0-9]+$/
-}
-
-// ========================================
-// ENUMS Y CONSTANTES DE EVENTOS
+// ENUMS DE EVENTOS
 // ========================================
 
 export const EVENT_CATEGORIES = {
@@ -210,6 +160,23 @@ export const EVENT_CATEGORY_LABELS = {
   MUSICAL: 'Musical',
   SOCIAL: 'Social'
 }
+
+export const EVENT_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed'
+}
+
+export const EVENT_AVAILABILITY = {
+  AVAILABLE: 'available',
+  FULL: 'full',
+  ALL: 'all'
+}
+
+// ========================================
+// ENUMS DE PAGOS
+// ========================================
 
 export const PAYMENT_STATUS = {
   PENDING: 'PENDING',
@@ -228,44 +195,6 @@ export const PAYMENT_STATUS_LABELS = {
 export const SUPPORTED_CURRENCIES = {
   COP: 'COP',
   USD: 'USD'
-}
-
-// ========================================
-// CONSTANTES DE VALIDACIÓN PARA EVENTOS
-// ========================================
-
-export const EVENT_VALIDATION_LIMITS = {
-  TITLE_MIN_LENGTH: 5,
-  TITLE_MAX_LENGTH: 200,
-  DESCRIPTION_MIN_LENGTH: 20,
-  DESCRIPTION_MAX_LENGTH: 2000,
-  MAX_CAPACITY_MIN: 1,
-  MAX_CAPACITY_MAX: 10000,
-  PRICE_MIN: 0,
-  PRICE_MAX: 10000000,
-  SEARCH_QUERY_MIN: 2,
-  SEARCH_QUERY_MAX: 100,
-  CANCELLATION_REASON_MIN: 10,
-  CANCELLATION_REASON_MAX: 500,
-  FUTURE_YEARS_LIMIT: 2,
-  CANCELLATION_HOURS_BEFORE: 1
-}
-
-// ========================================
-// CONSTANTES DE ESTADO DE EVENTOS
-// ========================================
-
-export const EVENT_STATUS = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-  CANCELLED: 'cancelled',
-  COMPLETED: 'completed'
-}
-
-export const EVENT_AVAILABILITY = {
-  AVAILABLE: 'available',
-  FULL: 'full',
-  ALL: 'all'
 }
 
 // ========================================
@@ -294,35 +223,4 @@ export const EVENT_FILTER_DEFAULTS = {
   PRICE_RANGE: { min: 0, max: 1000000 },
   DATE_RANGE: { start: null, end: null },
   AVAILABILITY: 'all'
-}
-
-// ========================================
-// MENSAJES DE ERROR COMUNES
-// ========================================
-
-export const ERROR_MESSAGES = {
-  REQUIRED: 'Este campo es requerido',
-  INVALID_EMAIL: 'Ingresa un email válido',
-  PASSWORD_TOO_SHORT: 'La contraseña debe tener al menos 8 caracteres',
-  PASSWORDS_NOT_MATCH: 'Las contraseñas no coinciden',
-  INVALID_PHONE: 'El teléfono solo debe contener números',
-  INVALID_DATE: 'Ingresa una fecha válida',
-  AGE_RESTRICTION: 'Debes ser mayor de 18 años',
-  FILE_TOO_LARGE: 'El archivo es demasiado grande',
-  INVALID_FILE_TYPE: 'Tipo de archivo no válido',
-  NETWORK_ERROR: 'Error de conexión. Intenta de nuevo.',
-  SERVER_ERROR: 'Error del servidor. Intenta más tarde.',
-  UNAUTHORIZED: 'No tienes permisos para realizar esta acción',
-  SESSION_EXPIRED: 'Tu sesión ha expirado. Inicia sesión de nuevo.',
-
-  // Mensajes específicos de eventos
-  EVENT_NOT_FOUND: 'Evento no encontrado',
-  EVENT_FULL: 'El evento está lleno',
-  EVENT_INACTIVE: 'El evento no está activo',
-  EVENT_PAST: 'El evento ya pasó',
-  ALREADY_REGISTERED: 'Ya estás registrado en este evento',
-  REGISTRATION_CLOSED: 'Las inscripciones están cerradas',
-  PAYMENT_FAILED: 'Error en el procesamiento del pago',
-  CANCELLATION_NOT_ALLOWED: 'No se puede cancelar el registro',
-  INVALID_CAPACITY: 'La capacidad no puede ser menor a los asistentes actuales'
 }

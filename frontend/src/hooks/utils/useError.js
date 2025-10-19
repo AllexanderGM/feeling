@@ -210,7 +210,14 @@ export const useError = (authContext = null) => {
       const { showNotifications = true } = options
 
       try {
-        // Si llegamos aquí, la operación fue exitosa
+        // Verificar si el resultado tiene un campo 'success' = false (error manejado)
+        // Si result.success === false, significa que hubo un error y ya fue manejado por withSubmitting/withLoading
+        if (result && typeof result === 'object' && result.success === false) {
+          // Ya se manejó el error en withSubmitting/withLoading, no mostrar success
+          return result
+        }
+
+        // Si llegamos aquí y no hay errores, la operación fue exitosa
         if (showNotifications && successMessage) {
           handleSuccess(successMessage)
         }

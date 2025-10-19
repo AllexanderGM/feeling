@@ -1,18 +1,13 @@
-import { useState, useCallback, useMemo, memo } from 'react'
+import { useState, useCallback, useMemo, memo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Divider } from '@heroui/react'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
+import { Divider } from '@heroui/react'
 import { Logger } from '@utils/logger.js'
-// Hooks
-import { useAuth, useLocation, useUser, useUserAttributes, useUserTags, useUserInterests } from '@hooks'
-//Components
+import { useAuth, useLocation, useUserAttributes, useUserTags, useUserInterests, useLocalStorage } from '@hooks'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LoadData from '@components/layout/LoadData.jsx'
-// Utils
-import { completeProfileSchema, getFieldsForStep, getDefaultValuesForStep } from '@schemas'
+import { getUserName, getUserEmail, getUserId, getUserCountry, getUserCity } from '@schemas'
 import { APP_PATHS } from '@constants/paths.js'
-import { ArrowLeft, Check, ArrowRight } from 'lucide-react'
+import { STORAGE_KEYS, makeUserSpecificKey } from '@constants/cookieKeys.js'
 
 import StepBasicInfo from './components/StepBasicInfo.jsx'
 import StepPreferences from './components/StepPreferences.jsx'
@@ -23,88 +18,62 @@ const TOTAL_STEPS = 4
 
 const ProfileComplete = () => {
   const navigate = useNavigate()
-
-  // Hooks básicos
+  const storage = useLocalStorage()
   const { user, loading: authLoading } = useAuth()
-  const { submitting, updateCurrentProfile } = useUser()
 
-  // Estado para el paso actual
-  const [currentStep, setCurrentStep] = useState(1)
+  const [currentStep, setCurrentStep] = useState(() => {
+    const userId = getUserId(user)
+    const key = makeUserSpecificKey(STORAGE_KEYS.PROFILE_COMPLETION_DRAFT, userId)
+    const saved = storage.get(key)
 
-  // Configuración de ubicación memoizada
+    return saved?.currentStep || 1
+  })
+
+  const STORAGE_KEY = useMemo(() => {
+    const userId = getUserId(user)
+
+    return makeUserSpecificKey(STORAGE_KEYS.PROFILE_COMPLETION_DRAFT, userId)
+  }, [user])
+
+  // Configuración inicial de ubicación
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: user?.country || 'Colombia',
-      defaultCity: user?.city || 'Bogotá'
+      defaultCountry: getUserCountry(user) || 'Colombia',
+      defaultCity: getUserCity(user) || 'Bogotá'
     }),
-    [user?.country, user?.city]
+    [user]
   )
 
-  // Hooks de datos
   const location = useLocation(locationConfig)
   const userAttributes = useUserAttributes()
   const userTags = useUserTags()
   const userInterests = useUserInterests()
 
-  // Valores por defecto del formulario usando esquema centralizado
-  const defaultValues = useMemo(() => {
-    // Obtener valores por defecto para todos los pasos, no solo el actual
-    const allDefaultValues = {}
-
-    for (let step = 1; step <= TOTAL_STEPS; step++) {
-      const stepValues = getDefaultValuesForStep(step, user)
-
-      Object.assign(allDefaultValues, stepValues)
+  useEffect(() => {
+    const progressData = {
+      currentStep,
+      lastUpdated: new Date().toISOString()
     }
 
-    return allDefaultValues
-  }, [user])
+    storage.set(STORAGE_KEY, progressData)
+  }, [currentStep, STORAGE_KEY, storage])
 
-  // React Hook Form
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isValid },
-    trigger,
-    watch,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(completeProfileSchema),
-    defaultValues,
-    mode: 'onChange'
-  })
+  const handleNextStep = useCallback(() => {
+    setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
-  // Datos de hooks estables - SIMPLIFICADO
-  const hookData = useMemo(
-    () => ({
-      location,
-      userAttributes,
-      userTags,
-      userInterests
-    }),
-    [location, userAttributes, userTags, userInterests]
-  )
+  const handlePrevStep = useCallback(() => {
+    setCurrentStep(prev => Math.max(prev - 1, 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
 
-  // Funciones del formulario estables
-  const formMethods = useMemo(
-    () => ({
-      control,
-      watch,
-      getValues,
-      setValue,
-      setError,
-      clearErrors,
-      trigger,
-      reset
-    }),
-    [control, watch, getValues, setValue, setError, clearErrors, trigger, reset]
-  )
+  const handleFinalComplete = useCallback(() => {
+    storage.remove(STORAGE_KEY)
+    navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
+    Logger.info(Logger.CATEGORIES.UI, 'completar perfil', 'Perfil completado correctamente')
+  }, [navigate, storage, STORAGE_KEY])
 
-  // Información del paso actual
   const stepInfo = useMemo(() => {
     const progress = Math.round((currentStep / TOTAL_STEPS) * 100)
 
@@ -117,144 +86,60 @@ const ProfileComplete = () => {
     }
   }, [currentStep])
 
-  // Funciones de navegación
-  const stepActions = useMemo(
-    () => ({
-      validateCurrentStep: async () => {
-        const fieldsToValidate = getFieldsForStep(currentStep)
+  const isLoading = authLoading || location.loading || userAttributes.loading || userTags.loading || userInterests.loading
 
-        if (fieldsToValidate.length === 0) return true
-
-        return await formMethods.trigger(fieldsToValidate)
-      },
-
-      nextStep: async () => {
-        const fieldsToValidate = getFieldsForStep(currentStep)
-        const isValid = fieldsToValidate.length === 0 || (await formMethods.trigger(fieldsToValidate))
-
-        if (isValid && currentStep < TOTAL_STEPS) {
-          setCurrentStep(prev => prev + 1)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-        }
-      },
-
-      prevStep: () => {
-        if (currentStep > 1) {
-          setCurrentStep(prev => prev - 1)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-        }
-      },
-
-      onSubmit: async data => {
-        try {
-          // Extraer images del data y pasarlo como parámetro separado
-          const { images, ...profileData } = data
-
-          const result = await updateCurrentProfile(profileData, images)
-
-          if (result.success) {
-            navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
-          } else {
-            // Manejar errores específicos
-            if (result.status === 500) {
-              Logger.error(
-                Logger.CATEGORIES.SERVICE,
-                'completar perfil',
-                'Error del servidor al actualizar perfil. Revisa los logs del backend.',
-                {
-                  context: {
-                    endpoint: '/user',
-                    method: 'PATCH',
-                    hasImages: images?.length > 0,
-                    profileDataKeys: Object.keys(profileData)
-                  }
-                }
-              )
-            } else if (result.status === 404) {
-              Logger.error(
-                Logger.CATEGORIES.SERVICE,
-                'completar perfil',
-                'El endpoint PATCH /user no está disponible. Verifica que el backend esté ejecutándose correctamente.'
-              )
-            }
-          }
-        } catch (error) {
-          // El error ya fue manejado por useAsyncOperation y mostrado al usuario
-          // Solo logueamos detalles adicionales si es necesario
-          Logger.debug(Logger.CATEGORIES.UI, 'error al completar perfil', 'Catch block ejecutado', {
-            context: { errorType: error?.errorType, errorMessage: error?.message }
-          })
-        }
-      }
-    }),
-    [currentStep, formMethods, updateCurrentProfile, navigate]
-  )
-
-  // Renderizado del contenido del paso con props unificados
-  const renderStepContent = useMemo(() => {
-    const baseProps = {
-      user,
-      errors,
-      ...formMethods
-    }
+  const stepContent = useMemo(() => {
+    if (isLoading) return null
+    if (!user) return null
+    if (location.error || userAttributes.error || userTags.error || userInterests.error) return null
 
     switch (currentStep) {
       case 1:
-        return <StepBasicInfo {...baseProps} locationData={hookData.location} />
+        return <StepBasicInfo isFirstStep locationData={location} user={user} onStepComplete={handleNextStep} />
       case 2:
-        return <StepCharacteristics {...baseProps} userAttributes={hookData.userAttributes} userTags={hookData.userTags} />
+        return (
+          <StepCharacteristics
+            user={user}
+            userAttributes={userAttributes}
+            userTags={userTags}
+            onStepBack={handlePrevStep}
+            onStepComplete={handleNextStep}
+          />
+        )
       case 3:
         return (
           <StepPreferences
-            {...baseProps}
-            attributesLoading={hookData.userAttributes.loading}
-            categoriesError={hookData.userInterests.error}
-            categoriesLoading={hookData.userInterests.loading}
-            categoryOptions={hookData.userInterests.interestOptions}
-            churchOptions={hookData.userAttributes.churchOptions}
-            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
-            religionOptions={hookData.userAttributes.religionOptions}
-            sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
+            categoryOptions={userInterests.interestOptions || []}
+            churchOptions={userAttributes.churchOptions || []}
+            relationshipTypeOptions={userAttributes.relationshipTypeOptions || []}
+            religionOptions={userAttributes.religionOptions || []}
+            sexualRoleOptions={userAttributes.sexualRoleOptions || []}
+            user={user}
+            onStepBack={handlePrevStep}
+            onStepComplete={handleNextStep}
           />
         )
       case 4:
-        return (
-          <StepConfiguration
-            {...baseProps}
-            categoryOptions={hookData.userInterests.interestOptions}
-            userAttributes={hookData.userAttributes}
-          />
-        )
+        return <StepConfiguration isLastStep user={user} onStepBack={handlePrevStep} onStepComplete={handleFinalComplete} />
       default:
         return null
     }
-  }, [currentStep, hookData, errors, formMethods, user])
-
-  // Handler para submit final
-  const handleFinalSubmit = useCallback(() => {
-    handleSubmit(stepActions.onSubmit)()
-  }, [handleSubmit, stepActions.onSubmit])
-
-  // Estados de carga y error
-  const isLoading =
-    authLoading ||
-    hookData.location.loading ||
-    hookData.userAttributes.loading ||
-    hookData.userTags.loading ||
-    hookData.userInterests.loading
+  }, [currentStep, user, location, userAttributes, userTags, userInterests, handleNextStep, handlePrevStep, handleFinalComplete, isLoading])
 
   if (isLoading) return <LoadData>Cargando datos...</LoadData>
 
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
-  if (hookData.location.error) return <LoadDataError>Error al cargar datos geográficos</LoadDataError>
-  if (hookData.userAttributes.error) return <LoadDataError>Error al cargar atributos del usuario</LoadDataError>
-  if (hookData.userTags.error) return <LoadDataError>Error al cargar tags populares</LoadDataError>
-  if (hookData.userInterests.error) return <LoadDataError>Error al cargar intereses de usuario</LoadDataError>
+  if (location.error) return <LoadDataError>Error al cargar datos geográficos</LoadDataError>
+  if (userAttributes.error) return <LoadDataError>Error al cargar atributos del usuario</LoadDataError>
+  if (userTags.error) return <LoadDataError>Error al cargar tags populares</LoadDataError>
+  if (userInterests.error) return <LoadDataError>Error al cargar intereses de usuario</LoadDataError>
+
+  const userName = getUserName(user)
+  const userEmail = getUserEmail(user)
 
   return (
     <main className='flex-1 flex flex-col items-center max-w-3xl mx-auto w-full'>
       <div className='w-full space-y-6'>
-        {/* Indicador de progreso */}
         <div className='mb-8'>
           <div className='flex justify-between items-center mb-2'>
             <span className='text-sm text-gray-400'>
@@ -271,59 +156,28 @@ const ProfileComplete = () => {
           </div>
         </div>
 
-        {/* Header */}
         <header className='text-center'>
-          <p className='text-gray-300'>Hola {user?.profile?.name}, ayúdanos a conocerte mejor</p>
+          <p className='text-gray-300'>Hola {userName}, ayúdanos a conocerte mejor</p>
           <p className='text-gray-400 text-xs'>
-            Usuario asociado al correo: <span className='font-bold'>{user?.profile?.email}</span>
+            Usuario asociado al correo: <span className='font-bold'>{userEmail}</span>
           </p>
         </header>
 
         <Divider />
 
-        {/* Contenido del paso */}
-        <div className='min-h-[400px]'>{renderStepContent}</div>
+        <div className='min-h-[400px]'>{stepContent}</div>
 
         <Divider />
 
-        {/* Navegación */}
-        <div className='flex justify-between items-center'>
-          <Button
-            isDisabled={stepInfo.isFirst}
-            radius='full'
-            startContent={<ArrowLeft />}
-            variant='bordered'
-            onPress={stepActions.prevStep}>
-            Anterior
-          </Button>
-
-          {/* Indicador de pasos */}
-          <div className='flex gap-2'>
-            {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-              <div
-                key={i}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  i + 1 === stepInfo.current ? 'bg-primary-500 scale-125' : i + 1 < stepInfo.current ? 'bg-primary-400' : 'bg-gray-600'
-                }`}
-              />
-            ))}
-          </div>
-
-          {stepInfo.isLast ? (
-            <Button
-              color='primary'
-              endContent={!submitting && <Check />}
-              isDisabled={!isValid && import.meta.env.MODE === 'production'}
-              isLoading={submitting}
-              radius='full'
-              onPress={handleFinalSubmit}>
-              {submitting ? 'Completando...' : 'Completar'}
-            </Button>
-          ) : (
-            <Button color='default' endContent={<ArrowRight />} radius='full' onPress={stepActions.nextStep}>
-              Siguiente
-            </Button>
-          )}
+        <div className='flex justify-center gap-2'>
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+            <div
+              key={i}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                i + 1 === stepInfo.current ? 'bg-primary-500 scale-125' : i + 1 < stepInfo.current ? 'bg-primary-400' : 'bg-gray-600'
+              }`}
+            />
+          ))}
         </div>
       </div>
     </main>

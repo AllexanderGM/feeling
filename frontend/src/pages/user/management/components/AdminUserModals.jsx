@@ -123,7 +123,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onRejectUser(selectedUser.status?.id || selectedUser.id, genericModerationReason)
+        await onRejectUser(selectedUser.user?.id || selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleRejectUser', 'Error rejecting user', error)
@@ -134,7 +134,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onDeactivateUser(selectedUser.status?.id || selectedUser.id, genericModerationReason)
+        await onDeactivateUser(selectedUser.user?.id || selectedUser.id, genericModerationReason)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleDeactivateUser', 'Error deactivating user', error)
@@ -145,7 +145,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onApproveUser(selectedUser.status?.id || selectedUser.id)
+        await onApproveUser(selectedUser.user?.id || selectedUser.id)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleApproveUser', 'Error approving user', error)
@@ -156,7 +156,7 @@ const AdminUserModals = memo(
       if (!selectedUser) return
 
       try {
-        await onReactivateUser(selectedUser.status?.id || selectedUser.id)
+        await onReactivateUser(selectedUser.user?.id || selectedUser.id)
         handleCloseModals()
       } catch (error) {
         Logger.error('AdminUserModals', 'handleReactivateUser', 'Error reactivating user', error)
@@ -188,7 +188,7 @@ const AdminUserModals = memo(
                 </div>
                 <div>
                   <h3 className='text-xl font-semibold text-gray-200'>
-                    Perfil de {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                    Perfil de {selectedUser.user?.name} {selectedUser.user?.lastName}
                   </h3>
                   <p className='text-sm text-gray-400'>Vista completa para administrador</p>
                 </div>
@@ -202,7 +202,7 @@ const AdminUserModals = memo(
                     <Avatar
                       className='w-16 h-16'
                       icon={<UserIcon className='w-8 h-8 text-default-500' />}
-                      src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                      src={selectedUser.user?.mainImage || selectedUser.user?.image}
                     />
                     <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                       {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
@@ -210,28 +210,28 @@ const AdminUserModals = memo(
                   </div>
                   <div className='flex-1'>
                     <h4 className='text-lg font-semibold text-white mb-3'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </h4>
                     <div className='grid grid-cols-2 gap-3 text-sm'>
                       <div>
                         <p className='text-xs font-medium text-gray-400'>Email</p>
-                        <p className='text-gray-200'>{selectedUser.profile?.email}</p>
+                        <p className='text-gray-200'>{selectedUser.user?.email}</p>
                       </div>
                       <div>
                         <p className='text-xs font-medium text-gray-400'>Documento</p>
-                        <p className='text-gray-200'>{selectedUser.profile?.document || 'No especificado'}</p>
+                        <p className='text-gray-200'>{selectedUser.user?.document || 'No especificado'}</p>
                       </div>
                       <div>
                         <p className='text-xs font-medium text-gray-400'>Teléfono</p>
                         <p className='text-gray-200'>
-                          {selectedUser.profile?.phone
-                            ? `${selectedUser.profile.phoneCode || ''} ${selectedUser.profile.phone}`.trim()
+                          {selectedUser.user?.phone
+                            ? `${selectedUser.user.phoneCode || ''} ${selectedUser.user.phone}`.trim()
                             : 'No especificado'}
                         </p>
                       </div>
                       <div>
                         <p className='text-xs font-medium text-gray-400'>Edad</p>
-                        <p className='text-gray-200'>{calculateAge(selectedUser.profile?.dateOfBirth)} años</p>
+                        <p className='text-gray-200'>{calculateAge(selectedUser.user?.dateOfBirth)} años</p>
                       </div>
                     </div>
                   </div>
@@ -277,16 +277,16 @@ const AdminUserModals = memo(
                   <div className='space-y-2 text-sm'>
                     <div>
                       <p className='text-xs text-gray-400'>País</p>
-                      <p className='text-gray-200'>{selectedUser.profile?.country || 'No especificado'}</p>
+                      <p className='text-gray-200'>{selectedUser.user?.country || 'No especificado'}</p>
                     </div>
                     <div>
                       <p className='text-xs text-gray-400'>Ciudad</p>
-                      <p className='text-gray-200'>{selectedUser.profile?.city || 'No especificado'}</p>
+                      <p className='text-gray-200'>{selectedUser.user?.city || 'No especificado'}</p>
                     </div>
                     <div>
                       <p className='text-xs text-gray-400'>Categoría de Interés</p>
-                      <Chip color={USER_INTEREST_COLORS[selectedUser.profile?.categoryInterest] || 'default'} size='sm' variant='flat'>
-                        {selectedUser.profile?.categoryInterest || 'No especificado'}
+                      <Chip color={USER_INTEREST_COLORS[selectedUser.user?.categoryInterest] || 'default'} size='sm' variant='flat'>
+                        {selectedUser.user?.categoryInterest || 'No especificado'}
                       </Chip>
                     </div>
                   </div>
@@ -340,14 +340,14 @@ const AdminUserModals = memo(
               </div>
 
               {/* Descripción del perfil */}
-              {selectedUser.profile?.description && (
+              {selectedUser.user?.description && (
                 <div className='bg-gray-800 border border-gray-700 rounded-lg p-4'>
                   <div className='flex items-center gap-2 mb-3'>
                     <MessageCircle className='w-4 h-4 text-indigo-400' />
                     <h5 className='text-sm font-semibold text-white'>Descripción del Perfil</h5>
                   </div>
                   <div className='bg-gray-900 p-3 rounded-lg'>
-                    <p className='text-sm text-gray-200 whitespace-pre-wrap'>{selectedUser.profile.description}</p>
+                    <p className='text-sm text-gray-200 whitespace-pre-wrap'>{selectedUser.user.description}</p>
                   </div>
                 </div>
               )}
@@ -410,13 +410,13 @@ const AdminUserModals = memo(
                   <Avatar
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                    src={selectedUser.user?.mainImage || selectedUser.user?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </p>
-                    <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
+                    <p className='text-xs text-gray-400'>{selectedUser.user?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
                       <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
@@ -518,7 +518,7 @@ const AdminUserModals = memo(
                 <div>
                   <h3 className='text-xl font-semibold text-gray-200'>Desaprobar Usuario</h3>
                   <p className='text-sm text-gray-400'>
-                    {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                    {selectedUser.user?.name} {selectedUser.user?.lastName}
                   </p>
                 </div>
               </div>
@@ -542,13 +542,13 @@ const AdminUserModals = memo(
                   <Avatar
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                    src={selectedUser.user?.mainImage || selectedUser.user?.image}
                   />
                   <div>
                     <p className='text-sm font-semibold text-gray-200'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </p>
-                    <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
+                    <p className='text-xs text-gray-400'>{selectedUser.user?.email}</p>
                   </div>
                 </div>
               </div>
@@ -611,7 +611,7 @@ const AdminUserModals = memo(
                 <div>
                   <h3 className='text-xl font-semibold text-gray-200'>Desactivar Usuario</h3>
                   <p className='text-sm text-gray-400'>
-                    {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                    {selectedUser.user?.name} {selectedUser.user?.lastName}
                   </p>
                 </div>
               </div>
@@ -647,13 +647,13 @@ const AdminUserModals = memo(
                   <Avatar
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                    src={selectedUser.user?.mainImage || selectedUser.user?.image}
                   />
                   <div>
                     <p className='text-sm font-semibold text-gray-200'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </p>
-                    <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
+                    <p className='text-xs text-gray-400'>{selectedUser.user?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
                       <Chip color={selectedUser.status?.active ? 'success' : 'danger'} size='sm' variant='flat'>
                         {selectedUser.status?.active ? 'Activo' : 'Inactivo'}
@@ -721,7 +721,7 @@ const AdminUserModals = memo(
                 <div>
                   <h3 className='text-xl font-semibold text-gray-200'>Aprobar Usuario</h3>
                   <p className='text-sm text-gray-400'>
-                    {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                    {selectedUser.user?.name} {selectedUser.user?.lastName}
                   </p>
                 </div>
               </div>
@@ -749,13 +749,13 @@ const AdminUserModals = memo(
                   <Avatar
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                    src={selectedUser.user?.mainImage || selectedUser.user?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </p>
-                    <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
+                    <p className='text-xs text-gray-400'>{selectedUser.user?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
                       <Chip color={selectedUser.status?.verified ? 'success' : 'warning'} size='sm' variant='flat'>
                         {selectedUser.status?.verified ? 'Verificado' : 'Sin verificar'}
@@ -812,7 +812,7 @@ const AdminUserModals = memo(
                 <div>
                   <h3 className='text-xl font-semibold text-gray-200'>Reactivar Usuario</h3>
                   <p className='text-sm text-gray-400'>
-                    {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                    {selectedUser.user?.name} {selectedUser.user?.lastName}
                   </p>
                 </div>
               </div>
@@ -840,13 +840,13 @@ const AdminUserModals = memo(
                   <Avatar
                     className='w-12 h-12'
                     icon={<UserIcon className='w-6 h-6 text-default-500' />}
-                    src={selectedUser.profile?.mainImage || selectedUser.profile?.image}
+                    src={selectedUser.user?.mainImage || selectedUser.user?.image}
                   />
                   <div className='flex-1'>
                     <p className='text-sm font-semibold text-gray-200'>
-                      {selectedUser.profile?.name} {selectedUser.profile?.lastName}
+                      {selectedUser.user?.name} {selectedUser.user?.lastName}
                     </p>
-                    <p className='text-xs text-gray-400'>{selectedUser.profile?.email}</p>
+                    <p className='text-xs text-gray-400'>{selectedUser.user?.email}</p>
                     <div className='flex items-center gap-2 mt-1'>
                       <Chip color='danger' size='sm' variant='flat'>
                         Desactivado

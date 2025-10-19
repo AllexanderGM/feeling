@@ -3,7 +3,7 @@ package com.feeling.packages.user.domain.services;
 import com.feeling.config.logging.StructuredLoggerFactory;
 import com.feeling.exception.NotFoundException;
 import com.feeling.packages.user.domain.dto.analytics.*;
-import com.feeling.packages.user.domain.dto.mapper.UserDTOMapper;
+import com.feeling.packages.user.domain.dto.mapper.IUserMetricsMapper;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +43,7 @@ public class UserAnalyticsService {
         StructuredLoggerFactory.create(UserAnalyticsService.class);
 
     private final IUserRepository userRepository;
+    private final IUserMetricsMapper userMetricsMapper;
 
     // ========================================
     // OVERVIEW Y MÉTRICAS GENERALES
@@ -98,7 +99,7 @@ public class UserAnalyticsService {
      * - Score de popularidad calculado
      * - Estadísticas de actividad reciente
      * <p>
-     * La conversión a DTO se realiza mediante {@link UserDTOMapper#toUserMetricsDTO}
+     * La conversión a DTO se realiza mediante {@link IUserMetricsMapper#toMetrics(User)}
      * que extrae y formatea todas las métricas relevantes del usuario.
      * <p>
      * Casos de uso:
@@ -118,7 +119,7 @@ public class UserAnalyticsService {
         logger.logUserOperation("user_metrics_retrieved", user.getEmail(),
             Map.of("userId", userId));
 
-        return UserDTOMapper.toUserMetricsDTO(user);
+        return userMetricsMapper.toMetrics(user);
     }
 
     // ========================================

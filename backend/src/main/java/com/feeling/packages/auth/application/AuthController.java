@@ -1,19 +1,12 @@
 package com.feeling.packages.auth.application;
 
-import com.feeling.exception.ExistEmailException;
-import com.feeling.packages.auth.domain.dto.request.AuthLoginRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthRegisterRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthResendCodeRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.AuthVerifyCodeDTO;
-import com.feeling.packages.auth.domain.dto.request.ForgotPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.RefreshTokenRequestDTO;
-import com.feeling.packages.auth.domain.dto.request.ResetPasswordRequestDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthLoginResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthMethodInfoDTO;
-import com.feeling.packages.auth.domain.dto.response.AuthUserStatusDTO;
-import com.feeling.packages.auth.domain.dto.response.EmailAvailabilityDTO;
-import com.feeling.packages.auth.domain.dto.response.RefreshTokenResponseDTO;
-import com.feeling.packages.auth.domain.dto.response.TokenValidationDTO;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.feeling.packages.auth.domain.dto.auth.*;
+import com.feeling.packages.auth.domain.dto.mapper.AuthResponseFactory;
+import com.feeling.packages.auth.domain.dto.password.ForgotPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.password.ResetPasswordRequestDTO;
+import com.feeling.packages.auth.domain.dto.verification.*;
+import com.feeling.packages.auth.domain.dto.views.AuthViews;
 import com.feeling.packages.auth.domain.services.AuthService;
 import com.feeling.packages.auth.domain.services.PasswordService;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
@@ -33,7 +26,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -45,6 +37,7 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
     private final PasswordService passwordService;
+    private final AuthResponseFactory authResponseFactory;
 
     // ==============================
     // REGISTRO
@@ -133,6 +126,7 @@ public class AuthController {
         @ApiResponse(responseCode = "401", description = "Credenciales incorrectas o usuario no verificado"),
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
+    @JsonView(AuthViews.Session.Full.class)
     public ResponseEntity<AuthLoginResponseDTO> login(@Valid @RequestBody AuthLoginRequestDTO authRequest) {
         try {
             logger.info("Intento de login para usuario: {}", authRequest.email());
@@ -153,31 +147,21 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Método de autenticación verificado"),
         @ApiResponse(responseCode = "404", description = "Email no registrado")
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<AuthMethodInfoDTO> checkAuthMethod(@PathVariable String email) {
         try {
             logger.info("Verificando método de autenticación para: {}", email);
 
             Optional<User> userOptional = authService.getUserByEmail(email);
 
-            if (userOptional.isEmpty()) {
-                // Email no registrado - puede usar cualquier método
-                return ResponseEntity.ok(new AuthMethodInfoDTO(
-                    email,
-                    null,
-                    false,
-                    "Email no registrado. Puedes registrarte con cualquier método.",
-                    List.of("LOCAL", "GOOGLE")
-                ));
-            }
-
-            User user = userOptional.get();
-            return ResponseEntity.ok(new AuthMethodInfoDTO(
+            AuthMethodInfoDTO info = authResponseFactory.resolveAuthMethodInfo(
                 email,
-                user.getUserAuthProvider().name(),
-                true,
-                user.getAuthMethodMessage(),
-                List.of(user.getUserAuthProvider().name())
-            ));
+                userOptional,
+                userOptional.map(User::getAuthMethodMessage).orElse(null),
+                "Email no registrado. Puedes registrarte con cualquier método."
+            );
+
+            return ResponseEntity.ok(info);
 
         } catch (Exception e) {
             logger.error("Error verificando método de autenticación para {}: {}", email, e.getMessage());
@@ -193,6 +177,7 @@ public class AuthController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Información del email verificada")
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<EmailAvailabilityDTO> checkEmailAvailability(@PathVariable String email) {
         try {
             logger.info("Verificando disponibilidad del email: {}", email);
@@ -201,36 +186,17 @@ public class AuthController {
 
             if (userOptional.isEmpty()) {
                 // Email disponible
-                return ResponseEntity.ok(new EmailAvailabilityDTO(
-                    email,
-                    true,
-                    null,
-                    "Email disponible para registro",
-                    List.of("LOCAL", "GOOGLE"),
-                    null
-                ));
+                return ResponseEntity.ok(
+                    authResponseFactory.createEmailAvailable(
+                        email,
+                        "Email disponible para registro",
+                        null
+                    )
+                );
             }
 
             User user = userOptional.get();
-
-            // Email no disponible
-            String suggestion = switch (user.getUserAuthProvider()) {
-                case LOCAL -> "Este email ya tiene una cuenta. Ve a 'Iniciar Sesión' y usa tu contraseña.";
-                case GOOGLE ->
-                    "Este email ya tiene una cuenta con Google. Ve a 'Iniciar Sesión' y usa 'Continuar con Google'.";
-                case FACEBOOK ->
-                    "Este email ya tiene una cuenta con Facebook. Ve a 'Iniciar Sesión' y usa 'Continuar con Facebook'.";
-                default -> "Este email ya está registrado.";
-            };
-
-            return ResponseEntity.ok(new EmailAvailabilityDTO(
-                email,
-                false,
-                user.getUserAuthProvider().name(),
-                suggestion,
-                List.of(), // No hay métodos disponibles
-                user.getAuthMethodMessage()
-            ));
+            return ResponseEntity.ok(authResponseFactory.createEmailConflict(user, null));
 
         } catch (Exception e) {
             logger.error("Error verificando disponibilidad del email {}: {}", email, e.getMessage());
@@ -251,6 +217,7 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Access token refrescado exitosamente"),
         @ApiResponse(responseCode = "401", description = "Refresh token inválido o expirado")
     })
+    @JsonView(AuthViews.Session.Basic.class)
     public ResponseEntity<RefreshTokenResponseDTO> refreshToken(
         @RequestBody @Valid RefreshTokenRequestDTO request) throws BadRequestException {
         try {
@@ -338,6 +305,7 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Token válido"),
         @ApiResponse(responseCode = "400", description = "Token inválido o expirado")
     })
+    @JsonView(AuthViews.Password.Basic.class)
     public ResponseEntity<TokenValidationDTO> validateResetToken(@PathVariable String token) {
         try {
             logger.info("Validando token de recuperación de contraseña");
@@ -362,6 +330,7 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Estado verificado exitosamente"),
         @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
     })
+    @JsonView(AuthViews.Verification.Basic.class)
     public ResponseEntity<AuthUserStatusDTO> checkUserStatus(@PathVariable String email) {
         try {
             logger.info("Verificación de estado para usuario: {}", email);
@@ -369,12 +338,7 @@ public class AuthController {
 
             Optional<User> userOptional = authService.getUserByEmail(email);
 
-            AuthUserStatusDTO status = new AuthUserStatusDTO(
-                email,
-                isFullyRegistered,
-                userOptional.map(User::isVerified).orElse(false),
-                userOptional.map(User::getProfileComplete).orElse(false)
-            );
+            AuthUserStatusDTO status = authResponseFactory.createAuthUserStatus(email, isFullyRegistered, userOptional);
 
             return ResponseEntity.ok(status);
         } catch (Exception e) {

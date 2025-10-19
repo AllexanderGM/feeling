@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { CheckCircle } from 'lucide-react'
 import { usePassword } from '@hooks'
-import { forgotPasswordSchema, extractForgotPasswordData } from '@schemas'
+import { forgotPasswordSchema } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { APP_PATHS } from '@constants/paths.js'
@@ -24,8 +24,7 @@ const ForgotPassword = () => {
   })
 
   const onSubmit = async formData => {
-    const data = extractForgotPasswordData(formData)
-    const result = await forgotPassword(data)
+    const result = await forgotPassword(formData)
 
     if (result.success) setStatus('success')
   }

@@ -431,10 +431,10 @@ public class EmailService {
             context.setVariable("name", user.getName());
             context.setVariable("lastName", user.getLastName());
             context.setVariable("email", user.getEmail());
-            context.setVariable("profileUrl", frontendUrl + "/complete-profile");
+            context.setVariable("profileUrl", frontendUrl + "/complete-user");
             context.setVariable("supportEmail", supportEmail);
 
-            String htmlContent = templateEngine.process("email-profile-completion-reminder", context);
+            String htmlContent = templateEngine.process("email-user-completion-reminder", context);
 
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

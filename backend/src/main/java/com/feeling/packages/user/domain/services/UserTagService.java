@@ -654,7 +654,7 @@ public class UserTagService {
     }
 
     /**
-     * Método específico para complete-profile que crea tags pendientes de aprobación
+     * Método específico para complete-user que crea tags pendientes de aprobación
      */
     public UserTag findOrCreateTagForProfile(String tagName, String userEmail) {
         return userTagRepository.findByNameIgnoreCase(tagName)

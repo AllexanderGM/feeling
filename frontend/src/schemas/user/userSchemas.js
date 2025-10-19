@@ -1,0 +1,305 @@
+import * as yup from 'yup'
+
+import { baseValidations, conditionalValidations } from '../validation/baseValidations'
+
+import { USER_DEFAULT_VALUES, USER_CATEGORY_REQUIRED_FIELDS } from './userStructure'
+
+/**
+ * ESQUEMAS DE VALIDACIÓN DE FORMULARIOS DE USUARIO (con Yup)
+ *
+ * Este archivo contiene esquemas de validación para formularios relacionados con el usuario.
+ * Usa Yup para validar datos antes de enviarlos al backend.
+ *
+ * DIFERENCIA CON userStructure.js:
+ * - userStructure.js = Estructura de datos, constantes, valores por defecto
+ * - userFormSchemas.js = Validaciones de formularios con Yup (este archivo)
+ *
+ * Contiene validaciones para:
+ * - Completar perfil por pasos (onboarding)
+ * - Editar perfil básico
+ * - Validaciones específicas por categoría (SPIRIT, ROUSE, ESSENCE)
+ */
+
+// ========================================
+// ESQUEMAS PARA COMPLETAR PERFIL (STEP BY STEP)
+// ========================================
+
+export const stepBasicInfoSchema = yup.object().shape({
+  name: baseValidations.name,
+  lastName: baseValidations.lastName,
+  document: baseValidations.document,
+  phone: baseValidations.phone,
+  phoneCode: yup.string().required('Selecciona el código de país'),
+  dateOfBirth: baseValidations.dateOfBirth,
+  country: baseValidations.country,
+  city: baseValidations.city,
+  images: yup
+    .array()
+    .test('images-required', 'Debes subir al menos una foto de perfil', function (value) {
+      if (!value || value.length === 0) return false
+      // Verificar que al menos hay una imagen válida (no null/undefined)
+      const validImages = value.filter(img => img != null && img !== '')
+
+      return validImages.length >= 1
+    })
+    .required('Las imágenes son requeridas')
+})
+
+export const stepCharacteristicsSchema = yup.object().shape({
+  description: baseValidations.description,
+  genderId: baseValidations.genderId,
+  height: baseValidations.height,
+  tags: baseValidations.tags
+})
+
+export const stepPreferencesSchema = yup.object().shape({
+  categoryInterest: baseValidations.categoryInterest,
+  agePreferenceMin: baseValidations.agePreferenceMin,
+  agePreferenceMax: baseValidations.agePreferenceMax,
+  locationPreferenceRadius: baseValidations.locationPreferenceRadius,
+  // Validaciones condicionales
+  religionId: conditionalValidations.religionId,
+  sexualRoleId: conditionalValidations.sexualRoleId,
+  relationshipId: conditionalValidations.relationshipId
+})
+
+export const stepConfigurationSchema = yup.object().shape({
+  // Configuración de privacidad (sin validaciones obligatorias por ahora)
+  showAge: yup.boolean(),
+  showLocation: yup.boolean(),
+  showPhone: yup.boolean(),
+  publicAccount: yup.boolean(),
+  searchVisibility: yup.boolean(),
+  locationPublic: yup.boolean(),
+  showMeInSearch: yup.boolean(),
+  allowNotifications: yup.boolean(),
+  // Configuración de notificaciones
+  notificationsEmailEnabled: yup.boolean(),
+  notificationsPhoneEnabled: yup.boolean(),
+  notificationsMatchesEnabled: yup.boolean(),
+  notificationsEventsEnabled: yup.boolean(),
+  notificationsLoginEnabled: yup.boolean(),
+  notificationsPaymentsEnabled: yup.boolean()
+})
+
+// ========================================
+// ESQUEMA COMPLETO PARA TODO EL PERFIL
+// ========================================
+
+export const completeProfileSchema = yup.object().shape({
+  // Step 1 - Información básica
+  ...stepBasicInfoSchema.fields,
+
+  // Step 2 - Características
+  ...stepCharacteristicsSchema.fields,
+
+  // Step 3 - Preferencias
+  ...stepPreferencesSchema.fields,
+
+  // Step 4 - Configuración
+  ...stepConfigurationSchema.fields
+})
+
+// ========================================
+// ESQUEMAS PARA EDICIÓN DE PERFIL
+// ========================================
+
+export const basicProfileEditSchema = yup.object().shape({
+  name: baseValidations.name,
+  lastName: baseValidations.lastName,
+  description: baseValidations.description,
+  phone: baseValidations.phone
+})
+
+export const characteristicsEditSchema = yup.object().shape({
+  description: baseValidations.description,
+  height: baseValidations.height,
+  tags: baseValidations.tags,
+  // Campos opcionales para edición
+  bodyTypeId: yup.string(),
+  eyeColorId: yup.string(),
+  hairColorId: yup.string(),
+  maritalStatusId: yup.string(),
+  educationLevelId: yup.string(),
+  profession: yup.string().max(100, 'La profesión no puede exceder 100 caracteres')
+})
+
+export const preferencesEditSchema = yup.object().shape({
+  agePreferenceMin: baseValidations.agePreferenceMin,
+  agePreferenceMax: baseValidations.agePreferenceMax,
+  locationPreferenceRadius: baseValidations.locationPreferenceRadius,
+  categoryInterest: baseValidations.categoryInterest,
+  // Validaciones condicionales para edición
+  religionId: conditionalValidations.religionId,
+  sexualRoleId: conditionalValidations.sexualRoleId,
+  relationshipId: conditionalValidations.relationshipId
+})
+
+// ========================================
+// UTILIDADES PARA VALIDACIÓN POR PASOS
+// ========================================
+
+/**
+ * Función para obtener los campos a validar según el paso
+ */
+export const getFieldsForStep = step => {
+  const stepFields = {
+    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'country', 'city', 'images'],
+    2: ['description', 'genderId', 'height', 'tags'],
+    3: [
+      'categoryInterest',
+      'agePreferenceMin',
+      'agePreferenceMax',
+      'locationPreferenceRadius',
+      'religionId',
+      'sexualRoleId',
+      'relationshipId'
+    ],
+    4: [] // No hay validaciones obligatorias en el paso 4
+  }
+
+  return stepFields[step] || []
+}
+
+/**
+ * Obtener esquema de validación según el paso
+ */
+export const getSchemaForStep = step => {
+  const schemas = {
+    1: stepBasicInfoSchema,
+    2: stepCharacteristicsSchema,
+    3: stepPreferencesSchema,
+    4: stepConfigurationSchema
+  }
+
+  return schemas[step] || yup.object()
+}
+
+/**
+ * Obtener un esquema combinado (acumulativo) hasta el paso indicado.
+ * Útil para validar únicamente los campos del paso actual y los anteriores.
+ */
+export const getCombinedProfileSchemaForStep = step => {
+  let schema = stepBasicInfoSchema
+
+  if (step >= 2) {
+    schema = schema.concat(stepCharacteristicsSchema)
+  }
+
+  if (step >= 3) {
+    schema = schema.concat(stepPreferencesSchema)
+  }
+
+  if (step >= 4) {
+    schema = schema.concat(stepConfigurationSchema)
+  }
+
+  return schema
+}
+
+/**
+ * Validar si los campos requeridos para una categoría están completos
+ */
+export const validateCategoryRequiredFields = (categoryInterest, userData) => {
+  const fieldsToCheck = USER_CATEGORY_REQUIRED_FIELDS[categoryInterest] || []
+
+  return fieldsToCheck.every(field => {
+    const value = userData[field]
+
+    return value && value.toString().trim() !== ''
+  })
+}
+
+/**
+ * Crear esquema dinámico basado en la categoría de interés
+ */
+export const createCategorySpecificSchema = categoryInterest => {
+  const baseSchema = stepPreferencesSchema.fields
+
+  // Crear un esquema que incluya solo las validaciones relevantes para la categoría
+  const relevantFields = { ...baseSchema }
+
+  // Remover validaciones condicionales que no aplican
+  if (categoryInterest !== 'SPIRIT') {
+    delete relevantFields.religionId
+  }
+
+  if (categoryInterest !== 'ROUSE') {
+    delete relevantFields.sexualRoleId
+    delete relevantFields.relationshipId
+  }
+
+  return yup.object().shape(relevantFields)
+}
+
+/**
+ * Obtener valores por defecto para un paso específico del ProfileComplete
+ * @param {number} step - Número del paso (1-4)
+ * @param {object} user - Datos del usuario existente (opcional)
+ * @returns {object} Valores por defecto para el paso
+ */
+export const getDefaultValuesForStep = (step, user = null) => {
+  const stepFields = getFieldsForStep(step)
+  const defaultValues = {}
+
+  // Campos de privacidad (paso 4)
+  const privacyFields = [
+    'showAge',
+    'showLocation',
+    'showPhone',
+    'publicAccount',
+    'searchVisibility',
+    'locationPublic',
+    'showMeInSearch',
+    'allowNotifications'
+  ]
+
+  // Campos de notificaciones (paso 4)
+  const notificationFields = [
+    'notificationsEmailEnabled',
+    'notificationsPhoneEnabled',
+    'notificationsMatchesEnabled',
+    'notificationsEventsEnabled',
+    'notificationsLoginEnabled',
+    'notificationsPaymentsEnabled'
+  ]
+
+  stepFields.forEach(field => {
+    let value
+
+    // Intentar obtener valor del usuario existente
+    if (user) {
+      // Determinar de qué sección viene el campo
+      if (privacyFields.includes(field)) {
+        // Campos de privacidad
+        value = user.privacy?.[field]
+      } else if (notificationFields.includes(field)) {
+        // Campos de notificaciones
+        value = user.notifications?.[field]
+      } else {
+        // Campos de user
+        value = user.user?.[field]
+      }
+
+      // Fallback a estructura plana (user.field) para compatibilidad
+      if (value === undefined || value === null) {
+        value = user[field]
+      }
+    }
+
+    // Si no hay valor en el usuario, usar valores por defecto
+    if (value === undefined || value === null) {
+      if (privacyFields.includes(field)) {
+        value = USER_DEFAULT_VALUES.privacy[field]
+      } else if (notificationFields.includes(field)) {
+        value = USER_DEFAULT_VALUES.notifications[field]
+      } else {
+        value = USER_DEFAULT_VALUES.user[field]
+      }
+    }
+
+    defaultValues[field] = value
+  })
+
+  return defaultValues
+}

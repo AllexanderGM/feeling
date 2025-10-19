@@ -9,8 +9,80 @@ export const COOKIE_KEYS = {
   // Autenticación
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
-  USER: 'user'
+  // Usuario - almacenado en localStorage (useLocalStorage hook)
+  USER: 'current_user'
 }
+
+/**
+ * KEYS DE LOCALSTORAGE CENTRALIZADAS
+ *
+ * Define todas las claves de localStorage utilizadas en la aplicación.
+ * IMPORTANTE: Estas claves se pueden hacer específicas por usuario usando makeUserSpecificKey()
+ */
+export const STORAGE_KEYS = {
+  // Datos del usuario actual (no necesita ser user-specific porque solo hay un usuario activo)
+  USER: COOKIE_KEYS.USER,
+
+  // Datos temporales que DEBEN ser user-specific
+  PROFILE_COMPLETION_DRAFT: 'profile_completion_draft',
+  USER_PREFERENCES: 'user_preferences',
+  CACHED_FILTERS: 'cached_filters'
+}
+
+/**
+ * Convierte una clave de localStorage en una clave específica por usuario
+ *
+ * @param {string} baseKey - Clave base
+ * @param {string|number} userId - ID del usuario
+ * @returns {string} - Clave específica del usuario (ej: 'profile_completion_draft_123')
+ */
+export const makeUserSpecificKey = (baseKey, userId) => {
+  if (!userId) {
+    // Si no hay userId, retornar la clave base (útil para desarrollo/debugging)
+    return baseKey
+  }
+
+  return `${baseKey}_${userId}`
+}
+
+/**
+ * Obtiene todas las claves de localStorage que son user-specific
+ *
+ * @returns {string[]} - Array de claves base que necesitan ser user-specific
+ */
+export const getUserSpecificKeys = () => {
+  return [STORAGE_KEYS.PROFILE_COMPLETION_DRAFT, STORAGE_KEYS.USER_PREFERENCES, STORAGE_KEYS.CACHED_FILTERS]
+}
+
+/**
+ * Limpia todos los datos user-specific de un usuario específico
+ *
+ * @param {string|number} userId - ID del usuario
+ * @param {Object} localStorageApi - API de useLocalStorage hook
+ * @returns {number} - Cantidad de items eliminados
+ */
+export const clearUserSpecificData = (userId, localStorageApi) => {
+  if (!userId || !localStorageApi) return 0
+
+  const userKeys = getUserSpecificKeys()
+  let removed = 0
+
+  userKeys.forEach(baseKey => {
+    const userKey = makeUserSpecificKey(baseKey, userId)
+
+    if (localStorageApi.remove(userKey)) {
+      removed++
+    }
+  })
+
+  return removed
+}
+
+/**
+ * Determinar si estamos en producción
+ * secure debe ser true solo en producción (HTTPS), false en desarrollo (HTTP)
+ */
+const isProduction = import.meta.env.VITE_ENV === 'production'
 
 /**
  * Configuración de cookies por defecto
@@ -18,31 +90,15 @@ export const COOKIE_KEYS = {
 export const COOKIE_CONFIG = {
   // Configuración para tokens (más segura)
   SECURE_TOKEN: {
-    secure: true,
+    secure: isProduction,
     sameSite: 'strict',
     httpOnly: false, // Debe ser false para acceso desde JS
     maxAge: 60 * 60 * 24 * 7 // 7 días
   },
 
-  // Configuración para datos de usuario
-  USER_DATA: {
-    secure: true,
-    sameSite: 'strict',
-    httpOnly: false,
-    maxAge: 60 * 60 * 24 * 30 // 30 días
-  },
-
-  // Configuración para preferencias (persistente)
-  PREFERENCES: {
-    secure: false, // Menos restrictivo para preferencias
-    sameSite: 'lax',
-    httpOnly: false,
-    maxAge: 60 * 60 * 24 * 365 // 1 año
-  },
-
   // Configuración para sesión temporal
   SESSION: {
-    secure: true,
+    secure: isProduction,
     sameSite: 'strict',
     httpOnly: false
     // Sin maxAge = cookie de sesión
@@ -54,18 +110,7 @@ export const COOKIE_CONFIG = {
  */
 export const COOKIE_KEY_CONFIG = {
   [COOKIE_KEYS.ACCESS_TOKEN]: COOKIE_CONFIG.SECURE_TOKEN,
-  [COOKIE_KEYS.REFRESH_TOKEN]: COOKIE_CONFIG.SECURE_TOKEN,
-  [COOKIE_KEYS.USER]: COOKIE_CONFIG.USER_DATA,
-  [COOKIE_KEYS.THEME]: COOKIE_CONFIG.PREFERENCES,
-  [COOKIE_KEYS.LANGUAGE]: COOKIE_CONFIG.PREFERENCES,
-  [COOKIE_KEYS.SIDEBAR_COLLAPSED]: COOKIE_CONFIG.PREFERENCES,
-  [COOKIE_KEYS.TABLE_PAGE_SIZE]: COOKIE_CONFIG.PREFERENCES,
-  [COOKIE_KEYS.TERMS_ACCEPTED]: COOKIE_CONFIG.USER_DATA,
-  [COOKIE_KEYS.PRIVACY_ACCEPTED]: COOKIE_CONFIG.USER_DATA,
-  [COOKIE_KEYS.ONBOARDING_COMPLETED]: COOKIE_CONFIG.USER_DATA,
-  [COOKIE_KEYS.FEATURE_TOUR_SEEN]: COOKIE_CONFIG.PREFERENCES,
-  [COOKIE_KEYS.DEBUG_MODE]: COOKIE_CONFIG.SESSION,
-  [COOKIE_KEYS.API_BASE_URL]: COOKIE_CONFIG.SESSION
+  [COOKIE_KEYS.REFRESH_TOKEN]: COOKIE_CONFIG.SECURE_TOKEN
 }
 
 /**

@@ -1,6 +1,7 @@
 package com.feeling.packages.user.domain.dto.analytics;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.feeling.packages.auth.domain.dto.views.AuthViews;
 import com.feeling.packages.user.domain.dto.views.UserViews;
 
 /**
@@ -20,19 +21,19 @@ import com.feeling.packages.user.domain.dto.views.UserViews;
  * @since 1.0
  */
 public record UserPerformanceMetricsDTO(
-    @JsonView({UserViews.Internal.class})
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Long profileViews,
 
-    @JsonView({UserViews.Internal.class})
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Long likesReceived,
 
-    @JsonView({UserViews.Internal.class})
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Long matchesCount,
 
-    @JsonView({UserViews.Internal.class})
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Double popularityScore,
 
-    @JsonView({UserViews.Internal.class})
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Double profileCompleteness
 ) {
 }

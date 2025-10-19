@@ -200,9 +200,9 @@ const CharacteristicsSection = ({ user }) => {
             <div className='w-full'>
               <span className='text-xs text-gray-400'>Descripción personal: </span>
               <div className='mt-1'>
-                {user?.profile?.description || user?.description ? (
+                {user?.user?.description || user?.description ? (
                   <p className='text-xs text-gray-300 leading-relaxed whitespace-pre-wrap'>
-                    {user?.profile?.description || user?.description}
+                    {user?.user?.description || user?.description}
                   </p>
                 ) : (
                   <span className='text-xs text-gray-500 italic'>No especificado</span>
@@ -213,15 +213,15 @@ const CharacteristicsSection = ({ user }) => {
         </div>
 
         {/* Tags personales */}
-        {(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags) &&
-          (user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags).length > 0 && (
+        {(user?.user?.userTags || user?.user?.tags || user?.userTags || user?.tags) &&
+          (user?.user?.userTags || user?.user?.tags || user?.userTags || user?.tags).length > 0 && (
             <div className='mb-4 pb-4 border-b border-gray-700/30'>
               <div className='flex items-center gap-2 mb-2'>
                 <Sparkles className='w-3 h-3 text-blue-400' />
                 <span className='text-xs font-medium text-gray-200'>Tags personales</span>
               </div>
               <div className='flex flex-wrap gap-1'>
-                {(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).slice(0, 8).map((tag, index) => (
+                {(user?.user?.userTags || user?.user?.tags || user?.userTags || user?.tags || []).slice(0, 8).map((tag, index) => (
                   <Chip
                     key={index}
                     className='bg-secondary-500/20 text-secondary-300 border border-secondary-500/30 text-xs'
@@ -231,9 +231,9 @@ const CharacteristicsSection = ({ user }) => {
                     {typeof tag === 'string' ? tag : tag.name || tag}
                   </Chip>
                 ))}
-                {(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).length > 8 && (
+                {(user?.user?.userTags || user?.user?.tags || user?.userTags || user?.tags || []).length > 8 && (
                   <Chip className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs' size='sm' variant='flat'>
-                    +{(user?.profile?.userTags || user?.profile?.tags || user?.userTags || user?.tags || []).length - 8} más
+                    +{(user?.user?.userTags || user?.user?.tags || user?.userTags || user?.tags || []).length - 8} más
                   </Chip>
                 )}
               </div>
@@ -241,14 +241,14 @@ const CharacteristicsSection = ({ user }) => {
           )}
 
         {/* Lista de intereses */}
-        {(user?.profile?.interests || user?.interests) && (user?.profile?.interests || user?.interests).length > 0 && (
+        {(user?.user?.interests || user?.interests) && (user?.user?.interests || user?.interests).length > 0 && (
           <div className='mb-4 pb-4 border-b border-gray-700/30'>
             <div className='flex items-center gap-2 mb-2'>
               <Target className='w-3 h-3 text-blue-400' />
               <span className='text-xs font-medium text-gray-200'>Intereses</span>
             </div>
             <div className='flex flex-wrap gap-1'>
-              {(user?.profile?.interests || user?.interests || []).slice(0, 8).map((interest, index) => (
+              {(user?.user?.interests || user?.interests || []).slice(0, 8).map((interest, index) => (
                 <Chip
                   key={index}
                   className='bg-primary-500/20 text-primary-300 border border-primary-500/30 text-xs'
@@ -258,9 +258,9 @@ const CharacteristicsSection = ({ user }) => {
                   {interest}
                 </Chip>
               ))}
-              {(user?.profile?.interests || user?.interests || []).length > 8 && (
+              {(user?.user?.interests || user?.interests || []).length > 8 && (
                 <Chip className='bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs' size='sm' variant='flat'>
-                  +{(user?.profile?.interests || user?.interests || []).length - 8} más
+                  +{(user?.user?.interests || user?.interests || []).length - 8} más
                 </Chip>
               )}
             </div>
@@ -270,18 +270,18 @@ const CharacteristicsSection = ({ user }) => {
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-gray-400'>
           {/* Género */}
           <div className='flex items-center gap-2'>
-            {getGenderIcon(user?.profile?.gender || user?.gender)}
+            {getGenderIcon(user?.user?.gender || user?.gender)}
             <span>
-              Género: <span className='text-gray-300'>{user?.profile?.gender || user?.gender || 'No especificado'}</span>
+              Género: <span className='text-gray-300'>{user?.user?.gender || user?.gender || 'No especificado'}</span>
             </span>
           </div>
 
           {/* Estado civil */}
           <div className='flex items-center gap-2'>
-            {getMaritalStatusIcon(user?.profile?.maritalStatus || user?.maritalStatus)}
+            {getMaritalStatusIcon(user?.user?.maritalStatus || user?.maritalStatus)}
             <span>
               Estado civil:{' '}
-              <span className='text-gray-300'>{user?.profile?.maritalStatus || user?.maritalStatus || 'No especificado'}</span>
+              <span className='text-gray-300'>{user?.user?.maritalStatus || user?.maritalStatus || 'No especificado'}</span>
             </span>
           </div>
 
@@ -291,7 +291,7 @@ const CharacteristicsSection = ({ user }) => {
             <span>
               Educación:{' '}
               <span className='text-gray-300'>
-                {getAttributeName('educationLevelOptions', user?.profile?.educationLevel || user?.educationLevel)}
+                {getAttributeName('educationLevelOptions', user?.user?.educationLevel || user?.educationLevel)}
               </span>
             </span>
           </div>
@@ -300,7 +300,7 @@ const CharacteristicsSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             <Badge className='w-3 h-3 text-orange-400' />
             <span>
-              Profesión: <span className='text-gray-300'>{user?.profile?.profession || user?.profession || 'No especificado'}</span>
+              Profesión: <span className='text-gray-300'>{user?.user?.profession || user?.profession || 'No especificado'}</span>
             </span>
           </div>
 
@@ -309,7 +309,7 @@ const CharacteristicsSection = ({ user }) => {
             <User className='w-3 h-3 text-green-400' />
             <span>
               Tipo de cuerpo:{' '}
-              <span className='text-gray-300'>{getAttributeName('bodyTypeOptions', user?.profile?.bodyType || user?.bodyType)}</span>
+              <span className='text-gray-300'>{getAttributeName('bodyTypeOptions', user?.user?.bodyType || user?.bodyType)}</span>
             </span>
           </div>
 
@@ -319,7 +319,7 @@ const CharacteristicsSection = ({ user }) => {
             <span>
               Estatura:{' '}
               <span className='text-gray-300'>
-                {user?.profile?.height || user?.height ? `${user?.profile?.height || user?.height} cm` : 'No especificado'}
+                {user?.user?.height || user?.height ? `${user?.user?.height || user?.height} cm` : 'No especificado'}
               </span>
             </span>
           </div>
@@ -329,13 +329,13 @@ const CharacteristicsSection = ({ user }) => {
             <Eye className='w-3 h-3 text-indigo-400' />
             <span>Color de ojos: </span>
             <div className='flex items-center gap-1'>
-              {(user?.profile?.eyeColor || user?.eyeColor) && (
+              {(user?.user?.eyeColor || user?.eyeColor) && (
                 <div
                   className='w-3 h-3 rounded-full border border-gray-500'
-                  style={{ backgroundColor: getEyeColorDisplay(user?.profile?.eyeColor || user?.eyeColor).color }}
+                  style={{ backgroundColor: getEyeColorDisplay(user?.user?.eyeColor || user?.eyeColor).color }}
                 />
               )}
-              <span className='text-gray-300'>{getEyeColorDisplay(user?.profile?.eyeColor || user?.eyeColor).name}</span>
+              <span className='text-gray-300'>{getEyeColorDisplay(user?.user?.eyeColor || user?.eyeColor).name}</span>
             </div>
           </div>
 
@@ -344,13 +344,13 @@ const CharacteristicsSection = ({ user }) => {
             <Palette className='w-3 h-3 text-yellow-400' />
             <span>Color de cabello: </span>
             <div className='flex items-center gap-1'>
-              {(user?.profile?.hairColor || user?.hairColor) && (
+              {(user?.user?.hairColor || user?.hairColor) && (
                 <div
                   className='w-3 h-3 rounded-full border border-gray-500'
-                  style={{ backgroundColor: getHairColorDisplay(user?.profile?.hairColor || user?.hairColor).color }}
+                  style={{ backgroundColor: getHairColorDisplay(user?.user?.hairColor || user?.hairColor).color }}
                 />
               )}
-              <span className='text-gray-300'>{getHairColorDisplay(user?.profile?.hairColor || user?.hairColor).name}</span>
+              <span className='text-gray-300'>{getHairColorDisplay(user?.user?.hairColor || user?.hairColor).name}</span>
             </div>
           </div>
         </div>
