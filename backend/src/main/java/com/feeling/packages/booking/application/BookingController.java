@@ -2,6 +2,7 @@ package com.feeling.packages.booking.application;
 
 import com.feeling.packages.booking.domain.dto.BookingRequestDTO;
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
+import com.feeling.packages.booking.domain.dto.BookingStatisticsDTO;
 import com.feeling.packages.booking.domain.services.BookingService;
 import com.feeling.packages.booking.infrastructure.entities.Booking;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,6 +70,13 @@ public class BookingController {
         return ResponseEntity.ok(bookings);
     }
 
+    @GetMapping("/event/{eventId}/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Booking statistics by event", description = "Admin endpoint with aggregated booking metrics per event")
+    public ResponseEntity<BookingStatisticsDTO> getEventBookingStats(@PathVariable Long eventId) {
+        return ResponseEntity.ok(bookingService.getEventBookingStatistics(eventId));
+    }
+
     @PutMapping("/{id}/cancel")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Cancel booking", description = "Cancel a booking")
@@ -94,12 +102,32 @@ public class BookingController {
         return ResponseEntity.ok(booking);
     }
 
+    @PostMapping("/{id}/confirm-payment")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Confirm booking payment", description = "Confirms and updates a booking after successful payment")
+    public ResponseEntity<BookingResponseDTO> confirmPayment(
+        @PathVariable Long id,
+        Authentication authentication) {
+
+        String userEmail = authentication.getName();
+        BookingResponseDTO booking = bookingService.confirmBookingPayment(id, userEmail);
+        return ResponseEntity.ok(booking);
+    }
+
     @GetMapping("/my-bookings")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get my bookings", description = "Retrieve bookings for the authenticated user")
-    public ResponseEntity<List<BookingResponseDTO>> getMyBookings(Authentication authentication) {
+    public ResponseEntity<Page<BookingResponseDTO>> getMyBookings(Authentication authentication, Pageable pageable) {
         String userEmail = authentication.getName();
-        List<BookingResponseDTO> bookings = bookingService.getUserBookings(userEmail);
+        Page<BookingResponseDTO> bookings = bookingService.getUserBookings(userEmail, pageable);
         return ResponseEntity.ok(bookings);
+    }
+
+    @GetMapping("/stats/me")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "My booking statistics", description = "Aggregated metrics for the authenticated user")
+    public ResponseEntity<BookingStatisticsDTO> getMyBookingStats(Authentication authentication) {
+        String userEmail = authentication.getName();
+        return ResponseEntity.ok(bookingService.getUserBookingStatistics(userEmail));
     }
 }

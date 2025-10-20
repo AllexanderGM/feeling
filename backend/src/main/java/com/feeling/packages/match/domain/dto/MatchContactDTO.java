@@ -11,4 +11,5 @@ public class MatchContactDTO {
     private String email;
     private String whatsapp;
     private String phoneNumber;
+    private String phoneCode;
 }

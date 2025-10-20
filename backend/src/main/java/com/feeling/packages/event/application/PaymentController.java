@@ -2,7 +2,7 @@ package com.feeling.packages.event.application;
 
 import com.feeling.packages.event.domain.dto.PaymentRequestDTO;
 import com.feeling.packages.event.domain.dto.PaymentResponseDTO;
-import com.feeling.packages.event.domain.services.PaymentServiceBasic;
+import com.feeling.packages.event.domain.services.EventPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,7 +20,7 @@ import java.util.Map;
 @Tag(name = "Payments", description = "Payment processing endpoints")
 public class PaymentController {
     
-    private final PaymentServiceBasic paymentService;
+    private final EventPaymentService paymentService;
 
     @PostMapping("/create-payment-intent")
     @Operation(summary = "Create payment intent", description = "Create a Stripe payment intent for event registration")

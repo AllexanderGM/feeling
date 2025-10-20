@@ -70,8 +70,14 @@ public interface IBookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId")
     long countByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status = :status")
+    long countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Booking.BookingStatus status);
+
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.event.id = :eventId")
     long countByEventId(@Param("eventId") Long eventId);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.event.id = :eventId AND b.status = :status")
+    long countByEventIdAndStatus(@Param("eventId") Long eventId, @Param("status") Booking.BookingStatus status);
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.createdAt >= :since")
     long countBookingsSince(@Param("since") LocalDateTime since);
@@ -85,4 +91,9 @@ public interface IBookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.event.id = :eventId AND b.bookingDate = :bookingDate AND b.status != 'CANCELLED'")
     List<Booking> findConflictingBookings(@Param("eventId") Long eventId, @Param("bookingDate") LocalDateTime bookingDate);
+
+    @Query("SELECT b FROM Booking b WHERE b.user.id = :userId AND b.bookingDate >= :from AND b.status <> 'CANCELLED' ORDER BY b.bookingDate ASC")
+    List<Booking> findUpcomingBookingsForUser(@Param("userId") Long userId, @Param("from") LocalDateTime from);
+
+    Optional<Booking> findByPaymentIntentId(String paymentIntentId);
 }

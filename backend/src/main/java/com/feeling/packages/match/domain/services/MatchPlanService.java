@@ -1,5 +1,7 @@
 package com.feeling.packages.match.domain.services;
 
+import com.feeling.exception.BadRequestException;
+import com.feeling.exception.NotFoundException;
 import com.feeling.packages.match.domain.dto.MatchPlanRequestDTO;
 import com.feeling.packages.match.domain.dto.MatchPlanResponseDTO;
 import com.feeling.packages.match.domain.dto.PurchaseMatchPlanRequestDTO;
@@ -22,6 +24,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio encargado de la gestión de planes de matches y su relación con los usuarios.
+ * <p>
+ * Responsabilidades:
+ * - Exponer planes activos al cliente final
+ * - Administrar el catálogo de planes para el panel de control
+ * - Registrar compras y controlar consumo de intentos
+ * - Proveer métricas de negocio relacionadas con los planes
+ *
+ * <p>
+ * Implementa validaciones de unicidad y estados activos siguiendo la guía de refactorización.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,6 +48,7 @@ public class MatchPlanService {
     // CLIENTE - OPERACIONES CRUD
     // ========================================
 
+    @Transactional(readOnly = true)
     public List<MatchPlanResponseDTO> getAllActivePlans() {
         log.debug("Getting all active match plans");
         return matchPlanRepository.findAllActiveOrderBySortOrderAndPrice()
@@ -42,10 +57,11 @@ public class MatchPlanService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public MatchPlanResponseDTO getPlanById(Long planId) {
         log.debug("Getting match plan by id: {}", planId);
         MatchPlan plan = matchPlanRepository.findById(planId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el plan de matches con id: " + planId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + planId));
         return convertToResponseDTO(plan);
     }
 
@@ -54,10 +70,10 @@ public class MatchPlanService {
         log.info("User {} purchasing match plan {}", user.getId(), request.getMatchPlanId());
 
         MatchPlan matchPlan = matchPlanRepository.findById(request.getMatchPlanId())
-            .orElseThrow(() -> new RuntimeException("No se encontró el plan de matches con id: " + request.getMatchPlanId()));
+            .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + request.getMatchPlanId()));
 
         if (!Boolean.TRUE.equals(matchPlan.getIsActive())) {
-            throw new RuntimeException("El plan de matches no está activo.");
+            throw new BadRequestException("El plan de matches no está activo.");
         }
 
         UserMatchPlan userMatchPlan = new UserMatchPlan(user, matchPlan, matchPlan.getAttempts());
@@ -69,6 +85,7 @@ public class MatchPlanService {
         return convertToUserMatchPlanResponseDTO(userMatchPlan);
     }
 
+    @Transactional(readOnly = true)
     public List<UserMatchPlanResponseDTO> getUserMatchPlans(User user) {
         log.debug("Getting match plans for user: {}", user.getId());
         return userMatchPlanRepository.findAllUserMatchPlans(user)
@@ -77,6 +94,7 @@ public class MatchPlanService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<UserMatchPlanResponseDTO> getActiveUserMatchPlans(User user) {
         log.debug("Getting active match plans for user: {}", user.getId());
         return userMatchPlanRepository.findActiveUserMatchPlans(user)
@@ -85,12 +103,14 @@ public class MatchPlanService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Integer getTotalRemainingAttempts(User user) {
         log.debug("Getting total remaining attempts for user: {}", user.getId());
         Integer total = userMatchPlanRepository.getTotalRemainingAttempts(user);
         return Optional.ofNullable(total).orElse(0);
     }
 
+    @Transactional(readOnly = true)
     public boolean hasAvailableAttempts(User user) {
         return getTotalRemainingAttempts(user) > 0;
     }
@@ -99,8 +119,9 @@ public class MatchPlanService {
     public void useAttempt(User user) {
         log.debug("Using one attempt for user: {}", user.getId());
 
-        UserMatchPlan activeUserMatchPlan = userMatchPlanRepository.findFirstActiveUserMatchPlan(user)
-            .orElseThrow(() -> new RuntimeException("No se encontraron planes de matches activos para el usuario."));
+        UserMatchPlan activeUserMatchPlan = userMatchPlanRepository
+            .findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(user)
+            .orElseThrow(() -> new NotFoundException("No se encontraron planes de matches activos para el usuario."));
 
         activeUserMatchPlan.useAttempt();
         userMatchPlanRepository.save(activeUserMatchPlan);
@@ -113,6 +134,7 @@ public class MatchPlanService {
     // ADMIN - OPERACIONES CRUD
     // ========================================
 
+    @Transactional(readOnly = true)
     public List<MatchPlanResponseDTO> getAllPlansForAdmin() {
         log.debug("Getting all match plans for admin");
         return matchPlanRepository.findAll()
@@ -138,8 +160,9 @@ public class MatchPlanService {
 
         validateUniqueName(request.getName(), null);
 
+        String normalizedName = request.getName().trim();
         MatchPlan matchPlan = new MatchPlan(
-            request.getName(),
+            normalizedName,
             request.getDescription(),
             request.getAttempts(),
             request.getPrice(),
@@ -157,11 +180,11 @@ public class MatchPlanService {
         log.info("Updating match plan {}", planId);
 
         MatchPlan matchPlan = matchPlanRepository.findById(planId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el plan de matches con id: " + planId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + planId));
 
         validateUniqueName(request.getName(), planId);
 
-        matchPlan.setName(request.getName());
+        matchPlan.setName(request.getName().trim());
         matchPlan.setDescription(request.getDescription());
         matchPlan.setAttempts(request.getAttempts());
         matchPlan.setPrice(request.getPrice());
@@ -179,7 +202,7 @@ public class MatchPlanService {
         log.info("Updating match plan {} status to {}", planId, isActive);
 
         MatchPlan matchPlan = matchPlanRepository.findById(planId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el plan de matches con id: " + planId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + planId));
 
         matchPlan.setIsActive(Boolean.TRUE.equals(isActive));
         MatchPlan savedPlan = matchPlanRepository.save(matchPlan);
@@ -192,11 +215,12 @@ public class MatchPlanService {
         log.info("Deleting match plan {}", planId);
 
         MatchPlan matchPlan = matchPlanRepository.findById(planId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el plan de matches con id: " + planId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + planId));
 
         matchPlanRepository.delete(matchPlan);
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getMatchPlanStatistics(LocalDateTime from, LocalDateTime to) {
         log.debug("Calculating match plan statistics for range from {} to {}", from, to);
 
@@ -224,14 +248,18 @@ public class MatchPlanService {
 
     private void validateUniqueName(String name, Long currentPlanId) {
         boolean exists;
+        String normalized = Optional.ofNullable(name)
+            .map(String::trim)
+            .orElseThrow(() -> new BadRequestException("El nombre del plan es obligatorio"));
+
         if (currentPlanId == null) {
-            exists = matchPlanRepository.existsByNameIgnoreCase(name);
+            exists = matchPlanRepository.existsByNameIgnoreCase(normalized);
         } else {
-            exists = matchPlanRepository.existsByNameIgnoreCaseAndIdNot(name, currentPlanId);
+            exists = matchPlanRepository.existsByNameIgnoreCaseAndIdNot(normalized, currentPlanId);
         }
 
         if (exists) {
-            throw new RuntimeException("Ya existe un plan de matches con el nombre: " + name);
+            throw new BadRequestException("Ya existe un plan de matches con el nombre: " + normalized);
         }
     }
 

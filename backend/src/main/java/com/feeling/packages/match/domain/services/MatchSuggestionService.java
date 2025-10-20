@@ -1,5 +1,7 @@
 package com.feeling.packages.match.domain.services;
 
+import com.feeling.exception.BadRequestException;
+import com.feeling.exception.NotFoundException;
 import com.feeling.packages.match.infrastructure.entities.UserDismissedSuggestion;
 import com.feeling.packages.match.infrastructure.repositories.IUserDismissedRepository;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -11,6 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * Servicio que administra las sugerencias descartadas por los usuarios.
+ * <p>
+ * Permite registrar descartes, consultar estados y limpiar registros cuando
+ * cambia la relación entre usuarios (por ejemplo, al marcarlos como favoritos).
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -22,11 +30,11 @@ public class MatchSuggestionService {
     @Transactional
     public void dismissSuggestion(User user, Long targetUserId) {
         if (user.getId().equals(targetUserId)) {
-            throw new RuntimeException("No puedes descartarte de las sugerencias.");
+            throw new BadRequestException("No puedes descartarte de las sugerencias.");
         }
 
         User targetUser = userRepository.findById(targetUserId)
-            .orElseThrow(() -> new RuntimeException("No se encontró al usuario con id: " + targetUserId));
+            .orElseThrow(() -> new NotFoundException("No se encontró al usuario con id: " + targetUserId));
 
         userDismissedRepository.findByUserAndDismissedUser(user, targetUser)
             .ifPresentOrElse(
@@ -41,6 +49,7 @@ public class MatchSuggestionService {
             );
     }
 
+    @Transactional(readOnly = true)
     public boolean isDismissed(User user, User targetUser) {
         return userDismissedRepository.findByUserAndDismissedUser(user, targetUser).isPresent();
     }

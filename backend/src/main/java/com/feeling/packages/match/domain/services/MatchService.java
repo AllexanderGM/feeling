@@ -1,6 +1,8 @@
 package com.feeling.packages.match.domain.services;
 
 import com.feeling.exception.BadRequestException;
+import com.feeling.exception.NotFoundException;
+import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.match.domain.dto.MatchContactDTO;
 import com.feeling.packages.match.domain.dto.MatchHistoryItemDTO;
 import com.feeling.packages.match.domain.dto.MatchRequestDTO;
@@ -8,8 +10,9 @@ import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.enums.MatchParticipantRole;
 import com.feeling.packages.match.infrastructure.entities.Match;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
+import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
 import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
-import com.feeling.packages.user.domain.services.UserService;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +25,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
+/**
+ * Servicio que gestiona el ciclo de vida de los matches entre usuarios.
+ * <p>
+ * Responsabilidades:
+ * - Creación, aceptación, rechazo y visualización de matches
+ * - Cálculo de métricas y estadísticas para usuarios
+ * - Exposición de información de contacto cuando el match lo permite
+ * - Recuperación de historiales paginados para clientes y administradores
+ *
+ * <p>
+ * Las operaciones de lectura se ejecutan en transacciones read-only para
+ * garantizar consistencia y eficiencia con cargas diferidas.
+ *
+ * @author J. Alexander Gavilán M.
+ * @version 1.0
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,12 +51,13 @@ public class MatchService {
     private final IMatchRepository matchRepository;
     private final IUserRepository userRepository;
     private final MatchPlanService matchPlanService;
-    private final UserService userService;
+    private final UserResponseFactory userResponseFactory;
 
     // ========================================
     // ESTADÍSTICAS
     // ========================================
 
+    @Transactional(readOnly = true)
     public Map<String, Long> getUserMatchCounters(User user, LocalDateTime from, LocalDateTime to) {
         Map<String, Long> counters = new HashMap<>();
         counters.put("pendingSent", countPendingSentMatches(user, from, to));
@@ -47,34 +68,42 @@ public class MatchService {
         return counters;
     }
 
+    @Transactional(readOnly = true)
     public Long countPendingSentMatches(User user) {
         return matchRepository.countPendingSentMatches(user);
     }
 
+    @Transactional(readOnly = true)
     public Long countPendingSentMatches(User user, LocalDateTime from, LocalDateTime to) {
         return matchRepository.countPendingSentMatches(user, from, to);
     }
 
+    @Transactional(readOnly = true)
     public Long countPendingReceivedMatches(User user) {
         return matchRepository.countPendingReceivedMatches(user);
     }
 
+    @Transactional(readOnly = true)
     public Long countPendingReceivedMatches(User user, LocalDateTime from, LocalDateTime to) {
         return matchRepository.countPendingReceivedMatches(user, from, to);
     }
 
+    @Transactional(readOnly = true)
     public Long countAcceptedMatches(User user) {
         return matchRepository.countAcceptedMatches(user);
     }
 
+    @Transactional(readOnly = true)
     public Long countAcceptedMatches(User user, LocalDateTime from, LocalDateTime to) {
         return matchRepository.countAcceptedMatches(user, from, to);
     }
 
+    @Transactional(readOnly = true)
     public Long countSentMatches(User user, LocalDateTime from, LocalDateTime to) {
         return matchRepository.countSentMatches(user, from, to);
     }
 
+    @Transactional(readOnly = true)
     public Long countReceivedMatches(User user, LocalDateTime from, LocalDateTime to) {
         return matchRepository.countReceivedMatches(user, from, to);
     }
@@ -92,14 +121,14 @@ public class MatchService {
         }
 
         User targetUser = userRepository.findById(request.getTargetUserId())
-            .orElseThrow(() -> new RuntimeException("No se encontró al usuario objetivo con id: " + request.getTargetUserId()));
+            .orElseThrow(() -> new NotFoundException("No se encontró al usuario objetivo con id: " + request.getTargetUserId()));
 
-        if (initiatorUser.getId().equals(targetUser.getId())) {
-            throw new RuntimeException("No puedes enviarte un match a ti mismo.");
+        if (Objects.equals(initiatorUser.getId(), targetUser.getId())) {
+            throw new BadRequestException("No puedes enviarte un match a ti mismo.");
         }
 
         if (matchRepository.existsMatchBetweenUsers(initiatorUser, targetUser)) {
-            throw new RuntimeException("Ya existe un match entre estos usuarios.");
+            throw new BadRequestException("Ya existe un match entre estos usuarios.");
         }
 
         matchPlanService.useAttempt(initiatorUser);
@@ -117,14 +146,14 @@ public class MatchService {
         log.info("User {} accepting match {}", targetUser.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(targetUser.getId())) {
-            throw new RuntimeException("No estás autorizado para aceptar este match.");
+            throw new UnauthorizedException("No estás autorizado para aceptar este match.");
         }
 
         if (!match.isPending()) {
-            throw new RuntimeException("El match ya no está pendiente.");
+            throw new BadRequestException("El match ya no está pendiente.");
         }
 
         if (!matchPlanService.hasAvailableAttempts(targetUser)) {
@@ -146,14 +175,14 @@ public class MatchService {
         log.info("User {} rejecting match {}", targetUser.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-            .orElseThrow(() -> new RuntimeException("Match not found with id: " + matchId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(targetUser.getId())) {
-            throw new RuntimeException("No estás autorizado para rechazar este match.");
+            throw new UnauthorizedException("No estás autorizado para rechazar este match.");
         }
 
         if (!match.isPending()) {
-            throw new RuntimeException("El match ya no está pendiente.");
+            throw new BadRequestException("El match ya no está pendiente.");
         }
 
         match.reject();
@@ -169,11 +198,11 @@ public class MatchService {
         log.debug("User {} viewing match {}", user.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el match con id: " + matchId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));
 
         if (!match.getTargetUser().getId().equals(user.getId()) &&
             !match.getInitiatorUser().getId().equals(user.getId())) {
-            throw new RuntimeException("No estás autorizado para ver este match.");
+            throw new UnauthorizedException("No estás autorizado para ver este match.");
         }
 
         match.markAsViewed();
@@ -182,30 +211,35 @@ public class MatchService {
         return convertToResponseDTO(match);
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getSentMatches(User user, Pageable pageable) {
         log.debug("Getting sent matches for user: {}", user.getId());
         return matchRepository.findSentMatches(user, pageable)
             .map(this::convertToResponseDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getReceivedMatches(User user, Pageable pageable) {
         log.debug("Getting received matches for user: {}", user.getId());
         return matchRepository.findReceivedMatches(user, pageable)
             .map(this::convertToResponseDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getPendingReceivedMatches(User user, Pageable pageable) {
         log.debug("Getting pending received matches for user: {}", user.getId());
         return matchRepository.findPendingReceivedMatches(user, pageable)
             .map(this::convertToResponseDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getAcceptedMatches(User user, Pageable pageable) {
         log.debug("Getting accepted matches for user: {}", user.getId());
         return matchRepository.findAcceptedMatches(user, pageable)
             .map(this::convertToResponseDTO);
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchHistoryItemDTO> getMatchHistory(User user,
                                                      Match.MatchStatus status,
                                                      LocalDateTime from,
@@ -222,15 +256,15 @@ public class MatchService {
         log.debug("User {} getting contact info for match {}", user.getId(), matchId);
 
         Match match = matchRepository.findById(matchId)
-            .orElseThrow(() -> new RuntimeException("No se encontró el match con id: " + matchId));
+            .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));
 
         if (!Boolean.TRUE.equals(match.getContactUnlocked())) {
-            throw new RuntimeException("La información de contacto aún no está disponible para este match.");
+            throw new BadRequestException("La información de contacto aún no está disponible para este match.");
         }
 
         if (!match.getTargetUser().getId().equals(user.getId()) &&
             !match.getInitiatorUser().getId().equals(user.getId())) {
-            throw new RuntimeException("No estás autorizado para ver la información de contacto de este match.");
+            throw new UnauthorizedException("No estás autorizado para ver la información de contacto de este match.");
         }
 
         User otherUser = match.getInitiatorUser().getId().equals(user.getId())
@@ -239,8 +273,9 @@ public class MatchService {
 
         return new MatchContactDTO(
             otherUser.getEmail(),
+            buildInternationalPhone(otherUser),
             otherUser.getPhone(),
-            otherUser.getPhone()
+            otherUser.getPhoneCode()
         );
     }
 
@@ -264,7 +299,7 @@ public class MatchService {
             ? match.getTargetUser()
             : match.getInitiatorUser();
 
-        UserResponseDTO otherUserDTO = userService.get(otherUser.getEmail(), null, "public");
+        UserResponseDTO otherUserDTO = userResponseFactory.create(otherUser, UserResponseLevel.PUBLIC);
 
         return new MatchHistoryItemDTO(
             match.getId(),
@@ -279,8 +314,8 @@ public class MatchService {
     }
 
     private MatchResponseDTO convertToResponseDTO(Match match) {
-        UserResponseDTO initiatorUserDTO = userService.get(match.getInitiatorUser().getEmail(), null, "public");
-        UserResponseDTO targetUserDTO = userService.get(match.getTargetUser().getEmail(), null, "public");
+        UserResponseDTO initiatorUserDTO = userResponseFactory.create(match.getInitiatorUser(), UserResponseLevel.PUBLIC);
+        UserResponseDTO targetUserDTO = userResponseFactory.create(match.getTargetUser(), UserResponseLevel.PUBLIC);
 
         return new MatchResponseDTO(
             match.getId(),
@@ -292,5 +327,14 @@ public class MatchService {
             match.getContactUnlocked(),
             match.getCreatedAt()
         );
+    }
+
+    private String buildInternationalPhone(User user) {
+        if (user.getPhone() == null || user.getPhone().isBlank()) {
+            return null;
+        }
+        String phoneCode = user.getPhoneCode() != null ? user.getPhoneCode().trim() : "";
+        String number = user.getPhone().trim();
+        return (phoneCode + " " + number).trim();
     }
 }

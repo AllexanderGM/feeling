@@ -5,6 +5,7 @@ import com.feeling.packages.booking.infrastructure.entities.Booking;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -28,10 +29,14 @@ public class BookingResponseDTO {
     private LocalDateTime updatedAt;
 
     private Integer attendees;
-    private Double totalPrice;
+    private BigDecimal totalPrice;
+    private String currency;
     private String status;
     private String specialRequests;
     private String paymentMethod;
+    private String paymentIntentId;
+    private String paymentStatus;
+    private String paymentClientSecret;
 
     public BookingResponseDTO(Booking booking) {
         this.id = booking.getId();
@@ -46,8 +51,11 @@ public class BookingResponseDTO {
         this.updatedAt = booking.getUpdatedAt();
         this.attendees = booking.getAttendees();
         this.totalPrice = booking.getTotalPrice();
+        this.currency = booking.getCurrency();
         this.status = booking.getStatus().name();
         this.specialRequests = booking.getSpecialRequests();
+        this.paymentIntentId = booking.getPaymentIntentId();
+        this.paymentStatus = booking.getPaymentStatus();
 
         if (booking.getPayment() != null && booking.getPayment().getPaymentMethod() != null) {
             this.paymentMethod = booking.getPayment().getPaymentMethod().getName();

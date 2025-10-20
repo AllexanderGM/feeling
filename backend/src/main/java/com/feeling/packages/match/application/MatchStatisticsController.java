@@ -1,5 +1,6 @@
 package com.feeling.packages.match.application;
 
+import com.feeling.exception.BadRequestException;
 import com.feeling.packages.match.domain.services.FavoriteService;
 import com.feeling.packages.match.domain.services.MatchPlanService;
 import com.feeling.packages.match.domain.services.MatchService;
@@ -20,6 +21,9 @@ import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Controlador REST que expone estadísticas y notificaciones de matches para el usuario autenticado.
+ */
 @RestController
 @RequestMapping("/matches")
 @RequiredArgsConstructor
@@ -81,7 +85,7 @@ public class MatchStatisticsController {
             LocalDate localDate = LocalDate.parse(date);
             return localDate.atStartOfDay();
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid start date. Expected format yyyy-MM-dd: " + date);
+            throw new BadRequestException("Fecha de inicio inválida. Formato esperado yyyy-MM-dd: " + date);
         }
     }
 
@@ -93,7 +97,7 @@ public class MatchStatisticsController {
             LocalDate localDate = LocalDate.parse(date);
             return localDate.plusDays(1).atStartOfDay().minusNanos(1);
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid end date. Expected format yyyy-MM-dd: " + date);
+            throw new BadRequestException("Fecha de fin inválida. Formato esperado yyyy-MM-dd: " + date);
         }
     }
 }

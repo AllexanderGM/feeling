@@ -6,6 +6,6 @@ public record PaymentRequestDTO(
     @NotNull(message = "El ID del evento es obligatorio")
     Long eventId,
     
-    @NotNull(message = "El payment method ID de Stripe es obligatorio")
+    @NotNull(message = "El identificador del método de pago es obligatorio")
     String paymentMethodId
 ) {}

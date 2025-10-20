@@ -1,5 +1,6 @@
 package com.feeling.packages.match.application;
 
+import com.feeling.exception.BadRequestException;
 import com.feeling.packages.match.domain.dto.MatchAdminMatchFilterDTO;
 import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.dto.MatchSummaryDTO;
@@ -25,6 +26,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
+/**
+ * Endpoints administrativos para monitorear y auditar matches.
+ */
 @RestController
 @RequestMapping("/admin/matches")
 @RequiredArgsConstructor
@@ -135,7 +139,7 @@ public class MatchAdminMatchController {
         try {
             return LocalDateTime.parse(value, DATE_TIME_FORMATTER);
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid date format. Expected ISO-8601 date time: " + value);
+            throw new BadRequestException("Formato de fecha inválido. Se espera ISO-8601: " + value);
         }
     }
 
@@ -146,7 +150,7 @@ public class MatchAdminMatchController {
         try {
             return Match.MatchStatus.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException exception) {
-            throw new RuntimeException("Invalid match status: " + value);
+            throw new BadRequestException("Estado de match inválido: " + value);
         }
     }
 }

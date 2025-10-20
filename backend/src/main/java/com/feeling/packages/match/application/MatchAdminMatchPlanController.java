@@ -1,5 +1,6 @@
 package com.feeling.packages.match.application;
 
+import com.feeling.exception.BadRequestException;
 import com.feeling.packages.match.domain.dto.MatchPlanRequestDTO;
 import com.feeling.packages.match.domain.dto.MatchPlanResponseDTO;
 import com.feeling.packages.match.domain.services.MatchPlanService;
@@ -27,6 +28,9 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Endpoints administrativos para gestionar el catálogo de planes de matches.
+ */
 @RestController
 @RequestMapping("/admin/match-plans")
 @RequiredArgsConstructor
@@ -109,7 +113,7 @@ public class MatchAdminMatchPlanController {
 
         Boolean isActive = request.get("isActive");
         if (isActive == null) {
-            throw new RuntimeException("Field isActive is required");
+            throw new BadRequestException("El campo isActive es obligatorio.");
         }
 
         MatchPlanResponseDTO response = matchPlanService.updateMatchPlanStatus(planId, isActive);
@@ -143,7 +147,7 @@ public class MatchAdminMatchPlanController {
         try {
             return LocalDateTime.parse(value, DATE_TIME_FORMATTER);
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid date format. Expected ISO-8601 date time: " + value);
+            throw new BadRequestException("Formato de fecha inválido. Se espera ISO-8601: " + value);
         }
     }
 }

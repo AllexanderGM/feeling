@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -42,8 +43,12 @@ public class Booking {
     @Column(name = "attendees", nullable = false)
     private Integer attendees;
 
-    @Column(name = "total_price", nullable = false)
-    private Double totalPrice;
+    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalPrice;
+
+    @Column(name = "currency", nullable = false, length = 10)
+    @Builder.Default
+    private String currency = "USD";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "complaintStatus", nullable = false)
@@ -56,6 +61,13 @@ public class Booking {
     @ManyToOne
     @JoinColumn(name = "payment_id")
     private Pay payment;
+
+    @Column(name = "payment_intent_id")
+    private String paymentIntentId;
+
+    @Column(name = "payment_status")
+    @Builder.Default
+    private String paymentStatus = "pending";
 
     // Enum para complaintStatus de la reserva
     public enum BookingStatus {

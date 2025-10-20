@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-19T14:55:54-0500",
+    date = "2025-10-19T23:02:24-0500",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Microsoft)"
 )
 @Component
@@ -52,14 +52,24 @@ public class IAuthUserMapperImpl implements IAuthUserMapper {
 
         UserStatusDTO status = null;
         UserDataDTO user1 = null;
+        UserPrivacyDTO privacy = null;
+        UserNotificationDTO notifications = null;
+        UserPerformanceMetricsDTO metrics = null;
+        UserMatchesDTO matches = null;
+        AuthProviderInfoDTO auth = null;
         if ( user != null ) {
             status = iUserStatusMapper.toStatus( user );
             user1 = iUserDataMapper.toUserDataDTO( user );
+            privacy = iUserPrivacyMapper.toPrivacy( user );
+            notifications = iUserNotificationMapper.toNotifications( user );
+            metrics = iUserMetricsMapper.toMetrics( user );
+            matches = iUserMatchesMapper.toMatches( user );
+            auth = iUserAuthMapper.toAuthProviderInfo( user );
         }
         TokenResponseDTO tokens1 = null;
         tokens1 = tokens;
 
-        AuthLoginResponseDTO authLoginResponseDTO = new AuthLoginResponseDTO( tokens1, status, user1 );
+        AuthLoginResponseDTO authLoginResponseDTO = new AuthLoginResponseDTO( tokens1, status, user1, privacy, notifications, metrics, matches, auth );
 
         return authLoginResponseDTO;
     }

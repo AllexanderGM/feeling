@@ -21,10 +21,7 @@ public interface IUserMatchPlanRepository extends JpaRepository<UserMatchPlan, L
             "ORDER BY ump.createdAt DESC")
     List<UserMatchPlan> findActiveUserMatchPlans(@Param("user") User user);
 
-    @Query("SELECT ump FROM UserMatchPlan ump " +
-            "WHERE ump.user = :user AND ump.isActive = true AND ump.remainingAttempts > 0 " +
-            "ORDER BY ump.createdAt DESC")
-    Optional<UserMatchPlan> findFirstActiveUserMatchPlan(@Param("user") User user);
+    Optional<UserMatchPlan> findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(User user);
 
     @Query("SELECT ump FROM UserMatchPlan ump " +
             "WHERE ump.user = :user " +

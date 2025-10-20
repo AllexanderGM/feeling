@@ -1,5 +1,6 @@
 package com.feeling.packages.match.domain.services;
 
+import com.feeling.exception.NotFoundException;
 import com.feeling.packages.match.domain.dto.MatchAdminMatchFilterDTO;
 import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.dto.MatchSummaryDTO;
@@ -7,8 +8,9 @@ import com.feeling.packages.match.domain.dto.TopUserMatchDTO;
 import com.feeling.packages.match.infrastructure.entities.Match;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
 import com.feeling.packages.match.infrastructure.repositories.IUserMatchPlanRepository;
+import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
 import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
-import com.feeling.packages.user.domain.services.UserService;
+import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,6 +27,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio con operaciones orientadas a la administración de matches.
+ * <p>
+ * Provee métricas, rankings y listados para el panel administrativo.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -32,8 +40,9 @@ public class MatchAdminService {
     private final IMatchRepository matchRepository;
     private final IUserRepository userRepository;
     private final IUserMatchPlanRepository userMatchPlanRepository;
-    private final UserService userService;
+    private final UserResponseFactory userResponseFactory;
 
+    @Transactional(readOnly = true)
     public MatchSummaryDTO getSummary(LocalDateTime from, LocalDateTime to) {
         log.debug("Calculating admin match summary between {} and {}", from, to);
 
@@ -59,6 +68,7 @@ public class MatchAdminService {
         );
     }
 
+    @Transactional(readOnly = true)
     public List<TopUserMatchDTO> getTopInitiators(int limit, LocalDateTime from, LocalDateTime to) {
         log.debug("Getting top {} match initiators", limit);
         Pageable pageable = PageRequest.of(0, Math.max(limit, 1));
@@ -68,6 +78,7 @@ public class MatchAdminService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<TopUserMatchDTO> getTopReceivers(int limit, LocalDateTime from, LocalDateTime to) {
         log.debug("Getting top {} match receivers", limit);
         Pageable pageable = PageRequest.of(0, Math.max(limit, 1));
@@ -77,6 +88,7 @@ public class MatchAdminService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getMatches(MatchAdminMatchFilterDTO filter, Pageable pageable) {
         log.debug("Listing matches for admin with filter {}", filter);
         Page<Match> matches = matchRepository.findMatchesForAdmin(
@@ -98,15 +110,15 @@ public class MatchAdminService {
         double acceptanceRate = totalMatches > 0 ? acceptedMatches * 1.0 / totalMatches : 0.0;
 
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        UserResponseDTO userDTO = userService.get(user.getEmail(), null, "public");
+            .orElseThrow(() -> new NotFoundException("No se encontró el usuario con id: " + userId));
+        UserResponseDTO userDTO = userResponseFactory.create(user, UserResponseLevel.PUBLIC);
 
         return new TopUserMatchDTO(userDTO, totalMatches, acceptedMatches, acceptanceRate);
     }
 
     private MatchResponseDTO convertToResponseDTO(Match match) {
-        UserResponseDTO initiatorUserDTO = userService.get(match.getInitiatorUser().getEmail(), null, "public");
-        UserResponseDTO targetUserDTO = userService.get(match.getTargetUser().getEmail(), null, "public");
+        UserResponseDTO initiatorUserDTO = userResponseFactory.create(match.getInitiatorUser(), UserResponseLevel.PUBLIC);
+        UserResponseDTO targetUserDTO = userResponseFactory.create(match.getTargetUser(), UserResponseLevel.PUBLIC);
 
         return new MatchResponseDTO(
             match.getId(),

@@ -1,5 +1,6 @@
 package com.feeling.packages.match.application;
 
+import com.feeling.exception.BadRequestException;
 import com.feeling.packages.match.domain.dto.MatchHistoryItemDTO;
 import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.services.MatchService;
@@ -22,6 +23,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 
+/**
+ * Controlador REST que expone consultas de matches para usuarios finales.
+ * <p>
+ * Incluye endpoints paginados para historiales y listados de matches enviados,
+ * recibidos y aceptados.
+ */
 @RestController
 @RequestMapping("/matches")
 @RequiredArgsConstructor
@@ -118,7 +125,7 @@ public class MatchQueryController {
         try {
             return Match.MatchStatus.valueOf(value.toUpperCase());
         } catch (IllegalArgumentException exception) {
-            throw new RuntimeException("Invalid match status: " + value);
+            throw new BadRequestException("Estado de match inválido: " + value);
         }
     }
 
@@ -130,7 +137,7 @@ public class MatchQueryController {
             LocalDate localDate = LocalDate.parse(date);
             return localDate.atStartOfDay();
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid start date. Expected format yyyy-MM-dd: " + date);
+            throw new BadRequestException("Fecha de inicio inválida. Formato esperado yyyy-MM-dd: " + date);
         }
     }
 
@@ -142,7 +149,7 @@ public class MatchQueryController {
             LocalDate localDate = LocalDate.parse(date);
             return localDate.plusDays(1).atStartOfDay().minusNanos(1);
         } catch (DateTimeParseException exception) {
-            throw new RuntimeException("Invalid end date. Expected format yyyy-MM-dd: " + date);
+            throw new BadRequestException("Fecha de fin inválida. Formato esperado yyyy-MM-dd: " + date);
         }
     }
 }
