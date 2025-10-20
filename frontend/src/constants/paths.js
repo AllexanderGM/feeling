@@ -27,7 +27,13 @@ export const APP_PATHS = {
     SEARCH: '/search',
     FAVORITES: '/favorites',
     NOTIFICATIONS: '/notifications',
-    SUPPORT: '/support'
+    SUPPORT: '/support',
+    MY_MATCHES: '/my-matches',
+    PURCHASE_PLANS: '/purchase/plans',
+    PURCHASE_CHECKOUT: '/purchase/checkout',
+    PURCHASE_PAYMENT: '/purchase/payment',
+    PURCHASE_SUCCESS: '/purchase/success',
+    PURCHASE_ERROR: '/purchase/error'
   },
 
   GENERAL: {

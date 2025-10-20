@@ -14,6 +14,7 @@ import {
   getUserLastActive
 } from '@schemas'
 import { Eye, Calendar, Mail, Clock, Activity, Share2, Settings, Shield, Globe, Users, Database, CheckCircle, User } from 'lucide-react'
+import { Logger } from '@utils/logger.js'
 
 const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileData, profileStats, userHelpers }) => {
   const navigate = useNavigate()
@@ -24,10 +25,10 @@ const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileD
     navigator.clipboard
       .writeText(profileUrl)
       .then(() => {
-        console.log('Profile URL copied to clipboard')
+        Logger.info(Logger.CATEGORIES.UI, 'share_profile', 'Profile URL copied to clipboard', { profileUrl })
       })
       .catch(err => {
-        console.error('Failed to copy profile URL:', err)
+        Logger.error(Logger.CATEGORIES.UI, 'share_profile', 'Failed to copy profile URL', { error: err })
       })
   }
 

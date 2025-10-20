@@ -1,6 +1,5 @@
-import { useState, useCallback, useMemo, memo, useEffect } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
+import { useState, useCallback, useMemo, memo, forwardRef } from 'react'
+import { Controller } from 'react-hook-form'
 import {
   Select,
   SelectItem,
@@ -13,52 +12,38 @@ import {
   useDisclosure,
   Textarea,
   Slider,
-  Divider
+  Divider,
+  Spinner
 } from '@heroui/react'
 import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
-import { getDefaultValuesForStep, stepPreferencesSchema } from '@schemas'
+import { Church, Building } from 'lucide-react'
 
-import { useStepSave } from '../hooks/useStepSave'
+import useStepPreferences from '../hooks/useStepPreferences'
 
-const StepPreferences = ({
-  user,
-  categoryOptions,
-  religionOptions,
-  churchOptions,
-  sexualRoleOptions,
-  relationshipTypeOptions,
-  onStepComplete,
-  onStepBack,
-  isFirstStep = false,
-  isLastStep = false
+const noop = () => {}
+
+const StepPreferencesContent = ({
+  control,
+  errors: providedErrors = {},
+  watch: watchProp,
+  setValue: setValueProp,
+  clearErrors: clearErrorsProp,
+  categoryOptions = [],
+  religionOptions = [],
+  churchOptions = [],
+  sexualRoleOptions = [],
+  relationshipTypeOptions = []
 }) => {
-  const defaultValues = useMemo(() => getDefaultValuesForStep(3, user), [user])
+  const errors = providedErrors || {}
+  const watch = typeof watchProp === 'function' ? watchProp : () => ({})
+  const setValue = typeof setValueProp === 'function' ? setValueProp : noop
+  const clearErrors = typeof clearErrorsProp === 'function' ? clearErrorsProp : noop
+
   const safeCategoryOptions = categoryOptions ?? []
   const safeReligionOptions = religionOptions ?? []
   const safeChurchOptions = churchOptions ?? []
   const safeSexualRoleOptions = sexualRoleOptions ?? []
   const safeRelationshipTypeOptions = relationshipTypeOptions ?? []
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
-    setValue,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(stepPreferencesSchema),
-    mode: 'onChange',
-    defaultValues
-  })
-
-  const { saveStepData, submitting } = useStepSave(user)
-
-  useEffect(() => {
-    if (!user) return
-    reset(getDefaultValuesForStep(3, user), { keepDefaultValues: false })
-  }, [user, reset])
 
   const [selectedCategoryForModal, setSelectedCategoryForModal] = useState(null)
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -99,14 +84,14 @@ const StepPreferences = ({
 
   const handleCategoryInfo = useCallback(
     categoryKey => {
-      const category = categoryOptions.find(cat => cat.key === categoryKey)
+      const category = safeCategoryOptions.find(cat => cat.key === categoryKey)
 
       if (category) {
         setSelectedCategoryForModal(category)
         onOpen()
       }
     },
-    [categoryOptions, onOpen]
+    [safeCategoryOptions, onOpen]
   )
 
   const handleCategorySelectFromModal = useCallback(() => {
@@ -158,7 +143,7 @@ const StepPreferences = ({
               onSelectionChange={keys => {
                 const selectedKey = Array.from(keys)[0]
 
-                field.onChange(selectedKey ? parseInt(selectedKey) : null)
+                field.onChange(selectedKey ? parseInt(selectedKey, 10) : null)
               }}>
               {options.map(option => (
                 <SelectItem
@@ -193,227 +178,444 @@ const StepPreferences = ({
           render={({ field }) => (
             <Textarea
               {...field}
-              aria-label={label}
+              classNames={{
+                input: 'text-gray-200',
+                inputWrapper: 'bg-gray-800/30'
+              }}
+              description={`${(field.value || '').length}/${maxLength} caracteres`}
               errorMessage={errors[fieldName]?.message}
               isInvalid={!!errors[fieldName]}
               isRequired={isRequired}
               label={label}
               maxLength={maxLength}
+              maxRows={maxRows}
               minRows={minRows}
               placeholder={placeholder}
+              value={field.value || ''}
               variant='bordered'
-              onChange={e => {
-                field.onChange(e)
-                if (errors[fieldName]) {
-                  clearErrors(fieldName)
-                }
-              }}
+              onChange={e => formHandlers.handleInputChange(fieldName, e.target.value)}
             />
           )}
         />
       )
     },
-    [control, errors, clearErrors]
+    [control, errors, formHandlers]
   )
-
-  const onSubmit = useCallback(
-    async data => {
-      const result = await saveStepData({
-        stepNumber: 3,
-        formData: data
-      })
-
-      if (result.success) {
-        onStepComplete?.()
-      }
-    },
-    [onStepComplete, saveStepData]
-  )
-
-  const isSaving = submitting || isSubmitting
 
   return (
-    <form className='space-y-6' onSubmit={handleSubmit(onSubmit)}>
+    <>
       <section className='space-y-4'>
-        <Divider />
-        <p className='text-gray-300 text-sm'>
-          Define tus preferencias y el tipo de conexiones que buscas. Estos datos nos ayudan a encontrar personas compatibles.
-        </p>
+        <h2 className='text-center text-gray-300'>¿Qué tipo de conexiones buscas?</h2>
 
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          {safeCategoryOptions.map(category => (
-            <Button
+        <div className='pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4'>
+          {safeCategoryOptions.slice(0, 3).map(category => (
+            <button
               key={category.key}
-              className={`flex flex-col items-start h-full border ${
-                categoryInterest === category.key ? 'border-primary-500 bg-primary-500/10' : 'border-gray-700'
+              className={`relative cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-xl ${
+                selectedCategoryCard === category.key
+                  ? 'bg-gradient-to-br from-primary-600/30 to-primary-800/30 border-2 border-primary-400 shadow-lg shadow-primary-500/25'
+                  : 'bg-gray-800/50 border border-gray-700 hover:bg-gray-700/50'
               }`}
-              size='lg'
-              variant='bordered'
-              onPress={() => handleCategoryCardSelect(category.key)}>
-              <span className='text-sm font-semibold text-left'>{category.label}</span>
-              <span className='text-xs text-left text-gray-400'>{category.description}</span>
-              <Button size='sm' variant='light' onPress={() => handleCategoryInfo(category.key)}>
-                Ver más
-              </Button>
-            </Button>
+              type='button'
+              onClick={() => handleCategoryCardSelect(category.key)}>
+              <div className='text-center space-y-4 p-4'>
+                <div className='text-4xl'>{category.icon}</div>
+                <div className='space-y-1'>
+                  <h5 className='text-lg font-semibold text-white'>{category.label}</h5>
+                  <p className='text-sm text-gray-300 leading-relaxed'>{category.shortDescription || category.description}</p>
+                </div>
+
+                <div
+                  role='button'
+                  tabIndex={0}
+                  className='px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 cursor-pointer transition-colors text-sm font-medium text-center'
+                  onClick={event => {
+                    event.stopPropagation()
+                    handleCategoryInfo(category.key)
+                  }}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      handleCategoryInfo(category.key)
+                    }
+                  }}>
+                  Ver detalles
+                </div>
+
+                {selectedCategoryCard === category.key && (
+                  <div className='absolute top-3 right-3'>
+                    <div className='w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center'>
+                      <span className='text-white text-sm'>✓</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </button>
           ))}
         </div>
 
-        {errors.categoryInterest && <p className='text-sm text-red-400'>{errors.categoryInterest.message}</p>}
-      </section>
-
-      <section className='space-y-4'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
-            <span className='text-gray-300 text-sm font-medium'>Rango de edad preferido</span>
-            <div className='flex items-center gap-4 mt-3'>
-              <Controller
-                control={control}
-                name='agePreferenceMin'
-                render={({ field }) => (
-                  <Slider
-                    {...field}
-                    aria-label='Edad mínima'
-                    maxValue={80}
-                    minValue={18}
-                    step={1}
-                    value={field.value || 18}
-                    onChange={value => {
-                      field.onChange(value)
-                      if (errors.agePreferenceMin) {
-                        clearErrors('agePreferenceMin')
-                      }
-                    }}
-                  />
-                )}
-              />
-              <span className='text-gray-200 text-sm w-10 text-right'>{agePreferenceMin ?? 18}</span>
+        {selectedCategoryCard && (
+          <div className='bg-primary-500/10 border border-primary-500/20 rounded-lg p-4'>
+            <div className='flex gap-3'>
+              <span className='text-primary-400'>✨</span>
+              <div className='text-sm'>
+                <p className='text-primary-300'>Excelente elección. Puedes cambiar tu categoría más tarde desde tu perfil.</p>
+              </div>
             </div>
-            {errors.agePreferenceMin && <p className='text-xs text-red-400 mt-1'>{errors.agePreferenceMin.message}</p>}
           </div>
+        )}
 
-          <div>
-            <span className='text-gray-300 text-sm font-medium'>Edad máxima</span>
-            <div className='flex items-center gap-4 mt-3'>
-              <Controller
-                control={control}
-                name='agePreferenceMax'
-                render={({ field }) => (
-                  <Slider
-                    {...field}
-                    aria-label='Edad máxima'
-                    maxValue={80}
-                    minValue={18}
-                    step={1}
-                    value={field.value || 40}
-                    onChange={value => {
-                      field.onChange(value)
-                      if (errors.agePreferenceMax) {
-                        clearErrors('agePreferenceMax')
-                      }
-                    }}
-                  />
-                )}
-              />
-              <span className='text-gray-200 text-sm w-10 text-right'>{agePreferenceMax ?? 40}</span>
-            </div>
-            {errors.agePreferenceMax && <p className='text-xs text-red-400 mt-1'>{errors.agePreferenceMax.message}</p>}
-          </div>
-        </div>
-
-        <div>
-          <span className='text-gray-300 text-sm font-medium'>Radio de ubicación (km)</span>
-          <div className='flex items-center gap-4 mt-3'>
-            <Controller
-              control={control}
-              name='locationPreferenceRadius'
-              render={({ field }) => (
-                <Slider
-                  {...field}
-                  aria-label='Radio de ubicación'
-                  maxValue={200}
-                  minValue={5}
-                  step={5}
-                  value={field.value || 50}
-                  onChange={value => {
-                    field.onChange(value)
-                    if (errors.locationPreferenceRadius) {
-                      clearErrors('locationPreferenceRadius')
-                    }
-                  }}
-                />
-              )}
-            />
-            <span className='text-gray-200 text-sm w-12 text-right'>{locationPreferenceRadius ?? 50} km</span>
-          </div>
-          {errors.locationPreferenceRadius && <p className='text-xs text-red-400 mt-1'>{errors.locationPreferenceRadius.message}</p>}
-        </div>
+        {errors.categoryInterest && <p className='text-red-400 text-sm text-center'>{errors.categoryInterest?.message}</p>}
       </section>
 
       {categoryUtils.isSpiritCategory && (
         <section className='space-y-4'>
-          <Divider />
-          <h3 className='text-sm text-gray-200 font-semibold'>Intereses espirituales</h3>
+          <div className='text-center'>
+            <h3 className='text-lg font-semibold text-gray-200'>Información espiritual</h3>
+            <p className='text-gray-400 mt-1'>Comparte detalles sobre tu fe y vida espiritual</p>
+          </div>
 
-          {safeReligionOptions.length > 0 ? (
-            renderSelect('religionId', safeReligionOptions, {
-              label: 'Religión',
-              placeholder: 'Selecciona tu religión',
-              isRequired: true
-            })
-          ) : (
-            <p className='text-xs text-gray-500'>No hay opciones de religión disponibles.</p>
-          )}
+          {renderSelect('religionId', safeReligionOptions, {
+            label: 'Religión',
+            placeholder: 'Selecciona tu religión',
+            isRequired: true,
+            ariaLabel: 'Religión',
+            startContent: <Church className='w-4 h-4 text-primary-400' />
+          })}
 
-          {safeChurchOptions.length > 0 &&
-            renderSelect('churchId', safeChurchOptions, {
-              label: 'Iglesia / Comunidad',
-              placeholder: 'Selecciona tu comunidad',
-              isRequired: false
-            })}
+          {renderSelect('churchId', safeChurchOptions, {
+            label: 'Iglesia',
+            placeholder: 'Selecciona tu iglesia',
+            ariaLabel: 'Iglesia',
+            startContent: <Building className='w-4 h-4 text-primary-400' />
+          })}
 
           {renderTextarea('spiritualMoments', {
-            label: 'Momentos espirituales importantes',
-            placeholder: 'Describe brevemente momentos espirituales significativos en tu vida'
+            label: 'Momentos espirituales significativos (opcional)',
+            placeholder: 'Comparte experiencias especiales en tu vida espiritual...'
           })}
 
           {renderTextarea('spiritualPractices', {
-            label: 'Prácticas espirituales',
-            placeholder: 'Ej. oración, estudio bíblico, servicio comunitario...'
+            label: 'Prácticas espirituales (opcional)',
+            placeholder: 'Describe tus prácticas de fe (oración, lectura, servicio, etc.)'
           })}
         </section>
       )}
 
       {categoryUtils.isRoueCategory && (
         <section className='space-y-4'>
-          <Divider />
-          <h3 className='text-sm text-gray-200 font-semibold'>Preferencias románticas</h3>
+          <div className='text-center'>
+            <h3 className='text-lg font-semibold text-gray-200'>Preferencias personales</h3>
+            <p className='text-gray-400 mt-1'>Información para mejores conexiones en la comunidad</p>
+          </div>
 
-          {safeSexualRoleOptions.length > 0 ? (
-            renderSelect('sexualRoleId', safeSexualRoleOptions, {
-              label: 'Rol en la relación',
-              placeholder: 'Selecciona tu rol',
-              isRequired: true
-            })
-          ) : (
-            <p className='text-xs text-gray-500'>No hay roles disponibles.</p>
-          )}
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            {renderSelect('sexualRoleId', safeSexualRoleOptions, {
+              label: 'Rol sexual',
+              placeholder: 'Selecciona tu preferencia',
+              isRequired: true,
+              ariaLabel: 'Rol sexual'
+            })}
 
-          {safeRelationshipTypeOptions.length > 0 ? (
-            renderSelect('relationshipId', safeRelationshipTypeOptions, {
+            {renderSelect('relationshipId', safeRelationshipTypeOptions, {
               label: 'Tipo de relación',
-              placeholder: 'Selecciona el tipo de relación',
-              isRequired: true
-            })
-          ) : (
-            <p className='text-xs text-gray-500'>No hay tipos de relación configurados.</p>
-          )}
+              placeholder: 'Tipo de relación que buscas',
+              isRequired: true,
+              ariaLabel: 'Tipo de relación'
+            })}
+          </div>
         </section>
       )}
 
-      <div className='flex justify-between items-center pt-6'>
+      <section className='space-y-4'>
+        <div className='space-y-3'>
+          <label className='text-gray-300 text-sm block'>
+            Rango de edad:{' '}
+            <span className='text-primary-400 font-semibold'>
+              {agePreferenceMin || 18} - {agePreferenceMax || 40} años
+            </span>
+          </label>
+          <Controller
+            control={control}
+            name='agePreferenceMin'
+            render={({ field: minField }) => (
+              <Controller
+                control={control}
+                name='agePreferenceMax'
+                render={({ field: maxField }) => (
+                  <Slider
+                    aria-label='Rango de edad que te interesa para hacer conexiones'
+                    className='max-w-full'
+                    color='primary'
+                    formatOptions={{
+                      style: 'unit',
+                      unit: 'year',
+                      unitDisplay: 'short'
+                    }}
+                    label='Rango de edad que te interesa para hacer conexiones'
+                    marks={[
+                      { value: 18, label: '18' },
+                      { value: 30, label: '30 años' },
+                      { value: 50, label: '50 años' },
+                      { value: 65, label: '65 años' },
+                      { value: 80, label: '80' }
+                    ]}
+                    maxValue={80}
+                    minValue={18}
+                    showTooltip={true}
+                    value={[minField.value || 18, maxField.value || 40]}
+                    onChange={value => {
+                      formHandlers.handleInputChange('agePreferenceMin', value[0])
+                      formHandlers.handleInputChange('agePreferenceMax', value[1])
+                    }}
+                  />
+                )}
+              />
+            )}
+          />
+        </div>
+
+        {(errors.agePreferenceMin || errors.agePreferenceMax) && (
+          <div className='text-red-400 text-sm'>
+            {errors.agePreferenceMin && <p>{errors.agePreferenceMin?.message}</p>}
+            {errors.agePreferenceMax && <p>{errors.agePreferenceMax?.message}</p>}
+          </div>
+        )}
+      </section>
+
+      <section className='space-y-4'>
+        <div className='space-y-3'>
+          <label className='text-gray-300 text-sm block'>
+            Radio de búsqueda: <span className='text-primary-400 font-semibold'>{locationPreferenceRadius || 50} km</span>
+          </label>
+          <Controller
+            control={control}
+            name='locationPreferenceRadius'
+            render={({ field }) => (
+              <Slider
+                aria-label='Radio de búsqueda en kilómetros'
+                className='max-w-full'
+                color='primary'
+                label='Seleccionar radio de búsqueda'
+                marks={[
+                  { value: 5, label: '5 km' },
+                  { value: 50, label: '50 km' },
+                  { value: 100, label: '100 km' },
+                  { value: 150, label: '150 km' },
+                  { value: 200, label: '200 km' }
+                ]}
+                maxValue={200}
+                minValue={5}
+                showTooltip={true}
+                step={10}
+                value={field.value || 50}
+                onChange={value => formHandlers.handleInputChange('locationPreferenceRadius', value)}
+              />
+            )}
+          />
+        </div>
+
+        {errors.locationPreferenceRadius && <p className='text-red-400 text-sm'>{errors.locationPreferenceRadius?.message}</p>}
+      </section>
+
+      <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-4'>
+        <div className='flex gap-3'>
+          <span className='text-blue-400'>💡</span>
+          <div className='text-sm'>
+            <h4 className='text-blue-400 font-medium mb-2'>¿Por qué estos datos?</h4>
+            <p className='text-blue-300/80'>
+              {categoryUtils.isSpiritCategory
+                ? 'Esta información nos ayuda a conectarte con personas que comparten tu fe, valores espirituales y están en tu rango de edad y ubicación preferidos.'
+                : categoryUtils.isRoueCategory
+                  ? 'Esta información nos ayuda a conectarte con personas compatibles dentro de la comunidad LGBTI+ en tu área y rango de edad.'
+                  : 'Esta información nos ayuda a conectarte con personas que buscan el mismo tipo de relación, comparten valores similares y están en tu zona de preferencia.'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Modal
+        classNames={{
+          base: 'bg-gray-900 text-white',
+          header: 'border-b border-gray-700',
+          body: 'py-6',
+          footer: 'border-t border-gray-700'
+        }}
+        isOpen={isOpen}
+        placement='center'
+        scrollBehavior='outside'
+        size='2xl'
+        onClose={onClose}>
+        <ModalContent>
+          {onCloseModal => (
+            <>
+              <ModalHeader className='flex flex-col gap-1'>
+                <div className='flex items-center gap-4'>
+                  <div className='text-4xl p-3 bg-primary-500/20 rounded-xl'>{selectedCategoryForModal?.icon}</div>
+                  <div>
+                    <h3 className='text-2xl font-bold'>{selectedCategoryForModal?.label}</h3>
+                    <p className='text-sm text-gray-400 font-normal mt-1'>
+                      {selectedCategoryForModal?.shortDescription || selectedCategoryForModal?.description}
+                    </p>
+                  </div>
+                </div>
+              </ModalHeader>
+              <ModalBody>
+                <div className='space-y-4'>
+                  {selectedCategoryForModal?.fullDescription && (
+                    <div className='bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl p-4'>
+                      <h4 className='font-semibold text-primary-400 mb-3 flex items-center gap-2'>
+                        <span>🎯</span> ¿Qué puedes encontrar?
+                      </h4>
+                      <p className='text-gray-300 leading-relaxed'>{selectedCategoryForModal.fullDescription}</p>
+                    </div>
+                  )}
+
+                  {selectedCategoryForModal?.features && selectedCategoryForModal.features.length > 0 && (
+                    <div className='bg-gray-800/50 rounded-xl p-4'>
+                      <h4 className='font-semibold text-primary-400 mb-3 flex items-center gap-2'>
+                        <span>✨</span> Características principales
+                      </h4>
+                      <div className='space-y-4'>
+                        {selectedCategoryForModal.features.map((feature, index) => (
+                          <div key={index} className='flex items-start gap-3 bg-gray-700/30 rounded-lg p-3'>
+                            <span className='text-primary-400 mt-0.5'>•</span>
+                            <span className='text-gray-300 text-sm leading-relaxed'>{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedCategoryForModal?.targetAudience && (
+                    <div className='bg-blue-900/20 border border-blue-800/30 rounded-xl p-4'>
+                      <h4 className='font-semibold text-blue-400 mb-3 flex items-center gap-2'>
+                        <span>👥</span> Ideal para
+                      </h4>
+                      <p className='text-blue-100 leading-relaxed'>{selectedCategoryForModal.targetAudience}</p>
+                    </div>
+                  )}
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant='light' onPress={onCloseModal}>
+                  Regresar
+                </Button>
+                <Button
+                  className='bg-gradient-to-r from-primary-600 to-primary-700'
+                  color='primary'
+                  startContent={<span>✓</span>}
+                  onPress={handleCategorySelectFromModal}>
+                  Seleccionar {selectedCategoryForModal?.label}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+const StepPreferencesComponent = (
+  {
+    user,
+    categoryOptions,
+    religionOptions,
+    churchOptions,
+    sexualRoleOptions,
+    relationshipTypeOptions,
+    onStepComplete,
+    onStepBack,
+    isFirstStep = false,
+    isLastStep = false,
+    control: externalControl,
+    errors: externalErrors,
+    watch: externalWatch,
+    setValue: externalSetValue,
+    clearErrors: externalClearErrors,
+    handleSubmit: externalHandleSubmit,
+    reset: externalReset
+  },
+  ref
+) => {
+  const {
+    control,
+    errors,
+    watch,
+    setValue,
+    clearErrors,
+    handleFormSubmit,
+    isStandalone,
+    isSaving,
+    isLoading,
+    categoryOptions: resolvedCategoryOptions,
+    religionOptions: resolvedReligionOptions,
+    churchOptions: resolvedChurchOptions,
+    sexualRoleOptions: resolvedSexualRoleOptions,
+    relationshipTypeOptions: resolvedRelationshipTypeOptions
+  } = useStepPreferences({
+    user,
+    categoryOptions,
+    religionOptions,
+    churchOptions,
+    sexualRoleOptions,
+    relationshipTypeOptions,
+    control: externalControl,
+    errors: externalErrors,
+    watch: externalWatch,
+    setValue: externalSetValue,
+    clearErrors: externalClearErrors,
+    handleSubmit: externalHandleSubmit,
+    reset: externalReset,
+    onStepComplete
+  })
+
+  const content = (
+    <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
+      <StepPreferencesContent
+        categoryOptions={resolvedCategoryOptions}
+        churchOptions={resolvedChurchOptions}
+        clearErrors={clearErrors}
+        control={control}
+        errors={errors}
+        religionOptions={resolvedReligionOptions}
+        relationshipTypeOptions={resolvedRelationshipTypeOptions}
+        setValue={setValue}
+        sexualRoleOptions={resolvedSexualRoleOptions}
+        watch={watch}
+      />
+    </div>
+  )
+
+  if (isLoading) {
+    return (
+      <div ref={ref} className='flex justify-center py-10'>
+        <Spinner color='primary' />
+      </div>
+    )
+  }
+
+  if (!isStandalone) {
+    return (
+      <div ref={ref} className='space-y-4'>
+        {content}
+      </div>
+    )
+  }
+
+  const handleBack = onStepBack ?? (() => {})
+
+  return (
+    <form ref={ref} className='space-y-6' onSubmit={handleFormSubmit}>
+      {content}
+
+      <Divider />
+
+      <div className='flex justify-between items-center pt-2'>
         {!isFirstStep ? (
-          <Button variant='bordered' onPress={onStepBack}>
+          <Button variant='bordered' onPress={handleBack}>
             Anterior
           </Button>
         ) : (
@@ -424,29 +626,8 @@ const StepPreferences = ({
           {isLastStep ? 'Guardar y finalizar' : 'Guardar y continuar'}
         </Button>
       </div>
-
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalContent>
-          {() => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>Información de la categoría</ModalHeader>
-              <ModalBody>
-                <p className='text-sm text-gray-300'>{selectedCategoryForModal?.description}</p>
-              </ModalBody>
-              <ModalFooter>
-                <Button variant='light' onPress={onClose}>
-                  Cerrar
-                </Button>
-                <Button color='primary' onPress={handleCategorySelectFromModal}>
-                  Seleccionar
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
     </form>
   )
 }
 
-export default memo(StepPreferences)
+export default memo(forwardRef(StepPreferencesComponent))

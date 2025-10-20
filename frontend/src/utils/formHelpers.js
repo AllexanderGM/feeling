@@ -29,8 +29,10 @@ export const prepareDataForBackend = formData => {
 
   Object.keys(data).forEach(key => {
     const value = data[key]
+
     if (typeof value === 'string') {
       const trimmed = value.trim()
+
       data[key] = trimmed === '' ? null : trimmed
     }
   })
@@ -85,9 +87,6 @@ export const hasFormChanges = (formData, user, currentStep = null) => {
   // Determinar qué campos comparar
   const fieldsToCompare = currentStep ? getFieldsForStep(currentStep) : Object.keys(formData)
 
-  console.log('🔍 [hasFormChanges] Comparando paso:', currentStep)
-  console.log('📝 Campos a comparar:', fieldsToCompare)
-
   // Comparar cada campo
   for (const field of fieldsToCompare) {
     const formValue = formData[field]
@@ -102,39 +101,19 @@ export const hasFormChanges = (formData, user, currentStep = null) => {
       userValue = user.user?.[field] ?? user[field]
     }
 
-    console.log(`  Campo "${field}":`, {
-      formValue,
-      userValue,
-      formType: typeof formValue,
-      userType: typeof userValue,
-      formIsArray: Array.isArray(formValue),
-      userIsArray: Array.isArray(userValue)
-    })
-
     // IGNORAR images - se comparan por separado en useStepSave
-    if (field === 'images') {
-      console.log(`  ⏭️ Skipping "images" (compared separately in useStepSave)`)
-      continue
-    }
+    if (field === 'images') continue
 
     // Comparación especial para otros arrays (dateOfBirth, tags, etc.)
     if (Array.isArray(formValue) && Array.isArray(userValue)) {
       // Comparar longitud
-      if (formValue.length !== userValue.length) {
-        console.log(`  ❌ Array length differs: ${formValue.length} vs ${userValue.length}`)
-
-        return true
-      }
+      if (formValue.length !== userValue.length) return true
 
       // Comparar elementos
       for (let i = 0; i < formValue.length; i++) {
-        if (JSON.stringify(formValue[i]) !== JSON.stringify(userValue[i])) {
-          console.log(`  ❌ Array element ${i} differs:`, formValue[i], 'vs', userValue[i])
-
-          return true
-        }
+        if (JSON.stringify(formValue[i]) !== JSON.stringify(userValue[i])) return true
       }
-      console.log(`  ✅ Arrays are equal`)
+
       continue
     }
 
@@ -142,29 +121,14 @@ export const hasFormChanges = (formData, user, currentStep = null) => {
     const isFormEmpty = formValue === null || formValue === undefined || formValue === ''
     const isUserEmpty = userValue === null || userValue === undefined || userValue === ''
 
-    if (isFormEmpty && isUserEmpty) {
-      console.log(`  ✅ Both empty`)
-      continue // Ambos vacíos, sin cambio
-    }
+    if (isFormEmpty && isUserEmpty) continue // Ambos vacíos, sin cambio
 
     // Si uno está vacío y el otro no, hay cambio
-    if (isFormEmpty !== isUserEmpty) {
-      console.log(`  ❌ One is empty, other is not`)
-
-      return true
-    }
+    if (isFormEmpty !== isUserEmpty) return true
 
     // Comparación normal de valores
-    if (formValue !== userValue) {
-      console.log(`  ❌ Values differ: "${formValue}" vs "${userValue}"`)
-
-      return true
-    }
-
-    console.log(`  ✅ Values are equal`)
+    if (formValue !== userValue) return true
   }
-
-  console.log('✅ No hay cambios detectados')
 
   return false // No hay cambios
 }

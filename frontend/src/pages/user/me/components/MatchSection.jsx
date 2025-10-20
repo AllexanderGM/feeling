@@ -74,8 +74,8 @@ const MatchSection = ({ userHelpers }) => {
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
-              onPress={handleGetMoreAttempts}
-              variant='bordered'>
+              variant='bordered'
+              onPress={handleGetMoreAttempts}>
               Obtener Más
             </Button>
           </div>
@@ -136,8 +136,8 @@ const MatchSection = ({ userHelpers }) => {
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
-              onPress={handleGetMoreAttempts}
-              variant='bordered'>
+              variant='bordered'
+              onPress={handleGetMoreAttempts}>
               Obtener Más
             </Button>
           </div>

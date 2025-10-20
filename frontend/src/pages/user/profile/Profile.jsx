@@ -4,17 +4,34 @@ import {
   Chip,
   Card,
   CardBody,
-  Avatar,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure
+  useDisclosure,
+  Spinner,
+  Avatar
 } from '@heroui/react'
-import { ArrowLeft, MapPin, Heart, X, Bookmark, Clock, CheckCircle2, Mail, Eye, Star, Users, Briefcase, Menu, Shield } from 'lucide-react'
-import { useUser, useMatchInteractions, useMatchFavorites } from '@hooks'
-import { useState, useEffect, useCallback } from 'react'
+import {
+  ArrowLeft,
+  MapPin,
+  Heart,
+  X,
+  Bookmark,
+  Clock,
+  CheckCircle2,
+  Eye,
+  Star,
+  Users,
+  Tag,
+  Mail,
+  Shield,
+  Menu,
+  Briefcase
+} from 'lucide-react'
+import { useUser, useMatchInteractions, useMatchFavorites, useLocation, useUserAttributes, useUserTags } from '@hooks'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import {
@@ -22,6 +39,7 @@ import {
   getUserLastName,
   getUserAge,
   getUserProfession,
+  getUserCountry,
   getUserCity,
   getUserDepartment,
   getUserLocality,
@@ -29,8 +47,13 @@ import {
   getUserImages,
   getUserGender,
   getUserLastActive,
-  getUserVerified
+  getUserVerified,
+  getUserTags,
+  getUserAgePreferenceMin,
+  getUserAgePreferenceMax
 } from '@schemas'
+import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
+import StepCharacteristics from '@pages/user/complete/components/StepCharacteristics.jsx'
 
 // Función auxiliar para formatear última actividad
 const formatLastActive = lastActiveDate => {
@@ -81,19 +104,26 @@ const UserDetail = () => {
   const [selectedImage, setSelectedImage] = useState(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const { isOpen: isImageOpen, onOpen: onImageOpen, onOpenChange: onImageOpenChange } = useDisclosure()
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
+  const { isOpen: isCharacteristicsOpen, onOpen: onCharacteristicsOpen, onOpenChange: onCharacteristicsOpenChange } = useDisclosure()
 
   // Hooks
   const { getUserProfileById } = useUser()
   const { sendMatch, dismissSuggestion, loading: matchLoading } = useMatchInteractions()
   const { toggleFavorite, checkIfFavorite, loading: favoriteLoading } = useMatchFavorites()
+  const userAttributes = useUserAttributes()
+  const userTags = useUserTags()
   const [isFavorite, setIsFavorite] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Obtener el usuario por ID
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (userId) {
-        setLoading(true)
+  const fetchUser = useCallback(
+    async ({ withLoader = true } = {}) => {
+      if (!userId) return
+
+      if (withLoader) setLoading(true)
+
+      try {
         const result = await getUserProfileById(userId, 'public', false)
 
         if (result?.success && result?.data) {
@@ -102,12 +132,16 @@ const UserDetail = () => {
 
           setIsFavorite(favoriteStatus)
         }
-        setLoading(false)
+      } finally {
+        if (withLoader) setLoading(false)
       }
-    }
+    },
+    [userId, getUserProfileById, checkIfFavorite]
+  )
 
+  useEffect(() => {
     fetchUser()
-  }, [userId, getUserProfileById, checkIfFavorite])
+  }, [fetchUser])
 
   const handleBack = () => {
     navigate(-1)
@@ -129,6 +163,29 @@ const UserDetail = () => {
 
     setIsFavorite(newFavoriteStatus)
   }, [userId, toggleFavorite])
+
+  const locationConfig = useMemo(
+    () => ({
+      defaultCountry: getUserCountry(userData) || 'Colombia',
+      defaultCity: getUserCity(userData) || 'Bogotá',
+      loadAll: true
+    }),
+    [userData]
+  )
+
+  const location = useLocation(locationConfig)
+
+  const handleEditSuccess = useCallback(async () => {
+    await fetchUser({ withLoader: false })
+    onEditOpenChange()
+  }, [fetchUser, onEditOpenChange])
+
+  const characteristicsDataLoading = userAttributes?.loading || userTags?.loading
+
+  const handleCharacteristicsSuccess = useCallback(async () => {
+    await fetchUser({ withLoader: false })
+    onCharacteristicsOpenChange()
+  }, [fetchUser, onCharacteristicsOpenChange])
 
   // Funciones para la galería de imágenes
   const openImageModal = (image, index) => {
@@ -167,6 +224,9 @@ const UserDetail = () => {
   const images = getUserImages(userData) || []
   const gender = getUserGender(userData)
   const isVerified = getUserVerified(userData)
+  const tags = getUserTags(userData) || []
+  const agePreferenceMin = getUserAgePreferenceMin(userData)
+  const agePreferenceMax = getUserAgePreferenceMax(userData)
 
   // Datos de status
   const lastActive = getUserLastActive(userData)
@@ -290,6 +350,22 @@ const UserDetail = () => {
               variant='flat'>
               <Heart className='w-4 h-4' />
             </Button>
+            <Button
+              className='bg-primary-600 hover:bg-primary-700 text-white font-semibold px-4'
+              radius='full'
+              size='sm'
+              onPress={onEditOpen}>
+              Editar perfil
+            </Button>
+            <Button
+              className='font-semibold px-4'
+              color='secondary'
+              radius='full'
+              size='sm'
+              variant='solid'
+              onPress={onCharacteristicsOpen}>
+              Editar características
+            </Button>
           </div>
         </div>
 
@@ -339,6 +415,51 @@ const UserDetail = () => {
             </div>
           </CardBody>
         </Card>
+
+        {/* Sección de Intereses */}
+        {tags.length > 0 && (
+          <Card className='mx-4 mb-4 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
+            <CardBody className='p-4'>
+              <div className='flex items-center gap-2 mb-3'>
+                <div className='w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center'>
+                  <Tag className='w-4 h-4 text-pink-400' />
+                </div>
+                <h3 className='text-sm font-bold text-gray-200'>Intereses</h3>
+              </div>
+              <div className='flex flex-wrap gap-2'>
+                {tags.map((tag, index) => (
+                  <Chip key={index} className='bg-purple-500/20 text-purple-300 border border-purple-500/30' size='sm' variant='flat'>
+                    {tag}
+                  </Chip>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {/* Sección de Preferencias de Búsqueda */}
+        {(agePreferenceMin || agePreferenceMax) && (
+          <Card className='mx-4 mb-4 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
+            <CardBody className='p-4'>
+              <div className='flex items-center gap-2 mb-3'>
+                <div className='w-8 h-8 bg-indigo-500/20 rounded-full flex items-center justify-center'>
+                  <Star className='w-4 h-4 text-indigo-400' />
+                </div>
+                <h3 className='text-sm font-bold text-gray-200'>Buscando</h3>
+              </div>
+              <div className='space-y-2'>
+                {agePreferenceMin && agePreferenceMax && (
+                  <div className='flex items-center gap-2 text-sm'>
+                    <Users className='w-4 h-4 text-gray-400' />
+                    <span className='text-gray-300'>
+                      {agePreferenceMin} - {agePreferenceMax} años
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         {/* Indicadores de estado de match */}
         {(hasAcceptedMatch || hasPendingMatch) && (
@@ -463,6 +584,115 @@ const UserDetail = () => {
           </Button>
         </div>
       </div>
+
+      <Modal
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-xl border border-gray-800/70',
+          header: 'border-b border-gray-800/60',
+          footer: 'border-t border-gray-800/60'
+        }}
+        isOpen={isEditOpen}
+        scrollBehavior='inside'
+        size='5xl'
+        onOpenChange={onEditOpenChange}>
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader>
+                <div>
+                  <h2 className='text-lg font-semibold text-gray-200'>Editar información básica</h2>
+                  <p className='text-sm text-gray-400'>Actualiza los datos principales del perfil antes de continuar con otros pasos.</p>
+                </div>
+              </ModalHeader>
+              <ModalBody className='py-6'>
+                {!userData ? (
+                  <div className='flex flex-col items-center justify-center py-12 gap-3'>
+                    <Spinner color='primary' />
+                    <p className='text-sm text-gray-400'>Cargando información del usuario...</p>
+                  </div>
+                ) : location.loading && !location.hasCountries ? (
+                  <div className='flex flex-col items-center justify-center py-12 gap-3'>
+                    <Spinner color='primary' />
+                    <p className='text-sm text-gray-400'>Cargando datos geográficos...</p>
+                  </div>
+                ) : (
+                  <StepBasicInfo
+                    key={userData?.user?.id ?? userData?.id ?? 'step-basic-info'}
+                    isFirstStep
+                    isLastStep
+                    locationData={{
+                      formattedCountries: location.formattedCountries,
+                      formattedCities: location.formattedCities,
+                      formattedLocalities: location.formattedLocalities,
+                      loadCitiesByCountry: location.loadCitiesByCountry,
+                      loadLocalitiesByCity: location.loadLocalitiesByCity
+                    }}
+                    user={userData}
+                    onStepComplete={handleEditSuccess}
+                  />
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant='light' onPress={onEditOpenChange}>
+                  Cerrar
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      <Modal
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-xl border border-gray-800/70',
+          header: 'border-b border-gray-800/60',
+          footer: 'border-t border-gray-800/60'
+        }}
+        isOpen={isCharacteristicsOpen}
+        scrollBehavior='inside'
+        size='5xl'
+        onOpenChange={onCharacteristicsOpenChange}>
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader>
+                <div>
+                  <h2 className='text-lg font-semibold text-gray-200'>Editar características</h2>
+                  <p className='text-sm text-gray-400'>Actualiza tu descripción, intereses y detalles físicos.</p>
+                </div>
+              </ModalHeader>
+              <ModalBody className='py-6'>
+                {!userData ? (
+                  <div className='flex flex-col items-center justify-center py-12 gap-3'>
+                    <Spinner color='primary' />
+                    <p className='text-sm text-gray-400'>Cargando información del usuario...</p>
+                  </div>
+                ) : characteristicsDataLoading ? (
+                  <div className='flex flex-col items-center justify-center py-12 gap-3'>
+                    <Spinner color='primary' />
+                    <p className='text-sm text-gray-400'>Cargando atributos disponibles...</p>
+                  </div>
+                ) : (
+                  <StepCharacteristics
+                    key={`step-characteristics-${userData?.user?.id ?? userData?.id ?? 'profile'}`}
+                    isFirstStep
+                    isLastStep
+                    user={userData}
+                    userAttributes={userAttributes}
+                    userTags={userTags}
+                    onStepComplete={handleCharacteristicsSuccess}
+                  />
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant='light' onPress={onCharacteristicsOpenChange}>
+                  Cerrar
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
 
       {/* Modal para visualizar imágenes */}
       <Modal

@@ -43,7 +43,6 @@ const CharacteristicsSection = ({ user }) => {
     watch,
     getValues,
     setValue,
-    setError,
     clearErrors,
     reset
   } = useForm({
@@ -82,7 +81,6 @@ const CharacteristicsSection = ({ user }) => {
     errors,
     watch,
     setValue,
-    setError,
     clearErrors,
     userAttributes,
     userTags,
@@ -280,8 +278,7 @@ const CharacteristicsSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             {getMaritalStatusIcon(user?.user?.maritalStatus || user?.maritalStatus)}
             <span>
-              Estado civil:{' '}
-              <span className='text-gray-300'>{user?.user?.maritalStatus || user?.maritalStatus || 'No especificado'}</span>
+              Estado civil: <span className='text-gray-300'>{user?.user?.maritalStatus || user?.maritalStatus || 'No especificado'}</span>
             </span>
           </div>
 

@@ -109,7 +109,12 @@ export const baseValidations = {
     .integer('La estatura debe ser un número entero')
     .required('La estatura es requerida'),
 
-  tags: yup.array().min(1, 'Agrega al menos un interés').max(10, 'Máximo 10 intereses'),
+  tags: yup
+    .array()
+    .of(yup.string())
+    .min(3, 'Agrega al menos 3 intereses')
+    .max(10, 'Máximo 10 intereses')
+    .required('Los intereses son requeridos'),
 
   categoryInterest: yup.string().required('Selecciona una categoría'),
 

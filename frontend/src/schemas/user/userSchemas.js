@@ -144,7 +144,7 @@ export const preferencesEditSchema = yup.object().shape({
  */
 export const getFieldsForStep = step => {
   const stepFields = {
-    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'country', 'city', 'images'],
+    1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'country', 'city', 'locality', 'images'],
     2: ['description', 'genderId', 'height', 'tags'],
     3: [
       'categoryInterest',
@@ -152,8 +152,11 @@ export const getFieldsForStep = step => {
       'agePreferenceMax',
       'locationPreferenceRadius',
       'religionId',
+      'churchId',
       'sexualRoleId',
-      'relationshipId'
+      'relationshipId',
+      'spiritualMoments',
+      'spiritualPractices'
     ],
     4: [] // No hay validaciones obligatorias en el paso 4
   }

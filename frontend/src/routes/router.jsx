@@ -25,6 +25,13 @@ import Matches from '@pages/matches/Matches.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 import UserDetail from '@pages/user/profile/Profile.jsx'
+// Páginas de compra de planes
+import PurchasePlans from '@pages/matches/purchase/PurchasePlans.jsx'
+import Checkout from '@pages/matches/purchase/Checkout.jsx'
+import Payment from '@pages/matches/purchase/Payment.jsx'
+import PaymentSuccess from '@pages/matches/purchase/PaymentSuccess.jsx'
+import PaymentError from '@pages/matches/purchase/PaymentError.jsx'
+import MyMatches from '@pages/matches/myMatches/MyMatches.jsx'
 // Páginas de administración
 import AdminDashboard from '@pages/admin/AdminDashboard.jsx'
 import UsersManagement from '@pages/user/management/Management.jsx'
@@ -153,6 +160,60 @@ const router = createBrowserRouter([
             element: (
               <RequireCompleteProfile>
                 <UserComplaints />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.MY_MATCHES.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <MyMatches />{' '}
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_PLANS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <PurchasePlans />{' '}
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_CHECKOUT.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <Checkout />{' '}
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_PAYMENT.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <Payment />{' '}
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_SUCCESS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <PaymentSuccess />{' '}
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_ERROR.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                {' '}
+                <PaymentError />{' '}
               </RequireCompleteProfile>
             )
           },

@@ -23,17 +23,8 @@ import { useNavigate } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths'
 import { useAuth, useLocation, useUser, useUserInterests } from '@hooks'
 import {
-  getUserId,
-  getUserName,
-  getUserLastName,
-  getUserEmail,
   getUserCountry,
   getUserCity,
-  getUserVerified,
-  getUserApproved,
-  getUserProfileComplete,
-  getUserCreatedAt,
-  getUserLastActive,
   getUserCategoryInterest,
   getUserGender,
   getUserTags,
@@ -44,9 +35,10 @@ import {
   getUserMetrics,
   getUserDateOfBirth,
   getUserMainImage,
-  getUserAccountDeactivated
+  getUserAccountDeactivated,
+  getUserVerified,
+  getUserApproved
 } from '@schemas'
-
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
@@ -127,7 +119,9 @@ const Profile = () => {
       // Account helpers
       getAccountType: () => user?.accountType || 'Básica',
       getRegion: () => user?.region || 'América',
-      isAccountActive: () => !getUserAccountDeactivated(user)
+      isAccountActive: () => !getUserAccountDeactivated(user),
+      isUserVerified: () => getUserVerified(user),
+      isUserApproved: () => getUserApproved(user)
     }
   }, [user])
 
@@ -520,44 +514,44 @@ const Profile = () => {
               {/* Verificación */}
               <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
                 <div className='flex items-center gap-3 mb-2'>
-                  <CheckCircle className={`w-4 h-4 ${isUserVerified() ? 'text-green-400' : 'text-gray-400'}`} />
+                  <CheckCircle className={`w-4 h-4 ${userHelpers.isUserVerified?.() ? 'text-green-400' : 'text-gray-400'}`} />
                   <span className='text-sm font-medium text-gray-200'>Verificación</span>
                 </div>
                 <div className='space-y-2'>
                   <Chip
                     className={
-                      isUserVerified()
+                      userHelpers.isUserVerified?.()
                         ? 'bg-green-500/20 text-green-300 border border-green-500/30'
                         : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
                     }
-                    color={isUserVerified() ? 'success' : 'warning'}
+                    color={userHelpers.isUserVerified?.() ? 'success' : 'warning'}
                     size='sm'
                     variant='flat'>
-                    {isUserVerified() ? 'Verificado' : 'No verificado'}
+                    {userHelpers.isUserVerified?.() ? 'Verificado' : 'No verificado'}
                   </Chip>
-                  {!isUserVerified() && <p className='text-xs text-gray-400'>Verifica tu cuenta para acceder a más funciones</p>}
+                  {!userHelpers.isUserVerified?.() && <p className='text-xs text-gray-400'>Verifica tu cuenta para acceder a más funciones</p>}
                 </div>
               </div>
 
               {/* Aprobación */}
               <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
                 <div className='flex items-center gap-3 mb-2'>
-                  <Shield className={`w-4 h-4 ${isUserApproved() ? 'text-blue-400' : 'text-orange-400'}`} />
+                  <Shield className={`w-4 h-4 ${userHelpers.isUserApproved?.() ? 'text-blue-400' : 'text-orange-400'}`} />
                   <span className='text-sm font-medium text-gray-200'>Aprobación</span>
                 </div>
                 <div className='space-y-2'>
                   <Chip
                     className={
-                      isUserApproved()
+                      userHelpers.isUserApproved?.()
                         ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
                         : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
                     }
-                    color={isUserApproved() ? 'primary' : 'warning'}
+                    color={userHelpers.isUserApproved?.() ? 'primary' : 'warning'}
                     size='sm'
                     variant='flat'>
-                    {isUserApproved() ? 'Aprobado' : 'Pendiente de aprobación'}
+                    {userHelpers.isUserApproved?.() ? 'Aprobado' : 'Pendiente de aprobación'}
                   </Chip>
-                  {!isUserApproved() && <p className='text-xs text-orange-300'>Tu perfil será revisado y aprobado pronto</p>}
+                  {!userHelpers.isUserApproved?.() && <p className='text-xs text-orange-300'>Tu perfil será revisado y aprobado pronto</p>}
                 </div>
               </div>
             </div>
@@ -575,13 +569,17 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      className={getProfilePrivacy() === 'Público' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                      color={getProfilePrivacy() === 'Público' ? 'success' : 'default'}
+                      className={
+                        userHelpers.getProfilePrivacy?.() === 'Público' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'
+                      }
+                      color={userHelpers.getProfilePrivacy?.() === 'Público' ? 'success' : 'default'}
                       size='sm'
                       variant='flat'>
-                      {getProfilePrivacy() || 'Privado'}
+                      {userHelpers.getProfilePrivacy?.() || 'Privado'}
                     </Chip>
-                    {!isUserApproved() && getProfilePrivacy() === 'Público' && <span className='text-orange-300 text-xs'>*</span>}
+                    {!userHelpers.isUserApproved?.() && userHelpers.getProfilePrivacy?.() === 'Público' && (
+                      <span className='text-orange-300 text-xs'>*</span>
+                    )}
                   </div>
                 </div>
 
@@ -593,13 +591,13 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      className={isSearchable() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                      color={isSearchable() ? 'success' : 'default'}
+                      className={userHelpers.isSearchable?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
+                      color={userHelpers.isSearchable?.() ? 'success' : 'default'}
                       size='sm'
                       variant='flat'>
-                      {isSearchable() ? 'Sí' : 'No'}
+                      {userHelpers.isSearchable?.() ? 'Sí' : 'No'}
                     </Chip>
-                    {!isUserApproved() && isSearchable() && <span className='text-orange-300 text-xs'>*</span>}
+                    {!userHelpers.isUserApproved?.() && userHelpers.isSearchable?.() && <span className='text-orange-300 text-xs'>*</span>}
                   </div>
                 </div>
 
@@ -610,11 +608,11 @@ const Profile = () => {
                     <span className='text-gray-400'>Compartir ubicación:</span>
                   </div>
                   <Chip
-                    className={isLocationShared() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={isLocationShared() ? 'success' : 'default'}
+                    className={userHelpers.isLocationShared?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
+                    color={userHelpers.isLocationShared?.() ? 'success' : 'default'}
                     size='sm'
                     variant='flat'>
-                    {isLocationShared() ? 'Sí' : 'No'}
+                    {userHelpers.isLocationShared?.() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
 
@@ -626,13 +624,13 @@ const Profile = () => {
                   </div>
                   <div className='flex items-center gap-2'>
                     <Chip
-                      className={showInSearch() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                      color={showInSearch() ? 'success' : 'default'}
+                      className={userHelpers.showInSearch?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
+                      color={userHelpers.showInSearch?.() ? 'success' : 'default'}
                       size='sm'
                       variant='flat'>
-                      {showInSearch() ? 'Sí' : 'No'}
+                      {userHelpers.showInSearch?.() ? 'Sí' : 'No'}
                     </Chip>
-                    {!isUserApproved() && showInSearch() && <span className='text-orange-300 text-xs'>*</span>}
+                    {!userHelpers.isUserApproved?.() && userHelpers.showInSearch?.() && <span className='text-orange-300 text-xs'>*</span>}
                   </div>
                 </div>
 
@@ -643,11 +641,11 @@ const Profile = () => {
                     <span className='text-gray-400'>Mostrar edad:</span>
                   </div>
                   <Chip
-                    className={showAge() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={showAge() ? 'success' : 'default'}
+                    className={userHelpers.showAge?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
+                    color={userHelpers.showAge?.() ? 'success' : 'default'}
                     size='sm'
                     variant='flat'>
-                    {showAge() ? 'Sí' : 'No'}
+                    {userHelpers.showAge?.() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
 
@@ -658,17 +656,17 @@ const Profile = () => {
                     <span className='text-gray-400'>Mostrar teléfono:</span>
                   </div>
                   <Chip
-                    className={showPhone() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={showPhone() ? 'success' : 'default'}
+                    className={userHelpers.showPhone?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
+                    color={userHelpers.showPhone?.() ? 'success' : 'default'}
                     size='sm'
                     variant='flat'>
-                    {showPhone() ? 'Sí' : 'No'}
+                    {userHelpers.showPhone?.() ? 'Sí' : 'No'}
                   </Chip>
                 </div>
               </div>
 
               {/* Aclaración para perfiles no aprobados */}
-              {!isUserApproved() && (
+              {!userHelpers.isUserApproved?.() && (
                 <div className='bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mt-4'>
                   <div className='flex items-start gap-2'>
                     <AlertTriangle className='w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0' />

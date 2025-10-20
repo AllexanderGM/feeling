@@ -140,6 +140,14 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
   const [isConverting, setIsConverting] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
   const conversionInProgress = useRef(false)
+  const failedRemoteDownloads = useRef(new Set())
+  const pruneFailedDownloads = useCallback(images => {
+    if (failedRemoteDownloads.current.size === 0) return
+
+    const availableUrls = new Set(images.filter(imageData => typeof imageData === 'string' && imageData.startsWith('http')))
+
+    failedRemoteDownloads.current = new Set([...failedRemoteDownloads.current].filter(url => availableUrls.has(url)))
+  }, [])
 
   // Convertir imágenes iniciales a base64 si son File objects
   useEffect(() => {
@@ -172,6 +180,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
           return validImages
         })
+        pruneFailedDownloads(validImages)
         setHasInitialized(true)
       } catch (error) {
         Logger.error('Error converting initial images:', error, { category: Logger.CATEGORIES.UI })
@@ -183,7 +192,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
     }
 
     convertInitialImages()
-  }, [initialImages.length, JSON.stringify(initialImages.map(img => (typeof img === 'string' ? img : img?.name)))])
+  }, [initialImages.length, JSON.stringify(initialImages.map(img => (typeof img === 'string' ? img : img?.name))), pruneFailedDownloads])
 
   // Función para manejar cambios completos en las imágenes (reemplazar todo)
   const handleImagesChange = useCallback(
@@ -201,14 +210,26 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         // Actualizar estado local
         setPersistentImages(validImages)
 
-        // Notificar cambio - SIEMPRE convertir todas las imágenes a Files
-        // Esto permite que el backend pueda manejar eliminaciones correctamente
-        // usando el parámetro replaceImages=true
+        pruneFailedDownloads(validImages)
+
+        // Notificar cambio intentando convertir las imágenes a File cuando sea posible
         const processedImages = await Promise.all(
           validImages.map(async (imageData, index) => {
             // Si es una URL (empieza con http), descargarla y convertirla a File
             if (typeof imageData === 'string' && imageData.startsWith('http')) {
-              return await urlToFile(imageData, `image_${index}.jpg`)
+              if (failedRemoteDownloads.current.has(imageData)) {
+                return imageData
+              }
+
+              const file = await urlToFile(imageData, `image_${index}.jpg`)
+
+              if (!file) {
+                failedRemoteDownloads.current.add(imageData)
+
+                return imageData
+              }
+
+              return file
             }
             // Si es base64, convertir a File
             if (typeof imageData === 'string' && imageData.startsWith('data:')) {
@@ -232,7 +253,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         setIsConverting(false)
       }
     },
-    [onImagesChange]
+    [onImagesChange, pruneFailedDownloads]
   )
 
   // Función para remover imagen
@@ -242,12 +263,26 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
       setPersistentImages(updatedImages)
 
-      // Convertir a File objects y notificar
+      pruneFailedDownloads(updatedImages)
+
+      // Convertir a File objects cuando sea posible y notificar
       Promise.all(
         updatedImages.map(async (imageData, idx) => {
           // Si es URL, descargar y convertir a File
           if (typeof imageData === 'string' && imageData.startsWith('http')) {
-            return await urlToFile(imageData, `image_${idx}.jpg`)
+            if (failedRemoteDownloads.current.has(imageData)) {
+              return imageData
+            }
+
+            const file = await urlToFile(imageData, `image_${idx}.jpg`)
+
+            if (!file) {
+              failedRemoteDownloads.current.add(imageData)
+
+              return imageData
+            }
+
+            return file
           }
           // Si es base64, convertir a File
           if (typeof imageData === 'string' && imageData.startsWith('data:')) {
@@ -266,7 +301,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         onImagesChange?.(validFiles)
       })
     },
-    [persistentImages, onImagesChange]
+    [persistentImages, onImagesChange, pruneFailedDownloads]
   )
 
   // Función para reordenar imágenes
@@ -279,12 +314,26 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
       setPersistentImages(reorderedImages)
 
-      // Convertir a File objects y notificar
+      pruneFailedDownloads(reorderedImages)
+
+      // Convertir a File objects cuando sea posible y notificar
       Promise.all(
         reorderedImages.map(async (imageData, idx) => {
           // Si es URL, descargar y convertir a File
           if (typeof imageData === 'string' && imageData.startsWith('http')) {
-            return await urlToFile(imageData, `image_${idx}.jpg`)
+            if (failedRemoteDownloads.current.has(imageData)) {
+              return imageData
+            }
+
+            const file = await urlToFile(imageData, `image_${idx}.jpg`)
+
+            if (!file) {
+              failedRemoteDownloads.current.add(imageData)
+
+              return imageData
+            }
+
+            return file
           }
           // Si es base64, convertir a File
           if (typeof imageData === 'string' && imageData.startsWith('data:')) {
@@ -303,7 +352,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         onImagesChange?.(validFiles)
       })
     },
-    [persistentImages, onImagesChange]
+    [persistentImages, onImagesChange, pruneFailedDownloads]
   )
 
   // Obtener File objects para el ImageManager

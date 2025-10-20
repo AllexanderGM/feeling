@@ -95,13 +95,12 @@ const ProfileComplete = () => {
 
     switch (currentStep) {
       case 1:
-        return <StepBasicInfo isFirstStep locationData={location} user={user} onStepComplete={handleNextStep} />
+        return <StepBasicInfo isFirstStep onStepComplete={handleNextStep} />
       case 2:
         return (
           <StepCharacteristics
-            user={user}
-            userAttributes={userAttributes}
-            userTags={userTags}
+            isFirstStep={stepInfo.isFirst}
+            isLastStep={stepInfo.isLast}
             onStepBack={handlePrevStep}
             onStepComplete={handleNextStep}
           />

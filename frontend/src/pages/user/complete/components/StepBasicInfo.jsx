@@ -1,17 +1,11 @@
-/* eslint-disable jsx-a11y/no-autofocus */
-import { useRef, useCallback, useMemo, memo, useEffect } from 'react'
+import { useMemo, memo } from 'react'
 import { Input, DatePicker, Autocomplete, AutocompleteItem, Accordion, AccordionItem, Button } from '@heroui/react'
-import { today, getLocalTimeZone, CalendarDate } from '@internationalized/date'
-import { useForm, Controller, useController } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
+import { today, getLocalTimeZone } from '@internationalized/date'
+import { Controller } from 'react-hook-form'
 import { Camera } from 'lucide-react'
-
 import ImageManager from '@components/ui/imageManager/ImageManager'
-import { getUserEmail, getDefaultValuesForStep, stepBasicInfoSchema } from '@schemas'
-import { convertTimestamp, isTimestampArray } from '@utils/convertTimestamp.js'
 
-import { useStepSave } from '../hooks/useStepSave'
-import { usePersistentImages } from '../hooks/usePersistentImages'
+import { useStepBasicInfo } from '../hooks/useStepBasicInfo'
 
 const MAX_IMAGES = 5
 const PHOTO_TIPS = [
@@ -21,333 +15,123 @@ const PHOTO_TIPS = [
   { label: 'Autenticidad', tip: 'Evita fotos grupales o con lentes de sol en todas' }
 ]
 
-const normalizeValue = value => (typeof value === 'string' ? value.trim() : value)
-
-const StepBasicInfo = ({ user, locationData, onStepComplete, onStepBack, isFirstStep = true, isLastStep = false }) => {
-  const defaultValues = useMemo(() => {
-    const stepValues = getDefaultValuesForStep(1, user)
-
-    if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
-      stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
-    }
-
-    const localityValue = stepValues.locality
-    if (Array.isArray(localityValue) && localityValue.length > 0) {
-      stepValues.locality = localityValue[0]
-    } else if (localityValue && typeof localityValue === 'object') {
-      stepValues.locality = localityValue.name ?? localityValue.label ?? ''
-    }
-
-    return stepValues
-  }, [user])
-
+const StepBasicInfo = ({ onStepComplete, onStepBack, isFirstStep = true, isLastStep = false, ...hookOptions }) => {
   const {
     control,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    watch,
-    setValue,
-    setError,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(stepBasicInfoSchema),
-    mode: 'onChange',
-    defaultValues
-  })
-
-  const { saveStepData, submitting } = useStepSave(user)
-  const imageManagerRef = useRef(null)
-
-  useEffect(() => {
-    if (!user) return
-    const stepValues = getDefaultValuesForStep(1, user)
-
-    if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
-      stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
-    }
-    const localityValue = stepValues.locality
-    if (Array.isArray(localityValue) && localityValue.length > 0) {
-      stepValues.locality = localityValue[0]
-    } else if (localityValue && typeof localityValue === 'object') {
-      stepValues.locality = localityValue.name ?? localityValue.label ?? ''
-    }
-    reset(stepValues, { keepDefaultValues: false })
-  }, [user, reset])
-
-  const { field: imagesField } = useController({
-    name: 'images',
-    control
-  })
-
-  const formValues = watch()
-  const { images, country, city, phoneCode, locality } = formValues
-  const {
+    formErrors,
     formattedCountries = [],
     formattedCities = [],
     formattedLocalities = [],
-    loadLocalitiesByCity,
-    loadCitiesByCountry
-  } = locationData
+    locationHandlers,
+    derivedData,
+    persistentFileObjects,
+    hasInitialized,
+    handleImagesChange,
+    handleImageValidationChange,
+    getParsedDate,
+    handleFormSubmit,
+    isSaving,
+    isStandalone,
+    imageManagerRef,
+    phoneCode,
+    formValuesPhone,
+    country,
+    city
+  } = useStepBasicInfo({ ...hookOptions, onStepComplete })
 
-  const countryLookup = useMemo(() => {
-    const byPhone = new Map()
-    const byName = new Map()
+  const containerProps = {
+    className: 'space-y-4 md:space-y-6 px-2 md:px-0'
+  }
 
-    formattedCountries.forEach(countryItem => {
-      byPhone.set(countryItem.phone, countryItem)
-      byName.set(countryItem.name, countryItem)
-    })
+  const renderPhoneSection = useMemo(
+    () => (
+      <div className='space-y-2'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <Controller
+            control={control}
+            name='phoneCode'
+            render={({ field }) => (
+              <Autocomplete
+                isRequired
+                defaultItems={formattedCountries}
+                errorMessage={formErrors.phoneCode?.message}
+                inputProps={{
+                  id: 'phone-code-select',
+                  name: 'phoneCode',
+                  'aria-label': 'Seleccionar código de país para teléfono',
+                  autoComplete: 'tel-country-code'
+                }}
+                isInvalid={!!formErrors.phoneCode}
+                label='Código de teléfono'
+                selectedKey={field.value}
+                startContent={
+                  field.value &&
+                  derivedData.phoneCountryData.image && (
+                    <img
+                      alt={`Bandera de ${derivedData.phoneCountryData.name}`}
+                      className='w-5 h-5 rounded-full object-cover'
+                      src={derivedData.phoneCountryData.image}
+                    />
+                  )
+                }
+                variant='underlined'
+                onSelectionChange={field.onChange}>
+                {countryItem => (
+                  <AutocompleteItem
+                    key={countryItem.phone}
+                    className={countryItem.priority && 'bg-blue-500/10'}
+                    textValue={`${countryItem.phone} ${countryItem.name}`}>
+                    <div className='flex items-center gap-2'>
+                      <span className='font-medium'>{countryItem.phone}</span>
+                      <span className='text-gray-400 ml-1'>{countryItem.name}</span>
+                    </div>
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+            )}
+          />
 
-    return { byPhone, byName }
-  }, [formattedCountries])
+          <Controller
+            control={control}
+            name='phone'
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                aria-label='Número de teléfono'
+                autoComplete='tel-national'
+                errorMessage={formErrors.phone?.message}
+                id='phone-number'
+                isInvalid={!!formErrors.phone}
+                label='Número de teléfono'
+                placeholder='123 456 789'
+                type='tel'
+                variant='underlined'
+                onChange={e => {
+                  const cleanedPhone = e.target.value.replace(/\D/g, '')
 
-  useEffect(() => {
-    if (!country || formattedCountries.length === 0) return
-    if (typeof loadCitiesByCountry !== 'function') return
-    if (!formattedCities || formattedCities.length === 0) {
-      loadCitiesByCountry(country)
-    }
-  }, [country, formattedCountries, formattedCities, loadCitiesByCountry])
-
-  useEffect(() => {
-    if (!city) return
-    if (typeof loadLocalitiesByCity !== 'function') return
-    if (!formattedLocalities || formattedLocalities.length === 0) {
-      loadLocalitiesByCity(city)
-    }
-  }, [city, formattedLocalities, loadLocalitiesByCity])
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.debug('🔍 [StepBasicInfo] Localidad debug', {
-        city,
-        locality,
-        formattedLocalities
-      })
-    }
-  }, [city, locality, formattedLocalities])
-
-  useEffect(() => {
-    if (!locality) return
-    if (!formattedLocalities || formattedLocalities.length === 0) return
-
-    const normalize = value =>
-      value
-        ? value
-            .toString()
-            .trim()
-            .normalize('NFD')
-            .replace(/\p{Diacritic}/gu, '')
-            .toLowerCase()
-        : ''
-
-    const normalizedLocality = normalize(locality)
-    const matched = formattedLocalities.find(loc => normalize(loc.name) === normalizedLocality)
-
-    if (!matched) {
-      const partial = formattedLocalities.find(loc => normalize(loc.name).includes(normalizedLocality))
-      if (partial) {
-        setValue('locality', partial.name, { shouldValidate: true, shouldDirty: false })
-      } else {
-        setValue('locality', '', { shouldValidate: false, shouldDirty: false })
-      }
-    }
-  }, [locality, formattedLocalities, setValue])
-
-  const derivedData = useMemo(
-    () => ({
-      shouldShowLocalities: city && formattedLocalities.length > 0,
-      phoneCountryData: countryLookup.byPhone.get(phoneCode) || { image: '🌍', name: 'Sin país', phone: '' },
-      locationCountryData: countryLookup.byName.get(country) || { image: '🌍', name: 'Sin país' },
-      email: getUserEmail(user) || ''
-    }),
-    [city, formattedLocalities, countryLookup, phoneCode, country, user]
-  )
-
-  const locationHandlers = useMemo(
-    () => ({
-      handleCountryChange: key => {
-        if (!key) return
-        setValue('country', key)
-        setValue('city', '')
-        setValue('locality', '')
-        loadCitiesByCountry(key)
-      },
-
-      handleCityChange: key => {
-        if (!key) return
-        setValue('city', key)
-        setValue('locality', '')
-        loadLocalitiesByCity(key)
-      }
-    }),
-    [setValue, loadCitiesByCountry, loadLocalitiesByCity]
-  )
-
-  const userImages = useMemo(() => {
-    if (!user) return []
-    const imgs = user.user?.images ?? user.images ?? []
-
-    return imgs
-  }, [user])
-
-  const {
-    fileObjects: persistentFileObjects,
-    handleImagesChange: handlePersistentImagesChange,
-    hasInitialized
-  } = usePersistentImages(userImages, newImages => {
-    imagesField.onChange(newImages)
-
-    if (newImages.length > 0) {
-      clearErrors('images')
-      clearErrors('profileImage')
-    }
-  })
-
-  const handleImagesChange = useCallback(
-    newImages => {
-      handlePersistentImagesChange(newImages)
-    },
-    [handlePersistentImagesChange]
-  )
-
-  const handleImageValidationChange = useCallback(
-    ({ hasErrors, imageCount, errors: imageErrors }) => {
-      if (hasErrors && Object.keys(imageErrors).length > 0) {
-        return
-      }
-
-      if (imageCount === 0) {
-        setError('images', {
-          type: 'required',
-          message: 'Debes subir al menos una imagen de perfil'
-        })
-      } else {
-        clearErrors('images')
-        clearErrors('profileImage')
-      }
-    },
-    [setError, clearErrors]
-  )
-
-  const getParsedDate = useCallback(value => {
-    try {
-      if (!value) return null
-      if (value instanceof CalendarDate) return value
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) return null
-      return new CalendarDate(date.getFullYear(), date.getMonth() + 1, date.getDate())
-    } catch {
-      return null
-    }
-  }, [])
-
-  const renderPhoneSection = () => (
-    <div className='space-y-2'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-        <Controller
-          control={control}
-          name='phoneCode'
-          render={({ field }) => (
-            <Autocomplete
-              isRequired
-              defaultItems={formattedCountries}
-              errorMessage={errors.phoneCode?.message}
-              inputProps={{
-                id: 'phone-code-select',
-                name: 'phoneCode',
-                'aria-label': 'Seleccionar código de país para teléfono',
-                autoComplete: 'tel-country-code'
-              }}
-              isInvalid={!!errors.phoneCode}
-              label='Código de teléfono'
-              selectedKey={field.value}
-              startContent={
-                field.value && (
-                  <span className='text-base' aria-hidden='true'>
-                    {derivedData.phoneCountryData.image || '🌍'}
-                  </span>
-                )
-              }
-              variant='underlined'
-              onSelectionChange={field.onChange}>
-              {countryItem => (
-                <AutocompleteItem
-                  key={countryItem.phone}
-                  className={countryItem.priority && 'bg-blue-500/10'}
-                  textValue={`${countryItem.phone} ${countryItem.name}`}>
-                  <div className='flex items-center gap-2'>
-                    <span className='font-medium'>{countryItem.phone}</span>
-                    <span className='text-gray-400 ml-1'>{countryItem.name}</span>
-                  </div>
-                </AutocompleteItem>
-              )}
-            </Autocomplete>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name='phone'
-          render={({ field }) => (
-            <Input
-              {...field}
-              isRequired
-              aria-label='Número de teléfono'
-              autoComplete='tel-national'
-              errorMessage={errors.phone?.message}
-              id='phone-number'
-              isInvalid={!!errors.phone}
-              label='Número de teléfono'
-              placeholder='123 456 789'
-              type='tel'
-              variant='underlined'
-              onChange={e => {
-                const cleanedPhone = e.target.value.replace(/\D/g, '')
-                field.onChange(cleanedPhone)
-              }}
-            />
-          )}
-        />
-      </div>
-
-      {phoneCode && formValues.phone && (
-        <div className='bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2' role='status'>
-          <span className='text-xs text-gray-400'>Número completo:</span>
-          <span className='text-xs text-gray-300 font-mono'>
-            {phoneCode} {formValues.phone}
-          </span>
+                  field.onChange(cleanedPhone)
+                }}
+              />
+            )}
+          />
         </div>
-      )}
-    </div>
+
+        {phoneCode && formValuesPhone && (
+          <div className='bg-gray-700/20 px-3 py-2 rounded-lg inline-flex items-center gap-2' role='status'>
+            <span className='text-xs text-gray-400'>Número completo:</span>
+            <span className='text-xs text-gray-300 font-mono'>
+              {phoneCode} {formValuesPhone}
+            </span>
+          </div>
+        )}
+      </div>
+    ),
+    [control, formErrors, formattedCountries, derivedData.phoneCountryData, phoneCode, formValuesPhone]
   )
 
-  const onSubmit = useCallback(
-    async data => {
-      const prepared = Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = normalizeValue(value)
-        return acc
-      }, {})
-
-      const result = await saveStepData({
-        stepNumber: 1,
-        formData: prepared,
-        images: prepared.images
-      })
-
-      if (result.success) {
-        onStepComplete?.()
-      }
-    },
-    [onStepComplete, saveStepData]
-  )
-
-  const isSaving = submitting || isSubmitting
-
-  return (
-    <form className='space-y-4 md:space-y-6 px-2 md:px-0' onSubmit={handleSubmit(onSubmit)}>
-      {/* Sección de imágenes */}
+  const sharedContent = (
+    <>
       <section aria-labelledby='images-section' className='space-y-4 md:space-y-6'>
         {!hasInitialized ? (
           <div className='text-center py-8'>
@@ -373,10 +157,10 @@ const StepBasicInfo = ({ user, locationData, onStepComplete, onStepBack, isFirst
           />
         )}
 
-        {(errors.images || errors.profileImage) && (
+        {(formErrors.images || formErrors.profileImage) && (
           <div className='text-center'>
             <p className='text-red-400 text-sm font-medium bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 inline-block'>
-              {errors.images?.message || errors.profileImage?.message}
+              {formErrors.images?.message || formErrors.profileImage?.message}
             </p>
           </div>
         )}
@@ -404,10 +188,255 @@ const StepBasicInfo = ({ user, locationData, onStepComplete, onStepBack, isFirst
         </Accordion>
       </section>
 
-      {/* Información personal */}
       <section aria-labelledby='personal-info-section' className='space-y-4'>
         <h2 className='sr-only' id='personal-info-section'>
           Información personal
         </h2>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <Controller
+            control={control}
+            name='name'
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                aria-label='Nombres'
+                autoComplete='given-name'
+                errorMessage={formErrors.name?.message}
+                id='first-name'
+                isInvalid={!!formErrors.name}
+                label='Nombre(s)'
+                placeholder='Tus nombre(s)'
+                type='text'
+                variant='underlined'
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name='lastName'
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                aria-label='Apellidos'
+                autoComplete='family-name'
+                errorMessage={formErrors.lastName?.message}
+                id='last-name'
+                isInvalid={!!formErrors.lastName}
+                label='Apellidos'
+                placeholder='Tus apellidos'
+                type='text'
+                variant='underlined'
+              />
+            )}
+          />
+        </div>
+
+        <Controller
+          control={control}
+          name='document'
+          render={({ field }) => (
+            <Input
+              {...field}
+              isRequired
+              aria-label='Documento de identidad'
+              autoComplete='off'
+              errorMessage={formErrors.document?.message}
+              id='document-id'
+              isInvalid={!!formErrors.document}
+              label='Documento de identidad'
+              placeholder='Número de documento'
+              type='text'
+              variant='underlined'
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name='dateOfBirth'
+          render={({ field }) => (
+            <DatePicker
+              showMonthAndYearPickers
+              aria-label='Fecha de nacimiento'
+              description='Debes ser mayor de 18 años'
+              errorMessage={formErrors.dateOfBirth?.message}
+              granularity='day'
+              id='birth-date'
+              isInvalid={!!formErrors.dateOfBirth}
+              maxValue={today(getLocalTimeZone()).subtract({ years: 18 })}
+              placeholderValue={today(getLocalTimeZone()).subtract({ years: 25 })}
+              value={field.value ? getParsedDate(field.value) : null}
+              variant='bordered'
+              onChange={field.onChange}
+            />
+          )}
+        />
+      </section>
+
+      <section aria-labelledby='contact-section' className='space-y-4'>
+        <h2 className='sr-only' id='contact-section'>
+          Información de contacto
+        </h2>
+        {renderPhoneSection}
+      </section>
+
+      <section aria-labelledby='location-section' className='space-y-4'>
+        <h2 className='sr-only' id='location-section'>
+          Información de ubicación
+        </h2>
+
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+          <Controller
+            control={control}
+            name='country'
+            render={({ field }) => (
+              <Autocomplete
+                isRequired
+                defaultItems={formattedCountries}
+                errorMessage={formErrors.country?.message}
+                inputProps={{
+                  id: 'country-select',
+                  name: 'country',
+                  'aria-label': 'Seleccionar país',
+                  autoComplete: 'country-name'
+                }}
+                isInvalid={!!formErrors.country}
+                label='País'
+                placeholder='Buscar tu país...'
+                selectedKey={field.value}
+                startContent={
+                  field.value &&
+                  derivedData.locationCountryData.image && (
+                    <img
+                      alt={`Bandera de ${derivedData.locationCountryData.name}`}
+                      className='w-5 h-5 rounded-full object-cover'
+                      src={derivedData.locationCountryData.image}
+                    />
+                  )
+                }
+                variant='underlined'
+                onSelectionChange={key => {
+                  field.onChange(key)
+                  if (key) {
+                    locationHandlers.handleCountryChange(key)
+                  }
+                }}>
+                {countryItem => (
+                  <AutocompleteItem
+                    key={countryItem.name}
+                    className={countryItem.priority && 'bg-blue-500/10'}
+                    textValue={countryItem.name}>
+                    <div className='flex items-center gap-2'>
+                      <img alt={`Bandera de ${countryItem.name}`} className='w-5 h-5 rounded-full object-cover' src={countryItem.image} />
+                      <span className={countryItem.priority ? 'font-semibold' : ''}>{countryItem.name}</span>
+                    </div>
+                  </AutocompleteItem>
+                )}
+              </Autocomplete>
+            )}
+          />
+
+          {country && (
+            <Controller
+              control={control}
+              name='city'
+              render={({ field }) => (
+                <Autocomplete
+                  isRequired
+                  defaultItems={formattedCities}
+                  errorMessage={formErrors.city?.message}
+                  inputProps={{
+                    id: 'city-select',
+                    name: 'city',
+                    'aria-label': 'Seleccionar ciudad',
+                    autoComplete: 'address-level2'
+                  }}
+                  isInvalid={!!formErrors.city}
+                  label='Ciudad'
+                  placeholder='Buscar tu ciudad...'
+                  selectedKey={field.value}
+                  variant='underlined'
+                  onSelectionChange={key => {
+                    field.onChange(key)
+                    if (key) {
+                      locationHandlers.handleCityChange(key)
+                    }
+                  }}>
+                  {cityItem => (
+                    <AutocompleteItem key={cityItem.name} className={cityItem.priority && 'bg-blue-500/10'} textValue={cityItem.name}>
+                      <span className={cityItem.priority ? 'font-semibold' : ''}>{cityItem.name}</span>
+                    </AutocompleteItem>
+                  )}
+                </Autocomplete>
+              )}
+            />
+          )}
+        </div>
+
+        {derivedData.shouldShowLocalities && (
+          <div className='space-y-4'>
+            <div className='bg-gray-700/20 px-3 py-2 rounded-lg' role='status'>
+              <span className='text-xs text-gray-400'>
+                Como seleccionaste {city}, puedes especificar tu localidad para mejorar tus conexiones.
+              </span>
+            </div>
+
+            <Controller
+              control={control}
+              name='locality'
+              render={({ field }) => (
+                <Autocomplete
+                  defaultItems={formattedLocalities}
+                  inputProps={{
+                    id: 'locality-select',
+                    name: 'locality',
+                    'aria-label': 'Seleccionar localidad (opcional)',
+                    autoComplete: 'address-level3'
+                  }}
+                  label='Localidad (opcional)'
+                  placeholder='Buscar localidad...'
+                  selectedKey={field.value || ''}
+                  variant='underlined'
+                  onSelectionChange={key => field.onChange(key || '')}>
+                  {localityItem => (
+                    <AutocompleteItem key={localityItem.name} textValue={localityItem.name}>
+                      {localityItem.name}
+                    </AutocompleteItem>
+                  )}
+                </Autocomplete>
+              )}
+            />
+          </div>
+        )}
+      </section>
+    </>
+  )
+
+  return isStandalone ? (
+    <form {...containerProps} onSubmit={handleFormSubmit}>
+      {sharedContent}
+
+      <div className='flex justify-between items-center pt-6'>
+        {!isFirstStep ? (
+          <Button variant='bordered' onPress={onStepBack}>
+            Anterior
+          </Button>
+        ) : (
+          <span />
+        )}
+
+        <Button color='primary' isLoading={isSaving} type='submit'>
+          {isLastStep ? 'Finalizar' : 'Continuar'}
+        </Button>
+      </div>
+    </form>
+  ) : (
+    <div {...containerProps}>{sharedContent}</div>
+  )
+}
+
+export default memo(StepBasicInfo)

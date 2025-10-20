@@ -194,7 +194,7 @@ export const validateProfileImage = (images, options = {}) => {
 
 // Validación para tags/intereses
 export const validateTags = tags => {
-  if (!tags || tags.length === 0) return 'Agrega al menos un interés'
+  if (!tags || tags.length < 3) return 'Agrega al menos 3 intereses'
   if (tags.length > 10) return 'Máximo 10 intereses'
 
   return null

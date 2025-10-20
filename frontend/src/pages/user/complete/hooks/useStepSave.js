@@ -9,6 +9,8 @@ import { Logger } from '@utils/logger.js'
 import { prepareDataForBackend, hasFormChanges, filterNullValues } from '@utils/formHelpers.js'
 import { useUser } from '@hooks'
 
+const ENABLE_STEP_SAVE_DEBUG = import.meta?.env?.VITE_ENABLE_STEP_SAVE_DEBUG === 'true'
+
 /**
  * Hook para manejar el guardado de pasos del perfil con optimización
  *
@@ -81,20 +83,26 @@ export const useStepSave = user => {
 
           hasImageChanges = formStr !== userStr
 
-          if (hasImageChanges) {
-            console.log('📸 [useStepSave] Image content/order changed:', {
-              formImageIds: formImageIds.slice(0, 2),
-              userImageIds: userImageIds.slice(0, 2)
+          if (ENABLE_STEP_SAVE_DEBUG && hasImageChanges) {
+            Logger.debug(Logger.CATEGORIES.UI, 'guardar paso', `Paso ${stepNumber}: Cambios detectados en el orden/contenido de imágenes`, {
+              context: {
+                formImageSample: formImageIds.slice(0, 2),
+                userImageSample: userImageIds.slice(0, 2)
+              }
             })
           }
         }
 
-        console.log('📸 [useStepSave] Image comparison:', {
-          formImagesCount,
-          userImagesCount,
-          hasImageChanges,
-          validImages: validImages?.slice(0, 2) // Solo mostrar primeras 2 para debug
-        })
+        if (ENABLE_STEP_SAVE_DEBUG) {
+          Logger.debug(Logger.CATEGORIES.UI, 'guardar paso', `Paso ${stepNumber}: Comparación de imágenes`, {
+            context: {
+              formImagesCount,
+              userImagesCount,
+              hasImageChanges,
+              validImagesSample: validImages?.slice(0, 2)
+            }
+          })
+        }
 
         // Si NO hay cambios en datos NI en imágenes, omitir guardado
         if (!hasDataChanges && !hasImageChanges) {
@@ -113,24 +121,30 @@ export const useStepSave = user => {
         if (hasDataChanges) changeTypes.push('datos')
         if (hasImageChanges) changeTypes.push('imágenes')
 
-        Logger.debug(
-          Logger.CATEGORIES.UI,
-          'guardar paso',
-          `Paso ${stepNumber}: Detectados cambios en ${changeTypes.join(' y ')}, guardando...`
-        )
+        if (ENABLE_STEP_SAVE_DEBUG) {
+          Logger.debug(
+            Logger.CATEGORIES.UI,
+            'guardar paso',
+            `Paso ${stepNumber}: Detectados cambios en ${changeTypes.join(' y ')}, guardando...`
+          )
+        }
 
         const imageTypes = validImages?.map(img => (typeof img === 'string' ? 'URL' : img instanceof File ? 'File' : 'unknown'))
         const allAreURLs = imageTypes?.every(t => t === 'URL')
         const hasNewFiles = imageTypes?.some(t => t === 'File')
 
-        console.log('📤 [useStepSave] Sending to backend:', {
-          preparedData: Object.keys(preparedData),
-          validImagesCount: validImages?.length,
-          validImagesTypes: imageTypes,
-          allAreURLs,
-          hasNewFiles,
-          validImagesPreview: validImages?.slice(0, 2)
-        })
+        if (ENABLE_STEP_SAVE_DEBUG) {
+          Logger.debug(Logger.CATEGORIES.UI, 'guardar paso', `Paso ${stepNumber}: Datos preparados para enviar`, {
+            context: {
+              preparedFields: Object.keys(preparedData),
+              validImagesCount: validImages?.length,
+              validImagesTypes: imageTypes,
+              allAreURLs,
+              hasNewFiles,
+              validImagesSample: validImages?.slice(0, 2)
+            }
+          })
+        }
 
         // Determinar si necesitamos reemplazar imágenes
         // - Si hay Files nuevos: enviar con replaceImages=true para reemplazar todo
@@ -138,19 +152,30 @@ export const useStepSave = user => {
         const shouldReplaceImages = hasNewFiles && hasImageChanges
         const finalImagesToSend = hasNewFiles ? validImages : null
 
-        console.log('📤 [useStepSave] Upload strategy:', {
-          shouldReplaceImages,
-          finalImagesToSendCount: finalImagesToSend?.length ?? 0,
-          hasNewFiles,
-          allAreURLs,
-          hasImageChanges
-        })
+        if (ENABLE_STEP_SAVE_DEBUG) {
+          Logger.debug(Logger.CATEGORIES.UI, 'guardar paso', `Paso ${stepNumber}: Estrategia de carga`, {
+            context: {
+              shouldReplaceImages,
+              finalImagesToSendCount: finalImagesToSend?.length ?? 0,
+              hasNewFiles,
+              allAreURLs,
+              hasImageChanges
+            }
+          })
+        }
 
         if (allAreURLs && hasImageChanges) {
-          console.log('⚠️ [useStepSave] Detected image changes but all are URLs - user deleted images')
-          console.log('   User had:', userImagesCount, 'images')
-          console.log('   Form has:', formImagesCount, 'images')
-          console.log('   → This should not happen anymore with new replaceImages logic')
+          Logger.warn(
+            Logger.CATEGORIES.UI,
+            'guardar paso',
+            `Paso ${stepNumber}: Se detectaron cambios con solo URLs (posible eliminación de imágenes)`,
+            {
+              context: {
+                userImagesCount,
+                formImagesCount
+              }
+            }
+          )
         }
 
         // Guardar en el backend

@@ -166,9 +166,7 @@ const PreferencesSection = ({ user }) => {
                   <Church className='w-3 h-3' />
                   <span>
                     Religión:{' '}
-                    <span className='text-gray-300'>
-                      {getAttributeName('religionOptions', user?.user?.religionId || user?.religionId)}
-                    </span>
+                    <span className='text-gray-300'>{getAttributeName('religionOptions', user?.user?.religionId || user?.religionId)}</span>
                   </span>
                 </div>
               )}
@@ -181,9 +179,7 @@ const PreferencesSection = ({ user }) => {
                   <Sparkles className='w-3 h-3 mt-0.5' />
                   <div className='w-full'>
                     <span className='text-xs text-gray-400'>Momentos espirituales: </span>
-                    <p className='text-xs text-gray-300 leading-relaxed mt-1'>
-                      {user?.user?.spiritualMoments || user?.spiritualMoments}
-                    </p>
+                    <p className='text-xs text-gray-300 leading-relaxed mt-1'>{user?.user?.spiritualMoments || user?.spiritualMoments}</p>
                   </div>
                 </div>
               </div>
