@@ -105,6 +105,14 @@ public class User implements UserDetails {
     private boolean profileComplete = false;
 
     /**
+     * Indica si el usuario completó la configuración final (privacidad/notificaciones).
+     * Se utiliza para forzar el paso por el último step del onboarding.
+     */
+    @Column(name = "configuration_completed")
+    @Builder.Default
+    private boolean configurationCompleted = false;
+
+    /**
      * Estado de aprobación del usuario por parte de los administradores.
      * Los usuarios deben ser aprobados para poder usar la plataforma completamente.
      */

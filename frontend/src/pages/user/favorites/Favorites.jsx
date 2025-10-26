@@ -8,8 +8,8 @@ import { matchQueryService } from '@services'
 import { APP_PATHS } from '@constants/paths'
 import { Logger } from '@utils/logger.js'
 import { formatJavaDateForDisplay, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
-import GenericDataTable from '@components/common/GenericDataTable.jsx'
-import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import GenericDataTable from '@components/common/data-table/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/data-table/GenericTableActions.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 
 // Definición de columnas para cada tipo de match

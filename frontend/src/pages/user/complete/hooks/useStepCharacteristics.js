@@ -6,8 +6,6 @@ import { getDefaultValuesForStep, stepCharacteristicsSchema } from '@schemas'
 
 import { useStepSave } from './useStepSave'
 
-const noop = () => {}
-
 export const normalizeTags = value => {
   if (!value) return []
   if (Array.isArray(value)) return value.filter(tag => typeof tag === 'string' && tag.trim().length > 0)
@@ -20,26 +18,10 @@ export const normalizeTags = value => {
   return []
 }
 
-const useStepCharacteristics = ({
-  user: userOverride,
-  userAttributes: userAttributesOverride,
-  userTags: userTagsOverride,
-  control: controlOverride,
-  errors: errorsOverride,
-  watch: watchOverride,
-  setValue: setValueOverride,
-  clearErrors: clearErrorsOverride,
-  handleSubmit: handleSubmitOverride,
-  reset: resetOverride,
-  onStepComplete
-} = {}) => {
-  const { user: contextUser } = useUser()
-  const userAttributesHook = useUserAttributes()
-  const userTagsHook = useUserTags()
-
-  const user = userOverride ?? contextUser
-  const userAttributes = userAttributesOverride ?? userAttributesHook
-  const userTags = userTagsOverride ?? userTagsHook
+const useStepCharacteristics = ({ onStepComplete } = {}) => {
+  const { user } = useUser()
+  const userAttributes = useUserAttributes()
+  const userTags = useUserTags()
 
   const defaultValues = useMemo(() => {
     const values = getDefaultValuesForStep(2, user) || {}
@@ -51,27 +33,17 @@ const useStepCharacteristics = ({
     }
   }, [user])
 
-  const internalForm = useForm({
+  const form = useForm({
     resolver: yupResolver(stepCharacteristicsSchema),
     mode: 'onChange',
     defaultValues
   })
 
-  const isStandalone = !controlOverride
-
-  const control = isStandalone ? internalForm.control : controlOverride
-  const errors = isStandalone ? internalForm.formState.errors : (errorsOverride ?? {})
-  const watch = isStandalone ? internalForm.watch : (watchOverride ?? (() => defaultValues))
-  const setValue = isStandalone ? internalForm.setValue : (setValueOverride ?? noop)
-  const clearErrors = isStandalone ? internalForm.clearErrors : (clearErrorsOverride ?? noop)
-  const handleSubmitFn = isStandalone
-    ? internalForm.handleSubmit
-    : (handleSubmitOverride ?? (submitHandler => () => (typeof submitHandler === 'function' ? submitHandler() : undefined)))
-  const resetForm = isStandalone ? internalForm.reset : (resetOverride ?? noop)
-  const isSubmitting = isStandalone ? internalForm.formState.isSubmitting : false
+  const { control, formState, watch, setValue, clearErrors, reset, handleSubmit } = form
+  const errors = formState.errors
 
   useEffect(() => {
-    if (!isStandalone || !user || !userAttributes) return
+    if (!user || !userAttributes) return
 
     // Only run this effect once when attributes are loaded
     const hasAttributes =
@@ -142,16 +114,13 @@ const useStepCharacteristics = ({
       mappedValues.bodyTypeId = findIdByName(bodyTypeOptions, user.bodyType)
     }
 
-    resetForm(mappedValues, { keepDefaultValues: false })
-  }, [isStandalone, user?.id, userAttributes?.genderOptions?.length])
+    reset(mappedValues, { keepDefaultValues: false })
+  }, [user?.id, userAttributes?.genderOptions?.length, reset])
 
-  const { saveStepData, submitting } = useStepSave(user)
-  const isSaving = isStandalone ? submitting || isSubmitting : false
+  const { saveStepData } = useStepSave(user)
 
   const onSubmit = useCallback(
     async data => {
-      if (!isStandalone) return undefined
-
       const result = await saveStepData({
         stepNumber: 2,
         formData: {
@@ -160,32 +129,25 @@ const useStepCharacteristics = ({
         }
       })
 
-      if (result.success) {
-        onStepComplete?.()
-      }
+      // Siempre llamar onStepComplete con el resultado
+      onStepComplete?.(result)
 
       return result
     },
-    [isStandalone, saveStepData, onStepComplete]
+    [saveStepData, onStepComplete]
   )
 
-  const handleFormSubmit = isStandalone ? handleSubmitFn(onSubmit) : undefined
-  const isLoading = Boolean(userAttributes?.loading) || Boolean(userTags?.loading)
+  const handleFormSubmit = handleSubmit(onSubmit)
 
   return {
-    user,
-    userAttributes,
-    userTags,
     control,
     errors,
     watch,
     setValue,
     clearErrors,
     handleFormSubmit,
-    isStandalone,
-    isSaving,
-    isSubmitting,
-    isLoading
+    userAttributes,
+    userTags
   }
 }
 

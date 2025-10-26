@@ -23,6 +23,8 @@ export const APP_PATHS = {
     WELCOME_ONBOARDING: '/welcome-onboarding',
     SETTINGS: '/settings',
     EVENTS: '/events',
+    EVENT_DETAIL: '/events/:eventId',
+    EVENT_PAYMENT_STATUS: '/events/payment-status',
     MATCHES: '/matches',
     SEARCH: '/search',
     FAVORITES: '/favorites',
@@ -32,6 +34,7 @@ export const APP_PATHS = {
     PURCHASE_PLANS: '/purchase/plans',
     PURCHASE_CHECKOUT: '/purchase/checkout',
     PURCHASE_PAYMENT: '/purchase/payment',
+    PURCHASE_PAYMENT_STATUS: '/purchase/payment-status',
     PURCHASE_SUCCESS: '/purchase/success',
     PURCHASE_ERROR: '/purchase/error'
   },

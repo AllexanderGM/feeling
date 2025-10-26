@@ -338,6 +338,20 @@ export const API_ENDPOINTS = {
     PAYMENT: '/events/payment'
   },
 
+  PAYMENTS: {
+    CREATE_INTENT: '/payments/create-payment-intent',
+    CONFIRM: '/payments/confirm',
+    WEBHOOK: '/payments/webhook'
+  },
+
+  EVENT_REGISTRATIONS: {
+    BASE: '/event-registrations',
+    REGISTER: '/event-registrations/register',
+    MY: '/event-registrations/my-registrations',
+    BY_EVENT: '/event-registrations/event',
+    STATS: '/event-registrations/stats'
+  },
+
   // Matches
   MATCHES: {
     BASE: '/matches',

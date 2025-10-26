@@ -1,41 +1,17 @@
-import { Avatar, Chip, Progress, Button } from '@heroui/react'
-import { useNavigate } from 'react-router-dom'
-import { APP_PATHS } from '@constants/paths'
+import { Avatar, Chip, Progress } from '@heroui/react'
 import {
-  getUserId,
   getUserName,
   getUserLastName,
   getUserEmail,
   getUserCountry,
   getUserCity,
   getUserVerified,
-  getUserProfileComplete,
   getUserCreatedAt,
   getUserLastActive
 } from '@schemas'
-import { Eye, Calendar, Mail, Clock, Activity, Share2, Settings, Shield, Globe, Users, Database, CheckCircle, User } from 'lucide-react'
-import { Logger } from '@utils/logger.js'
+import { Eye, Calendar, Mail, Clock, Activity, Shield, Globe, Users, Database, CheckCircle } from 'lucide-react'
 
 const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileData, profileStats, userHelpers }) => {
-  const navigate = useNavigate()
-
-  const handleShareProfile = () => {
-    const profileUrl = window.location.origin + APP_PATHS.USER.PROFILE + '/' + getUserId(user)
-
-    navigator.clipboard
-      .writeText(profileUrl)
-      .then(() => {
-        Logger.info(Logger.CATEGORIES.UI, 'share_profile', 'Profile URL copied to clipboard', { profileUrl })
-      })
-      .catch(err => {
-        Logger.error(Logger.CATEGORIES.UI, 'share_profile', 'Failed to copy profile URL', { error: err })
-      })
-  }
-
-  const handleSettings = () => {
-    navigate(APP_PATHS.USER.SETTINGS)
-  }
-
   return (
     <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 sm:p-6'>
       {/* Header para vista previa */}
@@ -151,7 +127,7 @@ const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileD
         </div>
 
         {/* Datos de privacidad y configuración */}
-        <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3 sm:p-4 space-y-3'>
+        <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3 sm:p-4 space-y-3 mb-6'>
           <div className='flex items-center gap-2 mb-2'>
             <Shield className='w-4 h-4 text-blue-400' />
             <span className='text-sm font-medium text-gray-200'>Privacidad y Configuración</span>
@@ -184,72 +160,52 @@ const ProfileHeader = ({ user, categoryInterestDetails, getCountryData, profileD
               </span>
             </div>
           </div>
-
-          {/* Botones de acción */}
-          <div className='flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-700/30'>
-            <Button
-              aria-label='Compartir perfil'
-              className='text-primary-400 hover:text-primary-300 hover:bg-primary-500/10'
-              size='sm'
-              startContent={<Share2 className='w-3 h-3' />}
-              variant='light'>
-              onPress={handleShareProfile}
-              Compartir Perfil
-            </Button>
-            <Button
-              aria-label='Configuración de privacidad'
-              className='text-gray-400 hover:text-gray-300 hover:bg-gray-700/30'
-              size='sm'
-              startContent={<Settings className='w-3 h-3' />}
-              variant='light'>
-              onPress={handleSettings}
-              Configuración
-            </Button>
-          </div>
         </div>
 
-        {/* Metadatos adicionales */}
-        <div className='mt-3 space-y-2'>
-          <div className='flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-4 text-xs text-gray-400'>
-            {/* ID de usuario */}
-            <div className='flex items-center gap-1'>
-              <span>ID:</span>
-              <span className='text-gray-300 font-mono'>{getUserId(user)}</span>
+        {/* Estado del perfil detallado */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+          {/* Verificación */}
+          <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
+            <div className='flex items-center gap-3 mb-2'>
+              <CheckCircle className={`w-4 h-4 ${userHelpers.isUserVerified?.() ? 'text-green-400' : 'text-gray-400'}`} />
+              <span className='text-sm font-medium text-gray-200'>Verificación</span>
             </div>
-
-            {/* Tipo de cuenta */}
-            <div className='flex items-center gap-1'>
-              <span>Tipo:</span>
-              <span className='text-gray-300'>{userHelpers.getAccountType()}</span>
-            </div>
-
-            {/* Región */}
-            <div className='flex items-center gap-1'>
-              <span>Región:</span>
-              <span className='text-gray-300'>{userHelpers.getRegion()}</span>
+            <div className='space-y-2'>
+              <Chip
+                className={
+                  userHelpers.isUserVerified?.()
+                    ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                }
+                color={userHelpers.isUserVerified?.() ? 'success' : 'warning'}
+                size='sm'
+                variant='flat'>
+                {userHelpers.isUserVerified?.() ? 'Verificado' : 'No verificado'}
+              </Chip>
+              {!userHelpers.isUserVerified?.() && <p className='text-xs text-gray-400'>Verifica tu cuenta para acceder a más funciones</p>}
             </div>
           </div>
 
-          {/* Estado del perfil */}
-          <div className='flex items-center justify-center sm:justify-start gap-2 sm:gap-3 flex-wrap'>
-            <Chip
-              className={`${getUserProfileComplete(user) ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'}`}
-              color={getUserProfileComplete(user) ? 'success' : 'warning'}
-              size='sm'
-              startContent={<User className='w-3 h-3' />}
-              variant='flat'>
-              {getUserProfileComplete(user) ? 'Perfil completo' : 'Perfil incompleto'}
-            </Chip>
-
-            {/* Estado de actividad */}
-            <Chip
-              className='bg-primary-500/20 text-primary-300 border border-primary-500/30'
-              color='primary'
-              size='sm'
-              startContent={<Activity className='w-3 h-3' />}
-              variant='flat'>
-              {userHelpers.isAccountActive() ? 'Activo' : 'Inactivo'}
-            </Chip>
+          {/* Aprobación */}
+          <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
+            <div className='flex items-center gap-3 mb-2'>
+              <Shield className={`w-4 h-4 ${userHelpers.isUserApproved?.() ? 'text-blue-400' : 'text-orange-400'}`} />
+              <span className='text-sm font-medium text-gray-200'>Aprobación</span>
+            </div>
+            <div className='space-y-2'>
+              <Chip
+                className={
+                  userHelpers.isUserApproved?.()
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                }
+                color={userHelpers.isUserApproved?.() ? 'primary' : 'warning'}
+                size='sm'
+                variant='flat'>
+                {userHelpers.isUserApproved?.() ? 'Aprobado' : 'Pendiente de aprobación'}
+              </Chip>
+              {!userHelpers.isUserApproved?.() && <p className='text-xs text-orange-300'>Tu perfil será revisado y aprobado pronto</p>}
+            </div>
           </div>
         </div>
       </div>

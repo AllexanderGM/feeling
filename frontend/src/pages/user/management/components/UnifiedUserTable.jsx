@@ -280,12 +280,15 @@ const UnifiedUserTable = memo(
                 {user.verified ? 'Verificado' : 'Pendiente'}
               </Chip>
             )
-          case 'profileComplete':
+          case 'profileComplete': {
+            const isFullyComplete = user.profileComplete && user.configurationCompleted
+
             return (
-              <Chip className='capitalize' color={user.profileComplete ? 'success' : 'warning'} size='sm' variant='flat'>
-                {user.profileComplete ? 'Completo' : 'Incompleto'}
+              <Chip className='capitalize' color={isFullyComplete ? 'success' : 'warning'} size='sm' variant='flat'>
+                {isFullyComplete ? 'Completo' : 'Incompleto'}
               </Chip>
             )
+          }
           case 'role':
             return (
               <Chip className='capitalize' color={USER_ROLE_COLORS[user.role] || 'default'} size='sm' variant='flat'>
@@ -1328,8 +1331,11 @@ const UnifiedUserTable = memo(
                             <div className='grid grid-cols-2 gap-3'>
                               <div>
                                 <p className='text-xs font-medium text-gray-400 uppercase'>Estado del Perfil</p>
-                                <Chip color={selectedUser.profileComplete ? 'success' : 'warning'} size='sm' variant='flat'>
-                                  {selectedUser.profileComplete ? 'Completo' : 'Incompleto'}
+                                <Chip
+                                  color={selectedUser.profileComplete && selectedUser.configurationCompleted ? 'success' : 'warning'}
+                                  size='sm'
+                                  variant='flat'>
+                                  {selectedUser.profileComplete && selectedUser.configurationCompleted ? 'Completo' : 'Incompleto'}
                                 </Chip>
                               </div>
                               <div>

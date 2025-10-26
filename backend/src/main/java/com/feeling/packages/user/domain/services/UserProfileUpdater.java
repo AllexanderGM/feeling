@@ -39,6 +39,7 @@ public class UserProfileUpdater {
         applyPreferences(user, request);
         applyPrivacy(user, request);
         applyNotifications(user, request);
+        request.configurationCompleted().ifPresent(user::setConfigurationCompleted);
         applySpiritualData(user, request);
         request.imageUrls().ifPresent(user::setImages);
         user.setUpdatedAt(LocalDateTime.now());

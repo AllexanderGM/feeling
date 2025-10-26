@@ -1,36 +1,51 @@
-import { useMemo, useEffect, useCallback, memo } from 'react'
+import { useMemo, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Switch, Card, CardBody, Chip, Divider, Button, Avatar } from '@heroui/react'
+import { Switch, Card, CardBody, Chip, Avatar } from '@heroui/react'
+import { useAuth } from '@hooks'
 import {
   Shield,
   Eye,
   Users,
   Calendar,
   MapPin,
-  Phone,
   Globe,
-  Zap,
   Settings,
   Bell,
   Mail,
   Smartphone,
+  Phone,
   Lock,
   CreditCard,
   Heart,
   Info,
   User as UserIcon,
-  Sparkles
+  Sparkles,
+  Camera,
+  Ruler,
+  Briefcase,
+  GraduationCap
 } from 'lucide-react'
 import {
   getDefaultValuesForStep,
   stepConfigurationSchema,
   getUserName,
+  getUserLastName,
   getUserEmail,
+  getUserPhone,
+  getUserPhoneCode,
   getUserCountry,
   getUserCity,
+  getUserLocality,
+  getUserAge,
+  getUserImages,
   getUserCategoryInterest,
-  getUserTags
+  getUserTags,
+  getUserGender,
+  getUserMaritalStatus,
+  getUserEducation,
+  getUserProfession,
+  getUserHeight
 } from '@schemas'
 
 import { useStepSave } from '../hooks/useStepSave'
@@ -69,14 +84,6 @@ const PRIVACY_SWITCH_CONFIG = [
     iconColor: 'text-purple-400',
     requiresPublicAccount: true,
     defaultValue: true
-  },
-  {
-    name: 'showPhone',
-    label: 'Compartir mi teléfono',
-    description: 'Tu número será visible cuando aceptes un match.',
-    icon: Phone,
-    iconColor: 'text-amber-400',
-    defaultValue: false
   },
   {
     name: 'locationPublic',
@@ -139,23 +146,17 @@ const NOTIFICATION_SWITCH_CONFIG = [
   }
 ]
 
-const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = false, isLastStep = true }) => {
+const StepConfiguration = forwardRef(({ onStepComplete }, ref) => {
+  const { user } = useAuth()
   const defaultValues = useMemo(() => getDefaultValuesForStep(4, user), [user])
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-    reset,
-    setValue
-  } = useForm({
+  const { control, handleSubmit, watch, reset, setValue } = useForm({
     resolver: yupResolver(stepConfigurationSchema),
     mode: 'onChange',
     defaultValues
   })
 
-  const { saveStepData, submitting } = useStepSave(user)
+  const { saveStepData } = useStepSave(user)
 
   useEffect(() => {
     if (!user) return
@@ -165,12 +166,6 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
   const handleToggleChange = useCallback(
     (field, value) => {
       setValue(field, value, { shouldValidate: true, shouldDirty: true })
-
-      if (field === 'allowNotifications' && !value) {
-        NOTIFICATION_SWITCH_CONFIG.forEach(({ name }) => {
-          setValue(name, false, { shouldValidate: true, shouldDirty: true })
-        })
-      }
 
       if (field === 'publicAccount') {
         if (!value) {
@@ -186,9 +181,15 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
   )
 
   const onSubmit = async data => {
+    // Marcar explícitamente la configuración como completada al guardar el paso
+    setValue('configurationCompleted', true, { shouldValidate: false, shouldDirty: true })
+
     const result = await saveStepData({
       stepNumber: 4,
-      formData: data
+      formData: {
+        ...data,
+        configurationCompleted: true
+      }
     })
 
     if (result.success) {
@@ -196,11 +197,13 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
     }
   }
 
-  const isSaving = submitting || isSubmitting
+  // Exponer método submit al componente padre
+  useImperativeHandle(ref, () => ({
+    submit: handleSubmit(onSubmit)
+  }))
 
   const formValues = watch()
   const {
-    allowNotifications = true,
     publicAccount = true,
     searchVisibility = true,
     showMeInSearch = true,
@@ -217,16 +220,31 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
     notificationsLoginEnabled = true,
     notificationsPaymentsEnabled = true
   } = formValues
-
-  const allowNotificationsValue = allowNotifications ?? true
   const publicAccountValue = publicAccount ?? true
 
+  // Step 1: Información básica
   const userName = getUserName(user)
+  const userLastName = getUserLastName(user)
   const userEmail = getUserEmail(user)
+  const userPhone = getUserPhone(user)
+  const userPhoneCode = getUserPhoneCode(user)
   const userCountry = getUserCountry(user)
   const userCity = getUserCity(user)
-  const userInterest = getUserCategoryInterest(user)
+  const userLocality = getUserLocality(user)
+  const userAge = getUserAge(user)
+  const userImages = getUserImages(user) || []
+  const userMainImage = userImages.length > 0 ? userImages[0] : null
+
+  // Step 2: Características
   const userTags = getUserTags(user) || []
+  const userGender = getUserGender(user)
+  const userMaritalStatus = getUserMaritalStatus(user)
+  const userEducation = getUserEducation(user)
+  const userProfession = getUserProfession(user)
+  const userHeight = getUserHeight(user)
+
+  // Step 3: Preferencias
+  const userInterest = getUserCategoryInterest(user)
 
   const renderEnhancedSwitch = useCallback(
     (fieldName, config = {}) => {
@@ -236,13 +254,10 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
         description,
         defaultValue = false,
         iconColor = 'text-gray-400',
-        isNotification = false,
         requiresPublicAccount = false
       } = config
 
-      const isNotificationDisabled = isNotification && !allowNotificationsValue
-      const isPrivacyDisabled = requiresPublicAccount && !publicAccountValue
-      const isDisabled = isNotificationDisabled || isPrivacyDisabled
+      const isDisabled = requiresPublicAccount && !publicAccountValue
 
       return (
         <div
@@ -278,7 +293,7 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
         </div>
       )
     },
-    [control, handleToggleChange, allowNotificationsValue, publicAccountValue]
+    [control, handleToggleChange, publicAccountValue]
   )
 
   const privacySummaryChips = useMemo(
@@ -295,8 +310,6 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
   )
 
   const notificationSummaryChips = useMemo(() => {
-    if (!allowNotificationsValue) return []
-
     const activeValues = {
       notificationsEmailEnabled,
       notificationsPhoneEnabled,
@@ -308,7 +321,6 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
 
     return NOTIFICATION_SWITCH_CONFIG.filter(({ name }) => activeValues[name])
   }, [
-    allowNotificationsValue,
     notificationsEmailEnabled,
     notificationsPhoneEnabled,
     notificationsMatchesEnabled,
@@ -318,7 +330,7 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
   ])
 
   return (
-    <form className='space-y-6' onSubmit={handleSubmit(onSubmit)}>
+    <div className='space-y-6'>
       <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
         <CardBody className='p-4 sm:p-6 space-y-6'>
           <div className='flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left'>
@@ -390,99 +402,194 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
             </div>
           </div>
 
-          <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 sm:p-4'>
-            <div className='flex items-center justify-between gap-4'>
-              <div className='flex items-center gap-3 min-w-0 flex-1'>
-                <Zap className='w-4 h-4 text-blue-400 shrink-0' />
-                <div className='min-w-0 flex-1'>
-                  <span className='text-sm font-medium text-blue-400 block'>Control general</span>
-                  <p className='text-xs text-gray-400 mt-0.5'>Activa o desactiva todas las notificaciones.</p>
-                </div>
-              </div>
-              <div className='shrink-0 ml-2'>
-                <Controller
-                  control={control}
-                  name='allowNotifications'
-                  render={({ field }) => (
-                    <Switch
-                      color='primary'
-                      isSelected={field.value ?? true}
-                      size='sm'
-                      onValueChange={value => {
-                        field.onChange(value)
-                        handleToggleChange('allowNotifications', value)
-                      }}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-
           <div className='bg-gray-700/20 border border-gray-600/30 rounded-lg p-3 sm:p-4'>
             <div className='flex items-center gap-2 mb-3'>
               <Settings className='w-4 h-4 text-gray-300' />
               <span className='text-sm font-medium text-gray-300'>Notificaciones activas</span>
             </div>
-            {allowNotificationsValue ? (
+            {notificationSummaryChips.length ? (
               <div className='flex flex-wrap gap-1.5 justify-center sm:justify-start'>
-                {notificationSummaryChips.length ? (
-                  notificationSummaryChips.map(({ name, label, chipColor }) => (
-                    <Chip key={name} className='text-xs' color={chipColor} size='sm' variant='flat'>
-                      {label}
-                    </Chip>
-                  ))
-                ) : (
-                  <Chip className='text-xs text-gray-300' color='default' size='sm' variant='flat'>
-                    Sin alertas activas
+                {notificationSummaryChips.map(({ name, label, chipColor }) => (
+                  <Chip key={name} className='text-xs' color={chipColor} size='sm' variant='flat'>
+                    {label}
                   </Chip>
-                )}
+                ))}
               </div>
             ) : (
-              <span className='text-xs text-gray-500 block text-center sm:text-left'>Las notificaciones están desactivadas.</span>
+              <span className='text-xs text-gray-500 block text-center sm:text-left'>No tienes alertas activas.</span>
             )}
           </div>
 
-          <div className='space-y-3'>
-            {NOTIFICATION_SWITCH_CONFIG.map(config => renderEnhancedSwitch(config.name, { ...config, isNotification: true }))}
-          </div>
+          <div className='space-y-3'>{NOTIFICATION_SWITCH_CONFIG.map(config => renderEnhancedSwitch(config.name, config))}</div>
         </CardBody>
       </Card>
 
+      {/* Tarjeta de Identidad del Usuario */}
       <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/60'>
-        <CardBody className='p-4 sm:p-6 space-y-5'>
-          <div className='flex items-center gap-3'>
-            <Avatar className='bg-primary-500/20 text-primary-200' name={userName || 'Usuario'} size='sm' />
-            <div className='min-w-0'>
-              <h4 className='text-base font-semibold text-gray-200 truncate'>{userName || 'Nombre pendiente'}</h4>
-              <p className='text-xs text-gray-400'>{userEmail || 'Correo pendiente'}</p>
+        <CardBody className='p-4 sm:p-6'>
+          {/* Header */}
+          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
+            <div className='w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center'>
+              <Eye className='w-5 h-5 text-green-400' />
+            </div>
+            <div className='text-center sm:text-left'>
+              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Vista Previa del Perfil</h3>
+              <p className='text-sm text-gray-400'>Resumen de tu información personal</p>
             </div>
           </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300'>
-            <div className='flex items-center gap-2'>
-              <UserIcon className='w-4 h-4 text-blue-400' />
-              <span className='text-gray-400'>Categoría:</span>
-              <span className='font-medium text-gray-200'>{userInterest || 'Sin definir'}</span>
+          {/* Profile Identity Card */}
+          <div className='flex flex-col sm:flex-row items-center gap-4 sm:gap-6'>
+            {/* Avatar */}
+            <div className='relative shrink-0'>
+              <Avatar
+                alt={`${userName} ${userLastName}`}
+                className='w-24 h-24 sm:w-28 sm:h-28 text-large border-2 border-gray-600'
+                src={userMainImage}
+              />
+              {/* Categoría badge */}
+              {userInterest && (
+                <div className='absolute -bottom-1 -right-1 rounded-full'>
+                  <Chip
+                    className='bg-primary-900/90 text-primary-300 border border-primary-500/30'
+                    color='primary'
+                    size='sm'
+                    variant='flat'>
+                    {userInterest}
+                  </Chip>
+                </div>
+              )}
             </div>
-            <div className='flex items-center gap-2'>
-              <MapPin className='w-4 h-4 text-green-400' />
-              <span className='text-gray-400'>Ubicación:</span>
-              <span className='font-medium text-gray-200'>
-                {userCity || 'Sin ciudad'} - {userCountry || 'Sin país'}
-              </span>
+
+            {/* Información Principal */}
+            <div className='flex-1 text-center sm:text-left'>
+              <div className='space-y-2'>
+                <h1 className='text-xl sm:text-2xl font-bold text-gray-100'>
+                  {userName && userLastName ? `${userName} ${userLastName}` : userName || userLastName || 'Sin completar'}
+                </h1>
+
+                <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-gray-300 text-sm sm:text-base'>
+                  {/* Edad */}
+                  {userAge && (
+                    <div className='flex items-center gap-1'>
+                      <Calendar className='w-4 h-4' />
+                      <span>{userAge} años</span>
+                    </div>
+                  )}
+
+                  {/* Ubicación */}
+                  {userCity && userCountry && (
+                    <div className='flex items-center gap-2'>
+                      <MapPin className='w-4 h-4' />
+                      <span className='truncate'>
+                        {userCity}
+                        {userLocality && `, ${userLocality}`} - {userCountry}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Información adicional */}
+                <div className='flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-4 text-sm'>
+                  {/* Correo */}
+                  {userEmail && (
+                    <div className='flex items-center gap-2'>
+                      <Mail className='w-4 h-4 text-gray-400' />
+                      <span className='text-gray-200 truncate'>{userEmail}</span>
+                    </div>
+                  )}
+
+                  {/* Teléfono */}
+                  {userPhone && (
+                    <div className='flex items-center gap-2'>
+                      <Phone className='w-4 h-4 text-gray-400' />
+                      <span className='text-gray-300'>
+                        {userPhoneCode} {userPhone}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div>
-            <div className='flex items-center gap-2 mb-2'>
-              <Sparkles className='w-4 h-4 text-purple-400' />
-              <span className='text-sm font-medium text-gray-200'>Intereses destacados</span>
+          {/* Galería de fotos miniatura */}
+          {userImages.length > 1 && (
+            <div className='mt-6 pt-4 border-t border-gray-700/30'>
+              <div className='flex items-center justify-between mb-3'>
+                <span className='text-xs font-medium text-gray-300 flex items-center gap-2'>
+                  <Camera className='w-4 h-4 text-gray-400' />
+                  Fotos del perfil
+                </span>
+                <Chip className='text-xs' color='default' size='sm' variant='flat'>
+                  {userImages.length} {userImages.length === 1 ? 'foto' : 'fotos'}
+                </Chip>
+              </div>
+              <div className='grid grid-cols-5 gap-2'>
+                {userImages.slice(0, 5).map((img, idx) => (
+                  <div
+                    key={idx}
+                    className='aspect-square rounded-lg overflow-hidden border border-gray-700/50 hover:border-primary-500/50 transition-colors'>
+                    <img alt={`Foto ${idx + 1}`} className='w-full h-full object-cover' src={img} />
+                  </div>
+                ))}
+                {userImages.length > 5 && (
+                  <div className='aspect-square rounded-lg bg-gray-700/30 border border-gray-700/50 flex items-center justify-center'>
+                    <span className='text-xs text-gray-400'>+{userImages.length - 5}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            {userTags.length ? (
+          )}
+
+          {/* Información complementaria en chips */}
+          <div className='mt-6 pt-4 border-t border-gray-700/30'>
+            <div className='flex flex-wrap gap-2 justify-center sm:justify-start'>
+              {userGender && (
+                <Chip className='bg-blue-500/20 text-blue-300' size='sm' startContent={<UserIcon className='w-3 h-3' />} variant='flat'>
+                  {userGender}
+                </Chip>
+              )}
+              {userMaritalStatus && (
+                <Chip className='bg-pink-500/20 text-pink-300' size='sm' startContent={<Heart className='w-3 h-3' />} variant='flat'>
+                  {userMaritalStatus}
+                </Chip>
+              )}
+              {userEducation && (
+                <Chip
+                  className='bg-purple-500/20 text-purple-300'
+                  size='sm'
+                  startContent={<GraduationCap className='w-3 h-3' />}
+                  variant='flat'>
+                  {userEducation}
+                </Chip>
+              )}
+              {userProfession && (
+                <Chip className='bg-green-500/20 text-green-300' size='sm' startContent={<Briefcase className='w-3 h-3' />} variant='flat'>
+                  {userProfession}
+                </Chip>
+              )}
+              {userHeight && (
+                <Chip className='bg-orange-500/20 text-orange-300' size='sm' startContent={<Ruler className='w-3 h-3' />} variant='flat'>
+                  {userHeight} cm
+                </Chip>
+              )}
+            </div>
+          </div>
+
+          {/* Intereses/Tags */}
+          {userTags.length > 0 && (
+            <div className='mt-6 pt-4 border-t border-gray-700/30'>
+              <div className='flex items-center gap-2 mb-3'>
+                <Sparkles className='w-4 h-4 text-purple-400' />
+                <span className='text-xs font-medium text-gray-300'>Intereses</span>
+                <Chip className='text-xs' color='default' size='sm' variant='flat'>
+                  {userTags.length}
+                </Chip>
+              </div>
               <div className='flex flex-wrap gap-1.5'>
-                {userTags.slice(0, 6).map(tag => (
-                  <Chip key={tag} className='text-xs' color='secondary' size='sm' variant='flat'>
+                {userTags.slice(0, 6).map((tag, idx) => (
+                  <Chip key={idx} className='text-xs bg-purple-500/20 text-purple-300' size='sm' variant='flat'>
                     {tag}
                   </Chip>
                 ))}
@@ -492,10 +599,8 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
                   </Chip>
                 )}
               </div>
-            ) : (
-              <span className='text-xs text-gray-500'>Aún no agregas intereses.</span>
-            )}
-          </div>
+            </div>
+          )}
         </CardBody>
       </Card>
 
@@ -512,24 +617,10 @@ const StepConfiguration = ({ user, onStepComplete, onStepBack, isFirstStep = fal
           </div>
         </CardBody>
       </Card>
-
-      <Divider />
-
-      <div className='flex justify-between items-center pt-2'>
-        {!isFirstStep ? (
-          <Button variant='bordered' onPress={onStepBack}>
-            Anterior
-          </Button>
-        ) : (
-          <span />
-        )}
-
-        <Button color='primary' isLoading={isSaving} type='submit'>
-          {isLastStep ? 'Guardar y finalizar' : 'Guardar y continuar'}
-        </Button>
-      </div>
-    </form>
+    </div>
   )
-}
+})
 
-export default memo(StepConfiguration)
+StepConfiguration.displayName = 'StepConfiguration'
+
+export default StepConfiguration

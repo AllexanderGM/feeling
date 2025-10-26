@@ -162,23 +162,56 @@ export const baseValidations = {
 
 export const conditionalValidations = {
   // Validaciones específicas por categoría
-  religionId: yup.string().when('categoryInterest', {
-    is: 'SPIRIT',
-    then: schema => schema.required('Selecciona tu religión'),
-    otherwise: schema => schema.notRequired()
-  }),
+  religionId: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => {
+      // Si es null, undefined o string vacío, retornar null
+      if (originalValue === null || originalValue === undefined || originalValue === '') return null
+      // Si es un número o string numérico válido, convertir a número
+      const parsed = Number(originalValue)
 
-  sexualRoleId: yup.string().when('categoryInterest', {
-    is: 'ROUSE',
-    then: schema => schema.required('Selecciona tu rol sexual'),
-    otherwise: schema => schema.notRequired()
-  }),
+      return isNaN(parsed) ? null : parsed
+    })
+    .when('categoryInterest', {
+      is: 'SPIRIT',
+      then: schema => schema.required('Selecciona tu religión'),
+      otherwise: schema => schema.notRequired()
+    }),
 
-  relationshipId: yup.string().when('categoryInterest', {
-    is: 'ROUSE',
-    then: schema => schema.required('Selecciona el tipo de relación que buscas'),
-    otherwise: schema => schema.notRequired()
-  }),
+  sexualRoleId: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => {
+      // Si es null, undefined o string vacío, retornar null
+      if (originalValue === null || originalValue === undefined || originalValue === '') return null
+      // Si es un número o string numérico válido, convertir a número
+      const parsed = Number(originalValue)
+
+      return isNaN(parsed) ? null : parsed
+    })
+    .when('categoryInterest', {
+      is: 'ROUSE',
+      then: schema => schema.required('Selecciona tu rol sexual'),
+      otherwise: schema => schema.notRequired()
+    }),
+
+  relationshipId: yup
+    .number()
+    .nullable()
+    .transform((value, originalValue) => {
+      // Si es null, undefined o string vacío, retornar null
+      if (originalValue === null || originalValue === undefined || originalValue === '') return null
+      // Si es un número o string numérico válido, convertir a número
+      const parsed = Number(originalValue)
+
+      return isNaN(parsed) ? null : parsed
+    })
+    .when('categoryInterest', {
+      is: 'ROUSE',
+      then: schema => schema.required('Selecciona el tipo de relación que buscas'),
+      otherwise: schema => schema.notRequired()
+    }),
 
   // Confirmación de contraseña
   confirmPassword: yup

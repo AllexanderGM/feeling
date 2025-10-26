@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
  *
  * @param verified           Indica si el correo fue verificado
  * @param profileComplete    Indica si el perfil alcanza el mínimo requerido
+ * @param configurationCompleted Indica si el usuario confirmó la configuración final
  * @param approved           Indica si pasó la moderación interna
  * @param approvalStatus     Estado textual de la aprobación
  * @param role               Rol principal asignado
@@ -31,13 +32,16 @@ import java.time.LocalDateTime;
  * @param hasPendingMatch    Indica si el usuario tiene un match pendiente
  */
 public record UserStatusDTO(
-    @JsonView({UserViews.Internal.class, AuthViews.Session.Basic.class})
+    @JsonView({UserViews.Public.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
     Boolean verified,
 
-    @JsonView({UserViews.Internal.class, AuthViews.Session.Basic.class})
+    @JsonView({UserViews.Public.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
     Boolean profileComplete,
 
-    @JsonView({UserViews.Internal.class, UserViews.Suggestions.class, AuthViews.Session.Basic.class})
+    @JsonView({UserViews.Public.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
+    Boolean configurationCompleted,
+
+    @JsonView({UserViews.Public.class, UserViews.Internal.class, UserViews.Suggestions.class, AuthViews.Session.Basic.class})
     LocalDateTime lastActive,
 
     @JsonView({UserViews.Internal.class, AuthViews.Session.Basic.class})

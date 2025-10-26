@@ -3,6 +3,20 @@ import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react'
 import { Heart, MapPin, Eye, ChevronLeft, ChevronRight, X, Bookmark, Clock, CheckCircle2, Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths.js'
+import {
+  getUserId,
+  getUserName,
+  getUserLastName,
+  getUserAge,
+  getUserProfession,
+  getUserCity,
+  getUserDepartment,
+  getUserLocality,
+  getUserDescription,
+  getUserImages,
+  getUserGender,
+  getUserStatus
+} from '@schemas'
 
 const formatLastActive = lastActiveDate => {
   if (!lastActiveDate) return { text: null, color: 'gray' }
@@ -47,6 +61,9 @@ const formatLocation = (city, department, locality) => {
 
 const UserCard = ({
   user,
+  compatibility,
+  hasPendingMatch,
+  hasAcceptedMatch,
   onLike,
   onPass,
   onToggleFavorite,
@@ -58,31 +75,23 @@ const UserCard = ({
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [imageLoading, setImageLoading] = useState(false)
 
-  // Extraer datos usando estructura anidada con fallbacks (API: user.user.user / user.user.status)
-  // Soporta ambas estructuras: anidada (user.user.user) y plana (user.user)
-  const profile = user?.user?.user || user?.user
-  const status = user?.user?.status || user?.status
-  const compatibility = user?.compatibility
-  const hasPendingMatch = user?.hasPendingMatch
-  const hasAcceptedMatch = user?.hasAcceptedMatch
-
-  // Datos del perfil
-  const name = profile?.name
-  const lastName = profile?.lastName
-  const age = profile?.age
-  const profession = profile?.profession
-  const city = profile?.city
-  const department = profile?.department
-  const locality = profile?.locality
-  const description = profile?.description
-  const images = profile?.images || []
-  const gender = profile?.gender
-
-  // Datos del perfil y status
-  const userId = profile?.id
+  // Extraer datos usando accessors de userStructure.js (única fuente de verdad)
+  // La estructura user viene de cardData.user que contiene { status, user }
+  const userId = getUserId(user)
+  const name = getUserName(user)
+  const lastName = getUserLastName(user)
+  const age = getUserAge(user)
+  const profession = getUserProfession(user)
+  const city = getUserCity(user)
+  const department = getUserDepartment(user)
+  const locality = getUserLocality(user)
+  const description = getUserDescription(user)
+  const images = getUserImages(user)
+  const gender = getUserGender(user)
+  const status = getUserStatus(user)
   const lastActive = status?.lastActive
 
-  // Datos de compatibilidad
+  // Datos de compatibilidad (pasados como props desde el componente padre)
   const compatibilityPercentage = compatibility?.totalPercentage
 
   const nextPhoto = () => {
@@ -141,7 +150,7 @@ const UserCard = ({
     <Card className='w-full mx-auto bg-gray-900 border-none overflow-hidden shadow-2xl rounded-2xl'>
       <CardBody className='p-0'>
         {/* Galería de imágenes */}
-        <div className='relative h-[calc(100vh-280px)] max-h-[520px] min-h-[400px] group overflow-hidden shadow-2xl rounded-2xl'>
+        <div className='relative h-[calc(100vh-280px)] max-h-[620px] min-h-[400px] group overflow-hidden shadow-2xl rounded-2xl'>
           <img
             alt={`${name} - Foto ${currentPhotoIndex + 1}`}
             className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}

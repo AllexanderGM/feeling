@@ -283,7 +283,7 @@ public class SecurityConfiguration {
         final String jwtToken = token.substring(7);
 
         // Revocar solo si existe, no fallar si no existe
-        tokenRepository.findByToken(jwtToken).ifPresent(foundToken -> {
+        tokenRepository.findTopByTokenOrderByCreatedAtDesc(jwtToken).ifPresent(foundToken -> {
             foundToken.setExpired(true);
             foundToken.setRevoked(true);
             tokenRepository.save(foundToken);

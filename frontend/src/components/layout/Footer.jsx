@@ -1,7 +1,7 @@
 import { Link } from '@heroui/react'
 
-import { Facebook, GitHub, Instagram } from '../../utils/socialMediaIcons.jsx'
-import Iso from '../../utils/Iso.jsx'
+import { Facebook, GitHub, Instagram } from '@utils/socialMediaIcons.jsx'
+import Iso from '@utils/Iso.jsx'
 
 const url_facebook = 'https://www.facebook.com/p/Beautiful-places-in-the-world-100064591513384/'
 const url_insta = 'https://www.instagram.com/lugares_del_mundo/'

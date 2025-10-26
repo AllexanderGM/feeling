@@ -20,7 +20,10 @@ public record PaymentIntentCommand(
         Objects.requireNonNull(amount, "El monto es obligatorio");
         Objects.requireNonNull(currency, "La moneda es obligatoria");
         Objects.requireNonNull(description, "La descripción es obligatoria");
-        Objects.requireNonNull(paymentMethodId, "El identificador del método de pago es obligatorio");
         metadata = metadata == null ? Map.of() : Collections.unmodifiableMap(metadata);
+    }
+
+    public boolean hasPaymentMethodId() {
+        return paymentMethodId != null && !paymentMethodId.isBlank();
     }
 }

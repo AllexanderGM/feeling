@@ -5,6 +5,7 @@ import com.feeling.packages.auth.domain.enums.AuthTokenType;
 import com.feeling.packages.auth.domain.services.JwtService;
 import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.auth.infrastructure.repositories.IAuthTokenRepository;
+import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.services.UserCachedService;
 import com.feeling.packages.user.infrastructure.entities.User;
 import jakarta.servlet.FilterChain;
@@ -108,7 +109,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             // Verificar que el token existe en la base de datos y no está revocado
-            Optional<AuthToken> storedTokenOptional = tokenRepository.findByToken(jwtToken);
+            Optional<AuthToken> storedTokenOptional = tokenRepository.findTopByTokenOrderByCreatedAtDesc(jwtToken);
             if (storedTokenOptional.isEmpty()) {
                 logger.warn("❌ Token no encontrado en base de datos para usuario: " + userEmail);
                 setErrorResponse(response, "Token inválido");
@@ -131,26 +132,32 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             // OPTIMIZACIÓN: Verificar que el usuario existe y está habilitado usando cache
             // Para rutas de completar perfil, permitir usuarios verificados pero no aprobados
-            boolean isProfileCompletionRoute = requestPath.equals("/user/complete-user");
-            Boolean isUserValid = isProfileCompletionRoute ?
-                userCachedService.isUserValidForProfileCompletion(userEmail) :
-                userCachedService.isUserValidForAuth(userEmail);
-
-            if (!isUserValid) {
-                logger.warn("❌ Usuario no encontrado o deshabilitado: " + userEmail);
-                setErrorResponse(response, "Usuario no válido");
-                return;
-            }
-
-            // Solo cargar el usuario completo si es necesario para validación del token
             Optional<User> userOptional = userCachedService.findByEmailCached(userEmail);
             if (userOptional.isEmpty()) {
                 logger.warn("❌ Usuario no encontrado en cache: " + userEmail);
-                setErrorResponse(response, "Usuario no encontrado");
+                setErrorResponse(response, "Usuario no encontrado", "USER_NOT_FOUND");
                 return;
             }
 
             User user = userOptional.get();
+
+            if (user.isAccountDeactivated()) {
+                logger.warn("❌ Usuario con cuenta desactivada: " + userEmail);
+                setErrorResponse(response, "Tu cuenta fue desactivada por el equipo de Feeling. Si crees que se trata de un error, contáctanos.", "ACCOUNT_DEACTIVATED");
+                return;
+            }
+
+            if (!user.isVerified()) {
+                logger.warn("❌ Usuario no verificado: " + userEmail);
+                setErrorResponse(response, "Debes verificar tu correo electrónico para continuar.", "USER_NOT_VERIFIED");
+                return;
+            }
+
+            if (user.getUserApprovalStatus() == UserApprovalStatus.REJECTED) {
+                logger.warn("❌ Usuario rechazado: " + userEmail);
+                setErrorResponse(response, "Tu cuenta fue rechazada. Contáctanos si necesitas ayuda adicional.", "ACCOUNT_REJECTED");
+                return;
+            }
 
             // Verificar que el token es válido para el usuario
             try {
@@ -162,20 +169,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 logger.warn("❌ Error al validar token: " + e.getMessage());
                 setErrorResponse(response, "Error en validación de token");
-                return;
-            }
-
-            // Verificar que el usuario está verificado (email confirmado)
-            if (!user.isVerified()) {
-                logger.warn("❌ Usuario no verificado: " + userEmail);
-                setErrorResponse(response, "Usuario no verificado");
-                return;
-            }
-
-            // Verificar que la cuenta no esté desactivada
-            if (user.isAccountDeactivated()) {
-                logger.warn("❌ Usuario con cuenta desactivada: " + userEmail);
-                setErrorResponse(response, "Cuenta desactivada");
                 return;
             }
 
@@ -226,13 +219,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      * Establecer respuesta de error en formato JSON
      */
     private void setErrorResponse(HttpServletResponse response, String message) throws IOException {
+        setErrorResponse(response, message, "UNAUTHORIZED");
+    }
+
+    private void setErrorResponse(HttpServletResponse response, String message, String code) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
+        String sanitizedMessage = (message != null ? message : "").replace('"', '\'');
+        String sanitizedCode = (code != null ? code : "UNAUTHORIZED").replace('"', '\'');
+
         String jsonResponse = String.format(
-            "{\"error\": \"%s\", \"complaintStatus\": 401, \"timestamp\": \"%s\"}",
-            message,
+            "{\"error\": \"%s\", \"message\": \"%s\", \"code\": \"%s\", \"complaintStatus\": 401, \"timestamp\": \"%s\"}",
+            sanitizedMessage,
+            sanitizedMessage,
+            sanitizedCode,
             java.time.Instant.now().toString()
         );
 

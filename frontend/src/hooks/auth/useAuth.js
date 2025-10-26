@@ -98,6 +98,24 @@ export const useAuth = () => {
           throw new Error('Respuesta del servidor inválida')
         }
 
+        if (data.status?.accountDeactivated) {
+          const error = new Error(
+            'Tu cuenta fue desactivada por el equipo de Feeling. Si crees que se trata de un error, contáctanos para revisar tu caso.'
+          )
+
+          error.code = 'ACCOUNT_DEACTIVATED'
+          clearAllAuth()
+          throw error
+        }
+
+        if (data.status?.approvalStatus === 'REJECTED') {
+          const error = new Error('Tu cuenta fue rechazada. Si necesitas más información, contáctanos.')
+
+          error.code = 'ACCOUNT_REJECTED'
+          clearAllAuth()
+          throw error
+        }
+
         // Actualizar tokens
         updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
 
@@ -112,7 +130,7 @@ export const useAuth = () => {
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
     },
-    [withLoading, handleApiResponse, updateTokens, updateUser]
+    [withLoading, handleApiResponse, updateTokens, updateUser, clearAllAuth]
   )
 
   // ========================================

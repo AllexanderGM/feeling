@@ -15,7 +15,7 @@ import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import jakarta.mail.MessagingException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -136,6 +136,11 @@ public class EventRegistrationService {
             throw new BadRequestException("El evento está lleno");
         }
 
+        // Prevent direct registration for paid events
+        if (event.getPrice() != null && event.getPrice().compareTo(BigDecimal.ZERO) > 0) {
+            throw new BadRequestException("Este evento requiere iniciar el proceso de pago.");
+        }
+
         // Create registration
         EventRegistration registration = EventRegistration.builder()
             .user(user)
@@ -146,6 +151,23 @@ public class EventRegistrationService {
 
         EventRegistration savedRegistration = registrationRepository.save(registration);
         return convertToResponseDTO(savedRegistration);
+    }
+
+    @Transactional
+    public void releasePendingRegistration(Long eventId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
+
+        registrationRepository.findByUserIdAndEventId(user.getId(), eventId)
+            .ifPresent(registration -> {
+                if (registration.isPaid()) {
+                    return;
+                }
+
+                if (registration.isPending() || PaymentStatus.FAILED.equals(registration.getPaymentStatus())) {
+                    registrationRepository.delete(registration);
+                }
+            });
     }
 
     @Transactional
@@ -190,9 +212,11 @@ public class EventRegistrationService {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
-        // Only the user who registered or admin can cancel
-        if (!registration.getUser().getId().equals(user.getId()) &&
-            !user.getUserRole().getAuthority().equals("ADMIN")) {
+        boolean isAdmin = user.getUserRole() != null && "ADMIN".equals(user.getUserRole().getAuthority());
+        boolean isEventCreator = registration.getEvent() != null && registration.getEvent().getCreatedBy() != null &&
+            registration.getEvent().getCreatedBy().getId().equals(user.getId());
+
+        if (!isAdmin && !isEventCreator) {
             throw new UnauthorizedException("No tienes permisos para cancelar este registro");
         }
 
@@ -219,6 +243,7 @@ public class EventRegistrationService {
         return registrationRepository.existsByUserIdAndEventId(user.getId(), eventId);
     }
 
+    @Transactional(readOnly = true)
     public EventRegistrationResponseDTO getUserEventRegistration(Long eventId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
@@ -229,6 +254,7 @@ public class EventRegistrationService {
         return convertToResponseDTO(registration);
     }
 
+    @Transactional(readOnly = true)
     public EventRegistrationResponseDTO getRegistrationByStripePaymentIntent(String stripePaymentIntentId) {
         EventRegistration registration = registrationRepository.findByStripePaymentIntentId(stripePaymentIntentId)
             .orElseThrow(() -> new NotFoundException("Registro no encontrado para este pago"));

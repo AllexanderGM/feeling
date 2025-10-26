@@ -45,7 +45,7 @@ public record UserDataDTO(
     @JsonView({UserViews.Matched.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
     String phone,
 
-    @JsonView({UserViews.Public.class, UserViews.Matched.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
+    @JsonView({UserViews.Matched.class, UserViews.Internal.class, AuthViews.Session.Basic.class})
     String phoneCode,
 
     @JsonView({UserViews.Public.class, UserViews.Internal.class, UserViews.Suggestions.class, AuthViews.Session.Basic.class})

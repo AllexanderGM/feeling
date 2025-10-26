@@ -27,7 +27,7 @@ import org.mapstruct.ReportingPolicy;
 )
 public interface IUserResponseMapper {
 
-    @Mapping(target = "status", source = "user", qualifiedByName = "fullStatus")
+    @Mapping(target = "status", source = "user", qualifiedByName = "publicStatus")
     @Mapping(target = "user", source = "user")
     @Mapping(target = "privacy", ignore = true)
     @Mapping(target = "metrics", ignore = true)

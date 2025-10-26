@@ -23,7 +23,7 @@ public class PaymentController {
     private final EventPaymentService paymentService;
 
     @PostMapping("/create-payment-intent")
-    @Operation(summary = "Create payment intent", description = "Create a Stripe payment intent for event registration")
+    @Operation(summary = "Create payment intent", description = "Inicializa el proceso de pago para una inscripción de evento")
     public ResponseEntity<PaymentResponseDTO> createPaymentIntent(
             @Valid @RequestBody PaymentRequestDTO request,
             Authentication authentication) {
@@ -33,20 +33,20 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/confirm/{paymentIntentId}")
-    @Operation(summary = "Confirm payment", description = "Confirm a payment intent")
+    @PostMapping("/confirm/{transactionId}")
+    @Operation(summary = "Confirm payment", description = "Confirma el estado de una transacción reportada por el gateway de pagos")
     public ResponseEntity<PaymentResponseDTO> confirmPayment(
-            @Parameter(description = "Payment Intent ID") @PathVariable String paymentIntentId) {
+            @Parameter(description = "Transaction ID reported by gateway") @PathVariable String transactionId) {
         
-        PaymentResponseDTO response = paymentService.confirmPayment(paymentIntentId);
+        PaymentResponseDTO response = paymentService.confirmPayment(transactionId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/webhook")
-    @Operation(summary = "Stripe webhook", description = "Handle Stripe webhook events")
-    public ResponseEntity<String> handleStripeWebhook(@RequestBody Map<String, Object> payload) {
+    @Operation(summary = "Payment webhook", description = "Endpoint para recibir notificaciones de Wompi u otros gateways configurados")
+    public ResponseEntity<String> handlePaymentWebhook(@RequestBody Map<String, Object> payload) {
         try {
-            paymentService.handleStripeWebhook(payload);
+            paymentService.handleGatewayWebhook(payload);
             return ResponseEntity.ok("Webhook processed successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error processing webhook: " + e.getMessage());

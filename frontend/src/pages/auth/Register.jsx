@@ -10,7 +10,7 @@ import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
-import { User, Mail, Lock } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 const Register = () => {
   const navigate = useNavigate()
@@ -20,6 +20,8 @@ const Register = () => {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [termsError, setTermsError] = useState('')
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
 
   // Combinar estados de loading
   const isLoading = loading || oauthLoading
@@ -103,6 +105,9 @@ const Register = () => {
     setIsGoogleAuthenticating(true)
     googleRegistration()
   }
+
+  const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible)
+  const toggleConfirmPasswordVisibility = () => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)
 
   return (
     <LiteContainer ariaLabel='Página de registro'>
@@ -218,13 +223,18 @@ const Register = () => {
               {...field}
               isRequired
               autoComplete='new-password'
+              endContent={
+                <button className='focus:outline-none' type='button' onClick={togglePasswordVisibility}>
+                  {isPasswordVisible ? <EyeOff className='text-gray-400 w-4 h-5' /> : <Eye className='text-gray-400 w-4 h-5' />}
+                </button>
+              }
               errorMessage={errors.password?.message}
               isDisabled={isLoading || isGoogleAuthenticating}
               isInvalid={!!errors.password}
               label='Contraseña'
               placeholder='••••••••'
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
-              type='password'
+              type={isPasswordVisible ? 'text' : 'password'}
               variant='underlined'
             />
           )}
@@ -238,13 +248,18 @@ const Register = () => {
               {...field}
               isRequired
               autoComplete='new-password'
+              endContent={
+                <button className='focus:outline-none' type='button' onClick={toggleConfirmPasswordVisibility}>
+                  {isConfirmPasswordVisible ? <EyeOff className='text-gray-400 w-4 h-5' /> : <Eye className='text-gray-400 w-4 h-5' />}
+                </button>
+              }
               errorMessage={errors.confirmPassword?.message}
               isDisabled={isLoading || isGoogleAuthenticating}
               isInvalid={!!errors.confirmPassword}
               label='Confirma tu contraseña'
               placeholder='••••••••'
               startContent={<Lock className='text-gray-400 w-4 h-5' />}
-              type='password'
+              type={isConfirmPasswordVisible ? 'text' : 'password'}
               variant='underlined'
             />
           )}

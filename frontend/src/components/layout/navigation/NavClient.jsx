@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Heart, Search, Calendar, User, Star } from 'lucide-react'
+import { Heart, Calendar, User, Star, Users } from 'lucide-react'
 import { Button, Badge } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -25,17 +25,17 @@ const NavClient = ({ user }) => {
       description: 'Página principal'
     },
     {
-      id: 'search',
-      icon: Search,
-      label: 'Buscar',
-      path: APP_PATHS.USER.SEARCH,
-      description: 'Buscar usuarios'
+      id: 'favorites',
+      icon: Star,
+      label: 'Favoritos',
+      path: APP_PATHS.USER.FAVORITES,
+      description: 'Tus favoritos'
     },
     {
       id: 'matches',
-      icon: Star,
+      icon: Users,
       label: 'Matches',
-      path: APP_PATHS.USER.MATCHES,
+      path: APP_PATHS.USER.MY_MATCHES,
       description: 'Tus matches'
     },
     {

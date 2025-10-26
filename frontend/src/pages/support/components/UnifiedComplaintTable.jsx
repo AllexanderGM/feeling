@@ -1,7 +1,7 @@
 import { useCallback, useMemo, memo } from 'react'
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Tooltip, Button, User } from '@heroui/react'
 import { Eye, MessageSquare, Edit, Trash2, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
-import { TablePagination } from '@components/ui/TablePagination.jsx'
+import { TablePagination } from '@components/ui/table/TablePagination.jsx'
 import { COMPLAINT_STATUS_COLORS, COMPLAINT_PRIORITY_COLORS, COMPLAINT_TYPES } from '@constants/tableConstants.js'
 
 const UnifiedComplaintTable = memo(

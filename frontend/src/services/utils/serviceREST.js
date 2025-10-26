@@ -358,6 +358,7 @@ export class ServiceREST {
     error.response = result.originalError?.response
     error.errorType = result.error.type
     error.fieldErrors = result.error.fieldErrors
+    error.code = result.error.code || result.originalError?.response?.data?.code
     error.operation = operation
 
     // Emitir evento de auth si es necesario

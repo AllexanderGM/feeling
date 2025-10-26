@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-10-19T14:43:05-0500",
+    date = "2025-10-21T22:46:58-0500",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.7 (Microsoft)"
 )
 @Component
@@ -24,6 +24,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
 
         String approvalStatus = null;
         String role = null;
+        Boolean configurationCompleted = null;
         Boolean verified = null;
         Boolean profileComplete = null;
         LocalDateTime lastActive = null;
@@ -41,6 +42,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
         if ( userRoleList != null ) {
             role = userRoleList.name();
         }
+        configurationCompleted = user.isConfigurationCompleted();
         verified = user.isVerified();
         profileComplete = user.getProfileComplete();
         lastActive = user.getLastActive();
@@ -56,7 +58,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
         Boolean hasAcceptedMatch = Boolean.FALSE;
         Boolean hasPendingMatch = Boolean.FALSE;
 
-        UserStatusDTO userStatusDTO = new UserStatusDTO( verified, profileComplete, lastActive, approved, approvalStatus, role, availableAttempts, createdAt, accountDeactivated, deactivationDate, deactivationReason, dismissed, favorite, hasAcceptedMatch, hasPendingMatch );
+        UserStatusDTO userStatusDTO = new UserStatusDTO( verified, profileComplete, configurationCompleted, lastActive, approved, approvalStatus, role, availableAttempts, createdAt, accountDeactivated, deactivationDate, deactivationReason, dismissed, favorite, hasAcceptedMatch, hasPendingMatch );
 
         return userStatusDTO;
     }
@@ -69,6 +71,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
 
         String approvalStatus = null;
         String role = null;
+        Boolean configurationCompleted = null;
         Boolean verified = null;
         Boolean profileComplete = null;
         LocalDateTime lastActive = null;
@@ -85,6 +88,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
         if ( userRoleList != null ) {
             role = userRoleList.name();
         }
+        configurationCompleted = user.isConfigurationCompleted();
         verified = user.isVerified();
         profileComplete = user.getProfileComplete();
         lastActive = user.getLastActive();
@@ -100,7 +104,7 @@ public class IUserStatusMapperImpl implements IUserStatusMapper {
         Boolean hasAcceptedMatch = Boolean.FALSE;
         Boolean hasPendingMatch = Boolean.FALSE;
 
-        UserStatusDTO userStatusDTO = new UserStatusDTO( verified, profileComplete, lastActive, approved, approvalStatus, role, availableAttempts, createdAt, accountDeactivated, deactivationDate, deactivationReason, dismissed, favorite, hasAcceptedMatch, hasPendingMatch );
+        UserStatusDTO userStatusDTO = new UserStatusDTO( verified, profileComplete, configurationCompleted, lastActive, approved, approvalStatus, role, availableAttempts, createdAt, accountDeactivated, deactivationDate, deactivationReason, dismissed, favorite, hasAcceptedMatch, hasPendingMatch );
 
         return userStatusDTO;
     }

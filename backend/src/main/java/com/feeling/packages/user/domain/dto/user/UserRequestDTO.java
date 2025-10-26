@@ -72,6 +72,7 @@ public record UserRequestDTO(
     Optional<Boolean> notificationsLoginEnabled,
     Optional<Boolean> notificationsPaymentsEnabled,
     Optional<Boolean> allowNotifications,
+    Optional<Boolean> configurationCompleted,
 
     // Información espiritual
     Optional<@Positive(message = "El ID de iglesia debe ser positivo") Long> churchId,
@@ -117,6 +118,7 @@ public record UserRequestDTO(
             notificationsEmailEnabled.isPresent() || notificationsPhoneEnabled.isPresent() ||
             notificationsMatchesEnabled.isPresent() || notificationsEventsEnabled.isPresent() ||
             notificationsLoginEnabled.isPresent() || notificationsPaymentsEnabled.isPresent() || allowNotifications.isPresent() ||
+            configurationCompleted.isPresent() ||
             churchId.isPresent() || churchName.isPresent() || spiritualMoments.isPresent() || spiritualPractices.isPresent() ||
             tags.isPresent() || imageUrls.isPresent();
     }
@@ -137,7 +139,8 @@ public record UserRequestDTO(
             showAge.isPresent() || showLocation.isPresent() || showPhone.isPresent() || showMeInSearch.isPresent() ||
             notificationsEmailEnabled.isPresent() || notificationsPhoneEnabled.isPresent() ||
             notificationsMatchesEnabled.isPresent() || notificationsEventsEnabled.isPresent() ||
-            notificationsLoginEnabled.isPresent() || notificationsPaymentsEnabled.isPresent();
+            notificationsLoginEnabled.isPresent() || notificationsPaymentsEnabled.isPresent() ||
+            configurationCompleted.isPresent();
     }
 
     /**
@@ -301,6 +304,7 @@ public record UserRequestDTO(
         if (notificationsLoginEnabled.isPresent()) count++;
         if (notificationsPaymentsEnabled.isPresent()) count++;
         if (allowNotifications.isPresent()) count++;
+        if (configurationCompleted.isPresent()) count++;
 
         // Espirituales
         if (churchId.isPresent()) count++;

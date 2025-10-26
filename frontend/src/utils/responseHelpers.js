@@ -147,7 +147,11 @@ export const isUserAuthenticated = user => {
  * @returns {boolean} true si el perfil está completo
  */
 export const isUserProfileComplete = user => {
-  return isValidUserStructure(user) && user.status.profileComplete === true
+  return isValidUserStructure(user) && user.status.profileComplete === true && user.status.configurationCompleted === true
+}
+
+export const isUserConfigurationCompleted = user => {
+  return isValidUserStructure(user) && user.status.configurationCompleted === true
 }
 
 /**

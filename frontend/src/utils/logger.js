@@ -467,18 +467,12 @@ export class Logger {
    */
   static shouldLog(level) {
     // Obtener nivel de entorno
-    const envLevel = import.meta.env.VITE_LOG_LEVEL
-    const configuredLevel = this.logLevel || envLevel
+    const defaultLevel = import.meta.env.PROD ? this.LEVELS.ERROR : this.LEVELS.WARN
+    const envLevel = (import.meta.env.VITE_LOG_LEVEL || '').toLowerCase()
+    const configuredLevel = (this.logLevel || envLevel || defaultLevel).toLowerCase()
 
-    // En producción, solo errores y warnings por defecto
-    if (import.meta.env.PROD && !this.logLevel && !envLevel) {
-      return ['error', 'warn'].includes(level)
-    }
-
-    if (!configuredLevel) return true
-
-    const levels = ['debug', 'info', 'warn', 'error']
-    const currentIndex = levels.indexOf(configuredLevel)
+    const levels = [this.LEVELS.DEBUG, this.LEVELS.INFO, this.LEVELS.WARN, this.LEVELS.ERROR]
+    const currentIndex = Math.max(levels.indexOf(configuredLevel), 0)
     const messageIndex = levels.indexOf(level)
 
     return messageIndex >= currentIndex

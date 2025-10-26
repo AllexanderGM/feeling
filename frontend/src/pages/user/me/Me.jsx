@@ -1,5 +1,5 @@
 import { useMemo, Suspense, lazy, useEffect, useState } from 'react'
-import { Card, CardBody, Button, Chip } from '@heroui/react'
+import { Card, CardBody, Button } from '@heroui/react'
 import {
   User,
   Bug,
@@ -13,9 +13,6 @@ import {
   FileText,
   ExternalLink,
   CheckCircle,
-  Globe,
-  Search,
-  MapPin,
   Users,
   Eye
 } from 'lucide-react'
@@ -26,10 +23,6 @@ import {
   getUserCountry,
   getUserCity,
   getUserCategoryInterest,
-  getUserGender,
-  getUserTags,
-  getUserAgePreferenceMin,
-  getUserAgePreferenceMax,
   getUserMatches,
   getUserPrivacy,
   getUserMetrics,
@@ -73,11 +66,7 @@ const Profile = () => {
     navigate(APP_PATHS.USER.SUPPORT)
   }
 
-  const handlePrivacyPolicy = () => {
-    navigate(APP_PATHS.LEGAL.PRIVACY)
-  }
-
-  const handleDataTreatment = () => {
+  const handleLegalPage = () => {
     navigate(APP_PATHS.LEGAL.PRIVACY)
   }
 
@@ -221,18 +210,14 @@ const Profile = () => {
   }, [user, hasLoadedUser, isLoadingUser, getCurrentUser, updateUser])
 
   // Verificación de carga
-  if (authLoading || isLoadingUser) return <LoadData />
-  if (!user) return <LoadDataError message='No se pudo cargar la información del usuario' />
-
-  // Estados de carga y error
   const isLoading = authLoading || isLoadingUser || interestLoading
 
   if (isLoading) return <LoadData>Cargando perfil...</LoadData>
-  if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
+  if (!user) return <LoadDataError>No se pudo cargar la información del usuario</LoadDataError>
   if (interestError) return <LoadDataError>Error al cargar intereses de usuario</LoadDataError>
 
   return (
-    <LiteContainer ariaLabel='Página de perfil de usuario' className='gap-4'>
+    <LiteContainer ariaLabel='Página de perfil de usuario' className='gap-4 !pt-0'>
       {/* Profile Header */}
       <ProfileHeader
         categoryInterestDetails={categoryInterestDetails}
@@ -246,116 +231,51 @@ const Profile = () => {
       {/* Match Section */}
       <MatchSection userHelpers={userHelpers} />
 
-      {/* Profile Metrics Section */}
-      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+      {/* Profile Metrics Section - Diseño más sutil */}
+      <Card className='w-full bg-gray-800/20 backdrop-blur-sm border-gray-700/30'>
         <CardBody className='p-4 sm:p-6'>
-          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
-            <div className='w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center'>
-              <Star className='w-5 h-5 text-purple-400' />
-            </div>
-            <div className='text-center sm:text-left'>
-              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Métricas del Perfil</h3>
-              <p className='text-sm text-gray-400'>Tu rendimiento y popularidad en la plataforma</p>
-            </div>
+          <div className='flex items-center gap-2 mb-4'>
+            <Star className='w-4 h-4 text-gray-400' />
+            <h3 className='text-sm font-medium text-gray-300'>Métricas del Perfil</h3>
           </div>
 
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
             {/* Profile Views */}
-            <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 text-center'>
-              <div className='w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
-                <Eye className='w-4 h-4 text-blue-400' />
+            <div className='bg-blue-500/10 border border-blue-500/20 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <Eye className='w-3 h-3 text-blue-400' />
+                <span className='text-xs text-gray-400'>Vistas</span>
               </div>
-              <div className='text-lg font-bold text-blue-300'>{userHelpers.getProfileViews()}</div>
-              <div className='text-xs text-gray-400'>Visualizaciones</div>
+              <div className='text-base font-semibold text-blue-300'>{userHelpers.getProfileViews()}</div>
             </div>
 
             {/* Likes Received */}
-            <div className='bg-pink-500/10 border border-pink-500/20 rounded-lg p-4 text-center'>
-              <div className='w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
-                <Star className='w-4 h-4 text-pink-400' />
+            <div className='bg-pink-500/10 border border-pink-500/20 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <Star className='w-3 h-3 text-pink-400' />
+                <span className='text-xs text-gray-400'>Likes</span>
               </div>
-              <div className='text-lg font-bold text-pink-300'>{userHelpers.getLikesReceived()}</div>
-              <div className='text-xs text-gray-400'>Likes recibidos</div>
+              <div className='text-base font-semibold text-pink-300'>{userHelpers.getLikesReceived()}</div>
             </div>
 
             {/* Popularity Score */}
-            <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center'>
-              <div className='w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
-                <Users className='w-4 h-4 text-yellow-400' />
+            <div className='bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <Users className='w-3 h-3 text-yellow-400' />
+                <span className='text-xs text-gray-400'>Popularidad</span>
               </div>
-              <div className='text-lg font-bold text-yellow-300'>{userHelpers.getPopularityScore()}</div>
-              <div className='text-xs text-gray-400'>Puntuación</div>
+              <div className='text-base font-semibold text-yellow-300'>{userHelpers.getPopularityScore()}</div>
             </div>
 
             {/* Profile Completeness */}
-            <div className='bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center'>
-              <div className='w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-2'>
-                <CheckCircle className='w-4 h-4 text-green-400' />
+            <div className='bg-green-500/10 border border-green-500/20 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <CheckCircle className='w-3 h-3 text-green-400' />
+                <span className='text-xs text-gray-400'>Completitud</span>
               </div>
-              <div className='text-lg font-bold text-green-300'>{userHelpers.getProfileCompletenessPercentage()}%</div>
-              <div className='text-xs text-gray-400'>Completitud</div>
+              <div className='text-base font-semibold text-green-300'>{userHelpers.getProfileCompletenessPercentage()}%</div>
             </div>
           </div>
-        </CardBody>
-      </Card>
-
-      {/* User Preferences Section */}
-      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-        <CardBody className='p-4 sm:p-6'>
-          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
-            <div className='w-10 h-10 bg-indigo-500/20 rounded-full flex items-center justify-center'>
-              <Search className='w-5 h-5 text-indigo-400' />
-            </div>
-            <div className='text-center sm:text-left'>
-              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Preferencias de Búsqueda</h3>
-              <p className='text-sm text-gray-400'>Tus criterios para encontrar matches</p>
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
-            {/* Age Preferences */}
-            <div className='space-y-3'>
-              <h4 className='text-sm font-medium text-gray-300 flex items-center gap-2'>
-                <User className='w-4 h-4 text-gray-400' />
-                Rango de Edad
-              </h4>
-              <div className='bg-gray-800/50 rounded-lg p-3'>
-                <div className='flex items-center justify-between text-sm'>
-                  <span className='text-gray-400'>Mínima:</span>
-                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMin(user)} años</span>
-                </div>
-                <div className='flex items-center justify-between text-sm mt-2'>
-                  <span className='text-gray-400'>Máxima:</span>
-                  <span className='text-gray-200 font-medium'>{getUserAgePreferenceMax(user)} años</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Gender */}
-            <div className='space-y-3'>
-              <h4 className='text-sm font-medium text-gray-300 flex items-center gap-2'>
-                <Users className='w-4 h-4 text-gray-400' />
-                Género
-              </h4>
-              <div className='bg-gray-800/50 rounded-lg p-3'>
-                <span className='text-gray-200 font-medium'>{getUserGender() || 'No especificado'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Tags */}
-          {getUserTags(user).length > 0 && (
-            <div className='mt-6 space-y-3'>
-              <h4 className='text-sm font-medium text-gray-300'>Intereses</h4>
-              <div className='flex flex-wrap gap-2'>
-                {getUserTags(user).map((tag, index) => (
-                  <Chip key={index} className='bg-purple-500/20 text-purple-300 border border-purple-500/30' size='sm' variant='flat'>
-                    {tag}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          )}
         </CardBody>
       </Card>
 
@@ -429,8 +349,9 @@ const Profile = () => {
                     color='danger'
                     size='sm'
                     startContent={<AlertTriangle className='w-3 h-3' />}
-                    variant='bordered'>
-                    Reportar onPress={handleReportError}
+                    variant='bordered'
+                    onPress={handleReportError}>
+                    Reportar
                   </Button>
                 </div>
               </div>
@@ -451,8 +372,9 @@ const Profile = () => {
                     color='primary'
                     size='sm'
                     startContent={<Send className='w-3 h-3' />}
-                    variant='bordered'>
-                    Sugerir onPress={handleSuggestImprovement}
+                    variant='bordered'
+                    onPress={handleSuggestImprovement}>
+                    Sugerir
                   </Button>
                 </div>
               </div>
@@ -473,8 +395,8 @@ const Profile = () => {
                     color='success'
                     size='sm'
                     startContent={<MessageCircle className='w-3 h-3' />}
-                    variant='bordered'>
-                    onPress={handleContactSupport}
+                    variant='bordered'
+                    onPress={handleContactSupport}>
                     Contactar
                   </Button>
                 </div>
@@ -488,230 +410,6 @@ const Profile = () => {
                 <span>• Respuesta en 24-48 horas</span>
                 <span>• Soporte en español</span>
                 <span>• Atención personalizada</span>
-              </div>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Sección de configuración de privacidad */}
-      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-        <CardBody className='p-4 sm:p-6'>
-          <div className='text-center sm:text-left space-y-4'>
-            {/* Header */}
-            <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-4 sm:mb-6'>
-              <div className='w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center'>
-                <Shield className='w-5 h-5 text-blue-400' />
-              </div>
-              <div className='text-center sm:text-left'>
-                <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Configuración de Privacidad</h3>
-                <p className='text-sm text-gray-400'>Estado actual de tu perfil y configuraciones de privacidad</p>
-              </div>
-            </div>
-
-            {/* Estado del perfil detallado */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6'>
-              {/* Verificación */}
-              <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
-                <div className='flex items-center gap-3 mb-2'>
-                  <CheckCircle className={`w-4 h-4 ${userHelpers.isUserVerified?.() ? 'text-green-400' : 'text-gray-400'}`} />
-                  <span className='text-sm font-medium text-gray-200'>Verificación</span>
-                </div>
-                <div className='space-y-2'>
-                  <Chip
-                    className={
-                      userHelpers.isUserVerified?.()
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                        : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                    }
-                    color={userHelpers.isUserVerified?.() ? 'success' : 'warning'}
-                    size='sm'
-                    variant='flat'>
-                    {userHelpers.isUserVerified?.() ? 'Verificado' : 'No verificado'}
-                  </Chip>
-                  {!userHelpers.isUserVerified?.() && <p className='text-xs text-gray-400'>Verifica tu cuenta para acceder a más funciones</p>}
-                </div>
-              </div>
-
-              {/* Aprobación */}
-              <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-4'>
-                <div className='flex items-center gap-3 mb-2'>
-                  <Shield className={`w-4 h-4 ${userHelpers.isUserApproved?.() ? 'text-blue-400' : 'text-orange-400'}`} />
-                  <span className='text-sm font-medium text-gray-200'>Aprobación</span>
-                </div>
-                <div className='space-y-2'>
-                  <Chip
-                    className={
-                      userHelpers.isUserApproved?.()
-                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
-                    }
-                    color={userHelpers.isUserApproved?.() ? 'primary' : 'warning'}
-                    size='sm'
-                    variant='flat'>
-                    {userHelpers.isUserApproved?.() ? 'Aprobado' : 'Pendiente de aprobación'}
-                  </Chip>
-                  {!userHelpers.isUserApproved?.() && <p className='text-xs text-orange-300'>Tu perfil será revisado y aprobado pronto</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Configuraciones de privacidad */}
-            <div className='bg-gray-800/30 border border-gray-700/20 rounded-lg p-4 space-y-4'>
-              <h4 className='text-sm font-medium text-gray-200 mb-3'>Configuraciones de Privacidad</h4>
-
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs'>
-                {/* Perfil público/privado */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <Globe className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Perfil público:</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Chip
-                      className={
-                        userHelpers.getProfilePrivacy?.() === 'Público' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'
-                      }
-                      color={userHelpers.getProfilePrivacy?.() === 'Público' ? 'success' : 'default'}
-                      size='sm'
-                      variant='flat'>
-                      {userHelpers.getProfilePrivacy?.() || 'Privado'}
-                    </Chip>
-                    {!userHelpers.isUserApproved?.() && userHelpers.getProfilePrivacy?.() === 'Público' && (
-                      <span className='text-orange-300 text-xs'>*</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Búsqueda */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <Search className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Aparecer en búsquedas:</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Chip
-                      className={userHelpers.isSearchable?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                      color={userHelpers.isSearchable?.() ? 'success' : 'default'}
-                      size='sm'
-                      variant='flat'>
-                      {userHelpers.isSearchable?.() ? 'Sí' : 'No'}
-                    </Chip>
-                    {!userHelpers.isUserApproved?.() && userHelpers.isSearchable?.() && <span className='text-orange-300 text-xs'>*</span>}
-                  </div>
-                </div>
-
-                {/* Ubicación */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <MapPin className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Compartir ubicación:</span>
-                  </div>
-                  <Chip
-                    className={userHelpers.isLocationShared?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={userHelpers.isLocationShared?.() ? 'success' : 'default'}
-                    size='sm'
-                    variant='flat'>
-                    {userHelpers.isLocationShared?.() ? 'Sí' : 'No'}
-                  </Chip>
-                </div>
-
-                {/* Mostrar en búsquedas */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <Users className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Mostrar en matches:</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Chip
-                      className={userHelpers.showInSearch?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                      color={userHelpers.showInSearch?.() ? 'success' : 'default'}
-                      size='sm'
-                      variant='flat'>
-                      {userHelpers.showInSearch?.() ? 'Sí' : 'No'}
-                    </Chip>
-                    {!userHelpers.isUserApproved?.() && userHelpers.showInSearch?.() && <span className='text-orange-300 text-xs'>*</span>}
-                  </div>
-                </div>
-
-                {/* Mostrar edad */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <User className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Mostrar edad:</span>
-                  </div>
-                  <Chip
-                    className={userHelpers.showAge?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={userHelpers.showAge?.() ? 'success' : 'default'}
-                    size='sm'
-                    variant='flat'>
-                    {userHelpers.showAge?.() ? 'Sí' : 'No'}
-                  </Chip>
-                </div>
-
-                {/* Mostrar teléfono */}
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center gap-2'>
-                    <MessageCircle className='w-3 h-3 text-gray-400' />
-                    <span className='text-gray-400'>Mostrar teléfono:</span>
-                  </div>
-                  <Chip
-                    className={userHelpers.showPhone?.() ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}
-                    color={userHelpers.showPhone?.() ? 'success' : 'default'}
-                    size='sm'
-                    variant='flat'>
-                    {userHelpers.showPhone?.() ? 'Sí' : 'No'}
-                  </Chip>
-                </div>
-              </div>
-
-              {/* Aclaración para perfiles no aprobados */}
-              {!userHelpers.isUserApproved?.() && (
-                <div className='bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mt-4'>
-                  <div className='flex items-start gap-2'>
-                    <AlertTriangle className='w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0' />
-                    <div className='space-y-1'>
-                      <p className='text-xs font-medium text-orange-300'>Perfil pendiente de aprobación</p>
-                      <p className='text-xs text-orange-200'>
-                        Aunque hayas configurado tu perfil como público y habilitado las búsquedas,
-                        <strong className='text-orange-300'>
-                          {' '}
-                          no aparecerás en búsquedas ni tu perfil será público hasta que sea aprobado
-                        </strong>
-                        .
-                      </p>
-                      <p className='text-xs text-orange-200'>
-                        Una vez aprobado, tus configuraciones de privacidad (marcadas con *) se aplicarán automáticamente.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Resumen de privacidad */}
-            <div className='bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 sm:p-4 mb-4'>
-              <p className='text-sm text-gray-300 mb-3'>
-                En Feeling, protegemos tu privacidad y te damos control total sobre tus datos personales. Conoce más sobre cómo tratamos tu
-                información.
-              </p>
-              <div className='text-xs text-blue-300 space-y-2 sm:space-y-0'>
-                <div className='flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4'>
-                  <span className='inline-flex items-center gap-1'>
-                    <Shield className='w-3 h-3' />
-                    Datos encriptados
-                  </span>
-                  <span className='hidden sm:inline'>•</span>
-                  <span className='inline-flex items-center gap-1'>
-                    <Eye className='w-3 h-3' />
-                    Control de visibilidad
-                  </span>
-                  <span className='hidden sm:inline'>•</span>
-                  <span className='inline-flex items-center gap-1'>
-                    <Lock className='w-3 h-3' />
-                    Nunca vendemos tus datos
-                  </span>
-                </div>
               </div>
             </div>
           </div>
@@ -741,8 +439,8 @@ const Profile = () => {
                 endContent={<ExternalLink className='w-3 h-3' />}
                 size='sm'
                 startContent={<FileText className='w-4 h-4' />}
-                variant='bordered'>
-                onPress={handlePrivacyPolicy}
+                variant='bordered'
+                onPress={handleLegalPage}>
                 Política de Privacidad
               </Button>
               <Button
@@ -751,10 +449,36 @@ const Profile = () => {
                 endContent={<ExternalLink className='w-3 h-3' />}
                 size='sm'
                 startContent={<Shield className='w-4 h-4' />}
-                variant='bordered'>
-                onPress={handleDataTreatment}
+                variant='bordered'
+                onPress={handleLegalPage}>
                 Tratamiento de Datos
               </Button>
+            </div>
+
+            {/* Resumen de privacidad */}
+            <div className='bg-blue-500/5 border border-blue-500/10 rounded-lg p-3 sm:p-4 mb-4'>
+              <p className='text-center text-xs text-gray-400 mb-3'>
+                En Feeling, protegemos tu privacidad y te damos control total sobre tus datos personales. Conoce más sobre cómo tratamos tu
+                información.
+              </p>
+              <div className='text-xs text-blue-300 space-y-2 sm:space-y-0'>
+                <div className='flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4'>
+                  <span className='inline-flex items-center gap-1'>
+                    <Shield className='w-3 h-3' />
+                    Datos encriptados
+                  </span>
+                  <span className='hidden sm:inline'>•</span>
+                  <span className='inline-flex items-center gap-1'>
+                    <Eye className='w-3 h-3' />
+                    Control de visibilidad
+                  </span>
+                  <span className='hidden sm:inline'>•</span>
+                  <span className='inline-flex items-center gap-1'>
+                    <Lock className='w-3 h-3' />
+                    Nunca vendemos tus datos
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Footer legal */}

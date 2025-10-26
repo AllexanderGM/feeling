@@ -1,19 +1,9 @@
 import { Card, CardBody, Button, Progress } from '@heroui/react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths'
 import { Zap, Sparkles, Crown, Heart, Star } from 'lucide-react'
 
 const MatchSection = ({ userHelpers }) => {
-  const navigate = useNavigate()
-
-  const handleSearchMatch = () => {
-    navigate(APP_PATHS.ROOT)
-  }
-
-  const handleGetMoreAttempts = () => {
-    navigate(APP_PATHS.USER.SETTINGS)
-  }
-
   return (
     <Card className='w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30'>
       <CardBody className='p-4 sm:p-6'>
@@ -60,22 +50,24 @@ const MatchSection = ({ userHelpers }) => {
           <div className='flex flex-col gap-2 w-full max-w-sm'>
             <Button
               aria-label='Buscar nuevo match'
+              as={Link}
               className='bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600 w-full'
               color='primary'
               size='sm'
               startContent={<Heart className='w-4 h-4' />}
+              to={APP_PATHS.ROOT}
               variant='solid'>
-              onPress={handleSearchMatch}
               Buscar Match
             </Button>
             <Button
               aria-label='Obtener más intentos de match'
+              as={Link}
               className='border-purple-500/50 text-purple-300 hover:bg-purple-500/10 w-full'
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
-              variant='bordered'
-              onPress={handleGetMoreAttempts}>
+              to={APP_PATHS.USER.PURCHASE_PLANS}
+              variant='bordered'>
               Obtener Más
             </Button>
           </div>
@@ -122,22 +114,24 @@ const MatchSection = ({ userHelpers }) => {
           <div className='flex flex-row gap-3'>
             <Button
               aria-label='Buscar nuevo match'
+              as={Link}
               className='bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600'
               color='primary'
               size='sm'
               startContent={<Heart className='w-4 h-4' />}
+              to={APP_PATHS.ROOT}
               variant='solid'>
-              onPress={handleSearchMatch}
               Buscar Match
             </Button>
             <Button
               aria-label='Obtener más intentos de match'
+              as={Link}
               className='border-purple-500/50 text-purple-300 hover:bg-purple-500/10'
               color='secondary'
               size='sm'
               startContent={<Star className='w-4 h-4' />}
-              variant='bordered'
-              onPress={handleGetMoreAttempts}>
+              to={APP_PATHS.USER.PURCHASE_PLANS}
+              variant='bordered'>
               Obtener Más
             </Button>
           </div>

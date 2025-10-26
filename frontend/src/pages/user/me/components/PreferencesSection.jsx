@@ -1,60 +1,40 @@
-import { useState, useMemo } from 'react'
+import { useState, useRef } from 'react'
 import { Button, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
 import { Check, X, Target, Heart, MapPin, Calendar, Church, Settings, Users, Search, Sparkles, Flame, MessageCircle } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { useUser, useUserAttributes, useUserInterests } from '@hooks'
-import { stepPreferencesSchema, getDefaultValuesForStep } from '@schemas'
-import { Logger } from '@utils/logger.js'
+import { useUserAttributes, useUserInterests } from '@hooks'
 import StepPreferences from '@pages/user/complete/components/StepPreferences.jsx'
 
 const PreferencesSection = ({ user }) => {
   const [loading, setLoading] = useState(false)
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
-  const { updateUserProfile } = useUser()
+  // Ref para acceder al método submit de StepPreferences
+  const stepPreferencesRef = useRef(null)
+
   const userAttributes = useUserAttributes()
-  const { interestOptions, loading: interestLoading, error: interestError } = useUserInterests()
-
-  // Valores por defecto usando esquema centralizado
-  const defaultValues = useMemo(() => getDefaultValuesForStep(3, user), [user])
-
-  // React Hook Form para StepPreferences
-  const {
-    control,
-    formState: { errors },
-    watch,
-    getValues,
-    setValue,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(stepPreferencesSchema),
-    defaultValues,
-    mode: 'onChange'
-  })
+  const { interestOptions } = useUserInterests()
 
   const handleEdit = () => {
-    reset(defaultValues)
     onEditOpen()
   }
 
   const handleCancel = () => {
-    reset(defaultValues)
     onEditOpenChange()
   }
 
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      const formData = getValues()
-
-      await updateUserProfile(formData)
+  // Callback que se ejecuta cuando StepPreferences completa el submit
+  const handleStepComplete = result => {
+    setLoading(false)
+    if (result?.success) {
       onEditOpenChange()
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'update_preferences', 'Error updating user preferences', { error })
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  // Handler del botón "Guardar cambios" - llama al submit de StepPreferences
+  const handleSaveClick = async () => {
+    if (stepPreferencesRef.current) {
+      setLoading(true)
+      await stepPreferencesRef.current.submit()
     }
   }
 
@@ -102,22 +82,6 @@ const PreferencesSection = ({ user }) => {
   // Función para verificar si el usuario tiene campos específicos de ROUSE
   const hasRoueFields = () => {
     return user?.user?.sexualRoleId || user?.sexualRoleId || user?.user?.relationshipId || user?.relationshipId
-  }
-
-  // Props para StepPreferences
-  const stepPreferencesProps = {
-    control,
-    errors,
-    watch,
-    setValue,
-    clearErrors,
-    categoryOptions: interestOptions || [],
-    categoriesLoading: interestLoading,
-    categoriesError: interestError,
-    religionOptions: userAttributes.religionOptions || [],
-    sexualRoleOptions: userAttributes.sexualRoleOptions || [],
-    relationshipTypeOptions: userAttributes.relationshipTypeOptions || [],
-    attributesLoading: false
   }
 
   // Vista de solo lectura
@@ -301,7 +265,7 @@ const PreferencesSection = ({ user }) => {
             <p className='text-sm text-gray-400'>Actualiza tus preferencias de búsqueda y match</p>
           </ModalHeader>
           <ModalBody className='py-6'>
-            <StepPreferences {...stepPreferencesProps} />
+            <StepPreferences ref={stepPreferencesRef} onStepComplete={handleStepComplete} />
           </ModalBody>
           <ModalFooter>
             <Button color='danger' isDisabled={loading} startContent={<X className='w-4 h-4' />} variant='light' onPress={handleCancel}>
@@ -311,7 +275,7 @@ const PreferencesSection = ({ user }) => {
               color='primary'
               isDisabled={loading}
               startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
-              onPress={handleSave}>
+              onPress={handleSaveClick}>
               {loading ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </ModalFooter>

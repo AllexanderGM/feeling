@@ -42,6 +42,7 @@ export const LOGIN_RESPONSE_TYPE = {
   status: {
     verified: 'boolean',
     profileComplete: 'boolean',
+    configurationCompleted: 'boolean',
     lastActive: 'array|string',
     approved: 'boolean',
     approvalStatus: 'string',
@@ -145,6 +146,7 @@ export const USER_PROFILE_RESPONSE_TYPE = {
   status: {
     verified: 'boolean',
     profileComplete: 'boolean',
+    configurationCompleted: 'boolean',
     lastActive: 'array|string',
     approved: 'boolean',
     approvalStatus: 'string',
@@ -370,25 +372,22 @@ export const REGISTRATION_LIST_RESPONSE_TYPE = {
  * Tipo para respuesta de intención de pago
  */
 export const PAYMENT_INTENT_RESPONSE_TYPE = {
-  paymentIntentId: 'string',
-  clientSecret: 'string',
-  amount: 'number',
-  currency: 'string',
+  paymentReference: 'string',
+  registrationId: 'number',
   status: 'string',
-  description: 'string'
+  message: 'string',
+  data: 'object'
 }
 
 /**
  * Tipo para respuesta de confirmación de pago
  */
 export const PAYMENT_CONFIRMATION_RESPONSE_TYPE = {
-  success: 'boolean',
-  paymentIntentId: 'string',
+  paymentReference: 'string',
   registrationId: 'number',
   status: 'string',
-  amountPaid: 'number',
-  paymentDate: 'string',
-  message: 'string'
+  message: 'string',
+  data: 'object'
 }
 
 // ========================================

@@ -97,6 +97,17 @@ public class EventRegistrationController {
         return new ResponseEntity<>(registration, HttpStatus.CREATED);
     }
 
+    @DeleteMapping("/event/{eventId}/release")
+    @Operation(summary = "Release pending registration", description = "Remueve una inscripción pendiente si el pago no pudo completarse")
+    public ResponseEntity<Void> releasePendingRegistration(
+            @Parameter(description = "Event ID") @PathVariable Long eventId,
+            Authentication authentication) {
+        
+        String userEmail = authentication.getName();
+        registrationService.releasePendingRegistration(eventId, userEmail);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{registrationId}/cancel")
     @Operation(summary = "Cancel registration", description = "Cancel an event registration")
     public ResponseEntity<Void> cancelRegistration(

@@ -56,7 +56,13 @@ export const isValidRegistrationResponse = response => {
  */
 export const isValidPaymentResponse = response => {
   return (
-    response && typeof response === 'object' && typeof response.paymentIntentId === 'string' && typeof response.clientSecret === 'string'
+    response &&
+    typeof response === 'object' &&
+    typeof response.paymentReference === 'string' &&
+    typeof response.registrationId === 'number' &&
+    typeof response.status === 'string' &&
+    response.data &&
+    typeof response.data === 'object'
   )
 }
 

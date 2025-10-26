@@ -120,7 +120,7 @@ public class MatchPlanService {
         log.debug("Using one attempt for user: {}", user.getId());
 
         UserMatchPlan activeUserMatchPlan = userMatchPlanRepository
-            .findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(user)
+            .findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(user, 0)
             .orElseThrow(() -> new NotFoundException("No se encontraron planes de matches activos para el usuario."));
 
         activeUserMatchPlan.useAttempt();

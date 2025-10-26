@@ -1,12 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useRef } from 'react'
 import { Button, Spinner, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
 import { MapPin, Calendar, Phone, Check, X, IdCard, Camera, User, ZoomIn, Settings } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { useUser, useLocation } from '@hooks'
 import {
-  stepBasicInfoSchema,
-  getDefaultValuesForStep,
   getUserName,
   getUserLastName,
   getUserDocument,
@@ -19,7 +14,6 @@ import {
   getUserImages
 } from '@schemas'
 import StepBasicInfo from '@pages/user/complete/components/StepBasicInfo.jsx'
-import { Logger } from '@utils/logger.js'
 
 const PersonalInfoSection = ({ user }) => {
   const [loading, setLoading] = useState(false)
@@ -28,60 +22,30 @@ const PersonalInfoSection = ({ user }) => {
   const { isOpen: isImageOpen, onOpen: onImageOpen, onOpenChange: onImageOpenChange } = useDisclosure()
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
-  const { updateUserProfile } = useUser()
-
-  // Hooks necesarios para StepBasicInfo
-  const locationConfig = useMemo(
-    () => ({
-      defaultCountry: getUserCountry(user) || 'Colombia',
-      defaultCity: getUserCity(user) || 'Bogotá',
-      loadAll: true
-    }),
-    [user]
-  )
-
-  const location = useLocation(locationConfig)
-
-  // Valores por defecto usando esquema centralizado
-  const defaultValues = useMemo(() => getDefaultValuesForStep(1, user), [user])
-
-  // React Hook Form para StepBasicInfo
-  const {
-    control,
-    formState: { errors },
-    watch,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(stepBasicInfoSchema),
-    defaultValues,
-    mode: 'onChange'
-  })
+  // Ref para acceder al método submit de StepBasicInfo
+  const stepBasicInfoRef = useRef(null)
 
   const handleEdit = () => {
-    reset(defaultValues)
     onEditOpen()
   }
 
   const handleCancel = () => {
-    reset(defaultValues)
     onEditOpenChange()
   }
 
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      const formData = getValues()
-
-      await updateUserProfile(formData)
+  // Callback que se ejecuta cuando StepBasicInfo completa el submit
+  const handleStepComplete = result => {
+    setLoading(false)
+    if (result?.success) {
       onEditOpenChange()
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'update_personal_info', 'Error updating personal info', { error })
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  // Handler del botón "Guardar cambios" - llama al submit de StepBasicInfo
+  const handleSaveClick = async () => {
+    if (stepBasicInfoRef.current) {
+      setLoading(true)
+      await stepBasicInfoRef.current.submit()
     }
   }
 
@@ -98,44 +62,6 @@ const PersonalInfoSection = ({ user }) => {
     }
 
     return age
-  }
-
-  // Hook para obtener datos geográficos y banderas (ya inicializado arriba como 'location')
-
-  // Obtener datos del país con bandera
-  const getCountryData = useMemo(() => {
-    const country = getUserCountry(user)
-
-    if (!country || !location.formattedCountries) return null
-
-    return location.formattedCountries.find(c => c.name === country)
-  }, [user, location.formattedCountries])
-
-  // Obtener datos del país para teléfono
-  const getPhoneCountryData = useMemo(() => {
-    const phoneCode = getUserPhoneCode(user)
-
-    if (!phoneCode || !location.formattedCountries) return null
-
-    return location.formattedCountries.find(country => country.phone === phoneCode)
-  }, [user, location.formattedCountries])
-
-  // Datos para StepBasicInfo
-  const stepBasicInfoProps = {
-    user,
-    control,
-    errors,
-    locationData: {
-      formattedCountries: location.formattedCountries,
-      formattedCities: location.formattedCities,
-      formattedLocalities: location.formattedLocalities,
-      loadCitiesByCountry: location.loadCitiesByCountry,
-      loadLocalitiesByCity: location.loadLocalitiesByCity
-    },
-    watch,
-    setValue,
-    setError,
-    clearErrors
   }
 
   // Preparar imágenes para la galería
@@ -223,42 +149,28 @@ const PersonalInfoSection = ({ user }) => {
             </span>
           </div>
 
-          {/* Teléfono con bandera */}
+          {/* Teléfono */}
           <div className='flex items-center gap-2'>
             <Phone className='w-3 h-3' />
             <span>Teléfono: </span>
             {getUserPhoneCode(user) && getUserPhone(user) ? (
-              <div className='flex items-center gap-1'>
-                {getPhoneCountryData && (
-                  <img
-                    alt={`Bandera de ${getPhoneCountryData.name}`}
-                    className='w-3 h-3 rounded-full object-cover'
-                    src={getPhoneCountryData.image}
-                  />
-                )}
-                <span className='text-gray-300'>
-                  {getUserPhoneCode(user)} {getUserPhone(user)}
-                </span>
-              </div>
+              <span className='text-gray-300'>
+                {getUserPhoneCode(user)} {getUserPhone(user)}
+              </span>
             ) : (
               <span className='text-gray-300'>No especificado</span>
             )}
           </div>
 
-          {/* Ubicación con bandera */}
+          {/* Ubicación */}
           <div className='flex items-center gap-2 sm:col-span-2'>
             <MapPin className='w-3 h-3' />
             <span>Ubicación: </span>
             {getUserCity(user) && getUserCountry(user) ? (
-              <div className='flex items-center gap-1'>
-                {getCountryData && (
-                  <img alt={`Bandera de ${getCountryData.name}`} className='w-3 h-3 rounded-full object-cover' src={getCountryData.image} />
-                )}
-                <span className='text-gray-300'>
-                  {getUserLocality(user) ? `${getUserLocality(user)}, ` : ''}
-                  {getUserCity(user)}, {getUserCountry(user)}
-                </span>
-              </div>
+              <span className='text-gray-300'>
+                {getUserLocality(user) ? `${getUserLocality(user)}, ` : ''}
+                {getUserCity(user)}, {getUserCountry(user)}
+              </span>
             ) : (
               <span className='text-gray-300'>No especificado</span>
             )}
@@ -411,7 +323,7 @@ const PersonalInfoSection = ({ user }) => {
             <p className='text-sm text-gray-400'>Actualiza tus datos básicos y fotos de perfil</p>
           </ModalHeader>
           <ModalBody className='py-6'>
-            <StepBasicInfo {...stepBasicInfoProps} />
+            <StepBasicInfo ref={stepBasicInfoRef} onStepComplete={handleStepComplete} />
           </ModalBody>
           <ModalFooter>
             <Button color='danger' isDisabled={loading} startContent={<X className='w-4 h-4' />} variant='light' onPress={handleCancel}>
@@ -421,7 +333,7 @@ const PersonalInfoSection = ({ user }) => {
               color='primary'
               isDisabled={loading}
               startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
-              onPress={handleSave}>
+              onPress={handleSaveClick}>
               {loading ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </ModalFooter>

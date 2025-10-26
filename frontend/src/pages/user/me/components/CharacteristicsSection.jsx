@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useRef } from 'react'
 import { Button, Spinner, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react'
 import {
   Check,
@@ -18,83 +18,38 @@ import {
   Sparkles,
   Badge
 } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { useUser, useUserAttributes, useUserTags } from '@hooks'
-import { stepCharacteristicsSchema, getDefaultValuesForStep } from '@schemas'
 import StepCharacteristics from '@pages/user/complete/components/StepCharacteristics.jsx'
-import { Logger } from '@utils/logger.js'
 
 const CharacteristicsSection = ({ user }) => {
   const [loading, setLoading] = useState(false)
   const { isOpen: isEditOpen, onOpen: onEditOpen, onOpenChange: onEditOpenChange } = useDisclosure()
 
-  const { updateUserProfile } = useUser()
-  const userAttributes = useUserAttributes()
-  const userTags = useUserTags()
-
-  // Valores por defecto usando esquema centralizado
-  const defaultValues = useMemo(() => getDefaultValuesForStep(2, user), [user])
-
-  // React Hook Form para StepCharacteristics
-  const {
-    control,
-    formState: { errors },
-    watch,
-    getValues,
-    setValue,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(stepCharacteristicsSchema),
-    defaultValues,
-    mode: 'onChange'
-  })
+  // Ref para acceder al método submit de StepCharacteristics
+  const stepCharacteristicsRef = useRef(null)
 
   const handleEdit = () => {
-    reset(defaultValues)
     onEditOpen()
   }
 
   const handleCancel = () => {
-    reset(defaultValues)
     onEditOpenChange()
   }
 
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      const formData = getValues()
-
-      await updateUserProfile(formData)
+  // Callback que se ejecuta cuando StepCharacteristics completa el submit
+  const handleStepComplete = result => {
+    setLoading(false)
+    if (result?.success) {
       onEditOpenChange()
-    } catch (error) {
-      Logger.error(Logger.CATEGORIES.USER, 'update_characteristics', 'Error updating user characteristics', { error })
-    } finally {
-      setLoading(false)
     }
   }
 
-  // Props para StepCharacteristics
-  const stepCharacteristicsProps = {
-    control,
-    errors,
-    watch,
-    setValue,
-    clearErrors,
-    userAttributes,
-    userTags,
-    user
+  // Handler del botón "Guardar cambios" - llama al submit de StepCharacteristics
+  const handleSaveClick = async () => {
+    if (stepCharacteristicsRef.current) {
+      setLoading(true)
+      await stepCharacteristicsRef.current.submit()
+    }
   }
-
-  // Función para obtener el nombre de un atributo por ID
-  const getAttributeName = (attributeType, attributeId) => {
-    if (!attributeId || !userAttributes[attributeType]) return 'No especificado'
-    const attribute = userAttributes[attributeType].find(attr => attr.id === parseInt(attributeId))
-
-    return attribute?.name || 'No especificado'
-  }
-
   // Función para obtener el icono según el género
   const getGenderIcon = gender => {
     switch (gender?.toLowerCase()) {
@@ -286,10 +241,7 @@ const CharacteristicsSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             <GraduationCap className='w-3 h-3 text-purple-400' />
             <span>
-              Educación:{' '}
-              <span className='text-gray-300'>
-                {getAttributeName('educationLevelOptions', user?.user?.educationLevel || user?.educationLevel)}
-              </span>
+              Educación: <span className='text-gray-300'>{user?.user?.education || user?.education || 'No especificado'}</span>
             </span>
           </div>
 
@@ -305,8 +257,7 @@ const CharacteristicsSection = ({ user }) => {
           <div className='flex items-center gap-2'>
             <User className='w-3 h-3 text-green-400' />
             <span>
-              Tipo de cuerpo:{' '}
-              <span className='text-gray-300'>{getAttributeName('bodyTypeOptions', user?.user?.bodyType || user?.bodyType)}</span>
+              Tipo de cuerpo: <span className='text-gray-300'>{user?.user?.bodyType || user?.bodyType || 'No especificado'}</span>
             </span>
           </div>
 
@@ -371,7 +322,7 @@ const CharacteristicsSection = ({ user }) => {
             <p className='text-sm text-gray-400'>Actualiza tu descripción, intereses y características físicas</p>
           </ModalHeader>
           <ModalBody className='py-6'>
-            <StepCharacteristics {...stepCharacteristicsProps} />
+            <StepCharacteristics ref={stepCharacteristicsRef} onStepComplete={handleStepComplete} />
           </ModalBody>
           <ModalFooter>
             <Button color='danger' isDisabled={loading} startContent={<X className='w-4 h-4' />} variant='light' onPress={handleCancel}>
@@ -381,7 +332,7 @@ const CharacteristicsSection = ({ user }) => {
               color='primary'
               isDisabled={loading}
               startContent={loading ? <Spinner size='sm' /> : <Check className='w-4 h-4' />}
-              onPress={handleSave}>
+              onPress={handleSaveClick}>
               {loading ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </ModalFooter>

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PremiumMatchModal from '@components/ui/userSuggestionCards/components/PremiumMatchModal'
+import { APP_PATHS } from '@constants/paths.js'
 
 const MatchContext = createContext()
 
@@ -14,6 +16,7 @@ export const useMatch = () => {
 }
 
 export const MatchProvider = ({ children }) => {
+  const navigate = useNavigate()
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
 
   const showPremiumModal = () => {
@@ -22,6 +25,19 @@ export const MatchProvider = ({ children }) => {
 
   const hidePremiumModal = () => {
     setIsPremiumModalOpen(false)
+  }
+
+  const handlePurchasePlan = planId => {
+    // Cerrar el modal
+    setIsPremiumModalOpen(false)
+
+    // Si no hay planId, navegar a la página de paquetes
+    // Si hay planId, navegar directamente al checkout con ese plan
+    if (!planId) {
+      navigate(APP_PATHS.USER.PURCHASE_PLANS)
+    } else {
+      navigate(`${APP_PATHS.USER.PURCHASE_CHECKOUT}?planId=${planId}`)
+    }
   }
 
   const value = {
@@ -33,7 +49,12 @@ export const MatchProvider = ({ children }) => {
   return (
     <MatchContext.Provider value={value}>
       {children}
-      <PremiumMatchModal isOpen={isPremiumModalOpen} onOpenChange={hidePremiumModal} />
+      <PremiumMatchModal
+        isOpen={isPremiumModalOpen}
+        onClose={hidePremiumModal}
+        onOpenChange={hidePremiumModal}
+        onPurchasePlan={handlePurchasePlan}
+      />
     </MatchContext.Provider>
   )
 }

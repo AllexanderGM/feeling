@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, memo, forwardRef } from 'react'
+import { useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { Controller } from 'react-hook-form'
 import {
   Select,
@@ -11,11 +11,9 @@ import {
   Button,
   useDisclosure,
   Textarea,
-  Slider,
-  Divider,
-  Spinner
+  Slider
 } from '@heroui/react'
-import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
+import AttributeDetailRenderer from '@components/ui/attributes/AttributeDetailRenderer.jsx'
 import { Church, Building } from 'lucide-react'
 
 import useStepPreferences from '../hooks/useStepPreferences'
@@ -75,8 +73,8 @@ const StepPreferencesContent = ({
       }
 
       if (categoryKey !== 'ROUSE') {
-        formHandlers.handleInputChange('sexualRoleId', '')
-        formHandlers.handleInputChange('relationshipId', '')
+        formHandlers.handleInputChange('sexualRoleId', null)
+        formHandlers.handleInputChange('relationshipId', null)
       }
     },
     [formHandlers]
@@ -226,9 +224,9 @@ const StepPreferencesContent = ({
                 </div>
 
                 <div
+                  className='px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 cursor-pointer transition-colors text-sm font-medium text-center'
                   role='button'
                   tabIndex={0}
-                  className='px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 cursor-pointer transition-colors text-sm font-medium text-center'
                   onClick={event => {
                     event.stopPropagation()
                     handleCategoryInfo(category.key)
@@ -518,28 +516,7 @@ const StepPreferencesContent = ({
   )
 }
 
-const StepPreferencesComponent = (
-  {
-    user,
-    categoryOptions,
-    religionOptions,
-    churchOptions,
-    sexualRoleOptions,
-    relationshipTypeOptions,
-    onStepComplete,
-    onStepBack,
-    isFirstStep = false,
-    isLastStep = false,
-    control: externalControl,
-    errors: externalErrors,
-    watch: externalWatch,
-    setValue: externalSetValue,
-    clearErrors: externalClearErrors,
-    handleSubmit: externalHandleSubmit,
-    reset: externalReset
-  },
-  ref
-) => {
+const StepPreferences = forwardRef(({ onStepComplete }, ref) => {
   const {
     control,
     errors,
@@ -547,32 +524,19 @@ const StepPreferencesComponent = (
     setValue,
     clearErrors,
     handleFormSubmit,
-    isStandalone,
-    isSaving,
-    isLoading,
     categoryOptions: resolvedCategoryOptions,
     religionOptions: resolvedReligionOptions,
     churchOptions: resolvedChurchOptions,
     sexualRoleOptions: resolvedSexualRoleOptions,
     relationshipTypeOptions: resolvedRelationshipTypeOptions
-  } = useStepPreferences({
-    user,
-    categoryOptions,
-    religionOptions,
-    churchOptions,
-    sexualRoleOptions,
-    relationshipTypeOptions,
-    control: externalControl,
-    errors: externalErrors,
-    watch: externalWatch,
-    setValue: externalSetValue,
-    clearErrors: externalClearErrors,
-    handleSubmit: externalHandleSubmit,
-    reset: externalReset,
-    onStepComplete
-  })
+  } = useStepPreferences({ onStepComplete })
 
-  const content = (
+  // Exponer método submit al componente padre
+  useImperativeHandle(ref, () => ({
+    submit: handleFormSubmit
+  }))
+
+  return (
     <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
       <StepPreferencesContent
         categoryOptions={resolvedCategoryOptions}
@@ -580,54 +544,16 @@ const StepPreferencesComponent = (
         clearErrors={clearErrors}
         control={control}
         errors={errors}
-        religionOptions={resolvedReligionOptions}
         relationshipTypeOptions={resolvedRelationshipTypeOptions}
+        religionOptions={resolvedReligionOptions}
         setValue={setValue}
         sexualRoleOptions={resolvedSexualRoleOptions}
         watch={watch}
       />
     </div>
   )
+})
 
-  if (isLoading) {
-    return (
-      <div ref={ref} className='flex justify-center py-10'>
-        <Spinner color='primary' />
-      </div>
-    )
-  }
+StepPreferences.displayName = 'StepPreferences'
 
-  if (!isStandalone) {
-    return (
-      <div ref={ref} className='space-y-4'>
-        {content}
-      </div>
-    )
-  }
-
-  const handleBack = onStepBack ?? (() => {})
-
-  return (
-    <form ref={ref} className='space-y-6' onSubmit={handleFormSubmit}>
-      {content}
-
-      <Divider />
-
-      <div className='flex justify-between items-center pt-2'>
-        {!isFirstStep ? (
-          <Button variant='bordered' onPress={handleBack}>
-            Anterior
-          </Button>
-        ) : (
-          <span />
-        )}
-
-        <Button color='primary' isLoading={isSaving} type='submit'>
-          {isLastStep ? 'Guardar y finalizar' : 'Guardar y continuar'}
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-export default memo(forwardRef(StepPreferencesComponent))
+export default StepPreferences

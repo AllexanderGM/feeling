@@ -42,6 +42,13 @@ export const prepareDataForBackend = formData => {
     data.dateOfBirth = fromCalendarDate(data.dateOfBirth)
   }
 
+  // Transformar campos del frontend al formato esperado por el backend
+  // relationshipId -> relationshipTypeId (el backend espera relationshipTypeId)
+  if ('relationshipId' in data) {
+    data.relationshipTypeId = data.relationshipId
+    delete data.relationshipId
+  }
+
   return data
 }
 
@@ -83,6 +90,7 @@ export const hasFormChanges = (formData, user, currentStep = null) => {
     'notificationsLoginEnabled',
     'notificationsPaymentsEnabled'
   ]
+  const statusFields = ['configurationCompleted']
 
   // Determinar qué campos comparar
   const fieldsToCompare = currentStep ? getFieldsForStep(currentStep) : Object.keys(formData)
@@ -97,6 +105,8 @@ export const hasFormChanges = (formData, user, currentStep = null) => {
       userValue = user.privacy?.[field]
     } else if (notificationFields.includes(field)) {
       userValue = user.notifications?.[field]
+    } else if (statusFields.includes(field)) {
+      userValue = user.status?.[field]
     } else {
       userValue = user.user?.[field] ?? user[field]
     }

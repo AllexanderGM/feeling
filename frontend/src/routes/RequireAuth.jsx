@@ -65,7 +65,7 @@ const RequireAuth = ({ children, requireVerification = true, requireCompleteProf
     }
 
     // Verificar perfil completo si se requiere
-    if (requireCompleteProfile && !user.status?.profileComplete) {
+    if (requireCompleteProfile && (!user.status?.profileComplete || !user.status?.configurationCompleted)) {
       return <Navigate replace state={{ from: location }} to={APP_PATHS.USER.COMPLETE_PROFILE} />
     }
   }
@@ -219,7 +219,7 @@ export const RedirectIfProfileComplete = ({ children, redirectTo = APP_PATHS.ROO
   const isAdmin = isUserAdmin(user)
 
   // Si está autenticado, tiene perfil completo, está verificado y no es admin, redirigir
-  if (isAuthenticated && user && user.status.profileComplete && user.status.verified && !isAdmin) {
+  if (isAuthenticated && user && user.status.profileComplete && user.status.configurationCompleted && user.status.verified && !isAdmin) {
     return <Navigate replace to={redirectTo} />
   }
 

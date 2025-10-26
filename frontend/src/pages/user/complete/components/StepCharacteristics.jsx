@@ -1,11 +1,10 @@
-import { useState, useCallback, useMemo, useEffect, memo, forwardRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react'
 import {
   Textarea,
   Input,
   Select,
   SelectItem,
   Slider,
-  Button,
   Tooltip,
   Badge,
   Modal,
@@ -18,13 +17,15 @@ import {
   Chip,
   Autocomplete,
   AutocompleteItem,
-  Spinner
+  Button
 } from '@heroui/react'
 import { Brain, Sparkles, Tag, Heart, GraduationCap, Briefcase, Accessibility, Ruler } from 'lucide-react'
 import { Controller } from 'react-hook-form'
-import AttributeDetailRenderer from '@components/ui/AttributeDetailRenderer.jsx'
+import AttributeDetailRenderer from '@components/ui/attributes/AttributeDetailRenderer.jsx'
 
 import useStepCharacteristics from '../hooks/useStepCharacteristics'
+
+const noop = () => {}
 
 const PROFILE_TIPS = [
   { label: 'Descripción auténtica', tip: 'Sé auténtico en tu descripción - muestra tu personalidad real' },
@@ -897,25 +898,7 @@ const StepCharacteristicsContent = ({
   )
 }
 
-const StepCharacteristicsComponent = (
-  {
-    user,
-    userAttributes,
-    userTags,
-    onStepComplete,
-    onStepBack,
-    isFirstStep = false,
-    isLastStep = false,
-    control: externalControl,
-    errors: externalErrors,
-    watch: externalWatch,
-    setValue: externalSetValue,
-    clearErrors: externalClearErrors,
-    handleSubmit: externalHandleSubmit,
-    reset: externalReset
-  },
-  ref
-) => {
+const StepCharacteristics = forwardRef(({ onStepComplete }, ref) => {
   const {
     control,
     errors,
@@ -923,26 +906,16 @@ const StepCharacteristicsComponent = (
     setValue,
     clearErrors,
     handleFormSubmit,
-    isStandalone,
-    isSaving,
-    isLoading,
     userAttributes: resolvedUserAttributes,
     userTags: resolvedUserTags
-  } = useStepCharacteristics({
-    user,
-    userAttributes,
-    userTags,
-    control: externalControl,
-    errors: externalErrors,
-    watch: externalWatch,
-    setValue: externalSetValue,
-    clearErrors: externalClearErrors,
-    handleSubmit: externalHandleSubmit,
-    reset: externalReset,
-    onStepComplete
-  })
+  } = useStepCharacteristics({ onStepComplete })
 
-  const content = (
+  // Exponer método submit al componente padre
+  useImperativeHandle(ref, () => ({
+    submit: handleFormSubmit
+  }))
+
+  return (
     <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
       <StepCharacteristicsContent
         clearErrors={clearErrors}
@@ -955,44 +928,8 @@ const StepCharacteristicsComponent = (
       />
     </div>
   )
+})
 
-  if (isLoading) {
-    return (
-      <div ref={ref} className='flex justify-center py-10'>
-        <Spinner color='primary' />
-      </div>
-    )
-  }
+StepCharacteristics.displayName = 'StepCharacteristics'
 
-  if (!isStandalone) {
-    return (
-      <div ref={ref} className='space-y-4'>
-        {content}
-      </div>
-    )
-  }
-
-  const handleBack = onStepBack ?? (() => {})
-
-  return (
-    <form ref={ref} className='space-y-6' onSubmit={handleFormSubmit}>
-      {content}
-
-      <div className='flex justify-between items-center pt-6'>
-        {!isFirstStep ? (
-          <Button type='button' variant='bordered' onPress={handleBack}>
-            Anterior
-          </Button>
-        ) : (
-          <span />
-        )}
-
-        <Button color='primary' isLoading={isSaving} type='submit'>
-          {isLastStep ? 'Guardar y finalizar' : 'Guardar y continuar'}
-        </Button>
-      </div>
-    </form>
-  )
-}
-
-export default memo(forwardRef(StepCharacteristicsComponent))
+export default StepCharacteristics

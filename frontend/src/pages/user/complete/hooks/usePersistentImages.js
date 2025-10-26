@@ -134,8 +134,13 @@ const imageToStorageFormat = async image => {
 
 /**
  * Hook para manejar imágenes persistentes
+ * @param {Array} initialImages - Imágenes iniciales (File, URL o base64)
+ * @param {Function} onImagesChange - Callback cuando las imágenes cambian
+ * @param {Object} options - Opciones adicionales
+ * @param {Function} options.onValidationChange - Callback para validación de imágenes
  */
-export const usePersistentImages = (initialImages = [], onImagesChange) => {
+export const usePersistentImages = (initialImages = [], onImagesChange, options = {}) => {
+  const { onValidationChange } = options
   const [persistentImages, setPersistentImages] = useState([])
   const [isConverting, setIsConverting] = useState(false)
   const [hasInitialized, setHasInitialized] = useState(false)
@@ -212,6 +217,15 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
 
         pruneFailedDownloads(validImages)
 
+        // Notificar validación si hay callback
+        if (onValidationChange) {
+          onValidationChange({
+            hasErrors: false,
+            imageCount: validImages.length,
+            errors: {}
+          })
+        }
+
         // Notificar cambio intentando convertir las imágenes a File cuando sea posible
         const processedImages = await Promise.all(
           validImages.map(async (imageData, index) => {
@@ -253,7 +267,7 @@ export const usePersistentImages = (initialImages = [], onImagesChange) => {
         setIsConverting(false)
       }
     },
-    [onImagesChange, pruneFailedDownloads]
+    [onImagesChange, pruneFailedDownloads, onValidationChange]
   )
 
   // Función para remover imagen

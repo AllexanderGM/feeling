@@ -326,7 +326,7 @@ export const AuthProvider = ({ children }) => {
         } else if (key.startsWith('notifications')) {
           if (!organizedData.notifications) organizedData.notifications = {}
           organizedData.notifications[key] = profileData[key]
-        } else if (['verified', 'profileComplete', 'approved', 'role', 'availableAttempts'].includes(key)) {
+        } else if (['verified', 'profileComplete', 'configurationCompleted', 'approved', 'role', 'availableAttempts'].includes(key)) {
           if (!organizedData.status) organizedData.status = {}
           organizedData.status[key] = profileData[key]
         } else if (['profileViews', 'likesReceived', 'matchesCount', 'popularityScore'].includes(key)) {

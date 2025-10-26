@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo, memo, useEffect } from 'react'
+import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Divider } from '@heroui/react'
+import { Divider, Button } from '@heroui/react'
 import { Logger } from '@utils/logger.js'
-import { useAuth, useLocation, useUserAttributes, useUserTags, useUserInterests, useLocalStorage } from '@hooks'
+import { useAuth, useLocalStorage } from '@hooks'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LoadData from '@components/layout/LoadData.jsx'
-import { getUserName, getUserEmail, getUserId, getUserCountry, getUserCity } from '@schemas'
+import { getUserName, getUserEmail, getUserId } from '@schemas'
 import { APP_PATHS } from '@constants/paths.js'
 import { STORAGE_KEYS, makeUserSpecificKey } from '@constants/cookieKeys.js'
 
@@ -21,6 +21,12 @@ const ProfileComplete = () => {
   const storage = useLocalStorage()
   const { user, loading: authLoading } = useAuth()
 
+  // Refs para controlar el submit de cada step desde el padre
+  const stepBasicInfoRef = useRef()
+  const stepCharacteristicsRef = useRef()
+  const stepPreferencesRef = useRef()
+  const stepConfigurationRef = useRef()
+
   const [currentStep, setCurrentStep] = useState(() => {
     const userId = getUserId(user)
     const key = makeUserSpecificKey(STORAGE_KEYS.PROFILE_COMPLETION_DRAFT, userId)
@@ -34,20 +40,6 @@ const ProfileComplete = () => {
 
     return makeUserSpecificKey(STORAGE_KEYS.PROFILE_COMPLETION_DRAFT, userId)
   }, [user])
-
-  // Configuración inicial de ubicación
-  const locationConfig = useMemo(
-    () => ({
-      defaultCountry: getUserCountry(user) || 'Colombia',
-      defaultCity: getUserCity(user) || 'Bogotá'
-    }),
-    [user]
-  )
-
-  const location = useLocation(locationConfig)
-  const userAttributes = useUserAttributes()
-  const userTags = useUserTags()
-  const userInterests = useUserInterests()
 
   useEffect(() => {
     const progressData = {
@@ -74,6 +66,26 @@ const ProfileComplete = () => {
     Logger.info(Logger.CATEGORIES.UI, 'completar perfil', 'Perfil completado correctamente')
   }, [navigate, storage, STORAGE_KEY])
 
+  // Función para manejar el click en "Continuar"
+  const handleContinueClick = useCallback(() => {
+    switch (currentStep) {
+      case 1:
+        stepBasicInfoRef.current?.submit()
+        break
+      case 2:
+        stepCharacteristicsRef.current?.submit()
+        break
+      case 3:
+        stepPreferencesRef.current?.submit()
+        break
+      case 4:
+        stepConfigurationRef.current?.submit()
+        break
+      default:
+        break
+    }
+  }, [currentStep])
+
   const stepInfo = useMemo(() => {
     const progress = Math.round((currentStep / TOTAL_STEPS) * 100)
 
@@ -86,52 +98,25 @@ const ProfileComplete = () => {
     }
   }, [currentStep])
 
-  const isLoading = authLoading || location.loading || userAttributes.loading || userTags.loading || userInterests.loading
-
   const stepContent = useMemo(() => {
-    if (isLoading) return null
-    if (!user) return null
-    if (location.error || userAttributes.error || userTags.error || userInterests.error) return null
+    if (authLoading || !user) return null
 
     switch (currentStep) {
       case 1:
-        return <StepBasicInfo isFirstStep onStepComplete={handleNextStep} />
+        return <StepBasicInfo ref={stepBasicInfoRef} onStepComplete={handleNextStep} />
       case 2:
-        return (
-          <StepCharacteristics
-            isFirstStep={stepInfo.isFirst}
-            isLastStep={stepInfo.isLast}
-            onStepBack={handlePrevStep}
-            onStepComplete={handleNextStep}
-          />
-        )
+        return <StepCharacteristics ref={stepCharacteristicsRef} onStepComplete={handleNextStep} />
       case 3:
-        return (
-          <StepPreferences
-            categoryOptions={userInterests.interestOptions || []}
-            churchOptions={userAttributes.churchOptions || []}
-            relationshipTypeOptions={userAttributes.relationshipTypeOptions || []}
-            religionOptions={userAttributes.religionOptions || []}
-            sexualRoleOptions={userAttributes.sexualRoleOptions || []}
-            user={user}
-            onStepBack={handlePrevStep}
-            onStepComplete={handleNextStep}
-          />
-        )
+        return <StepPreferences ref={stepPreferencesRef} onStepComplete={handleNextStep} />
       case 4:
-        return <StepConfiguration isLastStep user={user} onStepBack={handlePrevStep} onStepComplete={handleFinalComplete} />
+        return <StepConfiguration ref={stepConfigurationRef} onStepComplete={handleFinalComplete} />
       default:
         return null
     }
-  }, [currentStep, user, location, userAttributes, userTags, userInterests, handleNextStep, handlePrevStep, handleFinalComplete, isLoading])
+  }, [currentStep, user, handleNextStep, handleFinalComplete, authLoading])
 
-  if (isLoading) return <LoadData>Cargando datos...</LoadData>
-
+  if (authLoading) return <LoadData>Cargando datos...</LoadData>
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
-  if (location.error) return <LoadDataError>Error al cargar datos geográficos</LoadDataError>
-  if (userAttributes.error) return <LoadDataError>Error al cargar atributos del usuario</LoadDataError>
-  if (userTags.error) return <LoadDataError>Error al cargar tags populares</LoadDataError>
-  if (userInterests.error) return <LoadDataError>Error al cargar intereses de usuario</LoadDataError>
 
   const userName = getUserName(user)
   const userEmail = getUserEmail(user)
@@ -167,6 +152,21 @@ const ProfileComplete = () => {
         <div className='min-h-[400px]'>{stepContent}</div>
 
         <Divider />
+
+        {/* Botones de navegación centralizados */}
+        <div className='flex justify-between items-center pt-4'>
+          {!stepInfo.isFirst ? (
+            <Button variant='bordered' onPress={handlePrevStep}>
+              Anterior
+            </Button>
+          ) : (
+            <span />
+          )}
+
+          <Button color='primary' onPress={handleContinueClick}>
+            {stepInfo.isLast ? 'Finalizar' : 'Continuar'}
+          </Button>
+        </div>
 
         <div className='flex justify-center gap-2'>
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (

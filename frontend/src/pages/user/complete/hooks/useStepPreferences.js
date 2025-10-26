@@ -3,37 +3,20 @@ import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useUser, useUserAttributes, useCategoryInterests } from '@hooks'
 import { getDefaultValuesForStep, stepPreferencesSchema } from '@schemas'
+import { Logger } from '@utils/logger.js'
 
 import { useStepSave } from './useStepSave'
 
-const noop = () => {}
+const useStepPreferences = ({ onStepComplete } = {}) => {
+  const { user } = useUser()
+  const userAttributes = useUserAttributes()
+  const categoryInterests = useCategoryInterests()
 
-const useStepPreferences = ({
-  user: userOverride,
-  categoryOptions: categoryOptionsOverride,
-  religionOptions: religionOptionsOverride,
-  churchOptions: churchOptionsOverride,
-  sexualRoleOptions: sexualRoleOptionsOverride,
-  relationshipTypeOptions: relationshipTypeOptionsOverride,
-  control: controlOverride,
-  errors: errorsOverride,
-  watch: watchOverride,
-  setValue: setValueOverride,
-  clearErrors: clearErrorsOverride,
-  handleSubmit: handleSubmitOverride,
-  reset: resetOverride,
-  onStepComplete
-} = {}) => {
-  const { user: contextUser } = useUser()
-  const userAttributesHook = useUserAttributes()
-  const categoryInterestsHook = useCategoryInterests()
-
-  const user = userOverride ?? contextUser
-  const categoryOptions = categoryOptionsOverride ?? categoryInterestsHook.categoryOptions ?? []
-  const religionOptions = religionOptionsOverride ?? userAttributesHook.religionOptions ?? []
-  const churchOptions = churchOptionsOverride ?? userAttributesHook.churchOptions ?? []
-  const sexualRoleOptions = sexualRoleOptionsOverride ?? userAttributesHook.sexualRoleOptions ?? []
-  const relationshipTypeOptions = relationshipTypeOptionsOverride ?? userAttributesHook.relationshipTypeOptions ?? []
+  const categoryOptions = categoryInterests.categoryOptions ?? []
+  const religionOptions = userAttributes.religionOptions ?? []
+  const churchOptions = userAttributes.churchOptions ?? []
+  const sexualRoleOptions = userAttributes.sexualRoleOptions ?? []
+  const relationshipTypeOptions = userAttributes.relationshipTypeOptions ?? []
 
   const defaultValues = useMemo(() => {
     const values = getDefaultValuesForStep(3, user) || {}
@@ -41,27 +24,17 @@ const useStepPreferences = ({
     return values
   }, [user])
 
-  const internalForm = useForm({
+  const form = useForm({
     resolver: yupResolver(stepPreferencesSchema),
     mode: 'onChange',
     defaultValues
   })
 
-  const isStandalone = !controlOverride
-
-  const control = isStandalone ? internalForm.control : controlOverride
-  const errors = isStandalone ? internalForm.formState.errors : (errorsOverride ?? {})
-  const watch = isStandalone ? internalForm.watch : (watchOverride ?? (() => defaultValues))
-  const setValue = isStandalone ? internalForm.setValue : (setValueOverride ?? noop)
-  const clearErrors = isStandalone ? internalForm.clearErrors : (clearErrorsOverride ?? noop)
-  const handleSubmitFn = isStandalone
-    ? internalForm.handleSubmit
-    : (handleSubmitOverride ?? (submitHandler => () => (typeof submitHandler === 'function' ? submitHandler() : undefined)))
-  const resetForm = isStandalone ? internalForm.reset : (resetOverride ?? noop)
-  const isSubmitting = isStandalone ? internalForm.formState.isSubmitting : false
+  const { control, formState, watch, setValue, clearErrors, reset, handleSubmit } = form
+  const errors = formState.errors
 
   useEffect(() => {
-    if (!isStandalone || !user) return
+    if (!user) return
 
     // Wait for options to load before mapping
     const hasReligionOptions = religionOptions && religionOptions.length > 0
@@ -95,8 +68,7 @@ const useStepPreferences = ({
     // Map categoryInterest name/enum to key
     if (user.categoryInterest && !values.categoryInterest) {
       // CategoryInterest can come as enum or name
-      const categoryKey =
-        typeof user.categoryInterest === 'string' ? user.categoryInterest.toUpperCase() : user.categoryInterest
+      const categoryKey = typeof user.categoryInterest === 'string' ? user.categoryInterest.toUpperCase() : user.categoryInterest
 
       mappedValues.categoryInterest = categoryKey
     }
@@ -121,44 +93,49 @@ const useStepPreferences = ({
       mappedValues.relationshipId = findIdByName(relationshipTypeOptions, user.relationshipType)
     }
 
-    resetForm(mappedValues, { keepDefaultValues: false })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    reset(mappedValues, { keepDefaultValues: false })
   }, [
-    isStandalone,
     user?.id,
     religionOptions?.length,
     churchOptions?.length,
     sexualRoleOptions?.length,
     relationshipTypeOptions?.length,
-    categoryOptions?.length
+    categoryOptions?.length,
+    reset
   ])
 
-  const { saveStepData, submitting } = useStepSave(user)
-  const isSaving = isStandalone ? submitting || isSubmitting : false
+  const { saveStepData } = useStepSave(user)
 
   const onSubmit = useCallback(
     async data => {
-      if (!isStandalone) return undefined
+      // Debug: verificar qué datos se están enviando
+      Logger.debug(Logger.CATEGORIES.UI, 'StepPreferences Submit', 'Datos del formulario antes de enviar', {
+        context: {
+          categoryInterest: data.categoryInterest,
+          sexualRoleId: data.sexualRoleId,
+          relationshipId: data.relationshipId,
+          religionId: data.religionId,
+          churchId: data.churchId,
+          allData: data
+        }
+      })
 
       const result = await saveStepData({
         stepNumber: 3,
         formData: data
       })
 
-      if (result.success) {
-        onStepComplete?.()
-      }
+      // Siempre llamar onStepComplete con el resultado
+      onStepComplete?.(result)
 
       return result
     },
-    [isStandalone, saveStepData, onStepComplete]
+    [saveStepData, onStepComplete]
   )
 
-  const handleFormSubmit = isStandalone ? handleSubmitFn(onSubmit) : undefined
-  const isLoading = Boolean(userAttributesHook?.loading) || Boolean(categoryInterestsHook?.loading)
+  const handleFormSubmit = handleSubmit(onSubmit)
 
   return {
-    user,
     categoryOptions,
     religionOptions,
     churchOptions,
@@ -169,11 +146,7 @@ const useStepPreferences = ({
     watch,
     setValue,
     clearErrors,
-    handleFormSubmit,
-    isStandalone,
-    isSaving,
-    isSubmitting,
-    isLoading
+    handleFormSubmit
   }
 }
 

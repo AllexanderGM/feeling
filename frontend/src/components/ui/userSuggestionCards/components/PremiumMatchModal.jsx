@@ -1,48 +1,16 @@
-import { useEffect } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody, Chip, Spinner } from '@heroui/react'
-import { Zap, Sparkles, Crown, Star, Check, X } from 'lucide-react'
-import { useMatchPlans } from '@hooks'
+import { Modal, ModalContent, ModalBody, Button } from '@heroui/react'
+import { Sparkles, Crown, ArrowRight, Zap } from 'lucide-react'
 
 /**
- * Modal Premium para compra de intentos de match
+ * Modal Premium para redirigir a compra de intentos de match
  * Se muestra cuando el usuario no tiene intentos disponibles
+ * Diseño mobile first premium acorde con la página de paquetes
+ * Usa correctamente las props y estructura de Hero UI
  */
 const PremiumMatchModal = ({ isOpen, onOpenChange, onClose, onPurchasePlan }) => {
-  const { plans, loading, fetchAvailablePlans } = useMatchPlans()
-
-  // Cargar planes cuando se abre el modal
-  useEffect(() => {
-    if (isOpen && plans.length === 0 && !loading) {
-      fetchAvailablePlans()
-    }
-  }, [isOpen]) // Solo depender de isOpen para evitar re-renders innecesarios
-
-  // Identificar el plan premium (precio promedio o marcado como popular)
-  const getPremiumPlan = () => {
-    if (!plans || plans.length === 0) return null
-
-    // Primero buscar si hay uno marcado como popular
-    const popularPlan = plans.find(plan => plan.popular === true)
-
-    if (popularPlan) return popularPlan
-
-    // Si no, buscar el que tenga el precio más cercano al promedio
-    const averagePrice = plans.reduce((sum, plan) => sum + plan.price, 0) / plans.length
-
-    // Encontrar el plan con precio más cercano al promedio
-    return plans.reduce((closest, current) => {
-      const currentDiff = Math.abs(current.price - averagePrice)
-      const closestDiff = Math.abs(closest.price - averagePrice)
-
-      return currentDiff < closestDiff ? current : closest
-    })
-  }
-
-  const premiumPlan = getPremiumPlan()
-
-  const handlePurchase = planId => {
+  const handleViewPlans = () => {
     if (onPurchasePlan) {
-      onPurchasePlan(planId)
+      onPurchasePlan(null)
     }
     if (onClose) {
       onClose()
@@ -51,177 +19,110 @@ const PremiumMatchModal = ({ isOpen, onOpenChange, onClose, onPurchasePlan }) =>
 
   return (
     <Modal
+      backdrop='blur'
       classNames={{
-        base: 'bg-gray-800/86 backdrop-blur-2xl border border-gray-700/50 max-h-[calc(100%_-_0.5rem)]',
-        header: 'border-b border-gray-700/50 px-4 py-3 md:px-6 md:py-4',
-        body: 'overflow-y-auto px-4 py-4 md:px-6 md:py-6',
-        footer: 'border-t border-gray-700/50 px-4 py-3 md:px-6 md:py-4',
-        closeButton: 'hover:bg-gray-800/50 text-gray-400 hover:text-white'
+        backdrop: 'bg-gray-900/80',
+        base: 'bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-900 border border-gray-700/50',
+        closeButton: 'text-white/60 hover:text-white hover:bg-white/10'
       }}
       isOpen={isOpen}
+      motionProps={{
+        variants: {
+          enter: {
+            y: 0,
+            opacity: 1,
+            transition: {
+              duration: 0.3,
+              ease: 'easeOut'
+            }
+          },
+          exit: {
+            y: -20,
+            opacity: 0,
+            transition: {
+              duration: 0.2,
+              ease: 'easeIn'
+            }
+          }
+        }
+      }}
       scrollBehavior='inside'
-      size='4xl'
+      size='2xl'
       onOpenChange={onOpenChange}>
       <ModalContent>
         {onModalClose => (
           <>
-            <ModalHeader>
-              <div className='flex flex-col sm:flex-row items-center gap-3 w-full'>
-                <div className='relative flex-shrink-0'>
-                  <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center'>
-                    <Zap className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
+            <ModalBody className='py-6 px-5 sm:py-8 sm:px-8 md:py-10 md:px-10'>
+              <div className='space-y-5 sm:space-y-7 md:space-y-8'>
+                {/* Header con icono y título - mobile first */}
+                <div className='text-center space-y-3 sm:space-y-4 md:space-y-5'>
+                  {/* Icono principal con efecto premium */}
+                  <div className='relative inline-block'>
+                    <div className='absolute inset-0 bg-gradient-to-br from-primary-500 to-purple-500 rounded-2xl sm:rounded-3xl blur-xl sm:blur-2xl opacity-50 sm:opacity-60 animate-pulse' />
+                    <div className='relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-2xl'>
+                      <Zap className='w-8 h-8 sm:w-10 sm:h-10 text-white' />
+                      <div className='absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center animate-bounce shadow-lg'>
+                        <Sparkles className='w-3 h-3 sm:w-4 sm:h-4 text-white' />
+                      </div>
+                    </div>
                   </div>
-                  <div className='absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center'>
-                    <Sparkles className='w-2 h-2 sm:w-3 sm:h-3 text-white' />
-                  </div>
-                </div>
-                <div className='flex-1 text-center sm:text-left'>
-                  <h2 className='text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary-400 via-purple-400 to-pink-400 bg-clip-text text-transparent'>
-                    ¡Ups! Te has quedado sin intentos
-                  </h2>
-                  <p className='text-xs sm:text-sm text-gray-400 mt-1'>Elige un plan para seguir encontrando tu match perfecto</p>
-                </div>
-              </div>
-            </ModalHeader>
 
-            <ModalBody>
-              {/* Mensaje motivacional */}
-              <div className='mb-4 md:mb-6 p-3 md:p-4 bg-gradient-to-r from-primary-900/30 via-purple-900/30 to-pink-900/30 rounded-lg border border-primary-500/30'>
-                <div className='flex items-start gap-2 md:gap-3'>
-                  <div className='w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0'>
-                    <Crown className='w-4 h-4 md:w-5 md:h-5 text-white' />
-                  </div>
-                  <div>
-                    <h3 className='text-base md:text-lg font-semibold text-gray-100 mb-1'>¡No te detengas ahora!</h3>
-                    <p className='text-xs md:text-sm text-gray-300 leading-relaxed'>
-                      Has usado todos tus intentos diarios. Obtén más para seguir conociendo personas increíbles y encontrar tu conexión
-                      perfecta.
+                  {/* Título y subtítulo - tamaños estándar */}
+                  <div className='space-y-2 sm:space-y-3'>
+                    <h2 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-400 via-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight'>
+                      ¡Ups! Sin intentos disponibles
+                    </h2>
+                    <p className='text-sm sm:text-base text-gray-300 max-w-md mx-auto leading-relaxed'>
+                      ¿Quieres seguir haciendo match? Conoce nuestros paquetes y continúa conectando
                     </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Planes de match */}
-              {loading ? (
-                <div className='flex justify-center items-center py-12'>
-                  <Spinner color='primary' label='Cargando planes...' size='lg' />
+                {/* Contenido principal - mobile first */}
+                <div className='space-y-4 sm:space-y-5 md:space-y-6'>
+                  {/* Card de beneficios principal - ajustado para mobile */}
+                  <div className='bg-gradient-to-br from-primary-900/40 via-purple-900/40 to-pink-900/30 backdrop-blur-sm rounded-lg sm:rounded-xl p-4 sm:p-6 border border-primary-500/30 shadow-xl'>
+                    <div className='flex items-start gap-3 sm:gap-4'>
+                      <div className='flex-shrink-0'>
+                        <div className='w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg'>
+                          <Crown className='w-6 h-6 sm:w-7 sm:h-7 text-white' />
+                        </div>
+                      </div>
+                      <div className='flex-1 space-y-1 sm:space-y-2'>
+                        <h3 className='text-base sm:text-lg font-bold text-white'>¡No te detengas ahora!</h3>
+                        <p className='text-sm text-gray-200 leading-relaxed'>
+                          Cada intento es una oportunidad para encontrar a esa persona especial. Compra más intentos cuando los necesites,
+                          sin compromisos.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info adicional - mobile first */}
+                  <div className='text-center pt-1 sm:pt-2'>
+                    <p className='text-xs sm:text-sm text-gray-400 leading-relaxed'>Sin suscripciones • Válidos 30 días • Soporte 24/7</p>
+                  </div>
                 </div>
-              ) : plans.length === 0 ? (
-                <div className='text-center py-12'>
-                  <p className='text-gray-400'>No hay planes disponibles en este momento.</p>
+
+                {/* Botones de acción - mobile first */}
+                <div className='space-y-2 sm:space-y-3 pt-1 sm:pt-2'>
+                  <Button
+                    fullWidth
+                    className='bg-gradient-to-r from-primary-500 via-purple-500 to-pink-500 hover:from-primary-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold shadow-2xl shadow-primary-500/50'
+                    endContent={<ArrowRight className='w-4 h-4 sm:w-5 sm:h-5' />}
+                    radius='lg'
+                    size='lg'
+                    startContent={<Crown className='w-4 h-4 sm:w-5 sm:h-5' />}
+                    onPress={handleViewPlans}>
+                    Ver Paquetes de Intentos
+                  </Button>
+
+                  <Button fullWidth className='text-gray-400 hover:text-white' radius='lg' size='md' variant='light' onPress={onModalClose}>
+                    Ahora no, gracias
+                  </Button>
                 </div>
-              ) : (
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mt-6'>
-                  {plans.map(plan => {
-                    const isPremium = premiumPlan && plan.id === premiumPlan.id
-
-                    return (
-                      <Card
-                        key={plan.id}
-                        className={`${
-                          isPremium
-                            ? 'bg-gradient-to-br from-primary-900/40 via-purple-900/40 to-pink-900/40 border-2 border-primary-500/50 sm:transform sm:scale-105'
-                            : 'bg-gray-800/50 border border-gray-700/50'
-                        } transition-all duration-300 hover:scale-105 ${isPremium ? 'mt-5 sm:mt-4' : ''}`}>
-                        <CardBody className='p-4 md:p-5'>
-                          {/* Badge de popular/premium */}
-                          {isPremium && (
-                            <div className='absolute -top-3 left-1/2 transform -translate-x-1/2 z-10'>
-                              <Chip
-                                className='bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-semibold'
-                                size='sm'
-                                startContent={<Star className='w-3 h-3 fill-current' />}>
-                                Más Popular
-                              </Chip>
-                            </div>
-                          )}
-
-                          {/* Nombre del plan */}
-                          <div className={`text-center mb-3 md:mb-4 ${isPremium ? 'mt-3 md:mt-4' : 'mt-1 md:mt-2'}`}>
-                            <h4 className='text-lg md:text-xl font-bold text-gray-100 mb-1'>{plan.name}</h4>
-                            <div className='flex items-baseline justify-center gap-1'>
-                              <span className='text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent'>
-                                ${plan.price}
-                              </span>
-                              <span className='text-xs md:text-sm text-gray-400'>/mes</span>
-                            </div>
-                          </div>
-
-                          {/* Intentos */}
-                          <div className='mb-3 md:mb-4 p-2 md:p-3 bg-gray-900/50 rounded-lg border border-gray-700/50 text-center'>
-                            <div className='text-xl md:text-2xl font-bold text-primary-400'>{plan.attempts}</div>
-                            <div className='text-[10px] md:text-xs text-gray-400'>Intentos de match</div>
-                          </div>
-
-                          {/* Features */}
-                          <ul className='space-y-1.5 md:space-y-2 mb-4 md:mb-6'>
-                            {/* Intentos */}
-                            <li className='flex items-start gap-1.5 md:gap-2 text-xs md:text-sm text-gray-300'>
-                              <Check className='w-3 h-3 md:w-4 md:h-4 text-primary-400 flex-shrink-0 mt-0.5' />
-                              <span>{plan.attempts} intentos de match</span>
-                            </li>
-                            {/* Duración */}
-                            {plan.duration && (
-                              <li className='flex items-start gap-1.5 md:gap-2 text-xs md:text-sm text-gray-300'>
-                                <Check className='w-3 h-3 md:w-4 md:h-4 text-primary-400 flex-shrink-0 mt-0.5' />
-                                <span>Válido por {plan.duration} días</span>
-                              </li>
-                            )}
-                            {/* Descripción */}
-                            {plan.description && (
-                              <li className='flex items-start gap-1.5 md:gap-2 text-xs md:text-sm text-gray-300'>
-                                <Check className='w-3 h-3 md:w-4 md:h-4 text-primary-400 flex-shrink-0 mt-0.5' />
-                                <span>{plan.description}</span>
-                              </li>
-                            )}
-                            {/* Features adicionales si vienen del backend */}
-                            {plan.features &&
-                              Array.isArray(plan.features) &&
-                              plan.features.map((feature, index) => (
-                                <li key={index} className='flex items-start gap-1.5 md:gap-2 text-xs md:text-sm text-gray-300'>
-                                  <Check className='w-3 h-3 md:w-4 md:h-4 text-primary-400 flex-shrink-0 mt-0.5' />
-                                  <span>{feature}</span>
-                                </li>
-                              ))}
-                          </ul>
-
-                          {/* Botón de compra */}
-                          <Button
-                            className={`w-full ${
-                              isPremium
-                                ? 'bg-gradient-to-r from-primary-500 to-purple-500 hover:from-primary-600 hover:to-purple-600'
-                                : 'bg-gray-700 hover:bg-gray-600'
-                            } text-white font-semibold`}
-                            size='sm'
-                            onPress={() => handlePurchase(plan.id)}>
-                            {isPremium ? `¡Obtener ${plan.name}!` : 'Seleccionar Plan'}
-                          </Button>
-                        </CardBody>
-                      </Card>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Info adicional */}
-              <div className='mt-4 md:mt-6 text-center'>
-                <p className='text-[10px] md:text-xs text-gray-400 leading-relaxed'>
-                  Los intentos de match no se renuevan automáticamente. Adquiere un plan para continuar descubriendo conexiones especiales y
-                  aumentar tus posibilidades de encontrar a esa persona perfecta.
-                </p>
               </div>
             </ModalBody>
-
-            <ModalFooter>
-              <Button
-                className='text-gray-400 hover:text-white text-sm'
-                size='sm'
-                startContent={<X className='w-3 h-3 md:w-4 md:h-4' />}
-                variant='light'
-                onPress={onModalClose}>
-                Cancelar
-              </Button>
-            </ModalFooter>
           </>
         )}
       </ModalContent>

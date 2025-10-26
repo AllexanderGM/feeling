@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Card, CardBody, Button, Divider, Input, Checkbox } from '@heroui/react'
+import { Card, CardBody, Button, Divider, Input, Checkbox, Spinner } from '@heroui/react'
 import { ShoppingCart, ArrowLeft, CreditCard, Shield, AlertCircle, Package, Check } from 'lucide-react'
-import { useAuth } from '@hooks'
+import { useAuth, useMatchPlans } from '@hooks'
 import { APP_PATHS } from '@constants/paths'
 import { getUserEmail, getUserName, getUserLastName } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
@@ -12,25 +12,51 @@ import LoadDataError from '@components/layout/LoadDataError.jsx'
 const Checkout = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { user } = useAuth()
+  const { plans, loading: plansLoading, fetchAvailablePlans } = useMatchPlans()
 
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [processing, setProcessing] = useState(false)
 
-  // Get plan from navigation state
-  const plan = location.state?.plan
+  // Get planId from URL query parameter
+  const planIdFromUrl = searchParams.get('planId')
+
+  // Get plan from navigation state (legacy support)
+  const planFromState = location.state?.plan
+
+  // Find plan by ID if coming from URL
+  const planFromId = useMemo(() => {
+    if (!planIdFromUrl || !plans.length) return null
+
+    return plans.find(p => p.id === parseInt(planIdFromUrl))
+  }, [planIdFromUrl, plans])
+
+  // Use plan from URL if available, otherwise from state
+  const plan = planFromId || planFromState
 
   // User data
   const userEmail = useMemo(() => getUserEmail(user), [user])
   const userName = useMemo(() => getUserName(user), [user])
   const userLastName = useMemo(() => getUserLastName(user), [user])
 
-  // Redirect if no plan
+  // Load plans if we have a planId but no plans loaded yet
   useEffect(() => {
-    if (!plan) {
+    if (planIdFromUrl && plans.length === 0 && !plansLoading) {
+      fetchAvailablePlans()
+    }
+  }, [planIdFromUrl, plans.length, plansLoading, fetchAvailablePlans])
+
+  // Redirect if no plan after loading
+  useEffect(() => {
+    // Wait for plans to load if we have a planId
+    if (planIdFromUrl && plansLoading) return
+
+    // Redirect if no plan found
+    if (!plan && !plansLoading) {
       navigate(APP_PATHS.USER.PURCHASE_PLANS)
     }
-  }, [plan, navigate])
+  }, [plan, planIdFromUrl, plansLoading, navigate])
 
   const handleGoBack = () => {
     navigate(APP_PATHS.USER.PURCHASE_PLANS)
@@ -55,6 +81,18 @@ const Checkout = () => {
   const taxRate = 0.19 // 19% IVA Colombia
   const tax = subtotal * taxRate
   const total = subtotal + tax
+
+  // Show loading while fetching plans
+  if (planIdFromUrl && plansLoading) {
+    return (
+      <LiteContainer ariaLabel='Cargando información del plan' className='gap-6 max-w-4xl'>
+        <div className='flex flex-col items-center justify-center py-20'>
+          <Spinner color='primary' size='lg' />
+          <p className='text-gray-400 mt-4'>Cargando información del plan...</p>
+        </div>
+      </LiteContainer>
+    )
+  }
 
   if (!plan) {
     return <LoadDataError message='No se encontró información del plan seleccionado' />

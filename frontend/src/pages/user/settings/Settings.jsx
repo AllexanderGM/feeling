@@ -1,226 +1,514 @@
-import { useMemo } from 'react'
-import { Card, CardBody, Avatar, Chip, Progress } from '@heroui/react'
-import { Settings as SettingsIcon, Shield, CheckCircle } from 'lucide-react'
-import { useAuth, useLocation, useUser, useUserInterests } from '@hooks'
-// Components
+import { useState } from 'react'
+import {
+  Card,
+  CardBody,
+  Avatar,
+  Progress,
+  Button,
+  Switch,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Textarea,
+  Chip,
+  useDisclosure
+} from '@heroui/react'
+import {
+  Settings as SettingsIcon,
+  Shield,
+  Bell,
+  Users,
+  MapPin,
+  Globe,
+  Mail,
+  Smartphone,
+  Heart,
+  Calendar,
+  Lock,
+  CreditCard,
+  AlertTriangle,
+  Eye,
+  CheckCircle
+} from 'lucide-react'
+import { useAuth, useUser } from '@hooks'
+import { getUserName, getUserLastName, getUserCountry, getUserCity, getUserImages, getUserPrivacy, getUserNotifications } from '@schemas'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 
-import PrivacySettingsSection from './components/PrivacySettingsSection.jsx'
-import NotificationSettingsSection from './components/NotificationSettingsSection.jsx'
-import AccountSettingsSection from './components/AccountSettingsSection.jsx'
-import SecuritySettingsSection from './components/SecuritySettingsSection.jsx'
+const PRIVACY_TOGGLES = [
+  {
+    key: 'publicAccount',
+    label: 'Perfil público',
+    description: 'Controla si tu perfil es visible para la comunidad.',
+    icon: Shield,
+    accentClass: 'text-blue-400'
+  },
+  {
+    key: 'searchVisibility',
+    label: 'Aparecer en búsquedas',
+    description: 'Permite que otros usuarios te encuentren mediante filtros.',
+    icon: Users,
+    accentClass: 'text-purple-400',
+    requiresPublicAccount: true
+  },
+  {
+    key: 'showMeInSearch',
+    label: 'Sugerencias inteligentes',
+    description: 'Incluye tu perfil en las recomendaciones personalizadas.',
+    icon: Users,
+    accentClass: 'text-purple-400',
+    requiresPublicAccount: true
+  },
+  {
+    key: 'showAge',
+    label: 'Mostrar edad',
+    description: 'Muestra tu edad en la tarjeta de perfil.',
+    icon: Calendar,
+    accentClass: 'text-cyan-400'
+  },
+  {
+    key: 'showLocation',
+    label: 'Mostrar ubicación',
+    description: 'Comparte tu ciudad de residencia.',
+    icon: MapPin,
+    accentClass: 'text-green-400'
+  },
+  {
+    key: 'locationPublic',
+    label: 'Ubicación detallada',
+    description: 'Permite que otros vean tu localidad específica.',
+    icon: Globe,
+    accentClass: 'text-emerald-400',
+    requiresLocation: true
+  }
+]
+
+const NOTIFICATION_TOGGLES = [
+  {
+    key: 'allowNotifications',
+    label: 'Recibir notificaciones',
+    description: 'Activa o desactiva todas las notificaciones de la plataforma.',
+    icon: Bell,
+    accentClass: 'text-blue-400',
+    isMaster: true
+  },
+  {
+    key: 'notificationsEmailEnabled',
+    label: 'Emails importantes',
+    description: 'Recibe actualizaciones clave por correo electrónico.',
+    icon: Mail,
+    accentClass: 'text-sky-400'
+  },
+  {
+    key: 'notificationsPhoneEnabled',
+    label: 'Notificaciones por SMS',
+    description: 'Te enviaremos SMS para eventos críticos.',
+    icon: Smartphone,
+    accentClass: 'text-amber-400'
+  },
+  {
+    key: 'notificationsMatchesEnabled',
+    label: 'Alertas de matches',
+    description: 'Entérate al instante cuando tengas un nuevo match.',
+    icon: Heart,
+    accentClass: 'text-pink-400'
+  },
+  {
+    key: 'notificationsEventsEnabled',
+    label: 'Eventos y actividades',
+    description: 'Sigue las actividades y eventos más relevantes.',
+    icon: Calendar,
+    accentClass: 'text-green-400'
+  },
+  {
+    key: 'notificationsLoginEnabled',
+    label: 'Inicios de sesión',
+    description: 'Recibe alertas cuando detectemos un acceso a tu cuenta.',
+    icon: Lock,
+    accentClass: 'text-purple-400'
+  },
+  {
+    key: 'notificationsPaymentsEnabled',
+    label: 'Pagos y facturación',
+    description: 'Mantente al tanto de cualquier movimiento de pagos.',
+    icon: CreditCard,
+    accentClass: 'text-teal-400'
+  }
+]
 
 const Settings = () => {
-  // Hooks principales
   const { user, loading: authLoading } = useAuth()
-  const { getProfileStats } = useUser()
-  const { getInterestByEnum, loading: interestLoading, error: interestError } = useUserInterests()
+  const { getProfileStats, updateCurrentProfile, deactivateCurrentAccount } = useUser()
+  const { isOpen: isDeactivateOpen, onOpen: onDeactivateOpen, onClose: onDeactivateClose } = useDisclosure()
+  const { onOpen: onFarewellOpen } = useDisclosure()
 
-  // Hook para obtener datos geográficos y banderas
-  const locationConfig = useMemo(
-    () => ({
-      defaultCountry: user?.country || 'Colombia',
-      defaultCity: user?.city || 'Bogotá',
-      loadAll: true
-    }),
-    [user?.country, user?.city]
-  )
+  // Obtener valores iniciales del usuario
+  const privacy = getUserPrivacy(user)
+  const notifications = getUserNotifications(user)
+  const images = getUserImages(user)
+  const mainImage = images && images.length > 0 ? images[0] : null
 
-  const { formattedCountries } = useLocation(locationConfig)
+  // Estado local para privacidad
+  const [privacyState, setPrivacyState] = useState({
+    publicAccount: privacy?.publicAccount ?? true,
+    searchVisibility: privacy?.searchVisibility ?? true,
+    locationPublic: privacy?.locationPublic ?? true,
+    showAge: privacy?.showAge ?? true,
+    showLocation: privacy?.showLocation ?? true,
+    showMeInSearch: privacy?.showMeInSearch ?? true
+  })
 
-  // Obtener estadísticas del perfil desde el hook
-  const profileStats = useMemo(() => getProfileStats(), [getProfileStats])
+  // Estado local para notificaciones
+  const [notificationState, setNotificationState] = useState({
+    allowNotifications: privacy?.allowNotifications ?? true,
+    notificationsEmailEnabled: notifications?.notificationsEmailEnabled ?? true,
+    notificationsPhoneEnabled: notifications?.notificationsPhoneEnabled ?? false,
+    notificationsMatchesEnabled: notifications?.notificationsMatchesEnabled ?? true,
+    notificationsEventsEnabled: notifications?.notificationsEventsEnabled ?? true,
+    notificationsLoginEnabled: notifications?.notificationsLoginEnabled ?? true,
+    notificationsPaymentsEnabled: notifications?.notificationsPaymentsEnabled ?? true
+  })
 
-  // Utilidades memoizadas
-  const profileData = useMemo(() => {
-    if (!user) return null
+  const [savingPrivacy, setSavingPrivacy] = useState(false)
+  const [savingNotifications, setSavingNotifications] = useState(false)
+  const [isDeactivating, setIsDeactivating] = useState(false)
+  const [deactivationReason, setDeactivationReason] = useState('')
 
-    // Obtener imagen principal
-    const getMainImage = () => {
-      if (!user?.images || user.images.length === 0) return null
-      const selectedIndex = user.selectedProfileImageIndex || 0
+  const profileStats = getProfileStats()
 
-      return user.images[selectedIndex] || user.images[0]
-    }
+  const handlePrivacyChange = (key, value) => {
+    setPrivacyState(prev => {
+      const next = { ...prev, [key]: value }
 
-    // Calcular edad
-    const calculateAge = birthDate => {
-      if (!birthDate) return null
-      const today = new Date()
-      const birth = new Date(birthDate)
-      let age = today.getFullYear() - birth.getFullYear()
-      const monthDiff = today.getMonth() - birth.getMonth()
-
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-        age--
+      if (key === 'publicAccount' && !value) {
+        next.searchVisibility = false
+        next.showMeInSearch = false
       }
 
-      return age
+      if (key === 'showLocation' && !value) {
+        next.locationPublic = false
+      }
+
+      return next
+    })
+  }
+
+  const handleNotificationChange = (key, value) => {
+    setNotificationState(prev => {
+      if (key === 'allowNotifications') {
+        const next = { ...prev, allowNotifications: value }
+
+        if (!value) {
+          next.notificationsEmailEnabled = false
+          next.notificationsPhoneEnabled = false
+          next.notificationsMatchesEnabled = false
+          next.notificationsEventsEnabled = false
+          next.notificationsLoginEnabled = false
+          next.notificationsPaymentsEnabled = false
+        }
+
+        return next
+      }
+
+      if (!prev.allowNotifications) return prev
+
+      return { ...prev, [key]: value }
+    })
+  }
+
+  const handleSavePrivacy = async () => {
+    setSavingPrivacy(true)
+    try {
+      await updateCurrentProfile(privacyState)
+    } catch {
+      // console.error('Error saving privacy settings', error)
+    } finally {
+      setSavingPrivacy(false)
     }
+  }
 
-    return {
-      mainImage: getMainImage(),
-      age: calculateAge(user?.profile?.dateOfBirth || user?.dateOfBirth)
+  const handleSaveNotifications = async () => {
+    setSavingNotifications(true)
+    try {
+      await updateCurrentProfile(notificationState)
+    } catch {
+      // console.error('Error saving notification settings', error)
+    } finally {
+      setSavingNotifications(false)
     }
-  }, [user])
+  }
 
-  // Obtener categoría de interés con icono
-  const userInterestDetails = useMemo(() => {
-    const interestEnum = user?.categoryInterest || user?.userCategoryInterest?.categoryInterestEnum
+  const handleDeactivateAccount = async () => {
+    setIsDeactivating(true)
+    try {
+      await deactivateCurrentAccount(deactivationReason)
+      onDeactivateClose()
+      onFarewellOpen()
+      onDeactivateClose()
+    } catch {
+      // console.error('Error deactivating account', error)
+    } finally {
+      setIsDeactivating(false)
+    }
+  }
 
-    if (!interestEnum) return null
+  // Chips de resumen para privacidad
+  const privacySummaryChips = [
+    privacyState.publicAccount ? { label: 'Perfil público', color: 'success' } : { label: 'Perfil privado', color: 'default' },
+    privacyState.searchVisibility && privacyState.publicAccount ? { label: 'En búsquedas', color: 'secondary' } : null,
+    privacyState.showMeInSearch && privacyState.publicAccount ? { label: 'En recomendaciones', color: 'secondary' } : null,
+    privacyState.showAge ? { label: 'Edad visible', color: 'primary' } : null,
+    privacyState.showLocation ? { label: 'Ubicación visible', color: 'primary' } : null
+  ].filter(Boolean)
 
-    const interestDetails = getInterestByEnum(interestEnum)
+  // Chips de notificaciones activas
+  const activeNotificationChips = NOTIFICATION_TOGGLES.filter(toggle => !toggle.isMaster && notificationState[toggle.key]).map(toggle => ({
+    label: toggle.label,
+    color: 'primary'
+  }))
 
-    return interestDetails
-  }, [user?.categoryInterest, user?.userCategoryInterest?.categoryInterestEnum, getInterestByEnum])
-
-  // Obtener datos del país con bandera
-  const getCountryData = useMemo(() => {
-    if (!user?.country || !formattedCountries) return null
-
-    return formattedCountries.find(country => country.name === user.country)
-  }, [user?.country, formattedCountries])
-
-  // Estados de carga y error
-  const isLoading = authLoading || interestLoading
-
-  if (isLoading) return <LoadData>Cargando configuración...</LoadData>
+  if (authLoading) return <LoadData>Cargando configuración...</LoadData>
   if (!user) return <LoadDataError>Error al cargar la información del usuario</LoadDataError>
-  if (interestError) return <LoadDataError>Error al cargar categorías de interés</LoadDataError>
 
   return (
     <LiteContainer ariaLabel='Página de configuración' className='gap-4'>
-      {/* Header de configuración */}
-      <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 sm:p-6'>
-        {/* Header principal */}
-        <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-4 sm:mb-6'>
-          <div className='w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center'>
-            <SettingsIcon className='w-5 h-5 text-blue-400' />
-          </div>
-          <div className='text-center sm:text-left'>
-            <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Configuración de la Cuenta</h3>
-            <p className='text-sm text-gray-400'>Gestiona tu privacidad, notificaciones y configuración general</p>
-          </div>
-        </div>
-
-        {/* Vista previa del usuario */}
-        <div className='flex flex-col sm:flex-row items-center gap-4 sm:gap-6'>
-          {/* Avatar */}
-          <div className='relative shrink-0'>
-            <Avatar
-              alt={`${user.name} ${user.lastName}`}
-              className='w-20 h-20 sm:w-24 sm:h-24 text-large border-2 border-gray-600'
-              src={profileData?.mainImage}
-            />
-            {/* Mostrar chip de categoría solo si existe */}
-            {userInterestDetails && (
-              <div className='absolute -bottom-1 -right-1 rounded-full'>
-                <Chip
-                  className='bg-primary-900/90 text-primary-300 border border-primary-500/30'
-                  color='primary'
-                  size='sm'
-                  startContent={userInterestDetails.icon && <span className='text-sm'>{userInterestDetails.icon}</span>}
-                  variant='flat'>
-                  {userInterestDetails.name || 'Sin categoría'}
-                </Chip>
-              </div>
-            )}
+      {/* Header */}
+      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+        <CardBody className='p-4 sm:p-6'>
+          <div className='flex items-start gap-3 mb-4'>
+            <div className='w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center'>
+              <SettingsIcon className='w-5 h-5 text-blue-400' />
+            </div>
+            <div>
+              <h3 className='text-lg font-semibold text-gray-200'>Configuración de la Cuenta</h3>
+              <p className='text-sm text-gray-400'>Gestiona tu privacidad, notificaciones y configuración general</p>
+            </div>
           </div>
 
-          {/* Información principal */}
-          <div className='flex-1 text-center sm:text-left'>
-            <div className='space-y-2'>
-              <h1 className='text-lg sm:text-xl font-bold text-gray-100'>
-                {user.name} {user.lastName}
+          <div className='flex items-center gap-4'>
+            <Avatar alt={`${getUserName(user)} ${getUserLastName(user)}`} className='w-20 h-20 border-2 border-gray-600' src={mainImage} />
+            <div className='flex-1'>
+              <h1 className='text-xl font-bold text-gray-100'>
+                {getUserName(user)} {getUserLastName(user)}
               </h1>
-
-              <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-gray-300 text-sm'>
-                {/* Ubicación */}
-                <div className='flex items-center gap-2'>
-                  {getCountryData && (
-                    <img
-                      alt={`Bandera de ${getCountryData.name}`}
-                      className='w-4 h-4 rounded-full object-cover'
-                      src={getCountryData.image}
-                    />
-                  )}
-                  <span className='truncate'>
-                    {user.city}, {user.country}
-                  </span>
-                </div>
-
-                {/* Estado de verificación */}
-                <div className='flex items-center gap-1'>
-                  <CheckCircle className={`w-4 h-4 ${user.verified ? 'text-green-400' : 'text-yellow-400'}`} />
-                  <span className={user.verified ? 'text-green-400' : 'text-yellow-400'}>
-                    {user.verified ? 'Verificado' : 'Sin verificar'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Completitud del perfil */}
-              <div className='space-y-1'>
-                <div className='flex justify-between items-center text-xs'>
+              <p className='text-sm text-gray-300'>
+                {getUserCity(user)}, {getUserCountry(user)}
+              </p>
+              <div className='mt-2'>
+                <div className='flex justify-between text-xs mb-1'>
                   <span className='text-gray-400'>Completitud del perfil</span>
-                  <span className='text-gray-300 font-medium'>{profileStats?.completionPercentage || 0}%</span>
+                  <span className='text-gray-300'>{profileStats?.completionPercentage || 0}%</span>
                 </div>
                 <Progress
-                  aria-label={`Completitud del perfil: ${profileStats?.completionPercentage || 0}%`}
                   className='h-1.5'
-                  classNames={{
-                    indicator: 'bg-gradient-to-r from-primary-400 to-primary-600',
-                    track: 'bg-gray-700'
-                  }}
-                  color='primary'
+                  classNames={{ indicator: 'bg-gradient-to-r from-primary-400 to-primary-600', track: 'bg-gray-700' }}
                   value={profileStats?.completionPercentage || 0}
                 />
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Secciones de configuración */}
+      {/* Privacidad */}
       <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-        <CardBody className='p-4 sm:p-6'>
-          {/* Header para las secciones */}
-          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6 pb-4 border-b border-gray-700/30'>
-            <div className='w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center'>
+        <CardBody className='p-4 sm:p-6 space-y-4'>
+          <div className='flex items-center gap-3'>
+            <div className='p-2 bg-green-500/20 rounded-lg'>
               <Shield className='w-5 h-5 text-green-400' />
             </div>
-            <div className='text-center sm:text-left'>
-              <h3 className='text-base sm:text-lg font-semibold text-gray-200'>Configuración y Privacidad</h3>
-              <p className='text-sm text-gray-400'>Personaliza tu experiencia y controla tu privacidad</p>
+            <div>
+              <h3 className='text-xl font-semibold text-gray-200'>Privacidad y visibilidad</h3>
+              <p className='text-sm text-gray-400'>Controla qué información compartes con la comunidad.</p>
             </div>
           </div>
 
-          {/* Secciones de configuración */}
-          <div className='space-y-6'>
-            {/* Configuración de privacidad */}
-            <div className='space-y-6'>
-              <PrivacySettingsSection user={user} />
+          {/* Resumen de configuración de privacidad */}
+          <div className='bg-gray-700/20 border border-gray-600/30 rounded-lg p-3'>
+            <div className='flex items-center gap-2 mb-2'>
+              <Eye className='w-4 h-4 text-gray-300' />
+              <span className='text-sm font-medium text-gray-300'>Estado actual de tu perfil</span>
             </div>
+            <div className='flex flex-wrap gap-1.5'>
+              {privacySummaryChips.map(({ label, color }) => (
+                <Chip key={label} className='text-xs' color={color} size='sm' variant='flat'>
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
 
-            {/* Separador */}
-            <div className='border-t border-gray-700/50 pt-6'>
-              <NotificationSettingsSection user={user} />
-            </div>
+          {PRIVACY_TOGGLES.map(toggle => {
+            const Icon = toggle.icon
+            const isDisabled =
+              (!privacyState.publicAccount && toggle.requiresPublicAccount) || (toggle.requiresLocation && !privacyState.showLocation)
 
-            {/* Separador */}
-            <div className='border-t border-gray-700/50 pt-6'>
-              <AccountSettingsSection user={user} />
-            </div>
+            return (
+              <div
+                key={toggle.key}
+                className={`flex items-center justify-between gap-4 p-4 rounded-lg border ${isDisabled ? 'bg-gray-800/20 border-gray-700/20 opacity-60' : 'bg-gray-800/30 border-gray-700/30'}`}>
+                <div className='flex items-center gap-3 flex-1'>
+                  <Icon className={`w-4 h-4 ${isDisabled ? 'text-gray-500' : toggle.accentClass}`} />
+                  <div className='flex-1'>
+                    <span className={`text-sm font-medium block ${isDisabled ? 'text-gray-500' : 'text-gray-200'}`}>{toggle.label}</span>
+                    <p className={`text-xs ${isDisabled ? 'text-gray-500' : 'text-gray-400'}`}>{toggle.description}</p>
+                  </div>
+                </div>
+                <Switch
+                  color='primary'
+                  isDisabled={isDisabled}
+                  isSelected={privacyState[toggle.key]}
+                  size='sm'
+                  onValueChange={value => handlePrivacyChange(toggle.key, value)}
+                />
+              </div>
+            )
+          })}
 
-            {/* Separador */}
-            <div className='border-t border-gray-700/50 pt-6'>
-              <SecuritySettingsSection user={user} />
-            </div>
+          <div className='flex justify-end'>
+            <Button className='bg-primary-600' color='primary' isLoading={savingPrivacy} size='sm' onPress={handleSavePrivacy}>
+              Guardar privacidad
+            </Button>
           </div>
         </CardBody>
       </Card>
+
+      {/* Notificaciones */}
+      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+        <CardBody className='p-4 sm:p-6 space-y-4'>
+          <div className='flex items-center gap-3'>
+            <div className='p-2 bg-yellow-500/20 rounded-lg'>
+              <Bell className='w-5 h-5 text-yellow-400' />
+            </div>
+            <div>
+              <h3 className='text-xl font-semibold text-gray-200'>Notificaciones</h3>
+              <p className='text-sm text-gray-400'>Configura cómo quieres recibir tus alertas.</p>
+            </div>
+          </div>
+
+          {/* Resumen de notificaciones activas */}
+          <div className='bg-gray-700/20 border border-gray-600/30 rounded-lg p-3'>
+            <div className='flex items-center gap-2 mb-2'>
+              <CheckCircle className='w-4 h-4 text-gray-300' />
+              <span className='text-sm font-medium text-gray-300'>Canales activos</span>
+            </div>
+            {notificationState.allowNotifications ? (
+              activeNotificationChips.length > 0 ? (
+                <div className='flex flex-wrap gap-1.5'>
+                  {activeNotificationChips.map(({ label, color }) => (
+                    <Chip key={label} className='text-xs' color={color} size='sm' variant='flat'>
+                      {label}
+                    </Chip>
+                  ))}
+                </div>
+              ) : (
+                <span className='text-xs text-gray-500'>No tienes canales activos</span>
+              )
+            ) : (
+              <span className='text-xs text-gray-500'>Has desactivado todas las notificaciones</span>
+            )}
+          </div>
+
+          {NOTIFICATION_TOGGLES.map(toggle => {
+            const Icon = toggle.icon
+            const isMaster = toggle.isMaster
+            const isDisabled = !notificationState.allowNotifications && !isMaster
+
+            return (
+              <div
+                key={toggle.key}
+                className={`flex items-center justify-between gap-4 p-4 rounded-lg border ${isDisabled ? 'bg-gray-800/20 border-gray-700/20 opacity-60' : 'bg-gray-800/30 border-gray-700/30'}`}>
+                <div className='flex items-center gap-3 flex-1'>
+                  <Icon className={`w-4 h-4 ${isDisabled ? 'text-gray-500' : toggle.accentClass}`} />
+                  <div className='flex-1'>
+                    <span className={`text-sm font-medium block ${isDisabled ? 'text-gray-500' : 'text-gray-200'}`}>{toggle.label}</span>
+                    <p className={`text-xs ${isDisabled ? 'text-gray-500' : 'text-gray-400'}`}>{toggle.description}</p>
+                  </div>
+                </div>
+                <Switch
+                  color='primary'
+                  isDisabled={isDisabled}
+                  isSelected={notificationState[toggle.key]}
+                  size='sm'
+                  onValueChange={value => handleNotificationChange(toggle.key, value)}
+                />
+              </div>
+            )
+          })}
+
+          <div className='flex justify-end'>
+            <Button className='bg-primary-600' color='primary' isLoading={savingNotifications} size='sm' onPress={handleSaveNotifications}>
+              Guardar notificaciones
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Zona de peligro - Desactivar cuenta */}
+      <Card className='w-full bg-red-500/10 border border-red-500/30'>
+        <CardBody className='p-4 sm:p-6 space-y-3'>
+          <div className='flex items-center gap-3'>
+            <div className='p-2 bg-red-500/20 rounded-full'>
+              <AlertTriangle className='w-5 h-5 text-red-400' />
+            </div>
+            <div className='flex-1'>
+              <h3 className='text-lg font-semibold text-red-200'>Zona de peligro</h3>
+              <p className='text-sm text-red-200/80'>
+                Desactiva tu cuenta si deseas dejar de aparecer en la plataforma. Puedes reactivarla contactando soporte.
+              </p>
+            </div>
+            <Button color='danger' size='sm' variant='solid' onPress={onDeactivateOpen}>
+              Desactivar cuenta
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+
+      {/* Modal de confirmación de desactivación */}
+      <Modal
+        classNames={{
+          base: 'bg-gray-900/95 backdrop-blur-sm',
+          header: 'border-b border-gray-700/50',
+          footer: 'border-t border-gray-700/50'
+        }}
+        isOpen={isDeactivateOpen}
+        onOpenChange={onDeactivateClose}>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className='flex items-center gap-3'>
+                <AlertTriangle className='w-5 h-5 text-red-400' />
+                <span className='text-lg font-semibold text-red-200'>Confirmar desactivación</span>
+              </ModalHeader>
+              <ModalBody className='space-y-4 text-sm text-gray-300'>
+                <p>Tu perfil dejará de aparecer en búsquedas y recomendaciones inmediatamente.</p>
+                <p>Puedes solicitar la reactivación contactando a soporte cuando lo necesites.</p>
+                <Textarea
+                  classNames={{ input: 'text-gray-200', inputWrapper: 'bg-gray-800/50' }}
+                  label='Razón de desactivación (opcional)'
+                  maxRows={4}
+                  minRows={3}
+                  placeholder='Cuéntanos por qué deseas desactivar tu cuenta...'
+                  value={deactivationReason}
+                  variant='bordered'
+                  onChange={e => setDeactivationReason(e.target.value)}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button variant='light' onPress={onClose}>
+                  Cancelar
+                </Button>
+                <Button color='danger' isLoading={isDeactivating} onPress={handleDeactivateAccount}>
+                  Desactivar cuenta
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </LiteContainer>
   )
 }

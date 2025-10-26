@@ -18,7 +18,7 @@ import {
   Spinner
 } from '@heroui/react'
 import { Search, Plus, RefreshCw, Download, ChevronDown, Trash2, Edit3 } from 'lucide-react'
-import TablePagination from '@components/ui/TablePagination.jsx'
+import TablePagination from '@components/ui/table/TablePagination.jsx'
 
 /**
  * Componente de tabla reutilizable para administración

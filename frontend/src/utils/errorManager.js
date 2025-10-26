@@ -59,6 +59,7 @@ export class ErrorManager {
       type: this.getErrorType(error),
       message: message || this.getErrorMessage(error) || 'Error desconocido',
       status: error.code || error.status || error.response?.status || 500,
+      code: error.response?.data?.code || error.code || null,
       fieldErrors: this.getFieldErrors(error),
       operation: error.operation || 'operación'
     }

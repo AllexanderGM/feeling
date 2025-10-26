@@ -11,25 +11,12 @@ import { usePersistentImages } from './usePersistentImages'
 
 const normalizeValue = value => (typeof value === 'string' ? value.trim() : value)
 
-export const useStepBasicInfo = ({
-  user,
-  locationData,
-  locationOptions,
-  onStepComplete,
-  control: externalControl,
-  errors: externalErrors,
-  watch: externalWatch,
-  setValue: externalSetValue,
-  setError: externalSetError,
-  clearErrors: externalClearErrors
-} = {}) => {
+export const useStepBasicInfo = ({ onStepComplete } = {}) => {
   const imageManagerRef = useRef(null)
-  const { user: authUser } = useAuth()
-
-  const resolvedUser = user ?? authUser
+  const { user } = useAuth()
 
   const defaultValues = useMemo(() => {
-    const stepValues = getDefaultValuesForStep(1, resolvedUser)
+    const stepValues = getDefaultValuesForStep(1, user)
 
     if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
       stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
@@ -47,43 +34,34 @@ export const useStepBasicInfo = ({
       ...stepValues,
       locality: stepValues.locality ?? ''
     }
-  }, [resolvedUser])
+  }, [user])
 
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: getUserCountry(resolvedUser) || 'Colombia',
-      defaultCity: getUserCity(resolvedUser) || 'Bogotá',
-      loadAll: true,
-      ...(locationOptions || {})
+      defaultCountry: getUserCountry(user) || 'Colombia',
+      defaultCity: getUserCity(user) || 'Bogotá',
+      loadAll: true
     }),
-    [resolvedUser, locationOptions]
+    [user]
   )
 
-  const locationHook = useLocation(locationConfig)
-  const locationSource = locationData || locationHook
+  const location = useLocation(locationConfig)
 
-  const internalForm = useForm({
+  const form = useForm({
     resolver: yupResolver(stepBasicInfoSchema),
     mode: 'onChange',
     defaultValues
   })
 
-  const isStandalone = !externalControl
-  const control = isStandalone ? internalForm.control : externalControl
-  const watch = isStandalone ? internalForm.watch : externalWatch
-  const setValue = isStandalone ? internalForm.setValue : (externalSetValue ?? (() => {}))
-  const setError = isStandalone ? internalForm.setError : (externalSetError ?? (() => {}))
-  const clearErrors = isStandalone ? internalForm.clearErrors : (externalClearErrors ?? (() => {}))
-  const formErrors = isStandalone ? internalForm.formState.errors : (externalErrors ?? {})
-  const isSubmitting = isStandalone ? internalForm.formState.isSubmitting : false
+  const { control, watch, setValue, setError, clearErrors, formState } = form
+  const formErrors = formState.errors
 
-  const { saveStepData, submitting } = useStepSave(resolvedUser)
+  const { saveStepData } = useStepSave(user)
 
   useEffect(() => {
-    if (!isStandalone) return
-    if (!resolvedUser) return
+    if (!user) return
 
-    const stepValues = getDefaultValuesForStep(1, resolvedUser)
+    const stepValues = getDefaultValuesForStep(1, user)
 
     if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
       stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
@@ -97,42 +75,32 @@ export const useStepBasicInfo = ({
       stepValues.locality = localityValue.name ?? localityValue.label ?? ''
     }
 
-    internalForm.reset(
+    form.reset(
       {
         ...stepValues,
         locality: stepValues.locality ?? ''
       },
       { keepDefaultValues: false }
     )
-  }, [isStandalone, resolvedUser, internalForm])
+  }, [user, form])
 
   const { field: imagesField } = useController({
     name: 'images',
     control
   })
 
-  const formValues = watch ? watch() : defaultValues
-  const { images = [], country, city, phoneCode, locality } = formValues || {}
+  const formValues = watch()
+  const { images = [], country, city, phoneCode, locality } = formValues
 
-  const userImages = useMemo(() => {
-    if (!resolvedUser) return []
+  // Obtener imágenes iniciales del usuario
+  const initialImages = useMemo(() => {
+    if (!user) return []
+    const directUserImages = user.user?.images ?? user.images ?? []
 
-    const directUserImages = resolvedUser.user?.images ?? resolvedUser.images ?? []
+    return Array.isArray(directUserImages) && directUserImages.length > 0 ? directUserImages : []
+  }, [user])
 
-    if (Array.isArray(directUserImages) && directUserImages.length > 0) {
-      return directUserImages
-    }
-
-    return Array.isArray(images) ? images : []
-  }, [resolvedUser, images])
-
-  const {
-    formattedCountries = [],
-    formattedCities = [],
-    formattedLocalities = [],
-    loadCitiesByCountry,
-    loadLocalitiesByCity
-  } = locationSource || {}
+  const { formattedCountries = [], formattedCities = [], formattedLocalities = [], loadCitiesByCountry, loadLocalitiesByCity } = location
 
   const countryLookup = useMemo(() => {
     const byPhone = new Map()
@@ -196,9 +164,9 @@ export const useStepBasicInfo = ({
       shouldShowLocalities: city && formattedLocalities.length > 0,
       phoneCountryData: countryLookup.byPhone.get(phoneCode) || { image: '🌍', name: 'Sin país', phone: '' },
       locationCountryData: countryLookup.byName.get(country) || { image: '🌍', name: 'Sin país' },
-      email: getUserEmail(resolvedUser) || ''
+      email: getUserEmail(user) || ''
     }),
-    [city, formattedLocalities, countryLookup, phoneCode, country, resolvedUser]
+    [city, formattedLocalities, countryLookup, phoneCode, country, user]
   )
 
   const locationHandlers = useMemo(
@@ -221,31 +189,22 @@ export const useStepBasicInfo = ({
     [setValue, loadCitiesByCountry, loadLocalitiesByCity]
   )
 
-  const {
-    fileObjects: persistentFileObjects,
-    handleImagesChange: handlePersistentImagesChange,
-    hasInitialized
-  } = usePersistentImages(Array.isArray(images) && images.length > 0 ? images : userImages, newImages => {
-    imagesField.onChange(newImages)
-
-    if (newImages.length > 0) {
-      clearErrors('images')
-      clearErrors('profileImage')
-    }
-  })
-
-  const handleImagesChange = useCallback(
+  // Callback para manejar cambios de imágenes y actualizar el formulario
+  const handleImagesFormChange = useCallback(
     newImages => {
-      handlePersistentImagesChange(newImages)
+      imagesField.onChange(newImages)
+      if (newImages.length > 0) {
+        clearErrors('images')
+        clearErrors('profileImage')
+      }
     },
-    [handlePersistentImagesChange]
+    [imagesField, clearErrors]
   )
 
+  // Callback para validación de imágenes
   const handleImageValidationChange = useCallback(
     ({ hasErrors, imageCount, errors: imageErrors }) => {
-      if (hasErrors && Object.keys(imageErrors).length > 0) {
-        return
-      }
+      if (hasErrors && Object.keys(imageErrors).length > 0) return
 
       if (imageCount === 0) {
         setError('images', {
@@ -259,6 +218,15 @@ export const useStepBasicInfo = ({
     },
     [setError, clearErrors]
   )
+
+  // Hook de imágenes persistentes
+  const {
+    fileObjects: persistentFileObjects,
+    handleImagesChange,
+    hasInitialized
+  } = usePersistentImages(Array.isArray(images) && images.length > 0 ? images : initialImages, handleImagesFormChange, {
+    onValidationChange: handleImageValidationChange
+  })
 
   const getParsedDate = useCallback(value => {
     try {
@@ -289,27 +257,17 @@ export const useStepBasicInfo = ({
         images: prepared.images
       })
 
-      if (result.success) {
-        onStepComplete?.()
-      }
+      // Siempre llamar onStepComplete con el resultado
+      onStepComplete?.(result)
     },
     [saveStepData, onStepComplete]
   )
 
-  const handleFormSubmit = isStandalone ? internalForm.handleSubmit(onSubmit) : undefined
-  const isSaving = isStandalone ? submitting || isSubmitting : false
+  const handleFormSubmit = form.handleSubmit(onSubmit)
 
   return {
     control,
-    watch,
-    setValue,
-    setError,
-    clearErrors,
     formErrors,
-    isSubmitting,
-    saveStepData,
-    submitting,
-    formValues,
     formattedCountries,
     formattedCities,
     formattedLocalities,
@@ -320,16 +278,11 @@ export const useStepBasicInfo = ({
     handleImagesChange,
     handleImageValidationChange,
     getParsedDate,
-    onSubmit,
     handleFormSubmit,
-    isSaving,
-    isStandalone,
     imageManagerRef,
     phoneCode,
     formValuesPhone: formValues?.phone ?? '',
     country: formValues?.country ?? '',
-    city: formValues?.city ?? '',
-    localityValue: formValues?.locality ?? '',
-    defaultValues
+    city: formValues?.city ?? ''
   }
 }

@@ -166,6 +166,8 @@ export {
   // Accessors de campos específicos por categoría
   getUserReligion,
   getUserReligionId,
+  getUserChurch,
+  getUserChurchId,
   getUserSpiritualMoments,
   getUserSpiritualPractices,
   getUserSexualRole,

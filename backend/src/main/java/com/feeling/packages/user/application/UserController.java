@@ -2,6 +2,7 @@ package com.feeling.packages.user.application;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import com.feeling.config.logging.StructuredLoggerFactory;
+import com.feeling.exception.NotFoundException;
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.match.domain.dto.MatchCompatibilityDTO;
 import com.feeling.packages.match.domain.dto.UserSuggestionDTO;
@@ -12,6 +13,7 @@ import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.dto.views.UserViews;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
 import com.feeling.packages.user.domain.services.*;
+import com.feeling.packages.user.infrastructure.entities.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -83,10 +86,9 @@ public class UserController {
 
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    @JsonView(UserViews.Internal.class)
     @Operation(
-        summary = "Obtener mi perfil (usuario actual)",
-        description = "Recupera el perfil completo del usuario autenticado actual con todos sus datos incluyendo información privada.",
+        summary = "Obtener perfil de usuario",
+        description = "Sin parámetro userId retorna el perfil completo del usuario autenticado. Con userId retorna el perfil del usuario objetivo aplicando reglas de visibilidad.",
         tags = {"User Profile Management"}
     )
     @ApiResponses({
@@ -94,9 +96,11 @@ public class UserController {
         @ApiResponse(responseCode = "400", description = "Nivel de inclusión inválido"),
         @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
     })
-    public ResponseEntity<UserResponseDTO> getCurrentUserProfile(
+    public ResponseEntity<MappingJacksonValue> getCurrentUserProfile(
         @Parameter(description = "Nivel de inclusión: basic, standard, extended, full")
         @RequestParam(name = "include", defaultValue = "extended") String includeLevel,
+        @Parameter(description = "ID del usuario objetivo. Si se omite, devuelve el perfil del usuario autenticado.")
+        @RequestParam(name = "userId", required = false) String userId,
         Authentication authentication) {
         try {
             // Validar nivel de inclusión
@@ -105,13 +109,36 @@ public class UserController {
             }
 
             String currentUserEmail = authentication.getName();
+            String targetEmail = currentUserEmail;
+
+            if (userId != null && !userId.trim().isEmpty()) {
+                User targetUser = userService.getUserById(userId.trim());
+                targetEmail = targetUser.getEmail();
+            }
 
             // Obtener perfil del usuario actual (con vista Internal - incluye datos sensibles)
-            UserResponseDTO user = userService.get(currentUserEmail, currentUserEmail, includeLevel);
-            return ResponseEntity.ok(user);
+            UserResponseDTO user = userService.get(targetEmail, currentUserEmail, includeLevel);
+
+            MappingJacksonValue responseBody = new MappingJacksonValue(user);
+            if ("public".equalsIgnoreCase(includeLevel)) {
+                responseBody.setSerializationView(UserViews.Public.class);
+            } else {
+                responseBody.setSerializationView(UserViews.Internal.class);
+            }
+
+            return ResponseEntity.ok(responseBody);
+        } catch (NumberFormatException e) {
+            logger.warn("ID de usuario inválido en consulta de perfil",
+                Map.of("userId", userId != null ? userId : "self", "includeLevel", includeLevel));
+            return ResponseEntity.badRequest().build();
+        } catch (NotFoundException e) {
+            logger.warn("Usuario no encontrado al consultar perfil",
+                Map.of("userId", userId != null ? userId : "self", "includeLevel", includeLevel));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             logger.error("Error obteniendo perfil del usuario actual", Map.of(
-                "includeLevel", includeLevel
+                "includeLevel", includeLevel,
+                "userId", userId != null ? userId : "self"
             ), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

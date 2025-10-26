@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react'
 
-import RateLimitModal from '../components/common/RateLimitModal'
+import RateLimitModal from '@components/common/feedback/RateLimitModal.jsx'
 
 const RateLimitContext = createContext()
 

@@ -6,8 +6,8 @@ import { Logger } from '@utils/logger.js'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
-import GenericDataTable from '@components/common/GenericDataTable.jsx'
-import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import GenericDataTable from '@components/common/data-table/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/data-table/GenericTableActions.jsx'
 
 // Importar componentes de gestión de usuarios (modales)
 import CreateUserForm from './CreateUserForm.jsx'
@@ -408,12 +408,15 @@ const UserTablesSection = memo(() => {
               {user.status?.verified ? 'Verificado' : 'Pendiente'}
             </Chip>
           )
-        case 'profileComplete':
+        case 'profileComplete': {
+          const isFullyComplete = user.status?.profileComplete && user.status?.configurationCompleted
+
           return (
-            <Chip className='capitalize' color={user.status?.profileComplete ? 'success' : 'warning'} size='sm' variant='flat'>
-              {user.status?.profileComplete ? 'Completo' : 'Incompleto'}
+            <Chip className='capitalize' color={isFullyComplete ? 'success' : 'warning'} size='sm' variant='flat'>
+              {isFullyComplete ? 'Completo' : 'Incompleto'}
             </Chip>
           )
+        }
         case 'role':
           return (
             <Chip className='capitalize' color={USER_ROLE_COLORS[user.status?.role] || 'default'} size='sm' variant='flat'>

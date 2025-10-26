@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,12 +37,16 @@ public class StripePaymentGateway implements PaymentGateway {
 
         log.info("Stripe intent {} created", paymentIntentId);
 
+        Map<String, String> metadata = new HashMap<>(command.metadata());
+        metadata.put("integration", "STRIPE");
+        metadata.putIfAbsent("currency", command.currency());
+
         return new PaymentIntentResponse(
             clientSecret,
             paymentIntentId,
             "requires_payment_method",
             "Payment intent created successfully (STRIPE MODE)",
-            command.metadata()
+            metadata
         );
     }
 
@@ -51,12 +56,15 @@ public class StripePaymentGateway implements PaymentGateway {
 
         log.info("Stripe intent {} confirmed", paymentIntentId);
 
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("integration", "STRIPE");
+
         return new PaymentIntentResponse(
             null,
             paymentIntentId,
             "succeeded",
             "Pago confirmado exitosamente (STRIPE MODE)",
-            Map.of()
+            metadata
         );
     }
 

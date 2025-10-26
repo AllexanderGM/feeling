@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,12 +31,16 @@ public class SimulatedPaymentGateway implements PaymentGateway {
 
         log.debug("Simulated intent {} created", paymentIntentId);
 
+        Map<String, String> metadata = new HashMap<>(command.metadata());
+        metadata.put("integration", "SIMULATION");
+        metadata.putIfAbsent("currency", command.currency());
+
         return new PaymentIntentResponse(
             clientSecret,
             paymentIntentId,
             "requires_payment_method",
             "Payment intent created successfully (SIMULATION MODE)",
-            command.metadata()
+            metadata
         );
     }
 
@@ -47,12 +52,15 @@ public class SimulatedPaymentGateway implements PaymentGateway {
 
         log.info("Simulated payment intent {} confirmed", paymentIntentId);
 
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("integration", "SIMULATION");
+
         return new PaymentIntentResponse(
             null,
             paymentIntentId,
             "succeeded",
             "Pago confirmado exitosamente (SIMULATION MODE)",
-            Map.of()
+            metadata
         );
     }
 

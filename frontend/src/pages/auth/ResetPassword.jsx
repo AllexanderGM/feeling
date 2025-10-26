@@ -8,7 +8,7 @@ import LiteContainer from '@components/layout/LiteContainer'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import { resetPasswordSchema } from '@schemas'
 import { APP_PATHS } from '@constants/paths.js'
-import { CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { CheckCircle, Lock, Eye, EyeOff } from 'lucide-react'
 
 const ResetPassword = () => {
   const { token } = useParams()
@@ -57,91 +57,92 @@ const ResetPassword = () => {
 
   return (
     <LiteContainer ariaLabel='Página de restablecimiento de contraseña'>
-      <figure className='text-center'>
-        <img alt='Logo Feeling' className='w-40' src={logo} />
+      <figure className='text-center pb-8'>
+        <img alt='Logo Feeling' className='w-52' src={logo} />
       </figure>
 
-      <div className='bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full'>
-        <h2 className='text-xl font-medium text-white mb-4'>Restablecer contraseña</h2>
-
-        {status === 'success' ? (
-          <div className='text-center'>
-            <div className='text-green-500 text-5xl mb-4'>
-              <CheckCircle className='text-6xl' />
-            </div>
-            <p className='text-gray-300 mb-6'>
-              Tu contraseña ha sido restablecida con éxito. Puedes iniciar sesión con tu nueva contraseña.
-            </p>
-            <div className='animate-pulse text-gray-400 text-sm'>Redirigiendo al inicio de sesión...</div>
+      {status === 'success' ? (
+        <div className='flex flex-col items-center text-center space-y-6 w-full max-w-md'>
+          <div className='flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 text-green-400'>
+            <CheckCircle className='h-12 w-12' />
           </div>
-        ) : (
-          <>
-            <p className='text-gray-400 mb-6'>Crea una nueva contraseña segura para tu cuenta.</p>
+          <div className='space-y-2'>
+            <h3 className='text-xl font-medium text-white'>¡Contraseña restablecida!</h3>
+            <p className='text-sm text-gray-400 leading-relaxed'>
+              Tu contraseña ha sido actualizada con éxito. Puedes iniciar sesión con tu nueva contraseña.
+            </p>
+          </div>
+          <div className='animate-pulse text-gray-400 text-sm mt-4'>Redirigiendo al inicio de sesión...</div>
+        </div>
+      ) : (
+        <Form className='flex flex-col w-full space-y-6' validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
+          <h2 className='text-xl font-medium text-white mb-6'>Restablecer contraseña</h2>
 
-            <Form validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
-              <Controller
-                control={control}
-                name='password'
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    isRequired
-                    autoComplete='new-password'
-                    className='mb-4'
-                    endContent={
-                      <button className='focus:outline-none' type='button' onClick={togglePasswordVisibility}>
-                        {isPasswordVisible ? <EyeOff /> : <Eye />}
-                      </button>
-                    }
-                    errorMessage={errors.password?.message}
-                    isDisabled={loading}
-                    isInvalid={!!errors.password}
-                    label='Nueva contraseña'
-                    placeholder='••••••••'
-                    type={isPasswordVisible ? 'text' : 'password'}
-                    variant='underlined'
-                  />
-                )}
+          <p className='text-sm text-gray-400 -mt-2'>Crea una nueva contraseña segura para tu cuenta.</p>
+
+          <Controller
+            control={control}
+            name='password'
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                autoComplete='new-password'
+                endContent={
+                  <button className='focus:outline-none' type='button' onClick={togglePasswordVisibility}>
+                    {isPasswordVisible ? <EyeOff className='text-gray-400 w-4 h-5' /> : <Eye className='text-gray-400 w-4 h-5' />}
+                  </button>
+                }
+                errorMessage={errors.password?.message}
+                isDisabled={loading}
+                isInvalid={!!errors.password}
+                label='Nueva contraseña'
+                placeholder='••••••••'
+                startContent={<Lock className='text-gray-400 w-4 h-5' />}
+                type={isPasswordVisible ? 'text' : 'password'}
+                variant='underlined'
               />
+            )}
+          />
 
-              <Controller
-                control={control}
-                name='confirmPassword'
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    isRequired
-                    autoComplete='new-password'
-                    className='mb-6'
-                    endContent={
-                      <button className='focus:outline-none' type='button' onClick={toggleConfirmPasswordVisibility}>
-                        {isConfirmPasswordVisible ? <EyeOff /> : <Eye />}
-                      </button>
-                    }
-                    errorMessage={errors.confirmPassword?.message}
-                    isDisabled={loading}
-                    isInvalid={!!errors.confirmPassword}
-                    label='Confirma tu nueva contraseña'
-                    placeholder='••••••••'
-                    type={isConfirmPasswordVisible ? 'text' : 'password'}
-                    variant='underlined'
-                  />
-                )}
+          <Controller
+            control={control}
+            name='confirmPassword'
+            render={({ field }) => (
+              <Input
+                {...field}
+                isRequired
+                autoComplete='new-password'
+                endContent={
+                  <button className='focus:outline-none' type='button' onClick={toggleConfirmPasswordVisibility}>
+                    {isConfirmPasswordVisible ? <EyeOff className='text-gray-400 w-4 h-5' /> : <Eye className='text-gray-400 w-4 h-5' />}
+                  </button>
+                }
+                errorMessage={errors.confirmPassword?.message}
+                isDisabled={loading}
+                isInvalid={!!errors.confirmPassword}
+                label='Confirma tu nueva contraseña'
+                placeholder='••••••••'
+                startContent={<Lock className='text-gray-400 w-4 h-5' />}
+                type={isConfirmPasswordVisible ? 'text' : 'password'}
+                variant='underlined'
               />
+            )}
+          />
 
-              <Button
-                className='w-full py-3 mt-4'
-                color='default'
-                isDisabled={loading || !isValid}
-                isLoading={loading}
-                radius='full'
-                type='submit'>
-                {loading ? 'Actualizando...' : 'Restablecer contraseña'}
-              </Button>
-            </Form>
-          </>
-        )}
-      </div>
+          <div className='pt-6 space-y-6 w-full'>
+            <Button
+              className='w-full py-3 transition-colors'
+              color='default'
+              isDisabled={loading || !isValid}
+              isLoading={loading}
+              radius='full'
+              type='submit'>
+              {loading ? 'Actualizando...' : 'Restablecer contraseña'}
+            </Button>
+          </div>
+        </Form>
+      )}
     </LiteContainer>
   )
 }

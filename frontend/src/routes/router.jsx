@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 // Layouts
 import Layout from '@layouts/Layout.jsx'
+import PremiumLayout from '@layouts/PremiumLayout.jsx'
 import App from '@routes/App.jsx'
 // Páginas públicas
 import Welcome from '@pages/general/Welcome'
@@ -14,31 +15,35 @@ import VerifyEmail from '@pages/auth/VerifyEmail'
 import ForgotPassword from '@pages/auth/ForgotPassword'
 import ResetPassword from '@pages/auth/ResetPassword'
 // Páginas del flujo de registro
-import Complete from '@pages/user/complete/complete.jsx'
+import Complete from '@pages/user/complete/Complete.jsx'
 import WelcomeOnboarding from '@pages/user/WelcomeOnboarding.jsx'
 // Páginas de la aplicación
 import Home from '@pages/home/Home.jsx'
 import Profile from '@pages/user/me/Me.jsx'
 import Settings from '@pages/user/settings/Settings.jsx'
-import Help from '@pages/help/Help.jsx'
+import Help from '@pages/support/Help.jsx'
 import Matches from '@pages/matches/Matches.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
 import UserDetail from '@pages/user/profile/Profile.jsx'
+import EventsPage from '@pages/event/Event.jsx'
+import EventDetail from '@pages/event/detail/EventDetail.jsx'
+import EventPaymentStatus from '@pages/event/payment/EventPaymentStatus.jsx'
 // Páginas de compra de planes
 import PurchasePlans from '@pages/matches/purchase/PurchasePlans.jsx'
 import Checkout from '@pages/matches/purchase/Checkout.jsx'
 import Payment from '@pages/matches/purchase/Payment.jsx'
+import MatchPaymentStatus from '@pages/matches/purchase/MatchPaymentStatus.jsx'
 import PaymentSuccess from '@pages/matches/purchase/PaymentSuccess.jsx'
 import PaymentError from '@pages/matches/purchase/PaymentError.jsx'
 import MyMatches from '@pages/matches/myMatches/MyMatches.jsx'
 // Páginas de administración
-import AdminDashboard from '@pages/admin/AdminDashboard.jsx'
+import AdminDashboard from '@pages/admin/dashboard/AdminDashboard.jsx'
 import UsersManagement from '@pages/user/management/Management.jsx'
-import PlansManagement from '@pages/matches/plansManagement/PlansManagement.jsx'
-import ComplaintManagement from '@pages/support/ComplaintManagement.jsx'
-import UserComplaints from '@pages/support/UserComplaints.jsx'
-import EventManagement from '@pages/admin/events/EventManagement.jsx'
+import PlansManagement from '@pages/matches/admin/PlansManagement.jsx'
+import ComplaintManagement from '@pages/support/admin/ComplaintManagement.jsx'
+import UserComplaints from '@pages/support/user/UserComplaints.jsx'
+import EventManagement from '@pages/event/admin/EventManagement.jsx'
 import ConfigurationManagement from '@pages/admin/configuration/ConfigurationManagement.jsx'
 // Páginas de ejemplos
 import GenericTableExample from '@pages/examples/GenericTableExample.jsx'
@@ -97,7 +102,23 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.EVENTS.slice(1),
             element: (
               <RequireCompleteProfile>
-                <div>Eventos - Por implementar</div>
+                <EventsPage />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.EVENT_DETAIL.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <EventDetail />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.EVENT_PAYMENT_STATUS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <EventPaymentStatus />
               </RequireCompleteProfile>
             )
           },
@@ -169,51 +190,6 @@ const router = createBrowserRouter([
               <RequireCompleteProfile>
                 {' '}
                 <MyMatches />{' '}
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PURCHASE_PLANS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                {' '}
-                <PurchasePlans />{' '}
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PURCHASE_CHECKOUT.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                {' '}
-                <Checkout />{' '}
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PURCHASE_PAYMENT.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                {' '}
-                <Payment />{' '}
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PURCHASE_SUCCESS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                {' '}
-                <PaymentSuccess />{' '}
-              </RequireCompleteProfile>
-            )
-          },
-          {
-            path: APP_PATHS.USER.PURCHASE_ERROR.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                {' '}
-                <PaymentError />{' '}
               </RequireCompleteProfile>
             )
           },
@@ -430,6 +406,63 @@ const router = createBrowserRouter([
           {
             path: APP_PATHS.NOT_FOUND,
             element: <NotFound />
+          }
+        ]
+      },
+      // ========================================
+      // RUTAS CON PREMIUM LAYOUT (FONDO PREMIUM)
+      // ========================================
+      {
+        path: '',
+        element: <PremiumLayout />,
+        children: [
+          {
+            path: APP_PATHS.USER.PURCHASE_PLANS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <PurchasePlans />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_CHECKOUT.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <Checkout />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_PAYMENT.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <Payment />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_PAYMENT_STATUS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <MatchPaymentStatus />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_SUCCESS.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <PaymentSuccess />
+              </RequireCompleteProfile>
+            )
+          },
+          {
+            path: APP_PATHS.USER.PURCHASE_ERROR.slice(1),
+            element: (
+              <RequireCompleteProfile>
+                <PaymentError />
+              </RequireCompleteProfile>
+            )
           }
         ]
       },

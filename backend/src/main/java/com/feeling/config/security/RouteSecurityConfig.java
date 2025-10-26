@@ -214,6 +214,11 @@ public class RouteSecurityConfig {
      * Verifica si una ruta requiere rol de administrador
      */
     public boolean requiresAdminRole(String path, HttpMethod method) {
+        // Excluir rutas de auto-desactivación (usuario desactivando su propia cuenta)
+        if (path.equals("/user/deactivate") && method == HttpMethod.PUT) {
+            return false;
+        }
+
         // Rutas administrativas generales
         if (ADMIN_ROUTES.stream().anyMatch(route ->
             path.startsWith(route.replace("/**", "/")))) {

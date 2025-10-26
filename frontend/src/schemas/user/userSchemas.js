@@ -73,6 +73,7 @@ export const stepConfigurationSchema = yup.object().shape({
   locationPublic: yup.boolean(),
   showMeInSearch: yup.boolean(),
   allowNotifications: yup.boolean(),
+  configurationCompleted: yup.boolean(),
   // Configuración de notificaciones
   notificationsEmailEnabled: yup.boolean(),
   notificationsPhoneEnabled: yup.boolean(),
@@ -145,7 +146,18 @@ export const preferencesEditSchema = yup.object().shape({
 export const getFieldsForStep = step => {
   const stepFields = {
     1: ['name', 'lastName', 'document', 'phone', 'phoneCode', 'dateOfBirth', 'country', 'city', 'locality', 'images'],
-    2: ['description', 'genderId', 'height', 'tags'],
+    2: [
+      'description',
+      'genderId',
+      'maritalStatusId',
+      'educationLevelId',
+      'profession',
+      'height',
+      'eyeColorId',
+      'hairColorId',
+      'bodyTypeId',
+      'tags'
+    ],
     3: [
       'categoryInterest',
       'agePreferenceMin',
@@ -158,7 +170,23 @@ export const getFieldsForStep = step => {
       'spiritualMoments',
       'spiritualPractices'
     ],
-    4: [] // No hay validaciones obligatorias en el paso 4
+    4: [
+      'showAge',
+      'showLocation',
+      'showPhone',
+      'publicAccount',
+      'searchVisibility',
+      'locationPublic',
+      'showMeInSearch',
+      'allowNotifications',
+      'notificationsEmailEnabled',
+      'notificationsPhoneEnabled',
+      'notificationsMatchesEnabled',
+      'notificationsEventsEnabled',
+      'notificationsLoginEnabled',
+      'notificationsPaymentsEnabled',
+      'configurationCompleted'
+    ]
   }
 
   return stepFields[step] || []
@@ -266,6 +294,7 @@ export const getDefaultValuesForStep = (step, user = null) => {
     'notificationsLoginEnabled',
     'notificationsPaymentsEnabled'
   ]
+  const statusFields = ['configurationCompleted']
 
   stepFields.forEach(field => {
     let value
@@ -279,6 +308,8 @@ export const getDefaultValuesForStep = (step, user = null) => {
       } else if (notificationFields.includes(field)) {
         // Campos de notificaciones
         value = user.notifications?.[field]
+      } else if (statusFields.includes(field)) {
+        value = user.status?.[field]
       } else {
         // Campos de user
         value = user.user?.[field]
@@ -296,6 +327,8 @@ export const getDefaultValuesForStep = (step, user = null) => {
         value = USER_DEFAULT_VALUES.privacy[field]
       } else if (notificationFields.includes(field)) {
         value = USER_DEFAULT_VALUES.notifications[field]
+      } else if (statusFields.includes(field)) {
+        value = USER_DEFAULT_VALUES.status[field]
       } else {
         value = USER_DEFAULT_VALUES.user[field]
       }

@@ -28,7 +28,7 @@ class EventRegistrationService extends ServiceREST {
     try {
       this.validateRegistrationData(registrationData)
 
-      const result = await ServiceREST.post(API_ENDPOINTS.EVENTS.REGISTER, registrationData)
+      const result = await ServiceREST.post(API_ENDPOINTS.EVENT_REGISTRATIONS.REGISTER, registrationData)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -50,7 +50,7 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID de inscripción requerido')
       }
 
-      const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENTS.CANCEL_REGISTRATION}/${registrationId}/cancel`)
+      const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BASE}/${registrationId}/cancel`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -71,7 +71,7 @@ class EventRegistrationService extends ServiceREST {
 
     try {
       const params = this.buildQueryParams(filters)
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_REGISTRATIONS}${params}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENT_REGISTRATIONS.MY}${params}`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -93,7 +93,7 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID del evento requerido')
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.IS_REGISTERED}/${eventId}/is-registered`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BY_EVENT}/${eventId}/is-registered`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -115,7 +115,7 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID del evento requerido')
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_REGISTRATION}/${eventId}/my-registration`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BY_EVENT}/${eventId}/my-registration`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -130,22 +130,17 @@ class EventRegistrationService extends ServiceREST {
 
   /**
    * Crear intención de pago para evento
-   * @param {Object} paymentData - Datos de pago
-   * @param {number} paymentData.eventId - ID del evento
-   * @param {number} paymentData.amount - Monto a pagar
-   * @param {string} [paymentData.currency] - Moneda (default: 'usd')
-   * @returns {Promise<Object>} Intención de pago de Stripe
+   * @param {number} eventId - ID del evento
+   * @returns {Promise<Object>} Datos necesarios para inicializar el checkout de pagos
    */
-  async createEventPaymentIntent(paymentData) {
+  async createEventPaymentIntent(eventId) {
     const context = 'Crear intención de pago'
 
     try {
-      this.validatePaymentData(paymentData)
+      this.validatePaymentData({ eventId })
 
       const result = await ServiceREST.post(API_ENDPOINTS.PAYMENTS.CREATE_INTENT, {
-        eventId: paymentData.eventId,
-        amount: paymentData.amount,
-        currency: paymentData.currency || 'usd'
+        eventId
       })
 
       return ServiceREST.handleServiceResponse(result, context)
@@ -157,18 +152,40 @@ class EventRegistrationService extends ServiceREST {
 
   /**
    * Confirmar pago de evento
-   * @param {string} paymentIntentId - ID de la intención de pago
+   * @param {string} transactionId - ID de la transacción reportado por Wompi
    * @returns {Promise<Object>} Confirmación de pago
    */
-  async confirmEventPayment(paymentIntentId) {
+  async confirmEventPayment(transactionId) {
     const context = 'Confirmar pago'
 
     try {
-      if (!paymentIntentId) {
-        throw new Error('ID de intención de pago requerido')
+      if (!transactionId) {
+        throw new Error('ID de transacción requerido')
       }
 
-      const result = await ServiceREST.post(`${API_ENDPOINTS.PAYMENTS.CONFIRM}/${paymentIntentId}`)
+      const result = await ServiceREST.post(`${API_ENDPOINTS.PAYMENTS.CONFIRM}/${transactionId}`)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error.response?.data || error)
+      throw error
+    }
+  }
+
+  /**
+   * Liberar inscripción pendiente cuando el pago no pudo completarse
+   * @param {number} eventId - ID del evento
+   * @returns {Promise<void>}
+   */
+  async releasePendingRegistration(eventId) {
+    const context = 'Liberar inscripción pendiente'
+
+    try {
+      if (!eventId) {
+        throw new Error('ID del evento requerido')
+      }
+
+      const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BY_EVENT}/${eventId}/release`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -194,7 +211,7 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID del evento requerido')
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.ATTENDEES}/${eventId}/attendees`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BY_EVENT}/${eventId}/attendees`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -216,7 +233,7 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID del evento requerido')
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.CONFIRMED_ATTENDEES}/${eventId}/confirmed-attendees`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENT_REGISTRATIONS.BY_EVENT}/${eventId}/confirmed-attendees`)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -256,10 +273,6 @@ class EventRegistrationService extends ServiceREST {
 
     if (!data.eventId || typeof data.eventId !== 'number') {
       throw new Error('ID del evento requerido')
-    }
-
-    if (!data.amount || typeof data.amount !== 'number' || data.amount <= 0) {
-      throw new Error('Monto requerido y debe ser mayor a 0')
     }
   }
 
@@ -306,6 +319,7 @@ export const {
   getMyRegistrationForEvent,
   createEventPaymentIntent,
   confirmEventPayment,
+  releasePendingRegistration,
   getEventAttendees,
   getConfirmedAttendees
 } = eventRegistrationService

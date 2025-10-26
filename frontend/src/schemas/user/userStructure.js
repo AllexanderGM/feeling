@@ -24,6 +24,7 @@ import { convertTimestamp } from '@utils/convertTimestamp'
 export const USER_STATUS_FIELDS = {
   verified: 'boolean',
   profileComplete: 'boolean',
+  configurationCompleted: 'boolean',
   lastActive: 'array|string',
   approved: 'boolean',
   approvalStatus: 'string',
@@ -200,6 +201,7 @@ export const USER_DEFAULT_VALUES = {
   status: {
     verified: false,
     profileComplete: false,
+    configurationCompleted: false,
     lastActive: null,
     approved: false,
     approvalStatus: 'PENDING',
@@ -426,6 +428,8 @@ export const getUserProfession = user => getUserProfile(user).profession
 // Campos específicos de categorías
 export const getUserReligion = user => getUserProfile(user).religion
 export const getUserReligionId = user => getUserProfile(user).religionId
+export const getUserChurch = user => getUserProfile(user).church
+export const getUserChurchId = user => getUserProfile(user).churchId
 export const getUserSpiritualMoments = user => getUserProfile(user).spiritualMoments
 export const getUserSpiritualPractices = user => getUserProfile(user).spiritualPractices
 export const getUserSexualRole = user => getUserProfile(user).sexualRole
@@ -441,6 +445,7 @@ export const getUserLocationPreferenceRadius = user => getUserProfile(user).loca
 // Status
 export const getUserVerified = user => getUserStatus(user).verified
 export const getUserProfileComplete = user => getUserStatus(user).profileComplete
+export const getUserConfigurationCompleted = user => getUserStatus(user).configurationCompleted
 export const getUserLastActive = user => getUserStatus(user).lastActive
 export const getUserApproved = user => getUserStatus(user).approved
 export const getUserApprovalStatus = user => getUserStatus(user).approvalStatus

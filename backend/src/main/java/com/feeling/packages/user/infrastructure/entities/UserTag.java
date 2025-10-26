@@ -154,6 +154,7 @@ public class UserTag {
         this.createdAt = LocalDateTime.now();
         this.usageCount = 1L;
         this.lastUsed = LocalDateTime.now();
+        this.approvalStatus = UserTagApprovalStatus.PENDING;
     }
 
     /**

@@ -5,6 +5,7 @@ import AuthContext from '@contexts/AuthContext.jsx'
 import { useError, useAsyncOperation } from '@hooks'
 import { DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 import { Logger } from '@utils/logger'
+import { mapBackendUserToFrontend } from '@utils/userMapper.js'
 
 const dedupeSuggestions = suggestions => {
   const seen = new Map()
@@ -56,7 +57,11 @@ const useUser = () => {
     async (showNotifications = false) => {
       const result = await withLoading(async () => await userService.getCurrentUser(), 'obtener usuario actual')
 
-      updateUser(result.data)
+      // Mapear la respuesta del backend a la estructura del frontend
+      const mappedUser = mapBackendUserToFrontend(result.data)
+
+      // Actualizar el contexto con el usuario mapeado
+      updateUser(mappedUser)
 
       return handleApiResponse(result, 'Usuario obtenido correctamente.', { showNotifications })
     },
@@ -207,9 +212,13 @@ const useUser = () => {
       const result = await withSubmitting(async () => {
         const updatedProfile = await userService.updateCurrentProfile(profileData, profileImages, replaceImages)
 
-        updateUser(updatedProfile)
+        // Mapear la respuesta del backend a la estructura del frontend
+        const mappedUser = mapBackendUserToFrontend(updatedProfile)
 
-        return updatedProfile
+        // Actualizar el contexto con el usuario mapeado
+        updateUser(mappedUser)
+
+        return mappedUser
       }, 'actualizar perfil')
 
       return handleApiResponse(result, 'Perfil actualizado exitosamente.', { showNotifications })
@@ -492,17 +501,37 @@ const useUser = () => {
   const getProfileStats = useCallback(() => {
     if (!user) return null
 
+    // Usar profileCompleteness del backend si está disponible
+    if (user.metrics?.profileCompleteness !== undefined) {
+      return {
+        completionPercentage: user.metrics.profileCompleteness,
+        completedFieldsCount: 0,
+        totalFieldsCount: 0,
+        requiredFieldsCount: 0,
+        optionalFieldsCount: 0,
+        requiredCompleted: 0,
+        optionalCompleted: 0,
+        missingFieldsCount: 0,
+        hasImages: user.user?.images?.length > 0,
+        imageCount: user.user?.images?.length || 0,
+        isVerified: user.status?.verified || false,
+        hasProfileComplete: !!(user.status?.profileComplete && user.status?.configurationCompleted)
+      }
+    }
+
+    // Fallback: calcular manualmente si no viene del backend
     const requiredFields = USER_USER_REQUIRED_FIELDS
     const optionalFields = USER_USER_OPTIONAL_FIELDS
+    const userData = user.user || user
 
     const requiredComplete = requiredFields.filter(field => {
-      const value = user[field]
+      const value = userData[field]
 
       return isSpecialField(field, value)
     }).length
 
     const optionalComplete = optionalFields.filter(field => {
-      const value = user[field]
+      const value = userData[field]
 
       return isSpecialField(field, value)
     }).length
@@ -520,10 +549,10 @@ const useUser = () => {
       requiredCompleted: requiredComplete,
       optionalCompleted: optionalComplete,
       missingFieldsCount: totalFields - completedFields,
-      hasImages: user.images?.length > 0,
-      imageCount: user.images?.length || 0,
-      isVerified: user.verified || false,
-      hasProfileComplete: user.profileComplete || false
+      hasImages: userData.images?.length > 0,
+      imageCount: userData.images?.length || 0,
+      isVerified: user.status?.verified || user.verified || false,
+      hasProfileComplete: !!(user.status?.profileComplete && user.status?.configurationCompleted)
     }
   }, [user])
 

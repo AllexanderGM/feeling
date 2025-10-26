@@ -8,7 +8,7 @@ import FavoriteSuccessModal from '@components/ui/userSuggestionCards/components/
 import EmptyState from '@pages/home/components/EmptyState.jsx'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Logger } from '@utils/logger.js'
-import { getUserId, getUserName } from '@utils/userHelpers.js'
+// No necesitamos imports de @schemas aquí porque trabajamos con estructura de sugerencias específica
 
 /**
  * UserSuggestionCards - Contenedor principal que maneja el stack de cards y el estado vacío
@@ -57,20 +57,33 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
     }, 300)
   }
 
-  // Función auxiliar para obtener la imagen del usuario (soporta ambas estructuras)
-  const getUserImage = cardData => {
-    const profile = cardData?.user?.profile || cardData?.profile
+  // Función auxiliar para obtener el ID del usuario de la estructura de sugerencias
+  const getSuggestionUserId = cardData => {
+    // Estructura de sugerencias: cardData.user.user.id
+    return cardData?.user?.user?.id || null
+  }
 
-    return profile?.images?.[0] || null
+  // Función auxiliar para obtener el nombre del usuario de la estructura de sugerencias
+  const getSuggestionUserName = cardData => {
+    // Estructura de sugerencias: cardData.user.user.name
+    return cardData?.user?.user?.name || 'Usuario'
+  }
+
+  // Función auxiliar para obtener la imagen principal del usuario de la estructura de sugerencias
+  const getSuggestionUserImage = cardData => {
+    // Estructura de sugerencias: cardData.user.user.images
+    const images = cardData?.user?.user?.images || []
+
+    return images[0] || null
   }
 
   // Handler para dismiss - abre modal de confirmación
   const handleDismiss = () => {
     if (!currentCard) return
 
-    const userId = getUserId(currentCard)
-    const userName = getUserName(currentCard)
-    const userImage = getUserImage(currentCard)
+    const userId = getSuggestionUserId(currentCard)
+    const userName = getSuggestionUserName(currentCard)
+    const userImage = getSuggestionUserImage(currentCard)
 
     if (!userId) {
       Logger.warn(Logger.CATEGORIES.UI, 'descartar sugerencia', 'No se pudo obtener el ID del usuario')
@@ -103,9 +116,9 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
   const handleMatch = () => {
     if (!currentCard || matchLoading) return
 
-    const userId = getUserId(currentCard)
-    const userName = getUserName(currentCard)
-    const userImage = getUserImage(currentCard)
+    const userId = getSuggestionUserId(currentCard)
+    const userName = getSuggestionUserName(currentCard)
+    const userImage = getSuggestionUserImage(currentCard)
 
     if (!userId) {
       Logger.warn(Logger.CATEGORIES.UI, 'enviar match', 'No se pudo obtener el ID del usuario')
@@ -140,9 +153,9 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
   const handleFavorite = async () => {
     if (!currentCard) return
 
-    const userId = getUserId(currentCard)
-    const userName = getUserName(currentCard)
-    const userImage = getUserImage(currentCard)
+    const userId = getSuggestionUserId(currentCard)
+    const userName = getSuggestionUserName(currentCard)
+    const userImage = getSuggestionUserImage(currentCard)
 
     if (!userId) {
       Logger.warn(Logger.CATEGORIES.UI, 'toggle favorito', 'No se pudo obtener el ID del usuario')
@@ -198,7 +211,7 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
       <div className='relative w-full max-w-md mx-auto h-[calc(100vh-180px)] max-h-[650px]'>
         <AnimatePresence initial={false}>
           {visibleCards.map((cardData, index) => {
-            const cardUserId = getUserId(cardData)
+            const cardUserId = getSuggestionUserId(cardData)
             // Usar estado local primero, luego el valor del servidor (nueva estructura)
             const isFavorite = localFavorites.get(cardUserId) ?? cardData.favorite ?? false
 
@@ -232,10 +245,13 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
                 transition={{ duration: 0.3 }}
                 variants={cardVariants}>
                 <UserCard
+                  compatibility={cardData.compatibility}
+                  hasAcceptedMatch={cardData.hasAcceptedMatch}
+                  hasPendingMatch={cardData.hasPendingMatch}
                   isFavorite={isFavorite}
                   matchLoading={matchLoading && isTopCard}
                   showMatchControls={isTopCard}
-                  user={cardData}
+                  user={cardData.user}
                   onLike={isTopCard ? handleMatch : undefined}
                   onPass={isTopCard ? handleDismiss : undefined}
                   onToggleFavorite={isTopCard ? handleFavorite : undefined}

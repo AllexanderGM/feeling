@@ -21,9 +21,19 @@ const registrationValidations = {
     .positive('El ID del evento debe ser positivo')
     .required('El ID del evento es requerido'),
 
-  paymentIntentId: yup.string().min(10, 'ID de pago inválido').required('El ID de pago es requerido'),
+  paymentReference: yup
+    .string()
+    .min(10, 'Referencia de pago inválida')
+    .max(80, 'La referencia de pago es demasiado larga')
+    .required('La referencia de pago es requerida'),
 
-  amountPaid: yup.number().min(0, 'El monto no puede ser negativo').required('El monto pagado es requerido'),
+  transactionId: yup
+    .string()
+    .min(6, 'ID de transacción inválido')
+    .max(80, 'El ID de transacción es demasiado largo')
+    .required('El ID de la transacción es requerido'),
+
+  amountPaid: yup.number().min(0, 'El monto no puede ser negativo'),
 
   cancellationReason: yup
     .string()
@@ -68,8 +78,8 @@ export const eventRegistrationSchema = yup.object().shape({
 })
 
 export const confirmPaymentSchema = yup.object().shape({
-  paymentIntentId: registrationValidations.paymentIntentId,
-  amountPaid: registrationValidations.amountPaid
+  transactionId: registrationValidations.transactionId,
+  paymentReference: registrationValidations.paymentReference
 })
 
 export const cancelRegistrationSchema = yup.object().shape({
@@ -81,20 +91,12 @@ export const cancelRegistrationSchema = yup.object().shape({
 // ========================================
 
 export const createPaymentIntentSchema = yup.object().shape({
-  eventId: registrationValidations.eventId,
-  amount: yup
-    .number()
-    .min(0, 'El monto no puede ser negativo')
-    .max(10000000, 'El monto no puede exceder $10,000,000')
-    .required('El monto es requerido'),
-  currency: yup.string().oneOf(['COP', 'USD'], 'Moneda no soportada').default('COP'),
-  description: yup.string().max(200, 'La descripción no puede exceder 200 caracteres')
+  eventId: registrationValidations.eventId
 })
 
 export const processPaymentSchema = yup.object().shape({
-  paymentMethodId: yup.string().required('El método de pago es requerido'),
-  paymentIntentId: registrationValidations.paymentIntentId,
-  savePaymentMethod: yup.boolean().default(false)
+  transactionId: registrationValidations.transactionId,
+  paymentReference: registrationValidations.paymentReference
 })
 
 // ========================================

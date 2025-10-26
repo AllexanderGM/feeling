@@ -37,7 +37,7 @@ public interface IAuthTokenRepository extends JpaRepository<AuthToken, Long> {
      * @param jwtToken Valor del token JWT
      * @return Optional con el token si existe
      */
-    Optional<AuthToken> findByToken(String jwtToken);
+    Optional<AuthToken> findTopByTokenOrderByCreatedAtDesc(String jwtToken);
 
     /**
      * Busca todos los tokens de un usuario específico.

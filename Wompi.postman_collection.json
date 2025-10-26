@@ -1,0 +1,778 @@
+{
+  "info": {
+    "_postman_id": "5daa8ab1-833f-45d2-b3db-fa085005906b",
+    "name": "API Pública - Payouts",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "39097919"
+  },
+  "item": [
+    {
+      "name": "Sandbox",
+      "item": [
+        {
+          "name": "Sandbox Tools",
+          "item": [
+            {
+              "name": "1. Recarga la cuenta bancaria para pruebas sandbox",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"$AccountID\",\n  \"amountInCents\": 2100000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/accounts/balance-recharge",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["accounts", "balance-recharge"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Reportes CSV",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/reports/presigned_url",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["reports", "presigned_url"],
+                  "query": [
+                    {
+                      "key": "reportExecutionId",
+                      "value": "_Id",
+                      "disabled": true
+                    },
+                    {
+                      "key": "reportIntegration",
+                      "value": "payouts",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Recursos",
+          "item": [
+            {
+              "name": "1. Bancos",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/banks",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["banks"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Cuentas",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/accounts",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["accounts"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Limites",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/limits",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["limits"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Pagos",
+          "item": [
+            {
+              "name": "1. Crear pago",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"reference\": \"demo-reference\",\n    \"accountId\": \"WOMPI_ACCOUNT\",\n    \"paymentType\": \"PAYROLL\",\n    \"transactions\": [\n        {\n            \"legalIdType\": \"CC\",\n            \"legalId\": \"1234567890\",\n            \"bankId\": \"6e422ee9-6863-4882-a265-42258b410caa\",\n            \"accountType\": \"AHORROS\",\n            \"accountNumber\": \"43423123\",\n            \"name\": \"John Doe\",\n            \"amount\": 20000,\n            \"personType\": \"NATURAL\",\n            \"description\": \"description\",\n            \"phone\": \"44321323\",\n            \"email\": \"email@example.com\",\n            \"reference\": \"custom-reference\"\n        }\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Crear pago por archivo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "reference",
+                      "value": "demo-reference",
+                      "type": "text"
+                    },
+                    {
+                      "key": "accountId",
+                      "value": "WOMPI_ACCOUNT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "paymentType",
+                      "value": "PAYROLL",
+                      "type": "text"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": "/Users/a68211/Documents/Estandares/Wompi File/PAB_1030604363_240321_153020386.txt"
+                    },
+                    {
+                      "key": "fileType",
+                      "value": "PAB",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts/file",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts", "file"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Consultas",
+          "item": [
+            {
+              "name": "1. Consultar pagos",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Consultar pagos por id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts/$PayoutID",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts", "$PayoutID"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Consultar transacciones de un pago",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts/$PayoutID/transactions",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts", "$PayoutID", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Consultar transacción por id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/payouts/$PayoutID/transactions/$TransactionID",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["payouts", "$PayoutID", "transactions", "$TransactionID"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Consultar transacción por referencia personalizada",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID-SANDBOX}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY-SANDBOX}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN-SANDBOX}}/transactions/$Reference",
+                  "host": ["{{DOMAIN-SANDBOX}}"],
+                  "path": ["transactions", "$Reference"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producción",
+      "item": [
+        {
+          "name": "Recursos",
+          "item": [
+            {
+              "name": "1. Bancos",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/banks",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["banks"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Cuentas",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/accounts",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["accounts"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Limites",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/limits",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["limits"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Pagos",
+          "item": [
+            {
+              "name": "1. Crear pago",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"reference\": \"demo-reference\",\n    \"accountId\": \"WOMPI_ACCOUNT\",\n    \"paymentType\": \"PAYROLL\",\n    \"transactions\": [\n        {\n            \"legalIdType\": \"CC\",\n            \"legalId\": \"1234567890\",\n            \"bankId\": \"6e422ee9-6863-4882-a265-42258b410caa\",\n            \"accountType\": \"AHORROS\",\n            \"accountNumber\": \"43423123\",\n            \"name\": \"John Doe\",\n            \"amount\": 20000,\n            \"personType\": \"NATURAL\",\n            \"description\": \"description\",\n            \"phone\": \"44321323\",\n            \"email\": \"email@example.com\",\n            \"reference\": \"custom-reference\"\n        }\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Crear pago por archivo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "reference",
+                      "value": "demo-reference",
+                      "type": "text"
+                    },
+                    {
+                      "key": "accountId",
+                      "value": "WOMPI_ACCOUNT",
+                      "type": "text"
+                    },
+                    {
+                      "key": "paymentType",
+                      "value": "PAYROLL",
+                      "type": "text"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": "/Users/a68211/Documents/Estandares/Wompi File/PAB_1030604363_240321_153020386.txt"
+                    },
+                    {
+                      "key": "fileType",
+                      "value": "PAB",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts/file",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts", "file"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Consultas",
+          "item": [
+            {
+              "name": "1. Consultar pagos",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Consultar pagos por id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts/$PayoutID",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts", "$PayoutID"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Consultar transacciones de un pago",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts/$PayoutID/transactions",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts", "$PayoutID", "transactions"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Consultar transacción por id",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/payouts/$PayoutID/transactions/$TransactionID",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["payouts", "$PayoutID", "transactions", "$TransactionID"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Consultar transacción por referencia personalizada",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/transactions/$Reference",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["transactions", "$Reference"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Consultar disponibilidad",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "user-principal-id",
+                    "value": "{{USER-PRINCIPAL-ID}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "x-api-key",
+                    "value": "{{X-API-KEY}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{DOMAIN}}/health",
+                  "host": ["{{DOMAIN}}"],
+                  "path": ["health"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

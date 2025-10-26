@@ -25,7 +25,10 @@ const useUserStats = users => {
         const userRole = user.role || user.status?.role || 'CLIENT'
         const isVerified = user.verified !== undefined ? user.verified : user.status?.verified || false
         const isApproved = user.approved !== undefined ? user.approved : user.status?.approved || false
-        const isProfileComplete = user.profileComplete !== undefined ? user.profileComplete : user.status?.profileComplete || false
+        const profileCompleteFlag = user.profileComplete !== undefined ? user.profileComplete : user.status?.profileComplete || false
+        const configurationCompletedFlag =
+          user.configurationCompleted !== undefined ? user.configurationCompleted : user.status?.configurationCompleted || false
+        const isProfileComplete = profileCompleteFlag && configurationCompletedFlag
 
         if (userRole === 'ADMIN') {
           acc.admins++

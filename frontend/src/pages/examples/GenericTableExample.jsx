@@ -14,8 +14,8 @@ import {
   useDisclosure
 } from '@heroui/react'
 import { Users, Check, X, Mail, UserIcon, Download, Filter } from 'lucide-react'
-import GenericDataTable from '@components/common/GenericDataTable.jsx'
-import GenericTableActions from '@components/common/GenericTableActions.jsx'
+import GenericDataTable from '@components/common/data-table/GenericDataTable.jsx'
+import GenericTableActions from '@components/common/data-table/GenericTableActions.jsx'
 import { useError, useTableActions } from '@hooks'
 import { formatJavaDateForDisplay } from '@utils/dateUtils.js'
 import { USER_ROLE_COLORS } from '@constants/tableConstants.js'

@@ -11,6 +11,7 @@ import com.feeling.packages.event.domain.dto.PaymentRequestDTO;
 import com.feeling.packages.event.domain.dto.PaymentResponseDTO;
 import com.feeling.packages.event.infrastructure.entities.Event;
 import com.feeling.packages.event.infrastructure.entities.EventRegistration;
+import com.feeling.packages.event.infrastructure.entities.PaymentStatus;
 import com.feeling.packages.event.infrastructure.repositories.IEventRegistrationRepository;
 import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -21,7 +22,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Orquestador de pagos específico para eventos.
@@ -42,71 +46,92 @@ public class EventPaymentService {
 
     @Value("${feeling.payments.currency:USD}")
     private String defaultCurrency;
+    @Value("${feeling.payments.redirect-url:}")
+    private String defaultRedirectUrl;
 
     @Transactional
     public PaymentResponseDTO createPaymentIntent(PaymentRequestDTO request, String userEmail) {
         EventRegistration registration = validateRegistrationContext(request, userEmail);
         Event event = registration.getEvent();
 
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("eventId", event.getId().toString());
+        metadata.put("registrationId", registration.getId().toString());
+        if (defaultRedirectUrl != null && !defaultRedirectUrl.isBlank()) {
+            metadata.put("redirectUrl", defaultRedirectUrl);
+        }
+
         PaymentIntentCommand command = new PaymentIntentCommand(
             event.getPrice(),
             defaultCurrency,
             "Pago de inscripción al evento " + event.getTitle(),
-            Map.of(
-                "eventId", event.getId().toString(),
-                "registrationId", registration.getId().toString()
-            ),
-            request.paymentMethodId()
+            metadata,
+            null
         );
 
         PaymentIntentResponse response = paymentGateway.createPaymentIntent(command);
+        if (response.paymentIntentId() == null || response.paymentIntentId().isBlank()) {
+            throw new BadRequestException("El gateway de pago no generó una referencia válida");
+        }
         registration.setStripePaymentIntentId(response.paymentIntentId());
         registrationRepository.save(registration);
 
         log.debug("Intento de pago {} asociado al registro {}", response.paymentIntentId(), registration.getId());
 
+        Map<String, String> responseData = new HashMap<>(response.metadata());
+        Optional.ofNullable(response.clientSecret()).ifPresent(signature -> responseData.putIfAbsent("signature", signature));
+
         return new PaymentResponseDTO(
-            response.clientSecret(),
             response.paymentIntentId(),
-            response.status(),
             registration.getId(),
-            response.message()
+            response.status(),
+            response.message(),
+            responseData
         );
     }
 
     @Transactional
     public PaymentResponseDTO confirmPayment(String paymentIntentId) {
-        EventRegistration registration = registrationRepository.findByStripePaymentIntentId(paymentIntentId)
-            .orElseThrow(() -> new NotFoundException("Registro no encontrado para este pago"));
-
         PaymentIntentResponse response = paymentGateway.confirmPayment(paymentIntentId);
+        String paymentReference = Optional.ofNullable(response.metadata().get("reference"))
+            .orElseGet(response::paymentIntentId);
+        if (paymentReference == null || paymentReference.isBlank()) {
+            throw new BadRequestException("No se pudo determinar la referencia del pago");
+        }
 
-        if (!"succeeded".equalsIgnoreCase(response.status())) {
+        EventRegistration registration = registrationRepository.findByStripePaymentIntentId(paymentReference)
+            .orElseThrow(() -> new NotFoundException("Registro no encontrado para esta referencia de pago"));
+
+        if (!isSuccessfulStatus(response.status())) {
+            registrationService.markPaymentFailed(registration.getId());
             throw new BadRequestException("No fue posible confirmar el pago: " + response.message());
         }
 
-        registrationService.confirmPayment(registration.getId(), registration.getEvent().getPrice(), paymentIntentId);
+        String transactionIdentifier = Optional.ofNullable(response.metadata().get("transactionId"))
+            .orElse(paymentIntentId);
+
+        registrationService.confirmPayment(registration.getId(), registration.getEvent().getPrice(), transactionIdentifier);
         log.info("Pago confirmado para el registro {}", registration.getId());
 
         return new PaymentResponseDTO(
-            response.clientSecret(),
-            response.paymentIntentId(),
-            response.status(),
+            paymentReference,
             registration.getId(),
-            response.message()
+            response.status(),
+            response.message(),
+            response.metadata()
         );
     }
 
     @Transactional
-    public void handleStripeWebhook(Map<String, Object> payload) {
+    public void handleGatewayWebhook(Map<String, Object> payload) {
         paymentGateway.handleWebhook(payload)
-            .filter(notification -> "succeeded".equalsIgnoreCase(notification.status()))
+            .filter(notification -> isSuccessfulStatus(notification.status()))
             .ifPresent(this::handleSuccessfulNotification);
     }
 
     private void handleSuccessfulNotification(PaymentWebhookNotification notification) {
         log.debug("Procesando webhook para paymentIntent {}", notification.paymentIntentId());
-        confirmPayment(notification.paymentIntentId());
+        confirmPayment(notification.metadata().getOrDefault("transactionId", notification.paymentIntentId()));
     }
 
     private EventRegistration validateRegistrationContext(PaymentRequestDTO request, String userEmail) {
@@ -123,13 +148,35 @@ public class EventPaymentService {
             throw new BadRequestException("El evento está lleno");
         }
 
-        EventRegistration registration = registrationRepository.findByUserIdAndEventId(user.getId(), event.getId())
-            .orElseThrow(() -> new NotFoundException("No tienes un registro para este evento"));
+        if (event.getPrice() == null || event.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("El evento no requiere pago.");
+        }
 
-        if (registration.isPaid()) {
+        EventRegistration registration = registrationRepository.findByUserIdAndEventId(user.getId(), event.getId())
+            .orElse(null);
+
+        if (registration != null && registration.isPaid()) {
             throw new BadRequestException("Ya has pagado por este evento");
         }
 
+        if (registration == null) {
+            registration = EventRegistration.builder()
+                .user(user)
+                .event(event)
+                .paymentStatus(PaymentStatus.PENDING)
+                .isConfirmed(false)
+                .build();
+            registration = registrationRepository.save(registration);
+        }
+
         return registration;
+    }
+
+    private boolean isSuccessfulStatus(String status) {
+        return status != null && (
+            "succeeded".equalsIgnoreCase(status) ||
+                "approved".equalsIgnoreCase(status) ||
+                "success".equalsIgnoreCase(status)
+        );
     }
 }
