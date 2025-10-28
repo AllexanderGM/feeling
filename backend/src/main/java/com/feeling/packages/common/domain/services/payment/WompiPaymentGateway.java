@@ -67,9 +67,14 @@ public class WompiPaymentGateway implements PaymentGateway {
             .longValueExact();
 
         long timestamp = Instant.now(clock).toEpochMilli();
-        String eventId = command.metadata().getOrDefault("eventId", "EVT");
-        String registrationId = command.metadata().getOrDefault("registrationId", "REG");
-        String reference = "EVT-" + eventId + "-" + registrationId + "-" + timestamp;
+        String reference = Optional.ofNullable(command.metadata().get("reference"))
+            .filter(ref -> !ref.isBlank())
+            .orElseGet(() -> {
+                String eventId = command.metadata().getOrDefault("eventId", "EVT");
+                String registrationId = command.metadata().getOrDefault("registrationId", "REG");
+
+                return "EVT-" + eventId + "-" + registrationId + "-" + timestamp;
+            });
 
         String signature = generateIntegritySignature(reference, amountInCents, command.currency());
         log.debug(
@@ -86,8 +91,11 @@ public class WompiPaymentGateway implements PaymentGateway {
         responseMetadata.put("amountInCents", Long.toString(amountInCents));
         responseMetadata.put("currency", command.currency());
         responseMetadata.put("integration", "WOMPI");
-        if (redirectUrl != null && !redirectUrl.isBlank()) {
-            responseMetadata.putIfAbsent("redirectUrl", redirectUrl);
+        String entityType = responseMetadata.getOrDefault("entityType", "");
+        if (!responseMetadata.containsKey("redirectUrl")
+            && redirectUrl != null && !redirectUrl.isBlank()
+            && !"MATCH".equalsIgnoreCase(entityType)) {
+            responseMetadata.put("redirectUrl", redirectUrl);
         }
 
         return new PaymentIntentResponse(
@@ -114,12 +122,24 @@ public class WompiPaymentGateway implements PaymentGateway {
 
             String status = data.path("status").asText();
             String reference = data.path("reference").asText();
+            long amountInCents = data.path("amount_in_cents").asLong();
+            String currency = data.path("currency").asText();
+            String paymentMethodType = Optional.ofNullable(data.path("payment_method_type").asText(null)).orElse("");
+            String environment = root.path("environment").asText(null);
 
             Map<String, String> metadata = new HashMap<>();
             metadata.put("transactionId", transactionId);
             metadata.put("reference", reference);
             metadata.put("status", status);
             metadata.put("integration", "WOMPI");
+            metadata.put("amountInCents", Long.toString(amountInCents));
+            metadata.put("currency", currency);
+            if (paymentMethodType != null && !paymentMethodType.isBlank()) {
+                metadata.put("paymentMethod", paymentMethodType);
+            }
+            if (environment != null && !environment.isBlank()) {
+                metadata.put("environment", environment);
+            }
 
             return new PaymentIntentResponse(
                 null,

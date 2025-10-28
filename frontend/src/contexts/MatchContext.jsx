@@ -18,13 +18,17 @@ export const useMatch = () => {
 export const MatchProvider = ({ children }) => {
   const navigate = useNavigate()
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState({ name: '', image: '' })
 
-  const showPremiumModal = () => {
+  const showPremiumModal = (userName = '', userImage = '') => {
+    setSelectedUser({ name: userName, image: userImage })
     setIsPremiumModalOpen(true)
   }
 
   const hidePremiumModal = () => {
     setIsPremiumModalOpen(false)
+    // Limpiar el usuario seleccionado después de cerrar
+    setTimeout(() => setSelectedUser({ name: '', image: '' }), 300)
   }
 
   const handlePurchasePlan = planId => {
@@ -51,6 +55,8 @@ export const MatchProvider = ({ children }) => {
       {children}
       <PremiumMatchModal
         isOpen={isPremiumModalOpen}
+        userImage={selectedUser.image}
+        userName={selectedUser.name}
         onClose={hidePremiumModal}
         onOpenChange={hidePremiumModal}
         onPurchasePlan={handlePurchasePlan}

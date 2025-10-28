@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'
+import { Form, Input, Button, Checkbox } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
@@ -145,9 +145,9 @@ const Login = () => {
             <span className='text-xs text-gray-500 ml-2'>Recordar sesión</span>
           </label>
 
-          <Link className='text-xs text-gray-500 hover:text-gray-200 transition-colors' href={APP_PATHS.AUTH.FORGOT_PASSWORD}>
+          <RouterLink className='text-xs text-gray-500 hover:text-gray-200 transition-colors' to={APP_PATHS.AUTH.FORGOT_PASSWORD}>
             ¿Olvidaste tu contraseña?
-          </Link>
+          </RouterLink>
         </div>
 
         <div className='pt-6 space-y-6 w-full'>
@@ -188,11 +188,11 @@ const Login = () => {
         <div className='w-full text-center text-xs text-gray-500 mt-6'>
           ¿No tienes una cuenta?
           <Button
-            as={Link}
+            as={RouterLink}
             className='w-full mt-4 transition-colors'
             color='default'
-            href={APP_PATHS.AUTH.REGISTER}
             radius='full'
+            to={APP_PATHS.AUTH.REGISTER}
             variant='bordered'>
             Regístrate
           </Button>

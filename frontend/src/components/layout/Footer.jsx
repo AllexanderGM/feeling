@@ -1,5 +1,4 @@
 import { Link } from '@heroui/react'
-
 import { Facebook, GitHub, Instagram } from '@utils/socialMediaIcons.jsx'
 import Iso from '@utils/Iso.jsx'
 

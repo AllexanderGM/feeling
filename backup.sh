@@ -39,6 +39,8 @@ BACKUP_DIR="./backups"
 BACKUP_FILE="$BACKUP_DIR/backup-$DATE.sql"
 KEEP_DAYS=7 # Retención para mantenerse dentro de límites de capa gratuita
 
+echo -e "${BLUE}ℹ️ ENABLE_S3_BACKUPS=${ENABLE_S3_BACKUPS:-false}${NC}"
+
 # Obtener endpoint de base de datos desde Terraform (si estamos en AWS)
 if command -v terraform &>/dev/null && [[ -d ./infra ]]; then
     echo -e "${BLUE}🔍 Obteniendo información de la infraestructura...${NC}"
@@ -82,13 +84,23 @@ BACKUP_SIZE=$(du -h $COMPRESSED_FILE | awk '{print $1}')
 
 echo -e "${GREEN}✅ Backup completado: $COMPRESSED_FILE (Tamaño: $BACKUP_SIZE)${NC}"
 
-# Subir a S3 si estamos en AWS y el bucket existe
-if [[ -n "$AWS_ACCESS_KEY" && -n "$AWS_SECRET_KEY" && -n "$AWS_REGION" ]]; then
+# Subir a S3 si estamos en AWS y si está habilitado
+if [[ "${ENABLE_S3_BACKUPS:-false}" != "true" ]]; then
+    echo -e "${BLUE}ℹ️ Subida a S3 desactivada (ENABLE_S3_BACKUPS=false). Sólo se conservará el backup local.${NC}"
+elif command -v aws >/dev/null 2>&1; then
+    [[ -n "$AWS_PROFILE" ]] && export AWS_PROFILE
+    if [[ -n "$AWS_ACCESS_KEY" && -n "$AWS_SECRET_KEY" ]]; then
+        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY
+        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY
+    fi
+    [[ -n "$AWS_SESSION_TOKEN" ]] && export AWS_SESSION_TOKEN
+    export AWS_DEFAULT_REGION=${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}
+
     # Determinar el bucket para los backups
     if [[ -d ./infra ]]; then
-        IMAGES_BUCKET=$(cd ./infra && terraform output -raw images_bucket_name 2>/dev/null || echo "")
+        ASSETS_BUCKET=$(cd ./infra && terraform output -raw assets_bucket_name 2>/dev/null || echo "")
 
-        if [[ -n "$IMAGES_BUCKET" ]]; then
+        if [[ -n "$ASSETS_BUCKET" ]]; then
             echo -e "${BLUE}☁️ Subiendo backup a S3...${NC}"
 
             # Configurar AWS CLI con las credenciales
@@ -97,14 +109,14 @@ if [[ -n "$AWS_ACCESS_KEY" && -n "$AWS_SECRET_KEY" && -n "$AWS_REGION" ]]; then
             export AWS_DEFAULT_REGION=$AWS_REGION
 
             # Subir el backup
-            aws s3 cp $COMPRESSED_FILE s3://$IMAGES_BUCKET/backups/
+            aws s3 cp $COMPRESSED_FILE s3://$ASSETS_BUCKET/backups/
 
-            echo -e "${GREEN}✅ Backup subido a S3: s3://$IMAGES_BUCKET/backups/$(basename $COMPRESSED_FILE)${NC}"
+            echo -e "${GREEN}✅ Backup subido a S3: s3://$ASSETS_BUCKET/backups/$(basename $COMPRESSED_FILE)${NC}"
 
             # Eliminar backups antiguos en S3 (mantener solo los últimos KEEP_DAYS días)
             echo -e "${BLUE}🧹 Eliminando backups antiguos de S3...${NC}"
 
-            OLD_BACKUPS=$(aws s3 ls s3://$IMAGES_BUCKET/backups/ | awk '{print $4}' | grep -E 'backup-[0-9]{4}-[0-9]{2}-[0-9]{2}')
+            OLD_BACKUPS=$(aws s3 ls s3://$ASSETS_BUCKET/backups/ | awk '{print $4}' | grep -E 'backup-[0-9]{4}-[0-9]{2}-[0-9]{2}')
             CURRENT_DATE=$(date +%s)
 
             for backup in $OLD_BACKUPS; do
@@ -117,7 +129,7 @@ if [[ -n "$AWS_ACCESS_KEY" && -n "$AWS_SECRET_KEY" && -n "$AWS_REGION" ]]; then
 
                 if [[ $DAYS_DIFF -gt $KEEP_DAYS ]]; then
                     echo -e "${YELLOW}🗑️ Eliminando backup antiguo: $backup (${DAYS_DIFF} días)${NC}"
-                    aws s3 rm s3://$IMAGES_BUCKET/backups/$backup
+                    aws s3 rm s3://$ASSETS_BUCKET/backups/$backup
                 fi
             done
         else
@@ -125,7 +137,7 @@ if [[ -n "$AWS_ACCESS_KEY" && -n "$AWS_SECRET_KEY" && -n "$AWS_REGION" ]]; then
         fi
     fi
 else
-    echo -e "${BLUE}ℹ️ No se detectaron credenciales AWS, omitiendo subida a S3${NC}"
+    echo -e "${BLUE}ℹ️ AWS CLI no disponible, omitiendo subida a S3${NC}"
 fi
 
 # Eliminar backups locales antiguos

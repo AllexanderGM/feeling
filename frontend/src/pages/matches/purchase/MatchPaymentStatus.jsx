@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import { PaymentStatusCard, PaymentStatusBadge, PaymentDetailRow } from '@components/payment'
 import { PaymentService, WompiAdapter } from '@services/payment'
+import { matchPlanService } from '@services'
 import { APP_PATHS } from '@constants/paths.js'
 import { useError } from '@hooks'
 import { Logger } from '@utils/logger.js'
@@ -17,7 +18,9 @@ const MatchPaymentStatus = () => {
 
   // Extraer parámetros de la URL usando WompiAdapter
   const params = useMemo(() => WompiAdapter.extractAllParams(searchParams), [searchParams])
-  const { transactionId, reference: referenceFromQuery, status: statusFromQuery, environment: environmentFromQuery } = params
+  const rawEnvironment = params.environment
+  const environmentFromQuery = rawEnvironment === 'undefined' ? null : rawEnvironment
+  const { transactionId, reference: referenceFromQuery, status: statusFromQuery } = params
 
   const [isLoading, setIsLoading] = useState(Boolean(transactionId))
   const [paymentResult, setPaymentResult] = useState(null)
@@ -30,8 +33,12 @@ const MatchPaymentStatus = () => {
       setPaymentResult({
         ...response,
         status: normalizedStatus,
-        metadata: response?.data || {},
-        environment: environmentFromQuery
+        metadata: response?.data || {
+          transactionId: response?.transactionId,
+          status: response?.gatewayStatus,
+          paymentMethod: response?.paymentMethod
+        },
+        environment: response?.environment || environmentFromQuery
       })
       setErrorState(null)
       setIsLoading(false)
@@ -77,27 +84,38 @@ const MatchPaymentStatus = () => {
       referenceFromQuery
     })
 
-    // TODO: Implementar servicio de confirmación de pago para matches
-    // Por ahora simulamos una respuesta basada en los parámetros
-    const mockResponse = {
-      success: true,
-      status: statusFromQuery || 'APPROVED',
-      paymentReference: referenceFromQuery,
-      transactionId: transactionId,
-      planId: PaymentService.extractEntityIdFromReference(referenceFromQuery),
-      data: {
-        transactionId: transactionId,
-        status: statusFromQuery || 'APPROVED'
-      }
+    if (!referenceFromQuery) {
+      throw new Error('No recibimos la referencia del pago desde Wompi.')
     }
+
+    const response = await matchPlanService.confirmMatchPlanPurchase({
+      transactionId,
+      paymentReference: referenceFromQuery
+    })
+
+    const normalizedStatus = response?.status || statusFromQuery || 'UNKNOWN'
 
     Logger.info(Logger.CATEGORIES.SERVICE, 'match_payment_status', 'Payment confirmation received', {
       transactionId,
-      status: mockResponse.status,
-      reference: mockResponse.paymentReference
+      status: normalizedStatus,
+      reference: response?.paymentReference
     })
 
-    return mockResponse
+    return {
+      status: normalizedStatus,
+      paymentReference: response?.paymentReference || referenceFromQuery,
+      transactionId: response?.transactionId || transactionId,
+      gatewayStatus: response?.gatewayStatus,
+      paymentMethod: response?.paymentMethod,
+      environment: response?.environment,
+      matchPlan: response?.matchPlan,
+      userMatchPlan: response?.userMatchPlan,
+      data: {
+        transactionId: response?.transactionId || transactionId,
+        status: response?.gatewayStatus || normalizedStatus,
+        paymentMethod: response?.paymentMethod
+      }
+    }
   }, [referenceFromQuery, statusFromQuery, transactionId])
 
   useEffect(() => {
@@ -118,6 +136,25 @@ const MatchPaymentStatus = () => {
         reference: referenceFromQuery
       })
       handleWarning('No pudimos validar tu pago porque no recibimos la transacción desde Wompi.')
+
+      return undefined
+    }
+
+    if (!referenceFromQuery) {
+      Logger.warn(Logger.CATEGORIES.SERVICE, 'match_payment_status', 'Missing payment reference on redirect', {
+        context: {
+          transactionId,
+          statusFromQuery,
+          environmentFromQuery
+        }
+      })
+      setIsLoading(false)
+      setErrorState({
+        message: 'No recibimos la referencia del pago desde Wompi.',
+        status: statusFromQuery,
+        reference: referenceFromQuery
+      })
+      handleWarning('No pudimos validar tu pago porque no recibimos la referencia del pago.')
 
       return undefined
     }
@@ -166,9 +203,9 @@ const MatchPaymentStatus = () => {
   const statusConfig = PaymentService.getStatusConfig(statusKey)
 
   const paymentReference = paymentResult?.paymentReference || referenceFromQuery || errorState?.reference
-  const planId = paymentResult?.planId || null
-  const wompiTransactionId = paymentResult?.metadata?.transactionId || paymentResult?.metadata?.id || transactionId || null
-  const wompiStatus = paymentResult?.metadata?.status || effectiveStatus
+  const planId = paymentResult?.matchPlan?.id || null
+  const wompiTransactionId = paymentResult?.transactionId || paymentResult?.metadata?.transactionId || transactionId || null
+  const wompiStatus = paymentResult?.gatewayStatus || paymentResult?.metadata?.status || effectiveStatus
   const wompiEnvironment = paymentResult?.environment || environmentFromQuery
 
   // Extraer planId de la referencia usando PaymentService
@@ -238,6 +275,20 @@ const MatchPaymentStatus = () => {
                   <PaymentDetailRow label='ID de transacción' value={wompiTransactionId} />
                   <PaymentDetailRow label='Referencia de pago' value={paymentReference} />
                   <PaymentDetailRow label='ID del plan' value={planId || extractedPlanId ? `#${planId || extractedPlanId}` : null} />
+                  <PaymentDetailRow label='Plan adquirido' value={paymentResult?.matchPlan?.name} />
+                  <PaymentDetailRow
+                    label='Intentos incluidos'
+                    value={
+                      paymentResult?.matchPlan?.attempts
+                        ? `${paymentResult.matchPlan.attempts} ${paymentResult.matchPlan.attempts === 1 ? 'intento' : 'intentos'}`
+                        : null
+                    }
+                  />
+                  <PaymentDetailRow
+                    label='Intentos disponibles tras la compra'
+                    value={paymentResult?.userMatchPlan?.remainingAttempts != null ? paymentResult.userMatchPlan.remainingAttempts : null}
+                  />
+                  <PaymentDetailRow label='Método de pago' value={paymentResult?.paymentMethod} />
                   <PaymentDetailRow label='Estado informado por Wompi' value={wompiStatus} />
                   <PaymentDetailRow label='Ambiente' value={wompiEnvironment} />
                   <PaymentDetailRow label='Estado recibido en la redirección' value={statusFromQuery || null} />

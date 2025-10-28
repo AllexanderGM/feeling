@@ -63,7 +63,7 @@ public class MatchQueryController {
     }
 
     @GetMapping("/sent")
-    public ResponseEntity<Page<MatchResponseDTO>> getSentMatches(
+    public ResponseEntity<Page<MatchHistoryItemDTO>> getSentMatches(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
         Authentication authentication) {
@@ -71,12 +71,12 @@ public class MatchQueryController {
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<MatchResponseDTO> matches = matchService.getSentMatches(user, pageable);
+        Page<MatchHistoryItemDTO> matches = matchService.getSentMatchesAsHistory(user, pageable);
         return ResponseEntity.ok(matches);
     }
 
     @GetMapping("/received")
-    public ResponseEntity<Page<MatchResponseDTO>> getReceivedMatches(
+    public ResponseEntity<Page<MatchHistoryItemDTO>> getReceivedMatches(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
         Authentication authentication) {
@@ -84,12 +84,12 @@ public class MatchQueryController {
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<MatchResponseDTO> matches = matchService.getReceivedMatches(user, pageable);
+        Page<MatchHistoryItemDTO> matches = matchService.getReceivedMatchesAsHistory(user, pageable);
         return ResponseEntity.ok(matches);
     }
 
     @GetMapping("/received/pending")
-    public ResponseEntity<Page<MatchResponseDTO>> getPendingReceivedMatches(
+    public ResponseEntity<Page<MatchHistoryItemDTO>> getPendingReceivedMatches(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
         Authentication authentication) {
@@ -97,12 +97,12 @@ public class MatchQueryController {
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<MatchResponseDTO> matches = matchService.getPendingReceivedMatches(user, pageable);
+        Page<MatchHistoryItemDTO> matches = matchService.getPendingReceivedMatchesAsHistory(user, pageable);
         return ResponseEntity.ok(matches);
     }
 
     @GetMapping("/accepted")
-    public ResponseEntity<Page<MatchResponseDTO>> getAcceptedMatches(
+    public ResponseEntity<Page<MatchHistoryItemDTO>> getAcceptedMatches(
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size,
         Authentication authentication) {
@@ -110,7 +110,7 @@ public class MatchQueryController {
         User user = userAuthorizationService.getCurrentUser(authentication);
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<MatchResponseDTO> matches = matchService.getAcceptedMatches(user, pageable);
+        Page<MatchHistoryItemDTO> matches = matchService.getAcceptedMatchesAsHistory(user, pageable);
         return ResponseEntity.ok(matches);
     }
 

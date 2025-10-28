@@ -18,12 +18,15 @@ import {
   ModalBody,
   ModalFooter
 } from '@heroui/react'
-import { ArrowLeft, CalendarDays, Clock, MapPin, Ticket, Users, AlertTriangle, Check, Sparkles, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Clock, MapPin, Ticket, Users, AlertTriangle, Check, Sparkles, ShieldCheck, XCircle } from 'lucide-react'
 import { bookingService, eventService } from '@services'
 import { useAuth, useError } from '@hooks'
 import { APP_PATHS } from '@constants/paths'
 import { parseJavaDate } from '@utils/dateUtils.js'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
+import { RichTextViewer } from '@components/ui/richtext'
+import LoadData from '@components/layout/LoadData.jsx'
+import LoadDataError from '@components/layout/LoadDataError.jsx'
 
 import ImageGallery from './components/ImageGallery.jsx'
 
@@ -65,6 +68,30 @@ const EventDetail = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState('')
 
+  const registrationStatus = registration?.paymentStatus || null
+  const registrationStatusKey = registrationStatus ? registrationStatus.toUpperCase() : null
+  const isRegistrationPaid = Boolean(registration?.isPaid || registrationStatusKey === 'COMPLETED')
+  const isRegistrationPending = Boolean(registration?.isPending || registrationStatusKey === 'PENDING')
+  const isRegistrationFailed = registrationStatusKey === 'FAILED'
+  const hasConfirmedRegistration = Boolean(registration?.isConfirmed || isRegistrationPaid)
+
+  const unwrapResponse = useCallback(response => {
+    if (!response) return null
+
+    if (typeof response === 'object' && response !== null && 'success' in response) {
+      if (!response.success) {
+        const error = new Error(response.message || 'Error al procesar la respuesta del servicio.')
+
+        error.response = response
+        throw error
+      }
+
+      return response.data
+    }
+
+    return response
+  }, [])
+
   const loadEvent = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) {
       setEventError('Identificador de evento no válido')
@@ -77,7 +104,8 @@ const EventDetail = () => {
     setEventError('')
 
     try {
-      const data = await eventService.getEventById(numericEventId)
+      const response = await eventService.getEventById(numericEventId)
+      const data = unwrapResponse(response)
 
       setEventData(data)
     } catch (error) {
@@ -97,7 +125,7 @@ const EventDetail = () => {
     } finally {
       setEventLoading(false)
     }
-  }, [handleError, numericEventId])
+  }, [handleError, numericEventId, unwrapResponse])
 
   const loadRegistrationState = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) {
@@ -111,11 +139,13 @@ const EventDetail = () => {
     setRegistrationLoading(true)
 
     try {
-      const registered = await bookingService.isRegisteredToEvent(numericEventId)
+      const registeredResponse = await bookingService.isRegisteredToEvent(numericEventId)
+      const registered = unwrapResponse(registeredResponse)
 
       if (registered) {
         try {
-          const registrationData = await bookingService.getMyRegistrationForEvent(numericEventId)
+          const registrationResponse = await bookingService.getMyRegistrationForEvent(numericEventId)
+          const registrationData = unwrapResponse(registrationResponse)
 
           setRegistration(registrationData)
         } catch (innerError) {
@@ -145,7 +175,7 @@ const EventDetail = () => {
     } finally {
       setRegistrationLoading(false)
     }
-  }, [handleError, numericEventId])
+  }, [handleError, numericEventId, unwrapResponse])
 
   useEffect(() => {
     let isMounted = true
@@ -163,6 +193,18 @@ const EventDetail = () => {
       isMounted = false
     }
   }, [loadEvent, loadRegistrationState])
+
+  useEffect(() => {
+    if (!isRegistrationPending) {
+      return
+    }
+
+    const interval = setInterval(() => {
+      loadRegistrationState()
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [isRegistrationPending, loadRegistrationState])
 
   const eventDate = useMemo(() => parseJavaDate(eventData?.eventDate), [eventData?.eventDate])
   const createdAt = useMemo(() => parseJavaDate(eventData?.createdAt), [eventData?.createdAt])
@@ -210,7 +252,7 @@ const EventDetail = () => {
     return 'Cupos limitados'
   }, [eventData])
 
-  const canRegister = useMemo(() => {
+  const isEventOpenForRegistration = useMemo(() => {
     if (!eventData) return false
     if (eventData.isFull) return false
     if (eventData.hasAvailableSpots === false) return false
@@ -221,9 +263,36 @@ const EventDetail = () => {
     return true
   }, [eventData])
 
+  const canAttemptReservation = useMemo(() => {
+    if (!isEventOpenForRegistration) return false
+
+    return !hasConfirmedRegistration
+  }, [hasConfirmedRegistration, isEventOpenForRegistration])
+
   const registrationNote = useMemo(() => {
     if (!eventData) {
       return { text: 'Información no disponible', tone: 'warning' }
+    }
+
+    if (isRegistrationPaid) {
+      return {
+        text: 'Tu pago se registró correctamente. Te enviaremos recordatorios antes del evento.',
+        tone: 'success'
+      }
+    }
+
+    if (isRegistrationPending) {
+      return {
+        text: 'Tu pago está en revisión. Te avisaremos por correo cuando se confirme.',
+        tone: 'warning'
+      }
+    }
+
+    if (isRegistrationFailed) {
+      return {
+        text: 'No pudimos confirmar el pago. Revisa tu método de pago o vuelve a intentarlo.',
+        tone: 'danger'
+      }
     }
 
     if (eventData.isFull || eventData.hasAvailableSpots === false) {
@@ -235,10 +304,75 @@ const EventDetail = () => {
     }
 
     return { text: 'Asegura tu cupo cuanto antes', tone: 'info' }
-  }, [eventData])
+  }, [eventData, isRegistrationFailed, isRegistrationPaid, isRegistrationPending])
 
   const registrationDate = useMemo(() => parseJavaDate(registration?.registrationDate), [registration?.registrationDate])
   const paymentDate = useMemo(() => parseJavaDate(registration?.paymentDate), [registration?.paymentDate])
+
+  const registrationCardConfig = useMemo(() => {
+    if (!registration) {
+      return null
+    }
+
+    if (isRegistrationPaid) {
+      return {
+        cardClass: 'bg-green-500/15 backdrop-blur-sm border-green-500/30',
+        headerIconBg: 'bg-green-500/20',
+        headerIconColor: 'text-green-400',
+        chipClass: 'border border-green-400/40 bg-green-500/20 text-xs text-green-200',
+        title: 'Tu reserva está confirmada',
+        icon: Check,
+        footnote:
+          'Recibirás recordatorios por correo antes del evento. También puedes consultar tu correo para más detalles de la experiencia.'
+      }
+    }
+
+    if (isRegistrationPending) {
+      return {
+        cardClass: 'bg-amber-500/15 backdrop-blur-sm border-amber-500/30',
+        headerIconBg: 'bg-amber-500/20',
+        headerIconColor: 'text-amber-400',
+        chipClass: 'border border-amber-400/40 bg-amber-500/20 text-xs text-amber-100',
+        title: 'Estamos procesando tu pago',
+        icon: Clock,
+        footnote: 'Tu pago está en revisión. Te avisaremos por correo cuando se confirme.'
+      }
+    }
+
+    if (isRegistrationFailed) {
+      return {
+        cardClass: 'bg-red-500/15 backdrop-blur-sm border-red-500/30',
+        headerIconBg: 'bg-red-500/20',
+        headerIconColor: 'text-red-400',
+        chipClass: 'border border-red-400/40 bg-red-500/20 text-xs text-red-100',
+        title: 'No pudimos confirmar tu pago',
+        icon: XCircle,
+        footnote: 'Revisa tu método de pago o intenta nuevamente en unos minutos.'
+      }
+    }
+
+    if (registrationStatusKey === 'CANCELLED') {
+      return {
+        cardClass: 'bg-gray-500/15 backdrop-blur-sm border-gray-500/30',
+        headerIconBg: 'bg-gray-500/20',
+        headerIconColor: 'text-gray-300',
+        chipClass: 'border border-gray-400/40 bg-gray-500/20 text-xs text-gray-200',
+        title: 'Tu reserva fue cancelada',
+        icon: AlertTriangle,
+        footnote: 'Si necesitas volver a participar, realiza una nueva reserva.'
+      }
+    }
+
+    return {
+      cardClass: 'bg-orange-500/15 backdrop-blur-sm border-orange-400/30',
+      headerIconBg: 'bg-orange-500/20',
+      headerIconColor: 'text-orange-400',
+      chipClass: 'border border-orange-300/40 bg-orange-400/20 text-xs text-orange-100',
+      title: 'Tu reserva fue registrada',
+      icon: Check,
+      footnote: 'En breve recibirás un correo con los pasos para finalizar tu pago.'
+    }
+  }, [registration, isRegistrationFailed, isRegistrationPaid, isRegistrationPending, registrationStatusKey])
 
   const ensureWompiScriptLoaded = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -302,15 +436,18 @@ const EventDetail = () => {
         throw new Error('No fue posible inicializar el checkout de Wompi')
       }
 
-      const publicKey = paymentSetup?.data?.publicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY
-      const amountInCents = Number(paymentSetup?.data?.amountInCents ?? 0)
-      const currency = paymentSetup?.data?.currency || 'COP'
-      const signature = paymentSetup?.data?.signature
-      const redirectUrl = paymentSetup?.data?.redirectUrl || window.location.href
+      const wompiData = paymentSetup?.data ?? paymentSetup
 
-      if (!publicKey || !signature || !paymentSetup?.paymentReference) {
+      const publicKey = wompiData?.publicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY
+      const amountInCents = Number(wompiData?.amountInCents ?? 0)
+      const currency = wompiData?.currency || 'COP'
+      const signature = wompiData?.signature
+      const redirectUrl = wompiData?.redirectUrl || window.location.href
+      const paymentReference = paymentSetup?.paymentReference ?? wompiData?.paymentReference
+
+      if (!publicKey || !signature || !paymentReference) {
         // eslint-disable-next-line no-console
-        console.error('[Wompi] datos incompletos', { publicKey, signature, reference: paymentSetup?.paymentReference })
+        console.error('[Wompi] datos incompletos', { publicKey, signature, reference: paymentReference })
         throw new Error('Datos de pago incompletos para iniciar Wompi')
       }
 
@@ -321,13 +458,13 @@ const EventDetail = () => {
         publicKey,
         amountInCents,
         currency,
-        reference: paymentSetup.paymentReference,
+        reference: paymentReference,
         redirectUrl,
         hasWidget: Boolean(window.WidgetCheckout)
       })
       // eslint-disable-next-line no-console
       console.debug('[Wompi] firma calculada', {
-        reference: paymentSetup.paymentReference,
+        reference: paymentReference,
         amountInCents,
         currency,
         signaturePreview: signature?.slice(0, 12)
@@ -342,7 +479,7 @@ const EventDetail = () => {
         const checkout = new window.WidgetCheckout({
           currency,
           amountInCents,
-          reference: paymentSetup.paymentReference,
+          reference: paymentReference,
           publicKey,
           redirectUrl,
           signature: {
@@ -377,7 +514,7 @@ const EventDetail = () => {
 
             if (transactionStatus === 'APPROVED' && transactionId) {
               try {
-                await bookingService.confirmEventPayment(transactionId)
+                await unwrapResponse(await bookingService.confirmEventPayment(transactionId))
                 handleSuccess('¡Pago confirmado! Tu lugar está reservado.')
                 await loadEvent()
                 await loadRegistrationState()
@@ -424,6 +561,7 @@ const EventDetail = () => {
       handleWarning,
       loadEvent,
       loadRegistrationState,
+      unwrapResponse,
       user?.email,
       user?.lastName,
       user?.name
@@ -444,7 +582,8 @@ const EventDetail = () => {
         setIsProcessingPayment(true)
 
         try {
-          const paymentSetup = await bookingService.createEventPaymentIntent(numericEventId)
+          const paymentSetupResponse = await bookingService.createEventPaymentIntent(numericEventId)
+          const paymentSetup = unwrapResponse(paymentSetupResponse)
 
           await launchWompiCheckout(paymentSetup)
         } catch (error) {
@@ -472,8 +611,9 @@ const EventDetail = () => {
       }
 
       const response = await bookingService.registerToEvent({ eventId: numericEventId })
+      const registrationCreated = unwrapResponse(response)
 
-      setRegistration(response)
+      setRegistration(registrationCreated)
       setIsRegistered(true)
       setIsReserveModalOpen(false)
       handleSuccess('Tu reserva se registró correctamente.')
@@ -488,33 +628,59 @@ const EventDetail = () => {
     } finally {
       setActionLoading(false)
     }
-  }, [eventData?.price, handleError, handleSuccess, launchWompiCheckout, loadEvent, loadRegistrationState, numericEventId])
+  }, [eventData?.price, handleError, handleSuccess, launchWompiCheckout, loadEvent, loadRegistrationState, numericEventId, unwrapResponse])
 
   const handleOpenReserveModal = useCallback(() => {
     if (actionLoading || isProcessingPayment) return
+    if (!canAttemptReservation) return
     if (!(eventData?.price > 0)) {
       handleRegister()
 
       return
     }
     setIsReserveModalOpen(true)
-  }, [actionLoading, isProcessingPayment, eventData?.price, handleRegister])
+  }, [actionLoading, canAttemptReservation, eventData?.price, handleRegister, isProcessingPayment])
 
   const handleConfirmReserve = useCallback(async () => {
     await handleRegister()
   }, [handleRegister])
+
+  const handleReleasePendingReservation = useCallback(async () => {
+    if (!Number.isFinite(numericEventId)) return
+
+    setActionLoading(true)
+
+    try {
+      const response = await bookingService.releasePendingRegistration(numericEventId)
+
+      unwrapResponse(response)
+      handleWarning('Liberamos la reserva pendiente. Puedes intentar nuevamente.')
+      await loadRegistrationState()
+    } catch (error) {
+      handleError(error, {
+        customMessage: 'No pudimos liberar la reserva pendiente. Intenta nuevamente.',
+        showToast: true
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }, [handleError, handleWarning, loadRegistrationState, numericEventId, unwrapResponse])
 
   const goBackToEvents = useCallback(() => {
     navigate(APP_PATHS.USER.EVENTS)
   }, [navigate])
 
   const handleGoBack = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      navigate(-1)
-    } else {
-      goBackToEvents()
-    }
-  }, [goBackToEvents, navigate])
+    navigate(APP_PATHS.USER.EVENTS)
+  }, [navigate])
+
+  if (eventLoading && !eventData) {
+    return <LoadData>Cargando información del evento...</LoadData>
+  }
+
+  if (!eventLoading && eventError && !eventData) {
+    return <LoadDataError message={eventError} retryAction={loadEvent} />
+  }
 
   const renderHeaderSection = () => {
     if (eventLoading) {
@@ -573,7 +739,7 @@ const EventDetail = () => {
               ) : null}
             </div>
             <h1 className='text-xl sm:text-2xl font-bold text-gray-200 mb-2'>{eventData.title}</h1>
-            <p className='text-sm text-gray-400'>{eventData.description}</p>
+            <RichTextViewer className='text-sm' content={eventData.description} />
           </CardBody>
         </Card>
       </div>
@@ -796,13 +962,17 @@ const EventDetail = () => {
                 <Tooltip
                   color='default'
                   content={
-                    canRegister ? 'Reserva tu lugar para asistir al evento.' : 'Este evento no admite más reservas en este momento.'
+                    canAttemptReservation
+                      ? 'Reserva tu lugar para asistir al evento.'
+                      : hasConfirmedRegistration
+                        ? 'Ya tienes una reserva confirmada para este evento.'
+                        : 'Este evento no admite más reservas en este momento.'
                   }>
                   <div>
                     <Button
                       className='w-full'
                       color='primary'
-                      isDisabled={!canRegister || actionLoading || isProcessingPayment}
+                      isDisabled={!canAttemptReservation || actionLoading || isProcessingPayment}
                       isLoading={actionLoading || isProcessingPayment}
                       size='md'
                       variant='shadow'
@@ -812,7 +982,16 @@ const EventDetail = () => {
                   </div>
                 </Tooltip>
 
-                <p className={`text-xs ${registrationNote.tone === 'danger' ? 'text-red-300' : 'text-gray-400'}`}>
+                <p
+                  className={`text-xs ${
+                    registrationNote.tone === 'danger'
+                      ? 'text-red-300'
+                      : registrationNote.tone === 'warning'
+                        ? 'text-amber-300'
+                        : registrationNote.tone === 'success'
+                          ? 'text-green-300'
+                          : 'text-gray-400'
+                  }`}>
                   {registrationNote.text}
                 </p>
                 {isProcessingPayment ? (
@@ -825,45 +1004,80 @@ const EventDetail = () => {
 
           {/* Card de confirmación NARANJA - Solo cuando SÍ está registrado */}
           {isRegistered && registration && !registrationLoading ? (
-            <Card className='bg-orange-500/15 backdrop-blur-sm border-orange-400/30'>
+            <Card className={registrationCardConfig?.cardClass ?? 'bg-orange-500/15 backdrop-blur-sm border-orange-400/30'}>
               <CardHeader className='p-5 sm:p-6 pb-4'>
                 <div className='flex items-center gap-3'>
-                  <div className='w-11 h-11 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
-                    <Check className='w-6 h-6 text-orange-400' />
+                  <div
+                    className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${registrationCardConfig?.headerIconBg ?? 'bg-orange-500/20'}`}>
+                    {(registrationCardConfig?.icon || Check) &&
+                      (() => {
+                        const IconComponent = registrationCardConfig?.icon || Check
+
+                        return <IconComponent className={`w-6 h-6 ${registrationCardConfig?.headerIconColor ?? 'text-orange-400'}`} />
+                      })()}
                   </div>
-                  <span className='text-sm font-semibold text-gray-200'>Tu reserva está confirmada</span>
+                  <span className='text-sm font-semibold text-gray-200'>
+                    {registrationCardConfig?.title || 'Tu reserva fue registrada'}
+                  </span>
                 </div>
               </CardHeader>
-              <Divider className='border-orange-400/20' />
+              <Divider className='border-white/10' />
               <CardBody className='p-5 sm:p-6 space-y-3 text-sm'>
                 <div className='flex items-center justify-between gap-4'>
-                  <span className='text-orange-100/80'>Estado</span>
+                  <span className='text-gray-200/80'>Estado</span>
                   <Chip
-                    className='border border-orange-300/40 bg-orange-400/20 text-xs text-orange-100'
-                    startContent={<Check size={14} />}
+                    className={registrationCardConfig?.chipClass ?? 'border border-orange-300/40 bg-orange-400/20 text-xs text-orange-100'}
+                    startContent={(() => {
+                      const IconComponent = registrationCardConfig?.icon || Check
+
+                      return <IconComponent size={14} />
+                    })()}
                     variant='flat'>
                     {registration.paymentStatusDisplayName || registration.paymentStatus || 'Registrado'}
                   </Chip>
                 </div>
                 {registrationDate ? (
                   <div className='flex items-center justify-between gap-4'>
-                    <span className='text-orange-100/80'>Te registraste</span>
-                    <span className='text-right text-orange-50'>
+                    <span className='text-gray-200/70'>Te registraste</span>
+                    <span className='text-right text-gray-100'>
                       {new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(registrationDate)}
                     </span>
                   </div>
                 ) : null}
                 {paymentDate ? (
                   <div className='flex items-center justify-between gap-4'>
-                    <span className='text-orange-100/80'>Pago confirmado</span>
-                    <span className='text-right text-orange-50'>
+                    <span className='text-gray-200/70'>Pago confirmado</span>
+                    <span className='text-right text-gray-100'>
                       {new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(paymentDate)}
                     </span>
                   </div>
                 ) : null}
+
+                {isRegistrationFailed ? (
+                  <Button
+                    className='w-full mt-2'
+                    color='primary'
+                    isDisabled={actionLoading || isProcessingPayment}
+                    isLoading={actionLoading || isProcessingPayment}
+                    variant='flat'
+                    onPress={handleOpenReserveModal}>
+                    Intentar el pago nuevamente
+                  </Button>
+                ) : null}
+                {isRegistrationPending ? (
+                  <Button
+                    className='w-full mt-2'
+                    color='warning'
+                    isDisabled={actionLoading || isProcessingPayment}
+                    isLoading={actionLoading}
+                    variant='bordered'
+                    onPress={handleReleasePendingReservation}>
+                    Liberar reserva pendiente
+                  </Button>
+                ) : null}
               </CardBody>
-              <CardFooter className='p-5 sm:p-6 pt-3 flex-col items-start gap-2 text-xs text-orange-100/80'>
-                <span>Recibirás recordatorios por correo antes del evento.</span>
+              <CardFooter className='p-5 sm:p-6 pt-3 flex-col items-start gap-2 text-xs text-gray-200/80'>
+                <span>{registrationCardConfig?.footnote || 'Recibirás recordatorios por correo antes del evento.'}</span>
                 <span>Para ajustes o reembolsos, contáctanos directamente.</span>
               </CardFooter>
             </Card>

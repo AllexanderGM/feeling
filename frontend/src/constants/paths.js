@@ -30,7 +30,7 @@ export const APP_PATHS = {
     FAVORITES: '/favorites',
     NOTIFICATIONS: '/notifications',
     SUPPORT: '/support',
-    MY_MATCHES: '/my-matches',
+    MY_MATCHES: '/matches',
     PURCHASE_PLANS: '/purchase/plans',
     PURCHASE_CHECKOUT: '/purchase/checkout',
     PURCHASE_PAYMENT: '/purchase/payment',

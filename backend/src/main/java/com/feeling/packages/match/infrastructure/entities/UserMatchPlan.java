@@ -33,6 +33,9 @@ public class UserMatchPlan {
     private Integer remainingAttempts;
 
     @Column(nullable = false)
+    private Integer reservedAttempts = 0;
+
+    @Column(nullable = false)
     private Boolean isActive = true;
 
     @Column
@@ -58,15 +61,55 @@ public class UserMatchPlan {
     }
 
     public void useAttempt() {
-        if (this.remainingAttempts > 0) {
-            this.remainingAttempts--;
+        if (!hasSpareAttempts()) {
+            throw new IllegalStateException("No hay intentos disponibles para consumir.");
         }
-        if (this.remainingAttempts == 0) {
+
+        this.remainingAttempts--;
+        if (this.remainingAttempts <= 0) {
             this.isActive = false;
         }
     }
 
     public boolean hasAttemptsLeft() {
         return this.remainingAttempts > 0 && this.isActive;
+    }
+
+    public boolean hasSpareAttempts() {
+        int remaining = remainingAttempts != null ? remainingAttempts : 0;
+        int reserved = reservedAttempts != null ? reservedAttempts : 0;
+        return remaining - reserved > 0 && Boolean.TRUE.equals(isActive);
+    }
+
+    public int getAvailableForNewMatches() {
+        int remaining = remainingAttempts != null ? remainingAttempts : 0;
+        int reserved = reservedAttempts != null ? reservedAttempts : 0;
+        int available = remaining - reserved;
+        return Math.max(available, 0);
+    }
+
+    public void reserveAttempt() {
+        if (!hasSpareAttempts()) {
+            throw new IllegalStateException("No hay intentos disponibles para reservar.");
+        }
+        this.reservedAttempts = (reservedAttempts != null ? reservedAttempts : 0) + 1;
+    }
+
+    public void releaseReservedAttempt() {
+        if (reservedAttempts == null || reservedAttempts <= 0) {
+            return;
+        }
+        this.reservedAttempts--;
+        if (this.remainingAttempts != null && this.remainingAttempts > 0) {
+            this.isActive = true;
+        }
+    }
+
+    public void consumeReservedAttempt() {
+        if (reservedAttempts == null || reservedAttempts <= 0) {
+            throw new IllegalStateException("No existen intentos reservados para consumir.");
+        }
+        this.reservedAttempts--;
+        useAttempt();
     }
 }

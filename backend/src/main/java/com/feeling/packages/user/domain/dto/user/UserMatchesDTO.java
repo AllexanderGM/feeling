@@ -12,13 +12,19 @@ public record UserMatchesDTO(
     Integer availableAttempts,
 
     @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
+    Integer reservedAttempts,
+
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
+    Integer totalRemainingAttempts,
+
+    @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Integer todayMatches,
 
     @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
-    Integer totalMatches,
+    Long sentMatches,
 
     @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
-    Integer maxDailyAttempts,
+    Long receivedMatches,
 
     @JsonView({UserViews.Internal.class, AuthViews.Session.Full.class})
     Long pendingSent,

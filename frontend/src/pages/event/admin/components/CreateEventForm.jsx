@@ -7,7 +7,6 @@ import {
   ModalFooter,
   Button,
   Input,
-  Textarea,
   Select,
   SelectItem,
   Card,
@@ -15,6 +14,7 @@ import {
   Chip
 } from '@heroui/react'
 import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon } from 'lucide-react'
+import { RichTextEditor } from '@components/ui/richtext'
 
 const EVENT_CATEGORIES = [
   { key: 'CULTURAL', label: 'Cultural' },
@@ -174,20 +174,20 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                   onChange={e => handleInputChange('title', e.target.value)}
                 />
 
-                <Textarea
-                  classNames={{
-                    input: 'text-gray-200',
-                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-                  }}
-                  errorMessage={errors.description}
-                  isInvalid={!!errors.description}
-                  label='Descripción'
-                  maxRows={6}
-                  minRows={3}
-                  placeholder='Describe el evento, actividades incluidas, lugar, qué esperar...'
-                  value={formData.description}
-                  onChange={e => handleInputChange('description', e.target.value)}
-                />
+                <div>
+                  <label className='block text-sm font-medium text-gray-200 mb-2' htmlFor='event-description'>
+                    Descripción
+                  </label>
+                  <RichTextEditor
+                    description='Usa el editor para dar formato al texto'
+                    error={errors.description}
+                    id='event-description'
+                    maxLength={2000}
+                    placeholder='Describe el evento, actividades incluidas, lugar, qué esperar...'
+                    value={formData.description}
+                    onChange={value => handleInputChange('description', value)}
+                  />
+                </div>
 
                 <Input
                   classNames={{

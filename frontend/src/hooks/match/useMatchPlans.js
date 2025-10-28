@@ -27,7 +27,7 @@ export const useMatchPlans = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar planes disponibles', error)
+      handleError(error, { customMessage: 'Error al cargar planes disponibles' })
 
       return []
     } finally {
@@ -35,18 +35,39 @@ export const useMatchPlans = () => {
     }
   }, [handleError])
 
-  const purchasePlan = useCallback(
-    async planId => {
+  const createPaymentIntent = useCallback(
+    async matchPlanId => {
       try {
         setLoading(true)
-        const response = await matchService.purchaseMatchPlan(planId)
 
-        // Update user plan info after successful purchase
-        setUserPlan(response.userPlan)
+        const response = await matchService.createMatchPlanPaymentIntent(matchPlanId)
 
         return response
       } catch (error) {
-        handleError('Error al comprar plan', error)
+        handleError(error, { customMessage: 'Error al preparar el pago del plan' })
+
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError]
+  )
+
+  const purchasePlan = useCallback(
+    async payload => {
+      try {
+        setLoading(true)
+        const response = await matchService.confirmMatchPlanPurchase(payload)
+
+        // Update user plan info after successful purchase
+        if (response?.userMatchPlan) {
+          setUserPlan(response.userMatchPlan)
+        }
+
+        return response
+      } catch (error) {
+        handleError(error, { customMessage: 'Error al confirmar la compra del plan' })
         throw error
       } finally {
         setLoading(false)
@@ -69,7 +90,7 @@ export const useMatchPlans = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar todos los planes', error)
+        handleError(error, { customMessage: 'Error al cargar todos los planes' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -90,7 +111,7 @@ export const useMatchPlans = () => {
 
         return response
       } catch (error) {
-        handleError('Error al crear plan', error)
+        handleError(error, { customMessage: 'Error al crear plan' })
         throw error
       } finally {
         setLoading(false)
@@ -110,7 +131,7 @@ export const useMatchPlans = () => {
 
         return response
       } catch (error) {
-        handleError('Error al actualizar plan', error)
+        handleError(error, { customMessage: 'Error al actualizar plan' })
         throw error
       } finally {
         setLoading(false)
@@ -130,7 +151,7 @@ export const useMatchPlans = () => {
 
         return response
       } catch (error) {
-        handleError('Error al eliminar plan', error)
+        handleError(error, { customMessage: 'Error al eliminar plan' })
         throw error
       } finally {
         setLoading(false)
@@ -147,7 +168,7 @@ export const useMatchPlans = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar estadísticas de planes', error)
+      handleError(error, { customMessage: 'Error al cargar estadísticas de planes' })
 
       return {}
     }
@@ -191,7 +212,7 @@ export const useMatchPlans = () => {
           await fetchAvailablePlans()
         }
       } catch (error) {
-        handleError('Error al actualizar planes', error)
+        handleError(error, { customMessage: 'Error al actualizar planes' })
       }
     },
     [fetchAllPlans, fetchAvailablePlans, fetchPlanStats, handleError]
@@ -213,6 +234,7 @@ export const useMatchPlans = () => {
 
     // Public operations
     fetchAvailablePlans,
+    createPaymentIntent,
     purchasePlan,
 
     // Admin operations

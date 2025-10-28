@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect, memo } from 'react'
+import { useCallback, useMemo, useState, useEffect, useRef, memo } from 'react'
 import { useEvents, useError } from '@hooks'
 import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
@@ -128,6 +128,9 @@ const EventManagement = memo(() => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
 
+  // Track last fetched params per tab to avoid refetch loops
+  const lastFetchParamsRef = useRef({})
+
   // ========================================
   // HELPER FUNCTIONS
   // ========================================
@@ -170,10 +173,17 @@ const EventManagement = memo(() => {
   // EFFECTS
   // ========================================
 
+  const currentTableState = tableStates[selectedTab]
+  const currentPage = currentTableState?.page ?? 1
+  const currentRowsPerPage = currentTableState?.rowsPerPage ?? DEFAULT_ROWS_PER_PAGE
+  const currentFilter = currentTableState?.debouncedFilter ?? ''
+  const currentLoading = Boolean(currentTableState?.loading)
+  const hasCurrentTable = Boolean(currentTableState)
+
   // Cargar estadísticas al montar el componente
   useEffect(() => {
     fetchEventStats()
-  }, [])
+  }, [fetchEventStats])
 
   // Actualizar conteos cuando cambien las paginaciones (solo cuando realmente cambien los valores)
   useEffect(() => {
@@ -223,16 +233,27 @@ const EventManagement = memo(() => {
 
   // Cargar datos cuando cambien los parámetros de cada tabla
   useEffect(() => {
-    const currentTable = tableStates[selectedTab]
+    if (!hasCurrentTable) return
+    if (currentLoading) return
 
-    if (!currentTable) return
+    const paramsKey = {
+      page: currentPage,
+      rowsPerPage: currentRowsPerPage,
+      filter: currentFilter
+    }
+    const lastParams = lastFetchParamsRef.current[selectedTab]
 
-    // Evitar llamadas repetitivas con los mismos parámetros
-    if (currentTable.loading) return
+    if (
+      lastParams &&
+      lastParams.page === paramsKey.page &&
+      lastParams.rowsPerPage === paramsKey.rowsPerPage &&
+      lastParams.filter === paramsKey.filter
+    ) {
+      return
+    }
 
     let fetchMethod = null
 
-    // Determinar el método de fetch sin crear dependencias circulares
     if (selectedTab === 'all') {
       fetchMethod = fetchAllEvents
     } else if (['PUBLICADO', 'EN_EDICION', 'PAUSADO', 'CANCELADO', 'TERMINADO'].includes(selectedTab)) {
@@ -240,24 +261,35 @@ const EventManagement = memo(() => {
     }
 
     if (fetchMethod) {
+      lastFetchParamsRef.current[selectedTab] = paramsKey
       updateTableState(selectedTab, { loading: true })
 
-      fetchMethod(currentTable.page - 1, currentTable.rowsPerPage, currentTable.debouncedFilter)
+      fetchMethod(currentPage - 1, currentRowsPerPage, currentFilter)
         .catch(error => {
           Logger.error(`EventManagement: Error cargando eventos ${selectedTab}:`, error, { category: Logger.CATEGORIES.SERVICE })
+          lastFetchParamsRef.current[selectedTab] = undefined
         })
         .finally(() => {
           updateTableState(selectedTab, { loading: false })
         })
     }
-  }, [selectedTab, tableStates[selectedTab]?.page, tableStates[selectedTab]?.rowsPerPage, tableStates[selectedTab]?.debouncedFilter])
+  }, [
+    currentFilter,
+    currentLoading,
+    currentPage,
+    currentRowsPerPage,
+    hasCurrentTable,
+    fetchAllEvents,
+    fetchEventsByStatus,
+    selectedTab,
+    updateTableState
+  ])
 
   // ========================================
   // CONFIGURACIONES DINÁMICAS POR TABLA
   // ========================================
 
   // Obtener configuración actual de la tabla seleccionada
-  const currentTableState = tableStates[selectedTab]
   const { events: currentEvents, pagination: currentPagination } = getEventsData(selectedTab)
 
   // Todas las columnas disponibles (para el dropdown de selección)

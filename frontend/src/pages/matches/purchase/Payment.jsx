@@ -1,161 +1,263 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Card, CardBody, Spinner } from '@heroui/react'
-import { CreditCard, Shield, Lock } from 'lucide-react'
+import { Card, CardBody, Spinner, Button } from '@heroui/react'
+import { CreditCard, Shield, Lock, RotateCcw } from 'lucide-react'
 import { APP_PATHS } from '@constants/paths'
 import { matchPlanService } from '@services'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 import { Logger } from '@utils/logger.js'
 
+const WOMPI_WIDGET_URL = 'https://checkout.wompi.co/widget.js'
+
 const Payment = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const wompiFormRef = useRef(null)
 
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  // Get plan and user data from navigation state
   const plan = location.state?.plan
   const userEmail = location.state?.userEmail
   const userName = location.state?.userName
 
-  // Wompi configuration
-  const WOMPI_PUBLIC_KEY = import.meta.env.VITE_WOMPI_PUBLIC_KEY || 'pub_test_YOUR_PUBLIC_KEY'
-  const WOMPI_SCRIPT_URL = 'https://checkout.wompi.co/widget.js'
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState(null)
+  const [paymentIntent, setPaymentIntent] = useState(null)
+
+  const abortRef = useRef(false)
+
+  const ensureWompiScriptLoaded = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      if (typeof window !== 'undefined' && window.WidgetCheckout) {
+        resolve()
+
+        return
+      }
+
+      const handleReady = () => resolve()
+      const handleError = () => reject(new Error('Error al cargar el widget de Wompi'))
+
+      let script = document.querySelector(`script[src="${WOMPI_WIDGET_URL}"]`)
+
+      if (script) {
+        script.addEventListener('load', handleReady, { once: true })
+        script.addEventListener('error', handleError, { once: true })
+
+        return
+      }
+
+      script = document.createElement('script')
+      script.src = WOMPI_WIDGET_URL
+      script.async = true
+      script.onload = handleReady
+      script.onerror = handleError
+      document.body.appendChild(script)
+    })
+  }, [])
+
+  const navigateToStatus = useCallback(
+    (transactionId, reference, status) => {
+      const params = new URLSearchParams({
+        id: transactionId,
+        reference,
+        status
+      })
+
+      navigate(`${APP_PATHS.USER.PURCHASE_PAYMENT_STATUS}?${params.toString()}`, {
+        replace: true
+      })
+    },
+    [navigate]
+  )
+
+  const launchWompiCheckout = useCallback(
+    async intentData => {
+      if (!intentData) return
+
+      try {
+        await ensureWompiScriptLoaded()
+
+        if (typeof window === 'undefined' || !window.WidgetCheckout) {
+          throw new Error('Widget de Wompi no disponible en el navegador')
+        }
+
+        const redirectUrl = `${window.location.origin}${APP_PATHS.USER.PURCHASE_PAYMENT_STATUS}?reference=${encodeURIComponent(
+          intentData.paymentReference
+        )}`
+
+        Logger.info(Logger.CATEGORIES.SERVICE, 'match_payment', 'Launching Wompi checkout', {
+          reference: intentData.paymentReference,
+          amountInCents: intentData.amountInCents,
+          currency: intentData.currency
+        })
+
+        const checkout = new window.WidgetCheckout({
+          currency: intentData.currency,
+          amountInCents: intentData.amountInCents,
+          reference: intentData.paymentReference,
+          publicKey: intentData.publicKey,
+          redirectUrl,
+          signature: {
+            integrity: intentData.signature
+          },
+          customerData: {
+            email: userEmail,
+            fullName: userName
+          }
+        })
+
+        checkout.open(async result => {
+          if (abortRef.current) return
+
+          if (result?.error) {
+            const wompiMessage = result.error?.reason || result.error?.message || 'No fue posible iniciar el pago.'
+
+            Logger.error(Logger.CATEGORIES.SERVICE, 'match_payment', 'Wompi returned an error', {
+              error: result.error
+            })
+            setError(wompiMessage)
+
+            return
+          }
+
+          const transactionStatus = result?.transaction?.status?.toUpperCase?.() || 'UNKNOWN'
+          const transactionId = result?.transaction?.id
+
+          if (transactionStatus === 'APPROVED' && transactionId) {
+            setProcessing(true)
+
+            try {
+              const confirmation = await matchPlanService.confirmMatchPlanPurchase({
+                transactionId,
+                paymentReference: intentData.paymentReference
+              })
+
+              navigate(APP_PATHS.USER.PURCHASE_SUCCESS, {
+                replace: true,
+                state: {
+                  transaction: result.transaction,
+                  plan,
+                  purchaseConfirmed: confirmation?.status === 'APPROVED',
+                  purchase: confirmation
+                }
+              })
+            } catch (confirmError) {
+              Logger.error(Logger.CATEGORIES.SERVICE, 'match_payment_confirm', 'Error confirming match plan purchase', {
+                error: confirmError
+              })
+
+              navigate(APP_PATHS.USER.PURCHASE_ERROR, {
+                replace: true,
+                state: {
+                  transaction: result.transaction,
+                  plan,
+                  error: confirmError?.message || 'No se pudo confirmar la compra con nuestro servidor.'
+                }
+              })
+            } finally {
+              setProcessing(false)
+            }
+
+            return
+          }
+
+          if (transactionStatus === 'PENDING' && transactionId) {
+            navigateToStatus(transactionId, intentData.paymentReference, transactionStatus)
+
+            return
+          }
+
+          if (transactionStatus === 'DECLINED' || transactionStatus === 'ERROR') {
+            navigate(APP_PATHS.USER.PURCHASE_ERROR, {
+              replace: true,
+              state: {
+                transaction: result.transaction,
+                plan,
+                error: 'El pago fue rechazado por Wompi.'
+              }
+            })
+
+            return
+          }
+
+          Logger.warn(Logger.CATEGORIES.SERVICE, 'match_payment', 'Unexpected payment status received from Wompi', {
+            status: transactionStatus,
+            transactionId
+          })
+        })
+      } catch (err) {
+        if (abortRef.current) return
+
+        Logger.error(Logger.CATEGORIES.SERVICE, 'match_payment', 'Unable to initialize Wompi checkout', {
+          error: err
+        })
+        setError(err?.message || 'No fue posible inicializar la pasarela de pago.')
+      }
+    },
+    [ensureWompiScriptLoaded, navigate, navigateToStatus, plan, userEmail, userName]
+  )
+
+  const initializePayment = useCallback(async () => {
+    if (!plan?.id) return
+
+    abortRef.current = false
+    setLoading(true)
+    setProcessing(false)
+    setError(null)
+    setPaymentIntent(null)
+
+    try {
+      const intentResponse = await matchPlanService.createPaymentIntent(plan.id)
+
+      if (abortRef.current) return
+
+      if (!intentResponse?.publicKey || !intentResponse?.signature) {
+        throw new Error('La configuración de la pasarela de pago es inválida.')
+      }
+
+      setPaymentIntent(intentResponse)
+      setLoading(false)
+
+      await launchWompiCheckout(intentResponse)
+    } catch (err) {
+      if (abortRef.current) return
+
+      Logger.error(Logger.CATEGORIES.SERVICE, 'match_payment', 'Failed to prepare payment intent', {
+        error: err
+      })
+      setError(err?.message || 'No pudimos iniciar el proceso de pago. Intenta nuevamente.')
+      setLoading(false)
+    }
+  }, [launchWompiCheckout, plan?.id])
 
   useEffect(() => {
-    // Redirect if no plan data
     if (!plan) {
       navigate(APP_PATHS.USER.PURCHASE_PLANS)
 
-      return
+      return undefined
     }
 
-    // Load Wompi script
-    const loadWompiScript = () => {
-      return new Promise((resolve, reject) => {
-        // Check if script already exists
-        if (document.querySelector(`script[src="${WOMPI_SCRIPT_URL}"]`)) {
-          resolve()
+    initializePayment()
 
-          return
-        }
-
-        const script = document.createElement('script')
-
-        script.src = WOMPI_SCRIPT_URL
-        script.setAttribute('data-render', 'button')
-        script.setAttribute('data-public-key', WOMPI_PUBLIC_KEY)
-        script.setAttribute('data-currency', 'COP')
-        script.setAttribute('data-amount-in-cents', (plan.price * 100).toString())
-        script.setAttribute('data-reference', `PLAN-${plan.id}-${Date.now()}`)
-        script.setAttribute('data-redirect-url', `${window.location.origin}${APP_PATHS.USER.PURCHASE_SUCCESS}`)
-
-        script.onload = () => resolve()
-        script.onerror = () => reject(new Error('Error al cargar Wompi'))
-
-        wompiFormRef.current?.appendChild(script)
-      })
-    }
-
-    // Initialize Wompi
-    const initializeWompi = async () => {
-      try {
-        setLoading(true)
-        await loadWompiScript()
-
-        // Initialize Wompi checkout
-        if (window.WidgetCheckout) {
-          const checkout = new window.WidgetCheckout({
-            currency: 'COP',
-            amountInCents: plan.price * 100,
-            reference: `PLAN-${plan.id}-${Date.now()}`,
-            publicKey: WOMPI_PUBLIC_KEY,
-            redirectUrl: `${window.location.origin}${APP_PATHS.USER.PURCHASE_SUCCESS}`,
-            customerData: {
-              email: userEmail,
-              fullName: userName
-            }
-          })
-
-          checkout.open(async result => {
-            if (result.transaction?.status === 'APPROVED') {
-              try {
-                // Call backend to confirm purchase and add attempts to user account
-                const response = await matchPlanService.purchaseMatchPlan(plan.id)
-
-                if (response?.success) {
-                  // Purchase confirmed successfully
-                  navigate(APP_PATHS.USER.PURCHASE_SUCCESS, {
-                    state: {
-                      transaction: result.transaction,
-                      plan,
-                      purchaseConfirmed: true,
-                      backendResponse: response.data
-                    }
-                  })
-                } else {
-                  // Backend rejected the purchase
-                  Logger.error(Logger.CATEGORIES.SERVICE, 'confirm_purchase', 'Backend purchase confirmation failed', {
-                    response
-                  })
-                  navigate(APP_PATHS.USER.PURCHASE_ERROR, {
-                    state: {
-                      transaction: result.transaction,
-                      plan,
-                      error: 'No se pudo confirmar la compra en nuestros servidores'
-                    }
-                  })
-                }
-              } catch (error) {
-                Logger.error(Logger.CATEGORIES.SERVICE, 'confirm_purchase', 'Error al confirmar la compra', { error })
-                navigate(APP_PATHS.USER.PURCHASE_ERROR, {
-                  state: {
-                    transaction: result.transaction,
-                    plan,
-                    error: error.message || 'Error al procesar la compra'
-                  }
-                })
-              }
-            } else if (result.transaction?.status === 'DECLINED' || result.transaction?.status === 'ERROR') {
-              navigate(APP_PATHS.USER.PURCHASE_ERROR, {
-                state: {
-                  transaction: result.transaction,
-                  plan
-                }
-              })
-            }
-          })
-        }
-
-        setLoading(false)
-      } catch (err) {
-        Logger.error(Logger.CATEGORIES.SERVICE, 'initialize_wompi', 'Error inicializando Wompi', { error: err })
-        setError('Error al cargar la pasarela de pago. Por favor, intenta nuevamente.')
-        setLoading(false)
-      }
-    }
-
-    initializeWompi()
-
-    // Cleanup
     return () => {
-      // Remove Wompi script on unmount
-      const scripts = document.querySelectorAll(`script[src="${WOMPI_SCRIPT_URL}"]`)
-
-      scripts.forEach(script => script.remove())
+      abortRef.current = true
     }
-  }, [plan, navigate, userEmail, userName])
+  }, [initializePayment, navigate, plan])
 
   if (!plan) {
     return <LoadDataError message='No se encontró información del plan seleccionado' />
   }
 
   if (error) {
-    return <LoadDataError message={error} />
+    return (
+      <LoadDataError
+        action={{
+          label: 'Reintentar',
+          onPress: initializePayment
+        }}
+        message={error}
+      />
+    )
   }
 
   return (
@@ -175,7 +277,7 @@ const Payment = () => {
                 </div>
                 <Spinner color='primary' size='lg' />
                 <div>
-                  <h2 className='text-xl font-semibold text-gray-100 mb-2'>Cargando Pasarela de Pago</h2>
+                  <h2 className='text-xl font-semibold text-gray-100 mb-2'>Cargando pasarela de pago</h2>
                   <p className='text-gray-400'>Preparando el formulario de pago seguro...</p>
                 </div>
               </div>
@@ -183,7 +285,6 @@ const Payment = () => {
           </Card>
         ) : (
           <>
-            {/* Header */}
             <div className='text-center space-y-3'>
               <div className='w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto'>
                 <CreditCard className='w-8 h-8 text-blue-400' />
@@ -192,7 +293,6 @@ const Payment = () => {
               <p className='text-gray-400 max-w-xl mx-auto'>Completa tu pago de forma segura mediante nuestra pasarela de pagos Wompi</p>
             </div>
 
-            {/* Plan Summary */}
             <Card className='bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 border-blue-500/30'>
               <CardBody className='p-6'>
                 <div className='text-center space-y-3'>
@@ -209,24 +309,34 @@ const Payment = () => {
                       maximumFractionDigits: 0
                     })}
                   </div>
+
+                  {paymentIntent?.paymentReference && (
+                    <p className='text-xs text-gray-400'>
+                      Referencia de pago: <span className='font-mono text-gray-300'>{paymentIntent.paymentReference}</span>
+                    </p>
+                  )}
                 </div>
               </CardBody>
             </Card>
 
-            {/* Wompi Payment Form */}
             <Card className='bg-gray-800/40 border-gray-700/50'>
-              <CardBody className='p-8'>
-                <div className='text-center mb-6'>
+              <CardBody className='p-8 space-y-6'>
+                <div className='text-center'>
                   <h2 className='text-xl font-semibold text-gray-100 mb-2'>Selecciona tu método de pago</h2>
-                  <p className='text-sm text-gray-400'>Elige la forma de pago que prefieras</p>
+                  <p className='text-sm text-gray-400'>El formulario seguro de Wompi se abrirá en una ventana modal</p>
                 </div>
 
-                {/* Wompi widget container */}
-                <div ref={wompiFormRef} className='min-h-[400px] flex items-center justify-center' id='wompi-payment-form'>
-                  {/* Wompi script will be injected here */}
+                <div className='flex justify-center'>
+                  <Button
+                    color='primary'
+                    isLoading={processing}
+                    size='lg'
+                    startContent={<RotateCcw className='w-4 h-4' />}
+                    onPress={initializePayment}>
+                    Reintentar pago
+                  </Button>
                 </div>
 
-                {/* Payment methods info */}
                 <div className='mt-6 pt-6 border-t border-gray-700'>
                   <p className='text-xs text-gray-400 text-center mb-3'>Métodos de pago disponibles:</p>
                   <div className='flex flex-wrap justify-center gap-2'>
@@ -240,7 +350,6 @@ const Payment = () => {
               </CardBody>
             </Card>
 
-            {/* Security notices */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <Card className='bg-green-500/5 border-green-500/20'>
                 <CardBody className='p-4'>
@@ -273,7 +382,6 @@ const Payment = () => {
               </Card>
             </div>
 
-            {/* Wompi badge */}
             <div className='text-center'>
               <p className='text-xs text-gray-500 mb-2'>Procesado de forma segura por</p>
               <div className='inline-flex items-center gap-2 px-4 py-2 bg-gray-700/30 rounded-lg'>

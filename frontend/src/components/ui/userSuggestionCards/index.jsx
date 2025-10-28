@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useDisclosure } from '@heroui/react'
 import { useMatchInteractions, useMatchFavorites, useDiscoveryCards } from '@hooks'
+import { useMatch } from '@contexts/MatchContext'
 import UserCard from '@components/ui/userSuggestionCards/components/UserCard.jsx'
 import MatchConfirmModal from '@components/ui/userSuggestionCards/components/MatchConfirmModal.jsx'
 import DismissConfirmModal from '@components/ui/userSuggestionCards/components/DismissConfirmModal.jsx'
@@ -25,14 +26,33 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
     suggestionsPagination,
     fetchUserSuggestions
   )
-  // Hooks para interacciones con matches y favoritos
-  const { sendMatch, dismissSuggestion, loading: matchLoading } = useMatchInteractions()
-  const { toggleFavorite } = useMatchFavorites()
+
+  // Estados
   const [exitDirection, setExitDirection] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
   const [favoriteUserData, setFavoriteUserData] = useState(null) // { name, image }
   // Estado local para favoritos (optimistic UI)
   const [localFavorites, setLocalFavorites] = useState(new Map())
+
+  // Hook del contexto de match para manejar modal premium
+  const { showPremiumModal } = useMatch()
+
+  // Callback personalizado cuando no hay intentos disponibles
+  const handleNoAttemptsAvailable = useCallback(() => {
+    if (pendingAction) {
+      showPremiumModal(pendingAction.userName, pendingAction.userImage)
+    }
+  }, [pendingAction, showPremiumModal])
+
+  // Hooks para interacciones con matches y favoritos
+  const {
+    sendMatch,
+    dismissSuggestion,
+    loading: matchLoading
+  } = useMatchInteractions({
+    onNoAttemptsAvailable: handleNoAttemptsAvailable
+  })
+  const { toggleFavorite } = useMatchFavorites()
 
   // Modales de confirmación
   const { isOpen: isMatchModalOpen, onOpen: onMatchModalOpen, onOpenChange: onMatchModalOpenChange } = useDisclosure()
@@ -78,8 +98,16 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
   }
 
   // Handler para dismiss - abre modal de confirmación
-  const handleDismiss = () => {
+  // Si isContinue = true, solo avanza sin rechazar
+  const handleDismiss = (cardData, isContinue = false) => {
     if (!currentCard) return
+
+    // Si es "continuar" (match pendiente/aceptado), solo avanzar sin rechazar
+    if (isContinue) {
+      handleAction('skip', nextCard)
+
+      return
+    }
 
     const userId = getSuggestionUserId(currentCard)
     const userName = getSuggestionUserName(currentCard)

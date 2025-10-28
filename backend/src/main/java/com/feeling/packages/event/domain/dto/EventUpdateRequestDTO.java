@@ -13,6 +13,7 @@ public record EventUpdateRequestDTO(
         @Size(max = 200, message = "El título no puede exceder 200 caracteres")
         String title,
 
+        @Size(max = 2000, message = "La descripción no puede exceder 2000 caracteres")
         String description,
 
         @Size(max = 300, message = "La ubicación no puede exceder 300 caracteres")

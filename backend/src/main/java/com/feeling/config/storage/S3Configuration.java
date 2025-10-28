@@ -5,7 +5,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -15,13 +18,15 @@ import software.amazon.awssdk.services.s3.S3Client;
 @Slf4j
 public class S3Configuration {
 
+    private static final String DEFAULT_REGION = "us-east-1";
+
     @Value("${s3.region}")
     private String region;
 
-    @Value("${s3.access-key}")
+    @Value("${s3.access-key:}")
     private String accessKey;
 
-    @Value("${s3.secret-key}")
+    @Value("${s3.secret-key:}")
     private String secretKey;
 
     @Value("${s3.bucket}")
@@ -30,32 +35,31 @@ public class S3Configuration {
     @Bean
     public S3Client s3Client() {
         try {
-            // Validar que las credenciales no estén vacías
-            if (accessKey == null || accessKey.trim().isEmpty()) {
-                throw new IllegalArgumentException("AWS_ACCESS_KEY_ID no puede estar vacío");
-            }
-            if (secretKey == null || secretKey.trim().isEmpty()) {
-                throw new IllegalArgumentException("AWS_SECRET_ACCESS_KEY no puede estar vacío");
-            }
+            final String resolvedRegion = StringUtils.hasText(region) ? region : DEFAULT_REGION;
 
             log.info("🔧 Configurando AWS S3...");
-            log.info("📍 Región: {}", region);
+            log.info("📍 Región: {}", resolvedRegion);
             log.info("🗂️  Bucket: {}", bucketName);
-            log.info("🔑 Access Key: {}", accessKey.substring(0, Math.min(6, accessKey.length())) + "***");
 
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
+            AwsCredentialsProvider credentialsProvider;
+            if (StringUtils.hasText(accessKey) && StringUtils.hasText(secretKey)) {
+                log.info("🔑 Usando credenciales estáticas proporcionadas por variables de entorno.");
+                AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey.trim(), secretKey.trim());
+                credentialsProvider = StaticCredentialsProvider.create(credentials);
+            } else {
+                log.info("🔑 Usando DefaultCredentialsProvider (IAM Role / AWS CLI profile).");
+                credentialsProvider = DefaultCredentialsProvider.create();
+            }
 
             S3Client client = S3Client.builder()
-                    .region(Region.of(region))
-                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .region(Region.of(resolvedRegion))
+                    .credentialsProvider(credentialsProvider)
                     .build();
 
             // Verificar conectividad (opcional)
             verifyConnection(client);
 
             log.info("✅ S3 configurado para PRODUCCIÓN");
-            log.info("🌐 Región: {}", region);
-
             return client;
 
         } catch (Exception e) {

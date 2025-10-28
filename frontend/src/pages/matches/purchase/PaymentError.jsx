@@ -31,7 +31,7 @@ const PaymentError = () => {
   }
 
   const handleGoBack = () => {
-    navigate(APP_PATHS.USER.MATCHES)
+    navigate(APP_PATHS.USER.MY_MATCHES)
   }
 
   // Determine error type and message

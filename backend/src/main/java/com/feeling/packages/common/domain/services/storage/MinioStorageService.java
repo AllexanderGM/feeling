@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +68,14 @@ public class MinioStorageService {
         }
     }
 
+    public boolean deleteFileByUrl(String fileUrl) {
+        String objectKey = extractKeyFromUrl(fileUrl);
+        if (objectKey == null) {
+            return false;
+        }
+        return deleteFile(objectKey);
+    }
+
     /**
      * Genera URL pública para acceder a archivos en MinIO
      */
@@ -90,6 +100,36 @@ public class MinioStorageService {
 
         } catch (Exception e) {
             log.error("Error generando URL pública para {}: {}", filePath, e.getMessage());
+            return null;
+        }
+    }
+
+    private String extractKeyFromUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            URI uri = new URI(fileUrl);
+            String path = uri.getPath();
+            if (path == null || path.isBlank()) {
+                return null;
+            }
+
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+
+            if (path.startsWith(bucketName + "/")) {
+                path = path.substring(bucketName.length() + 1);
+            }
+
+            return path;
+        } catch (URISyntaxException e) {
+            int index = fileUrl.indexOf(bucketName + "/");
+            if (index >= 0) {
+                return fileUrl.substring(index + bucketName.length() + 1);
+            }
             return null;
         }
     }

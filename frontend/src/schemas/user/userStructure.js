@@ -95,9 +95,11 @@ export const USER_AUTH_FIELDS = {
  */
 export const USER_MATCHES_FIELDS = {
   availableAttempts: 'number',
+  reservedAttempts: 'number',
+  totalRemainingAttempts: 'number',
   todayMatches: 'number',
-  totalMatches: 'number',
-  maxDailyAttempts: 'number',
+  sentMatches: 'number',
+  receivedMatches: 'number',
   pendingSent: 'number',
   pendingReceived: 'number',
   accepted: 'number',
@@ -313,9 +315,11 @@ export const USER_DEFAULT_VALUES = {
   },
   matches: {
     availableAttempts: 0,
+    reservedAttempts: 0,
+    totalRemainingAttempts: 0,
     todayMatches: 0,
-    totalMatches: 0,
-    maxDailyAttempts: 10,
+    sentMatches: 0,
+    receivedMatches: 0,
     pendingSent: 0,
     pendingReceived: 0,
     accepted: 0,

@@ -43,7 +43,7 @@ const DismissConfirmModal = ({ isOpen, onOpenChange, onConfirm, userName, userIm
                 <h3 className='text-xl font-bold text-white mb-1'>¿Descartar a {userName}?</h3>
                 <p className='text-xs text-gray-400 flex items-center justify-center gap-1'>
                   <AlertTriangle className='w-3 h-3' />
-                  Este perfil no volverá a aparecer
+                  Este perfil aparecerá menos en tus sugerencias.
                 </p>
               </div>
             </ModalHeader>
@@ -51,7 +51,8 @@ const DismissConfirmModal = ({ isOpen, onOpenChange, onConfirm, userName, userIm
             <ModalBody>
               <div className='text-center space-y-2'>
                 <p className='text-gray-300 text-sm'>
-                  <span className='font-semibold text-white'>{userName}</span> será removido de tus sugerencias de forma permanente.
+                  <span className='font-semibold text-white'>{userName}</span> será descartado de tus sugerencias de usuario. Aparecerá
+                  menos en tu feed, pero podrás encontrar su perfil en la sección de búsqueda si cambias de opinión.
                 </p>
               </div>
             </ModalBody>

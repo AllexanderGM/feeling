@@ -1,124 +1,154 @@
-# 🔹 SSH Private Key para Instancia EC2
-resource "local_file" "private_key" {
-  content         = tls_private_key.ssh_key.private_key_pem
-  filename        = "${path.module}/.ec2-key.pem"
+locals {
+  backend_instance_family = split(".", var.backend_instance_type)[0]
+  backend_is_graviton     = contains(["t4g", "c6g", "c7g", "m6g", "m7g"], local.backend_instance_family)
+}
+
+resource "tls_private_key" "backend_ssh" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+data "aws_ssm_parameter" "backend_ami_arm" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+}
+
+data "aws_ssm_parameter" "backend_ami_x86" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+}
+
+resource "aws_key_pair" "backend" {
+  key_name   = "${local.name_prefix}-ec2-key"
+  public_key = tls_private_key.backend_ssh.public_key_openssh
+}
+
+resource "local_file" "backend_private_key" {
+  filename        = "${path.module}/.${local.name_prefix}-ec2-key.pem"
+  content         = tls_private_key.backend_ssh.private_key_pem
   file_permission = "0600"
 }
 
-# 🔹 Elastic IP para instancia EC2 (dirección IP estática)
-resource "aws_eip" "backend_eip" {
-  instance = module.ec2.id
-  domain   = "vpc"
+data "aws_iam_policy_document" "backend_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
 
-  tags = {
-    Name         = replace(lower("${var.prefix}-backend-eip"), "_", "-")
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "Elastic IP"
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
   }
-
-  # Importante: solo aplica la asignación cuando la instancia esté lista
-  depends_on = [module.ec2]
 }
 
-# 🔹 EC2 para backend
-module "ec2" {
-  source                      = "terraform-aws-modules/ec2-instance/aws"
-  version                     = "5.7.1"
-  name                        = replace(lower("${var.prefix}-backend"), "_", "-")
-  instance_type               = "t2.micro"              # Dentro de la capa gratuita
-  ami                         = "ami-0cff7528ff583bf9a" # Amazon Linux 2 en us-east-1
-  key_name                    = aws_key_pair.generated.key_name
-  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
-  subnet_id                   = module.vpc.public_subnets[0] # Mantener en subnet pública para acceso a Internet
-  associate_public_ip_address = true                         # Asegurar que tenga IP pública
-  monitoring                  = false                        # No habilitar monitoreo detallado que genera costos
+resource "aws_iam_role" "backend" {
+  name               = "${local.name_prefix}-backend-role"
+  assume_role_policy = data.aws_iam_policy_document.backend_assume_role.json
 
-  # Optimizar para capa gratuita - usar EBS mínimo necesario
-  root_block_device = [
-    {
-      volume_type = "gp2"
-      volume_size = 8     # El mínimo recomendado para SO
-      encrypted   = false # La encriptación genera costos
-      # No usar tags aquí, usar volume_tags en su lugar
-    }
-  ]
+  tags = merge(local.default_tags, {
+    Name = "${local.name_prefix}-backend-role"
+  })
+}
 
-  # Usar volume_tags en lugar de tags en root_block_device
-  volume_tags = {
-    Name         = "${replace(lower("${var.prefix}-backend"), "_", "-")}-volume"
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "EBS Volume"
+data "aws_iam_policy_document" "backend_s3" {
+  statement {
+    sid    = "ListFrontendBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:ListBucket"
+    ]
+
+    resources = [
+      module.frontend_bucket.s3_bucket_arn,
+      module.assets_bucket.s3_bucket_arn
+    ]
   }
 
-  tags = {
-    Name         = replace(lower("${var.prefix}-backend"), "_", "-")
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "Backend"
+  statement {
+    sid    = "ObjectAccess"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+
+    resources = [
+      "${module.frontend_bucket.s3_bucket_arn}/*",
+      "${module.assets_bucket.s3_bucket_arn}/*"
+    ]
   }
+}
+
+resource "aws_iam_role_policy" "backend_s3" {
+  name   = "${local.name_prefix}-backend-s3"
+  role   = aws_iam_role.backend.id
+  policy = data.aws_iam_policy_document.backend_s3.json
+}
+
+resource "aws_iam_instance_profile" "backend" {
+  name = "${local.name_prefix}-backend-profile"
+  role = aws_iam_role.backend.name
+}
+
+module "backend_instance" {
+  source  = "terraform-aws-modules/ec2-instance/aws"
+  version = "5.7.1"
+
+  name = local.backend_instance_name
+
+  ami = var.backend_ami != "" ? var.backend_ami : (
+    local.backend_is_graviton ? data.aws_ssm_parameter.backend_ami_arm.value : data.aws_ssm_parameter.backend_ami_x86.value
+  )
+  instance_type = var.backend_instance_type
+
+  subnet_id                   = module.vpc.public_subnets[0]
+  vpc_security_group_ids      = [aws_security_group.backend.id]
+  key_name                    = aws_key_pair.backend.key_name
+  associate_public_ip_address = true
+  monitoring                  = false
+
+  iam_instance_profile = aws_iam_instance_profile.backend.name
 
   user_data = <<-EOF
-#!/bin/bash
-# Actualizar sistema (Amazon Linux 2 usa yum, no apt)
-sudo yum update -y
-sudo amazon-linux-extras install docker -y
-sudo yum install -y curl jq unzip mysql
+              #!/bin/bash
+              set -e
+              yum update -y
+              amazon-linux-extras install docker -y
+              systemctl enable docker
+              systemctl start docker
+              usermod -aG docker ec2-user
+              mkdir -p /home/ec2-user/logs
+              EOF
 
-# Habilitar y iniciar Docker
-sudo systemctl enable docker
-sudo systemctl start docker
-sudo usermod -aG docker ec2-user
+  root_block_device = [{
+    volume_type = var.backend_root_volume_type
+    volume_size = var.backend_root_volume_size
+    encrypted   = true
+  }]
 
-# Crear directorios necesarios
-mkdir -p /home/ec2-user/logs
+  metadata_options = {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
 
-# Configurar scripts de salud básicos (alternativa gratuita a CloudWatch)
-cat <<'HEALTH_CHECK' > /home/ec2-user/healthcheck.sh
-#!/bin/bash
-SERVICE_NAME="backend"
-CONTAINER_NAME="backend"
-PORT=8080
+  tags = merge(local.default_tags, {
+    Name      = local.backend_instance_name
+    Component = "backend"
+  })
 
-# Verificar si el contenedor está corriendo
-RUNNING=$(docker ps --filter "name=$CONTAINER_NAME" --format '{{.Names}}')
-if [ -z "$RUNNING" ]; then
-  echo "Container $CONTAINER_NAME is not running. Restarting..."
-  docker start $CONTAINER_NAME || \
-  docker run -d --name $CONTAINER_NAME -p $PORT:$PORT --env-file /home/ec2-user/.env [IMAGE_NAME]
-fi
+  volume_tags = merge(local.default_tags, {
+    Name = "${local.backend_instance_name}-root"
+  })
+}
 
-# Verificar si el servicio está respondiendo
-HEALTH=$(curl -s -o /dev/null -w "%%{http_code}" http://localhost:$PORT/health || echo "Error")
-if [ "$HEALTH" != "200" ]; then
-  echo "Service is not healthy. Restarting container..."
-  docker restart $CONTAINER_NAME
-fi
-HEALTH_CHECK
+resource "aws_eip" "backend" {
+  count    = var.enable_backend_eip ? 1 : 0
+  domain   = "vpc"
+  instance = module.backend_instance.id
 
-chmod +x /home/ec2-user/healthcheck.sh
+  tags = merge(local.default_tags, {
+    Name = "${local.backend_instance_name}-eip"
+  })
 
-# Configurar cron para ejecutar cada 5 minutos
-(crontab -l 2>/dev/null; echo "*/5 * * * * /home/ec2-user/healthcheck.sh >> /home/ec2-user/logs/healthcheck.log 2>&1") | crontab -
-
-# Script para limpieza de logs y mantenimiento
-cat <<'MAINTENANCE' > /home/ec2-user/maintenance.sh
-#!/bin/bash
-# Limpiar logs antiguos
-find /home/ec2-user/logs/*.log -type f -mtime +7 -delete
-
-# Limpiar imágenes Docker no utilizadas
-docker image prune -af --filter "until=168h"
-MAINTENANCE
-
-chmod +x /home/ec2-user/maintenance.sh
-(crontab -l 2>/dev/null; echo "0 3 * * * /home/ec2-user/maintenance.sh") | crontab -
-
-# Mensaje de finalización
-echo "Setup completed successfully" > /home/ec2-user/setup_complete.txt
-EOF
+  depends_on = [module.backend_instance]
 }

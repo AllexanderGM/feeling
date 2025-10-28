@@ -8,6 +8,8 @@ import CardEvent from '@components/ui/cards/CardEvent.jsx'
 import { parseJavaDate } from '@utils/dateUtils.js'
 import { APP_PATHS } from '@constants/paths.js'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
+import LoadData from '@components/layout/LoadData.jsx'
+import LoadDataError from '@components/layout/LoadDataError.jsx'
 
 const applySearchFilter = (events, searchTerm) => {
   if (!Array.isArray(events) || !events.length) return []
@@ -48,15 +50,58 @@ const applySearchFilter = (events, searchTerm) => {
 const EventsPage = () => {
   const { loading, upcomingEvents, fetchUpcomingEvents, upcomingEventsPagination } = useEvents()
   const [searchTerm, setSearchTerm] = useState('')
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [initialError, setInitialError] = useState('')
+  const [initialized, setInitialized] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
-    fetchUpcomingEvents(0, 12)
+    let isMounted = true
+
+    const loadInitialEvents = async () => {
+      setInitialLoading(true)
+      setInitialError('')
+
+      const result = await fetchUpcomingEvents(0, 12, '')
+
+      if (!isMounted) {
+        return
+      }
+
+      if (result?.success) {
+        setInitialized(true)
+        setInitialError('')
+      } else {
+        setInitialError(result?.message || 'No pudimos cargar los eventos. Intenta nuevamente.')
+      }
+
+      setInitialLoading(false)
+    }
+
+    loadInitialEvents()
+
+    return () => {
+      isMounted = false
+    }
   }, [fetchUpcomingEvents])
 
   const handleRefresh = useCallback(() => {
     fetchUpcomingEvents(0, upcomingEventsPagination?.size || 12, searchTerm)
   }, [fetchUpcomingEvents, upcomingEventsPagination?.size, searchTerm])
+
+  const handleInitialRetry = useCallback(async () => {
+    setInitialLoading(true)
+    setInitialError('')
+    const result = await fetchUpcomingEvents(0, 12, '')
+
+    if (result?.success) {
+      setInitialized(true)
+      setInitialError('')
+    } else {
+      setInitialError(result?.message || 'No pudimos cargar los eventos. Intenta nuevamente.')
+    }
+    setInitialLoading(false)
+  }, [fetchUpcomingEvents])
 
   const handleSearchChange = useCallback(event => {
     setSearchTerm(event.target.value)
@@ -74,6 +119,14 @@ const EventsPage = () => {
   )
 
   const hasResults = filteredEvents.length > 0
+
+  if (!initialized && initialLoading) {
+    return <LoadData>Cargando próximos eventos...</LoadData>
+  }
+
+  if (!initialized && initialError) {
+    return <LoadDataError message={initialError} retryAction={handleInitialRetry} />
+  }
 
   return (
     <>
@@ -99,18 +152,22 @@ const EventsPage = () => {
               </div>
             </div>
 
-            <div className='flex flex-col gap-3'>
+            <div className='flex flex-col sm:flex-row gap-3'>
               <Input
                 aria-label='Buscar eventos'
+                className='flex-1'
                 placeholder='Buscar por nombre, ubicación o categoría'
-                size='sm'
                 startContent={<Search className='text-gray-500' size={18} />}
                 value={searchTerm}
-                variant='bordered'
                 onChange={handleSearchChange}
               />
 
-              <Button fullWidth color='primary' size='sm' startContent={<RefreshCw size={16} />} variant='bordered' onPress={handleRefresh}>
+              <Button
+                color='primary'
+                isDisabled={loading}
+                isLoading={loading}
+                startContent={!loading && <RefreshCw size={16} />}
+                onPress={handleRefresh}>
                 Actualizar lista
               </Button>
             </div>

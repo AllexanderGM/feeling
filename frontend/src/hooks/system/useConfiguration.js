@@ -1,150 +1,240 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { configurationService } from '@services'
 import { Logger } from '@utils/logger.js'
-import { useError, useAsyncOperation } from '@hooks'
+import { useAsyncOperation } from '@hooks'
+
+const SECTION_DEFINITIONS = {
+  basic: {
+    stateKey: 'basicConfig',
+    fetchAction: 'obtener configuración básica',
+    updateAction: 'actualizar configuración básica',
+    fetchService: () => configurationService.getBasicConfiguration(),
+    updateService: payload => configurationService.updateBasicConfiguration(payload),
+    fetchSuccessMessage: 'Configuración básica cargada correctamente.',
+    updateSuccessMessage: 'Configuración básica actualizada exitosamente.'
+  },
+  social: {
+    stateKey: 'socialMediaConfig',
+    fetchAction: 'obtener configuración redes sociales',
+    updateAction: 'actualizar configuración redes sociales',
+    fetchService: () => configurationService.getSocialMediaConfiguration(),
+    updateService: payload => configurationService.updateSocialMediaConfiguration(payload),
+    fetchSuccessMessage: 'Configuración de redes sociales cargada.',
+    updateSuccessMessage: 'Configuración de redes sociales actualizada.'
+  },
+  email: {
+    stateKey: 'emailConfig',
+    fetchAction: 'obtener configuración email',
+    updateAction: 'actualizar configuración email',
+    fetchService: () => configurationService.getEmailConfiguration(),
+    updateService: payload => configurationService.updateEmailConfiguration(payload),
+    fetchSuccessMessage: 'Configuración de email cargada.',
+    updateSuccessMessage: 'Configuración de email actualizada.'
+  },
+  matching: {
+    stateKey: 'matchingConfig',
+    fetchAction: 'obtener configuración matching',
+    updateAction: 'actualizar configuración matching',
+    fetchService: () => configurationService.getMatchingConfiguration(),
+    updateService: payload => configurationService.updateMatchingConfiguration(payload),
+    fetchSuccessMessage: 'Configuración de matching cargada.',
+    updateSuccessMessage: 'Configuración de matching actualizada.'
+  },
+  event: {
+    stateKey: 'eventConfig',
+    fetchAction: 'obtener configuración eventos',
+    updateAction: 'actualizar configuración eventos',
+    fetchService: () => configurationService.getEventConfiguration(),
+    updateService: payload => configurationService.updateEventConfiguration(payload),
+    fetchSuccessMessage: 'Configuración de eventos cargada.',
+    updateSuccessMessage: 'Configuración de eventos actualizada.'
+  },
+  notification: {
+    stateKey: 'notificationConfig',
+    fetchAction: 'obtener configuración notificaciones',
+    updateAction: 'actualizar configuración notificaciones',
+    fetchService: () => configurationService.getNotificationConfiguration(),
+    updateService: payload => configurationService.updateNotificationConfiguration(payload),
+    fetchSuccessMessage: 'Configuración de notificaciones cargada.',
+    updateSuccessMessage: 'Configuración de notificaciones actualizada.'
+  },
+  system: {
+    stateKey: 'systemConfig',
+    fetchAction: 'obtener configuración sistema',
+    updateAction: 'actualizar configuración sistema',
+    fetchService: () => configurationService.getSystemConfiguration(),
+    updateService: payload => configurationService.updateSystemConfiguration(payload),
+    fetchSuccessMessage: 'Configuración del sistema cargada.',
+    updateSuccessMessage: 'Configuración del sistema actualizada.'
+  }
+}
+
+const CONFIG_SECTION_KEYS = Object.keys(SECTION_DEFINITIONS)
+
+const buildInitialState = () =>
+  CONFIG_SECTION_KEYS.reduce(
+    (acc, section) => {
+      acc.data[section] = null
+      acc.errors[section] = null
+      acc.updatedAt[section] = null
+
+      return acc
+    },
+    { data: {}, errors: {}, updatedAt: {} }
+  )
+
+const normalizeOptions = option =>
+  typeof option === 'boolean'
+    ? {
+        showNotifications: option
+      }
+    : option || {}
+
+const ensureSectionDefinition = section => {
+  const definition = SECTION_DEFINITIONS[section]
+
+  if (!definition) {
+    const error = new Error(`Sección de configuración desconocida: ${section}`)
+
+    Logger.error(Logger.CATEGORIES.SYSTEM, 'configuration_section_not_found', error.message, { section })
+    throw error
+  }
+
+  return definition
+}
 
 const useConfiguration = () => {
-  const { handleApiResponse } = useError()
-  const { loading, submitting, withLoading, withSubmitting } = useAsyncOperation()
+  const { loading, submitting, withLoading, withSubmitting, handleApiResponse, handleSuccess } = useAsyncOperation()
 
-  // Estado para las diferentes configuraciones
-  const [basicConfig, setBasicConfig] = useState(null)
-  const [socialMediaConfig, setSocialMediaConfig] = useState(null)
-  const [emailConfig, setEmailConfig] = useState(null)
-  const [matchingConfig, setMatchingConfig] = useState(null)
-  const [eventConfig, setEventConfig] = useState(null)
-  const [notificationConfig, setNotificationConfig] = useState(null)
-  const [systemConfig, setSystemConfig] = useState(null)
+  const [{ data, errors, updatedAt }, setConfigState] = useState(buildInitialState)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [maintenanceError, setMaintenanceError] = useState(null)
+  const [initializing, setInitializing] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
-  // ========================================
-  // CONFIGURACIÓN BÁSICA DEL SITIO
-  // ========================================
+  const setSectionData = useCallback((section, config) => {
+    setConfigState(prev => ({
+      data: {
+        ...prev.data,
+        [section]: config
+      },
+      errors: {
+        ...prev.errors,
+        [section]: null
+      },
+      updatedAt: {
+        ...prev.updatedAt,
+        [section]: new Date()
+      }
+    }))
+  }, [])
 
-  const fetchBasicConfiguration = useCallback(
-    async (showNotifications = false) => {
+  const setSectionError = useCallback((section, message) => {
+    setConfigState(prev => ({
+      data: prev.data,
+      updatedAt: prev.updatedAt,
+      errors: {
+        ...prev.errors,
+        [section]: message
+      }
+    }))
+  }, [])
+
+  const fetchSection = useCallback(
+    async (section, options) => {
+      const normalized = normalizeOptions(options)
+      const { showNotifications = false } = normalized
+      const definition = ensureSectionDefinition(section)
+      const { fetchAction, fetchService, fetchSuccessMessage } = definition
+
       const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración básica', 'Iniciando carga')
-        const config = await configurationService.getBasicConfiguration()
+        Logger.info(Logger.CATEGORIES.SYSTEM, fetchAction, 'Iniciando carga')
+        const config = await fetchService()
 
-        setBasicConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración básica', config)
+        setSectionData(section, config)
+        Logger.debug(Logger.CATEGORIES.SYSTEM, fetchAction, config)
 
         return config
-      }, 'obtener configuración básica')
+      }, fetchAction)
+
+      if (!result.success) {
+        setSectionError(section, result.message || 'No se pudo cargar la configuración.')
+      }
 
       if (showNotifications) {
-        return handleApiResponse(result, 'Configuración básica cargada correctamente.', { showNotifications: true })
+        return handleApiResponse(result, fetchSuccessMessage, { showNotifications: true })
       }
 
       return result
     },
-    [withLoading, handleApiResponse]
+    [handleApiResponse, setSectionData, setSectionError, withLoading]
   )
 
-  const updateBasicConfiguration = useCallback(
-    async (configData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración básica', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateBasicConfiguration(configData)
+  const updateSection = useCallback(
+    async (section, payload, options) => {
+      const normalized = normalizeOptions(options)
+      const { showNotifications = true, successMessage } = normalized
+      const definition = ensureSectionDefinition(section)
+      const { updateAction, updateService, updateSuccessMessage } = definition
 
-        setBasicConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración básica', 'Configuración actualizada exitosamente')
+      const result = await withSubmitting(async () => {
+        Logger.info(Logger.CATEGORIES.SYSTEM, updateAction, 'Iniciando actualización')
+        const updatedConfig = await updateService(payload)
+
+        setSectionData(section, updatedConfig)
+        Logger.info(Logger.CATEGORIES.SYSTEM, updateAction, 'Configuración actualizada exitosamente')
 
         return updatedConfig
-      }, 'actualizar configuración básica')
+      }, updateAction)
 
-      return handleApiResponse(result, 'Configuración básica actualizada exitosamente.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
-
-  // ========================================
-  // REDES SOCIALES
-  // ========================================
-
-  const fetchSocialMediaConfiguration = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración redes sociales', 'Iniciando carga')
-        const config = await configurationService.getSocialMediaConfiguration()
-
-        setSocialMediaConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración redes sociales', config)
-
-        return config
-      }, 'obtener configuración de redes sociales')
-
-      if (showNotifications) {
-        return handleApiResponse(result, 'Configuración de redes sociales cargada.', { showNotifications: true })
+      if (!result.success) {
+        setSectionError(section, result.message || 'No se pudo actualizar la configuración.')
       }
 
-      return result
+      return handleApiResponse(result, successMessage || updateSuccessMessage, {
+        showNotifications
+      })
     },
-    [withLoading, handleApiResponse]
+    [handleApiResponse, setSectionData, setSectionError, withSubmitting]
   )
 
-  const updateSocialMediaConfiguration = useCallback(
-    async (socialData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración redes sociales', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateSocialMediaConfiguration(socialData)
+  const loadConfigurations = useCallback(
+    async (options = {}) => {
+      const { sections = CONFIG_SECTION_KEYS, notifyOnSuccess = false } = options
 
-        setSocialMediaConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración redes sociales', 'Configuración actualizada exitosamente')
+      setInitializing(true)
 
-        return updatedConfig
-      }, 'actualizar configuración de redes sociales')
+      try {
+        const results = []
 
-      return handleApiResponse(result, 'Configuración de redes sociales actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
+        for (const section of sections) {
+          const result = await fetchSection(section, { showNotifications: false })
 
-  // ========================================
-  // CONFIGURACIÓN DE EMAILS
-  // ========================================
+          results.push({ section, result })
+        }
 
-  const fetchEmailConfiguration = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración email', 'Iniciando carga')
-        const config = await configurationService.getEmailConfiguration()
+        const everySuccess = results.every(item => item.result.success)
 
-        setEmailConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración email', config)
+        if (everySuccess) {
+          setInitialized(true)
 
-        return config
-      }, 'obtener configuración de email')
+          if (notifyOnSuccess) {
+            handleSuccess('Configuraciones cargadas correctamente.')
+          }
+        }
 
-      if (showNotifications) {
-        return handleApiResponse(result, 'Configuración de email cargada.', { showNotifications: true })
+        return results
+      } finally {
+        setInitializing(false)
       }
-
-      return result
     },
-    [withLoading, handleApiResponse]
-  )
-
-  const updateEmailConfiguration = useCallback(
-    async (emailData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración email', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateEmailConfiguration(emailData)
-
-        setEmailConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración email', 'Configuración actualizada exitosamente')
-
-        return updatedConfig
-      }, 'actualizar configuración de email')
-
-      return handleApiResponse(result, 'Configuración de email actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
+    [fetchSection, handleSuccess]
   )
 
   const sendMassEmail = useCallback(
-    async (emailData, showNotifications = true) => {
+    async (emailData, options) => {
+      const { showNotifications = true } = normalizeOptions(options)
+
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'enviar email masivo', 'Iniciando envío masivo')
         const response = await configurationService.sendMassEmail(emailData)
@@ -156,183 +246,73 @@ const useConfiguration = () => {
 
       return handleApiResponse(result, 'Email masivo enviado exitosamente.', { showNotifications })
     },
-    [withSubmitting, handleApiResponse]
+    [handleApiResponse, withSubmitting]
   )
 
-  // ========================================
-  // CONFIGURACIÓN DE MATCHING
-  // ========================================
+  const fetchMaintenanceMode = useCallback(
+    async options => {
+      const { showNotifications = false } = normalizeOptions(options)
 
-  const fetchMatchingConfiguration = useCallback(
-    async (showNotifications = false) => {
       const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración matching', 'Iniciando carga')
-        const config = await configurationService.getMatchingConfiguration()
+        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', 'Iniciando consulta')
+        const response = await configurationService.getMaintenanceMode()
 
-        setMatchingConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración matching', config)
+        setMaintenanceMode(response.enabled || false)
+        setMaintenanceError(null)
+        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', response)
 
-        return config
-      }, 'obtener configuración de matching')
+        return response
+      }, 'obtener estado de mantenimiento')
+
+      if (!result.success) {
+        setMaintenanceError(result.message || 'No se pudo cargar el modo mantenimiento.')
+      }
 
       if (showNotifications) {
-        return handleApiResponse(result, 'Configuración de matching cargada.', { showNotifications: true })
+        return handleApiResponse(result, 'Estado de mantenimiento cargado.', { showNotifications: true })
       }
 
       return result
     },
-    [withLoading, handleApiResponse]
+    [handleApiResponse, withLoading]
   )
 
-  const updateMatchingConfiguration = useCallback(
-    async (matchingData, showNotifications = true) => {
+  const toggleMaintenanceMode = useCallback(
+    async (enabled, options) => {
+      const { showNotifications = true } = normalizeOptions(options)
+
       const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración matching', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateMatchingConfiguration(matchingData)
+        const actionLabel = enabled ? 'Activando' : 'Desactivando'
 
-        setMatchingConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración matching', 'Configuración actualizada exitosamente')
+        Logger.info(Logger.CATEGORIES.SYSTEM, 'cambiar modo mantenimiento', `${actionLabel} modo de mantenimiento`)
+        const response = await configurationService.toggleMaintenanceMode(enabled)
 
-        return updatedConfig
-      }, 'actualizar configuración de matching')
+        setMaintenanceMode(enabled)
+        setMaintenanceError(null)
+        Logger.info(
+          Logger.CATEGORIES.SYSTEM,
+          'cambiar modo mantenimiento',
+          `Modo de mantenimiento ${enabled ? 'activado' : 'desactivado'} exitosamente`
+        )
 
-      return handleApiResponse(result, 'Configuración de matching actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
+        return response
+      }, 'cambiar modo de mantenimiento')
 
-  // ========================================
-  // CONFIGURACIÓN DE EVENTOS
-  // ========================================
-
-  const fetchEventConfiguration = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración eventos', 'Iniciando carga')
-        const config = await configurationService.getEventConfiguration()
-
-        setEventConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración eventos', config)
-
-        return config
-      }, 'obtener configuración de eventos')
-
-      if (showNotifications) {
-        return handleApiResponse(result, 'Configuración de eventos cargada.', { showNotifications: true })
+      if (!result.success) {
+        setMaintenanceError(result.message || 'No se pudo actualizar el modo mantenimiento.')
       }
 
-      return result
+      return handleApiResponse(result, `Modo de mantenimiento ${enabled ? 'activado' : 'desactivado'} exitosamente.`, {
+        showNotifications
+      })
     },
-    [withLoading, handleApiResponse]
+    [handleApiResponse, withSubmitting]
   )
-
-  const updateEventConfiguration = useCallback(
-    async (eventData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración eventos', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateEventConfiguration(eventData)
-
-        setEventConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración eventos', 'Configuración actualizada exitosamente')
-
-        return updatedConfig
-      }, 'actualizar configuración de eventos')
-
-      return handleApiResponse(result, 'Configuración de eventos actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
-
-  // ========================================
-  // CONFIGURACIÓN DE NOTIFICACIONES
-  // ========================================
-
-  const fetchNotificationConfiguration = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración notificaciones', 'Iniciando carga')
-        const config = await configurationService.getNotificationConfiguration()
-
-        setNotificationConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración notificaciones', config)
-
-        return config
-      }, 'obtener configuración de notificaciones')
-
-      if (showNotifications) {
-        return handleApiResponse(result, 'Configuración de notificaciones cargada.', { showNotifications: true })
-      }
-
-      return result
-    },
-    [withLoading, handleApiResponse]
-  )
-
-  const updateNotificationConfiguration = useCallback(
-    async (notificationData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración notificaciones', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateNotificationConfiguration(notificationData)
-
-        setNotificationConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración notificaciones', 'Configuración actualizada exitosamente')
-
-        return updatedConfig
-      }, 'actualizar configuración de notificaciones')
-
-      return handleApiResponse(result, 'Configuración de notificaciones actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
-
-  // ========================================
-  // CONFIGURACIÓN DEL SISTEMA
-  // ========================================
-
-  const fetchSystemConfiguration = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener configuración sistema', 'Iniciando carga')
-        const config = await configurationService.getSystemConfiguration()
-
-        setSystemConfig(config)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener configuración sistema', config)
-
-        return config
-      }, 'obtener configuración del sistema')
-
-      if (showNotifications) {
-        return handleApiResponse(result, 'Configuración del sistema cargada.', { showNotifications: true })
-      }
-
-      return result
-    },
-    [withLoading, handleApiResponse]
-  )
-
-  const updateSystemConfiguration = useCallback(
-    async (systemData, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración sistema', 'Iniciando actualización')
-        const updatedConfig = await configurationService.updateSystemConfiguration(systemData)
-
-        setSystemConfig(updatedConfig)
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'actualizar configuración sistema', 'Configuración actualizada exitosamente')
-
-        return updatedConfig
-      }, 'actualizar configuración del sistema')
-
-      return handleApiResponse(result, 'Configuración del sistema actualizada.', { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
-  )
-
-  // ========================================
-  // MANTENIMIENTO Y BACKUP
-  // ========================================
 
   const createSystemBackup = useCallback(
-    async (showNotifications = true) => {
+    async options => {
+      const { showNotifications = true } = normalizeOptions(options)
+
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SYSTEM, 'crear backup', 'Iniciando creación de backup')
         const response = await configurationService.createSystemBackup()
@@ -344,102 +324,75 @@ const useConfiguration = () => {
 
       return handleApiResponse(result, 'Backup del sistema creado exitosamente.', { showNotifications })
     },
-    [withSubmitting, handleApiResponse]
+    [handleApiResponse, withSubmitting]
   )
 
-  const fetchMaintenanceMode = useCallback(
-    async (showNotifications = false) => {
-      const result = await withLoading(async () => {
-        Logger.info(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', 'Iniciando consulta')
-        const response = await configurationService.getMaintenanceMode()
+  const getSectionData = useCallback(section => data[section] ?? null, [data])
+  const getSectionError = useCallback(section => errors[section] ?? null, [errors])
+  const getSectionUpdatedAt = useCallback(section => updatedAt[section] ?? null, [updatedAt])
 
-        setMaintenanceMode(response.enabled || false)
-        Logger.debug(Logger.CATEGORIES.SYSTEM, 'obtener modo mantenimiento', response)
-
-        return response
-      }, 'obtener estado de mantenimiento')
-
-      if (showNotifications) {
-        return handleApiResponse(result, 'Estado de mantenimiento cargado.', { showNotifications: true })
-      }
-
-      return result
-    },
-    [withLoading, handleApiResponse]
+  const fetchers = useMemo(
+    () => ({
+      fetchBasicConfiguration: options => fetchSection('basic', options),
+      fetchSocialMediaConfiguration: options => fetchSection('social', options),
+      fetchEmailConfiguration: options => fetchSection('email', options),
+      fetchMatchingConfiguration: options => fetchSection('matching', options),
+      fetchEventConfiguration: options => fetchSection('event', options),
+      fetchNotificationConfiguration: options => fetchSection('notification', options),
+      fetchSystemConfiguration: options => fetchSection('system', options)
+    }),
+    [fetchSection]
   )
 
-  const toggleMaintenanceMode = useCallback(
-    async (enabled, showNotifications = true) => {
-      const result = await withSubmitting(async () => {
-        Logger.info(
-          Logger.CATEGORIES.SYSTEM,
-          'cambiar modo mantenimiento',
-          `${enabled ? 'Activando' : 'Desactivando'} modo de mantenimiento`
-        )
-        const response = await configurationService.toggleMaintenanceMode(enabled)
-
-        setMaintenanceMode(enabled)
-        Logger.info(
-          Logger.CATEGORIES.SYSTEM,
-          'cambiar modo mantenimiento',
-          `Modo de mantenimiento ${enabled ? 'activado' : 'desactivado'} exitosamente`
-        )
-
-        return response
-      }, 'cambiar modo de mantenimiento')
-
-      return handleApiResponse(result, `Modo de mantenimiento ${enabled ? 'activado' : 'desactivado'} exitosamente.`, { showNotifications })
-    },
-    [withSubmitting, handleApiResponse]
+  const updaters = useMemo(
+    () => ({
+      updateBasicConfiguration: (payload, options) => updateSection('basic', payload, options),
+      updateSocialMediaConfiguration: (payload, options) => updateSection('social', payload, options),
+      updateEmailConfiguration: (payload, options) => updateSection('email', payload, options),
+      updateMatchingConfiguration: (payload, options) => updateSection('matching', payload, options),
+      updateEventConfiguration: (payload, options) => updateSection('event', payload, options),
+      updateNotificationConfiguration: (payload, options) => updateSection('notification', payload, options),
+      updateSystemConfiguration: (payload, options) => updateSection('system', payload, options)
+    }),
+    [updateSection]
   )
-
-  // ========================================
-  // API PÚBLICA DEL HOOK
-  // ========================================
 
   return {
     // Estados generales
     loading,
     submitting,
+    initializing,
+    initialized,
 
-    // Configuración básica
-    basicConfig,
-    fetchBasicConfiguration,
-    updateBasicConfiguration,
+    // Estados por sección
+    basicConfig: data.basic,
+    socialMediaConfig: data.social,
+    emailConfig: data.email,
+    matchingConfig: data.matching,
+    eventConfig: data.event,
+    notificationConfig: data.notification,
+    systemConfig: data.system,
 
-    // Redes sociales
-    socialMediaConfig,
-    fetchSocialMediaConfiguration,
-    updateSocialMediaConfiguration,
+    // Errores y metadatos
+    sectionErrors: errors,
+    sectionUpdatedAt: updatedAt,
+    getSectionData,
+    getSectionError,
+    getSectionUpdatedAt,
 
-    // Email
-    emailConfig,
-    fetchEmailConfiguration,
-    updateEmailConfiguration,
+    // Carga masiva
+    loadConfigurations,
+
+    // Fetchers
+    ...fetchers,
+
+    // Updaters
+    ...updaters,
+
+    // Operaciones complementarias
     sendMassEmail,
-
-    // Matching
-    matchingConfig,
-    fetchMatchingConfiguration,
-    updateMatchingConfiguration,
-
-    // Eventos
-    eventConfig,
-    fetchEventConfiguration,
-    updateEventConfiguration,
-
-    // Notificaciones
-    notificationConfig,
-    fetchNotificationConfiguration,
-    updateNotificationConfiguration,
-
-    // Sistema
-    systemConfig,
-    fetchSystemConfiguration,
-    updateSystemConfiguration,
-
-    // Mantenimiento
     maintenanceMode,
+    maintenanceError,
     fetchMaintenanceMode,
     toggleMaintenanceMode,
     createSystemBackup

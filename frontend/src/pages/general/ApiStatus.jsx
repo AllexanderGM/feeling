@@ -17,6 +17,8 @@ import {
   useDisclosure
 } from '@heroui/react'
 import { useApiStatus, useError } from '@hooks'
+import LoadData from '@components/layout/LoadData.jsx'
+import LoadDataError from '@components/layout/LoadDataError.jsx'
 import { API_URL } from '@config/config'
 import { Logger } from '@utils/logger.js'
 
@@ -61,6 +63,9 @@ const ApiStatus = () => {
     hasData,
     hasError
   } = useApiStatus(apiStatusOptions)
+
+  const isInitialLoading = loading && !hasData
+  const showInitialError = !loading && !hasData && (hasError || !!error)
 
   // Función para hacer ping con UI visual
   const handlePing = useCallback(async () => {
@@ -158,6 +163,20 @@ const ApiStatus = () => {
       cached: statusData.metadata?.cached
     }
   }, [hasData, statusData, lastUpdate, isAutoRefreshing, stats, formatResponseTime])
+
+  if (isInitialLoading) {
+    return <LoadData>Verificando estado del sistema...</LoadData>
+  }
+
+  if (showInitialError) {
+    return (
+      <LoadDataError
+        message={error || 'No se pudo obtener el estado del sistema'}
+        retryAction={() => refresh()}
+        retryButtonText='Reintentar consulta'
+      />
+    )
+  }
 
   return (
     <>

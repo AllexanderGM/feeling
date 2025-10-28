@@ -3,7 +3,32 @@ import { Link } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths'
 import { Zap, Sparkles, Crown, Heart, Star } from 'lucide-react'
 
-const MatchSection = ({ userHelpers }) => {
+const MatchSection = ({ userHelpers = {} }) => {
+  const getValue = fn => {
+    if (typeof fn !== 'function') {
+      return 0
+    }
+
+    const value = fn()
+
+    const numericValue = Number(value)
+
+    return Number.isFinite(numericValue) ? numericValue : 0
+  }
+
+  const availableAttempts = getValue(userHelpers.getMatchAttempts)
+  const reservedAttempts = getValue(userHelpers.getReservedAttempts)
+  const balanceAttempts = getValue(userHelpers.getAttemptBalance)
+  const todayMatches = getValue(userHelpers.getTodayMatches)
+  const acceptedMatches = getValue(userHelpers.getAcceptedMatches)
+  const sentMatches = getValue(userHelpers.getSentMatches)
+  const receivedMatches = getValue(userHelpers.getReceivedMatches)
+  const pendingSent = getValue(userHelpers.getPendingSentMatches)
+  const pendingReceived = getValue(userHelpers.getPendingReceivedMatches)
+  const favorites = getValue(userHelpers.getFavoritesCount)
+
+  const hasAttempts = availableAttempts > 0
+
   return (
     <Card className='w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30'>
       <CardBody className='p-4 sm:p-6'>
@@ -25,24 +50,25 @@ const MatchSection = ({ userHelpers }) => {
                 <h3 className='text-base font-bold text-gray-100'>Intentos de Match</h3>
                 <Crown className='w-4 h-4 text-yellow-400' />
               </div>
+              <p className='text-xs text-gray-400'>Controla tu saldo y los matches activos.</p>
             </div>
           </div>
 
           {/* Estadísticas móvil */}
           <div className='flex items-center justify-center gap-4 w-full'>
             <div className='text-center'>
-              <div className='text-xl font-bold text-primary-400'>{userHelpers.getMatchAttempts()}</div>
+              <div className='text-xl font-bold text-primary-400'>{availableAttempts}</div>
               <div className='text-xs text-gray-400'>Disponibles</div>
             </div>
             <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
-              <div className='text-xl font-bold text-purple-400'>{userHelpers.getTodayMatches()}</div>
-              <div className='text-xs text-gray-400'>Hoy</div>
+              <div className='text-xl font-bold text-orange-300'>{reservedAttempts}</div>
+              <div className='text-xs text-gray-400'>Reservados</div>
             </div>
             <div className='h-8 w-px bg-gray-600' />
             <div className='text-center'>
-              <div className='text-xl font-bold text-green-400'>{userHelpers.getTotalMatches()}</div>
-              <div className='text-xs text-gray-400'>Total</div>
+              <div className='text-xl font-bold text-green-400'>{acceptedMatches}</div>
+              <div className='text-xs text-gray-400'>Aceptados</div>
             </div>
           </div>
 
@@ -91,20 +117,30 @@ const MatchSection = ({ userHelpers }) => {
                 <h3 className='text-lg font-bold text-gray-100'>Intentos de Match</h3>
                 <Crown className='w-5 h-5 text-yellow-400' />
               </div>
-              <div className='flex items-center gap-3'>
+              <div className='flex items-center gap-4'>
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-primary-400'>{userHelpers.getMatchAttempts()}</div>
+                  <div className='text-2xl font-bold text-primary-400'>{availableAttempts}</div>
                   <div className='text-xs text-gray-400'>Disponibles</div>
                 </div>
                 <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-purple-400'>{userHelpers.getTodayMatches()}</div>
-                  <div className='text-xs text-gray-400'>Hoy</div>
+                  <div className='text-2xl font-bold text-orange-300'>{reservedAttempts}</div>
+                  <div className='text-xs text-gray-400'>Reservados</div>
                 </div>
                 <div className='h-8 w-px bg-gray-600' />
                 <div className='text-center'>
-                  <div className='text-2xl font-bold text-green-400'>{userHelpers.getTotalMatches()}</div>
-                  <div className='text-xs text-gray-400'>Total</div>
+                  <div className='text-2xl font-bold text-purple-300'>{balanceAttempts}</div>
+                  <div className='text-xs text-gray-400'>Saldo total</div>
+                </div>
+                <div className='h-8 w-px bg-gray-600' />
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-green-400'>{acceptedMatches}</div>
+                  <div className='text-xs text-gray-400'>Aceptados</div>
+                </div>
+                <div className='h-8 w-px bg-gray-600' />
+                <div className='text-center'>
+                  <div className='text-2xl font-bold text-blue-300'>{todayMatches}</div>
+                  <div className='text-xs text-gray-400'>Hoy</div>
                 </div>
               </div>
             </div>
@@ -140,34 +176,58 @@ const MatchSection = ({ userHelpers }) => {
         {/* Barra de progreso para intentos */}
         <div className='mt-4 space-y-2'>
           <div className='flex justify-between items-center'>
-            <span className='text-sm text-gray-400'>Intentos restantes hoy</span>
+            <span className='text-sm text-gray-400'>Intentos comprometidos</span>
             <span className='text-sm font-medium text-gray-300'>
-              {userHelpers.getMatchAttempts()} / {userHelpers.getMaxDailyAttempts()}
+              {reservedAttempts} / {balanceAttempts}
             </span>
           </div>
           <Progress
-            aria-label={`Intentos de match restantes: ${userHelpers.getMatchAttempts()} de ${userHelpers.getMaxDailyAttempts()}`}
+            aria-label={`Intentos reservados: ${reservedAttempts} de ${balanceAttempts}`}
             className='h-2'
             classNames={{
-              indicator: 'bg-gradient-to-r from-primary-400 via-purple-400 to-pink-400',
+              indicator: 'bg-gradient-to-r from-orange-400 via-primary-400 to-pink-400',
               track: 'bg-gray-700/50'
             }}
-            value={(userHelpers.getMatchAttempts() / userHelpers.getMaxDailyAttempts()) * 100}
+            value={balanceAttempts > 0 ? (reservedAttempts / balanceAttempts) * 100 : 0}
           />
         </div>
 
-        {/* Mensaje motivacional */}
-        <div className='mt-3 text-center'>
+        {/* Estadísticas adicionales compactas */}
+        <div className='mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-4'>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-blue-900/20 border border-blue-700/30 rounded-full'>
+            <span className='text-xs text-blue-300 font-medium'>Enviados</span>
+            <span className='text-sm font-bold text-blue-400'>{sentMatches}</span>
+          </div>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-purple-900/20 border border-purple-700/30 rounded-full'>
+            <span className='text-xs text-purple-300 font-medium'>Recibidos</span>
+            <span className='text-sm font-bold text-purple-400'>{receivedMatches}</span>
+          </div>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-amber-900/20 border border-amber-700/30 rounded-full'>
+            <span className='text-xs text-amber-300 font-medium'>Pend. Enviados</span>
+            <span className='text-sm font-bold text-amber-400'>{pendingSent}</span>
+          </div>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-orange-900/20 border border-orange-700/30 rounded-full'>
+            <span className='text-xs text-orange-300 font-medium'>Pend. Recibidos</span>
+            <span className='text-sm font-bold text-orange-400'>{pendingReceived}</span>
+          </div>
+          <div className='flex items-center gap-2 px-3 py-1.5 bg-pink-900/20 border border-pink-700/30 rounded-full'>
+            <span className='text-xs text-pink-300 font-medium'>Favoritos</span>
+            <span className='text-sm font-bold text-pink-400'>{favorites}</span>
+          </div>
+        </div>
+
+        {/* Mensaje motivacional compacto */}
+        <div className='mt-4 text-center'>
           <p className='text-sm text-gray-300'>
-            {userHelpers.getMatchAttempts() > 0 ? (
+            {hasAttempts ? (
               <>
-                <span className='text-primary-400 font-medium'>¡Tienes {userHelpers.getMatchAttempts()} intentos!</span>
-                <span className='text-gray-400'> Encuentra tu conexión perfecta hoy.</span>
+                <span className='text-primary-400 font-medium'>Tienes {availableAttempts} matches disponibles.</span>
+                <span className='text-gray-400'> Aprovéchalos para iniciar nuevas conexiones cuando lo desees.</span>
               </>
             ) : (
               <>
                 <span className='text-orange-400 font-medium'>Sin intentos disponibles.</span>
-                <span className='text-gray-400'> Los intentos se renovarán mañana o puedes obtener más.</span>
+                <span className='text-gray-400'> Obtén más para seguir conectando con personas increíbles.</span>
               </>
             )}
           </p>

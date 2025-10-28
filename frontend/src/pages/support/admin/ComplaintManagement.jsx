@@ -8,10 +8,11 @@ import GenericTableControls from '@components/ui/table/GenericTableControls.jsx'
 import TablePagination from '@components/ui/table/TablePagination.jsx'
 import { COMPLAINT_TYPE_COLUMNS, DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
 
-import { ComplaintStatsCards } from './components/ComplaintStatsCards.jsx'
-import { UpdateComplaintStatusModal } from './components/UpdateComplaintStatusModal.jsx'
 import { UnifiedComplaintTable } from '../components/UnifiedComplaintTable.jsx'
 import { ComplaintChatModal } from '../components/ComplaintChatModal.jsx'
+
+import { ComplaintStatsCards } from './components/ComplaintStatsCards.jsx'
+import { UpdateComplaintStatusModal } from './components/UpdateComplaintStatusModal.jsx'
 
 const ComplaintManagement = memo(() => {
   const { showError, showSuccess } = useError()

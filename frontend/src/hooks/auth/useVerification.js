@@ -1,32 +1,17 @@
-import { useContext, useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { verificationService } from '@services'
-import AuthContext from '@contexts/AuthContext.jsx'
-import { useError, useAsyncOperation } from '@hooks'
+
+import useAuthOperations from './useAuthOperations.js'
 
 export const useVerification = () => {
-  const context = useContext(AuthContext)
+  const { authContext, handleApiResponse, loading, withLoading } = useAuthOperations()
 
-  // Pasar el contexto de auth al hook de error para usar clearAllAuth
-  const { handleApiResponse } = useError(context)
-
-  // Hook centralizado para operaciones asíncronas con configuración estable
-  const asyncOptions = useMemo(
-    () => ({
-      authContext: context,
-      showNotifications: true,
-      autoHandleAuth: true
-    }),
-    [context]
-  )
-
-  const { loading, withLoading } = useAsyncOperation(asyncOptions)
-
-  if (!context) throw new Error('useVerification debe ser utilizado dentro de AuthProvider')
+  if (!authContext) throw new Error('useVerification debe ser utilizado dentro de AuthProvider')
 
   const {
     // Estados principales
     accessToken
-  } = context
+  } = authContext
 
   // ========================================
   // MÉTODOS DE VERIFICACIÓN DE EMAIL

@@ -46,6 +46,29 @@ public interface IUserRepository extends JpaRepository<User, Long> {
     Optional<User> findByIdWithTags(@Param("userId") Long userId);
 
     /**
+     * Busca un usuario por ID incluyendo atributos asociados necesarios para las vistas públicas de perfil.
+     * Incluye FETCH JOIN para tags y atributos físicos opcionales para evitar LazyInitializationException.
+     *
+     * @param userId ID del usuario
+     * @return Optional con el usuario y sus relaciones más consultadas
+     */
+    @Query("SELECT DISTINCT u FROM User u " +
+        "LEFT JOIN FETCH u.tags " +
+        "LEFT JOIN FETCH u.gender " +
+        "LEFT JOIN FETCH u.maritalStatus " +
+        "LEFT JOIN FETCH u.eyeColor " +
+        "LEFT JOIN FETCH u.hairColor " +
+        "LEFT JOIN FETCH u.bodyType " +
+        "LEFT JOIN FETCH u.education " +
+        "LEFT JOIN FETCH u.church " +
+        "LEFT JOIN FETCH u.religion " +
+        "LEFT JOIN FETCH u.sexualRole " +
+        "LEFT JOIN FETCH u.relationshipType " +
+        "LEFT JOIN FETCH u.categoryInterest " +
+        "WHERE u.id = :userId")
+    Optional<User> findByIdWithProfileData(@Param("userId") Long userId);
+
+    /**
      * Verifica si existe un usuario con el email especificado.
      *
      * @param email Email a verificar

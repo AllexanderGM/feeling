@@ -31,7 +31,7 @@ export const useMatchFavorites = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar favoritos', error)
+        handleError(error, { customMessage: 'Error al cargar favoritos' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -51,7 +51,7 @@ export const useMatchFavorites = () => {
 
         return response.isFavorite || false
       } catch (error) {
-        handleError('Error al verificar favorito', error)
+        handleError(error, { customMessage: 'Error al verificar favorito' })
 
         return false
       }
@@ -77,7 +77,7 @@ export const useMatchFavorites = () => {
 
         return response
       } catch (error) {
-        handleError('Error al agregar a favoritos', error)
+        handleError(error, { customMessage: 'Error al agregar a favoritos' })
         throw error
       } finally {
         setLoading(false)
@@ -100,7 +100,7 @@ export const useMatchFavorites = () => {
 
         return response
       } catch (error) {
-        handleError('Error al remover de favoritos', error)
+        handleError(error, { customMessage: 'Error al remover de favoritos' })
         throw error
       } finally {
         setLoading(false)
@@ -128,7 +128,7 @@ export const useMatchFavorites = () => {
           return true
         }
       } catch (error) {
-        handleError('Error al cambiar estado de favorito', error)
+        handleError(error, { customMessage: 'Error al cambiar estado de favorito' })
         throw error
       } finally {
         setLoading(false)

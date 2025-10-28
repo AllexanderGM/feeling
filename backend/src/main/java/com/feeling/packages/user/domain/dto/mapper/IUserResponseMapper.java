@@ -49,7 +49,7 @@ public interface IUserResponseMapper {
     @Mapping(target = "user", source = "user")
     @Mapping(target = "privacy", source = "user")
     @Mapping(target = "metrics", source = "user")
-    @Mapping(target = "matches", ignore = true)
+    @Mapping(target = "matches", source = "user")
     @Mapping(target = "auth", ignore = true)
     @Mapping(target = "notifications", source = "user")
     UserResponseDTO toExtendedResponse(User user);

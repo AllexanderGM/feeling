@@ -12,6 +12,7 @@ export { default as useVerification } from './auth/useVerification.js'
 export { default as useEvents } from './event/useEvents.js'
 export { default as useEvent } from './event/useEvent.js'
 export { default as useTour } from './event/useEvent.js' // Alias para compatibilidad
+export { default as useEventOperations } from './event/useEventOperations.js'
 
 // Location Hooks
 export { default as useLocation } from './location/useLocation.js'
@@ -23,6 +24,8 @@ export { default as useMatchQuery } from './match/useMatchQuery.js'
 export { default as useMatchFavorites } from './match/useMatchFavorites.js'
 export { default as useMatchPlans } from './match/useMatchPlans.js'
 export { default as useMatchStatistics } from './match/useMatchStatistics.js'
+export { default as useMatchOperations } from './match/useMatchOperations.js'
+export { default as useMyMatchesData } from './match/useMyMatchesData.js'
 export { default as useDiscoveryCards } from '../components/ui/userSuggestionCards/hooks/useDiscoveryCards.js'
 
 // Support Hooks
@@ -56,6 +59,7 @@ export { default as useError } from './utils/useError.js'
 export { default as useForm } from './utils/useForm.js'
 export { default as useMultiStepForm } from './utils/useMultiStepForm.js'
 export { default as useNotification } from './utils/useNotification.js'
+export { default as useConfetti } from './utils/useConfetti.js'
 
 // ========================================
 // EXPORTACIONES POR CATEGORÍA
@@ -113,3 +117,4 @@ export * as ErrorHooks from './utils/useError.js'
 export * as FormHooks from './utils/useForm.js'
 export * as MultiStepFormHooks from './utils/useMultiStepForm.js'
 export * as NotificationHooks from './utils/useNotification.js'
+export * as ConfettiHooks from './utils/useConfetti.js'

@@ -1,43 +1,44 @@
+locals {
+  frontend_bucket_is_public = var.allow_public_frontend_bucket && !var.enable_cloudfront
+}
+
 module "frontend_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "4.6.0"
-  bucket  = "${lower(replace(var.prefix, "_", "-"))}-frontend"
 
-  force_destroy = true # Permite eliminar el bucket incluso si no está vacío
+  bucket = local.frontend_bucket_name
 
-  # Configuraciones de acceso público
-  acl                     = "public-read" # Establecer ACL a public-read
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  force_destroy = var.frontend_bucket_force_destroy
+
+  acl = local.frontend_bucket_is_public ? "public-read" : "private"
+
+  block_public_acls       = !local.frontend_bucket_is_public
+  block_public_policy     = !local.frontend_bucket_is_public
+  ignore_public_acls      = !local.frontend_bucket_is_public
+  restrict_public_buckets = !local.frontend_bucket_is_public
 
   control_object_ownership = true
   object_ownership         = "BucketOwnerPreferred"
 
-  # Configuración de sitio web estático para SPA
-  website = {
+  website = local.frontend_bucket_is_public ? {
     index_document = "index.html"
-    error_document = "index.html" # Redirigir errores a index.html para SPA
-    # Se eliminó la parte de routing_rules que causaba el error
-  }
+    error_document = "index.html"
+  } : null
 
-  # Política para permitir acceso público de lectura a todos los objetos del bucket
-  attach_policy = true
-  policy = jsonencode({
+  attach_policy = local.frontend_bucket_is_public
+  policy = local.frontend_bucket_is_public ? jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Sid       = "PublicReadGetObject"
         Effect    = "Allow"
         Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "arn:aws:s3:::${lower(replace(var.prefix, "_", "-"))}-frontend/*"
+        Action    = ["s3:GetObject"]
+        Resource  = "arn:aws:s3:::${local.frontend_bucket_name}/*"
       }
     ]
-  })
+  }) : null
 
-  # Configuración básica de seguridad
   server_side_encryption_configuration = {
     rule = {
       apply_server_side_encryption_by_default = {
@@ -46,88 +47,136 @@ module "frontend_bucket" {
     }
   }
 
-  # Configuración de capa gratuita - evitar opciones costosas
   versioning = {
-    enabled = false # No habilitar versionado para permanecer en capa gratuita
+    enabled = false
   }
 
-  tags = {
-    Name         = "${lower(replace(var.prefix, "_", "-"))}-frontend"
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "S3 Bucket"
-  }
+  tags = merge(local.default_tags, {
+    Name      = local.frontend_bucket_name
+    Component = "frontend"
+  })
 }
 
-module "images_bucket" {
+module "assets_bucket" {
   source  = "terraform-aws-modules/s3-bucket/aws"
   version = "4.6.0"
-  bucket  = "${lower(replace(var.prefix, "_", "-"))}-images"
 
-  force_destroy = true
+  bucket = local.assets_bucket_name
 
-  # Misma configuración que frontend_bucket
-  acl                     = "public-read" # Establecer ACL a public-read
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+  force_destroy = var.assets_bucket_force_destroy
+
+  acl = "private"
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 
   control_object_ownership = true
   object_ownership         = "BucketOwnerPreferred"
 
-  # Política para permitir acceso público de lectura a todos los objetos del bucket
-  attach_policy = true
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "arn:aws:s3:::${lower(replace(var.prefix, "_", "-"))}-images/*"
-      }
-    ]
-  })
+  attach_policy = false
 
-  # Configuración básica de seguridad
-  server_side_encryption_configuration = {
-    rule = {
-      apply_server_side_encryption_by_default = {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
-
-  # Configuración de capa gratuita - evitar opciones costosas
-  versioning = {
-    enabled = false # No habilitar versionado para permanecer en capa gratuita
-  }
-
-  # Regla simple de ciclo de vida para optimizar costos - Corregida
   lifecycle_rule = [
     {
-      id      = "delete-old-files"
+      id      = "cleanup-incomplete-uploads"
       enabled = true
-
-      # Añadir un filtro válido
-      filter = {
-        prefix = "backups/" # Aplicar solo a la carpeta de backups
-      }
-
-      expiration = {
-        days = 365 # Borrar archivos después de 1 año para mantener el tamaño bajo control
+      abort_incomplete_multipart_upload = {
+        days_after_initiation = 7
       }
     }
   ]
 
-  tags = {
-    Name         = "${lower(replace(var.prefix, "_", "-"))}-images"
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "S3 Bucket"
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        sse_algorithm = "AES256"
+      }
+    }
   }
+
+  versioning = {
+    enabled = false
+  }
+
+  tags = merge(local.default_tags, {
+    Name      = local.assets_bucket_name
+    Component = "assets"
+  })
+}
+
+module "logs_bucket" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "4.6.0"
+
+  count = var.enable_access_logs_bucket ? 1 : 0
+
+  bucket = local.logs_bucket_name
+
+  force_destroy = true
+
+  acl = "private"
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+
+  control_object_ownership = true
+  object_ownership         = "BucketOwnerPreferred"
+
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  versioning = {
+    enabled = true
+  }
+
+  tags = merge(local.default_tags, {
+    Name      = local.logs_bucket_name
+    Component = "logs"
+  })
+}
+
+data "aws_iam_policy_document" "frontend_cloudfront" {
+  count = var.enable_cloudfront ? 1 : 0
+
+  statement {
+    sid    = "AllowCloudFrontServicePrincipalRead"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket"
+    ]
+
+    resources = [
+      module.frontend_bucket.s3_bucket_arn,
+      "${module.frontend_bucket.s3_bucket_arn}/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.frontend[0].arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "frontend" {
+  count  = var.enable_cloudfront ? 1 : 0
+  bucket = module.frontend_bucket.s3_bucket_id
+  policy = data.aws_iam_policy_document.frontend_cloudfront[0].json
+
+  depends_on = [aws_cloudfront_distribution.frontend]
 }

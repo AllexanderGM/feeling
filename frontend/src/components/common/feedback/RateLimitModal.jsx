@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody, Chip, Progress } from '@heroui/react'
-import { Clock, AlertTriangle, CheckCircle, Lightbulb, RefreshCw, Shield } from 'lucide-react'
+import { Clock, AlertTriangle, CheckCircle, Lightbulb, RefreshCw, Shield, Home } from 'lucide-react'
+import { APP_PATHS } from '@constants/paths'
 
 const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
   const [countdown, setCountdown] = useState(0)
@@ -79,12 +80,20 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
     onClose()
   }
 
+  const handleGoHome = () => {
+    setIsActive(false)
+    setCountdown(0)
+    // Usar window.location para evitar problemas con el contexto del router
+    window.location.href = APP_PATHS.ROOT
+  }
+
   const canRetry = countdown === 0 && !isActive
 
   const progressValue = countdown > 0 ? ((extractWaitTime(errorMessage) - countdown) / extractWaitTime(errorMessage)) * 100 : 100
 
   return (
     <Modal
+      aria-label='Modal de límite de peticiones'
       backdrop='blur'
       classNames={{
         backdrop: 'bg-black/80',
@@ -158,6 +167,7 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
                   <div className='text-center'>
                     <div className='text-3xl font-bold text-orange-300 mb-2'>{formatTime(countdown)}</div>
                     <Progress
+                      aria-label='Progreso del tiempo de espera'
                       className='max-w-md mx-auto'
                       classNames={{
                         base: 'bg-orange-500/20',
@@ -235,18 +245,30 @@ const RateLimitModal = ({ isOpen, onClose, error = {} }) => {
 
         <ModalFooter className='px-6 py-4'>
           <div className='w-full space-y-3'>
-            <Button
-              className={`w-full font-semibold ${
-                canRetry ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-orange-500/50 text-orange-300 bg-orange-500/10'
-              }`}
-              color={canRetry ? 'success' : 'warning'}
-              isDisabled={!canRetry && countdown > 0}
-              size='lg'
-              startContent={canRetry ? <RefreshCw className='w-4 h-4' /> : <Clock className='w-4 h-4' />}
-              variant={canRetry ? 'solid' : 'bordered'}
-              onClick={handleClose}>
-              {canRetry ? 'Entendido, intentar de nuevo' : `Esperar ${formatTime(countdown)}`}
-            </Button>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <Button
+                className={`w-full font-semibold ${
+                  canRetry ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-orange-500/50 text-orange-300 bg-orange-500/10'
+                }`}
+                color={canRetry ? 'success' : 'warning'}
+                isDisabled={!canRetry && countdown > 0}
+                size='lg'
+                startContent={canRetry ? <RefreshCw className='w-4 h-4' /> : <Clock className='w-4 h-4' />}
+                variant={canRetry ? 'solid' : 'bordered'}
+                onClick={handleClose}>
+                {canRetry ? 'Entendido, intentar de nuevo' : `Esperar ${formatTime(countdown)}`}
+              </Button>
+
+              <Button
+                className='w-full font-semibold border-gray-600/50 text-gray-300 hover:bg-gray-700/50'
+                color='default'
+                size='lg'
+                startContent={<Home className='w-4 h-4' />}
+                variant='bordered'
+                onClick={handleGoHome}>
+                Ir al Inicio
+              </Button>
+            </div>
 
             {errorTimestamp && (
               <div className='text-center'>

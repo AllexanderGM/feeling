@@ -115,7 +115,7 @@ if [[ "$ENV" == "production" ]]; then
     # Entorno de producción (AWS)
     if ! check_http_service "Backend API" "http://localhost:$PORT_BACK/health"; then
         echo -e "${YELLOW}🔄 Intentando reiniciar el servicio de backend...${NC}"
-        check_docker_container "${NAME}-backend" true
+        check_docker_container "feeling-backend" true
     fi
 
     # Verificar espacio en disco

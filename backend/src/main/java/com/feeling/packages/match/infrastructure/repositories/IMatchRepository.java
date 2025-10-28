@@ -62,6 +62,16 @@ public interface IMatchRepository extends JpaRepository<Match, Long> {
             "(m.initiatorUser = :user2 AND m.targetUser = :user1)) AND m.status = 'REJECTED'")
     boolean existsRejectedMatchBetweenUsers(@Param("user1") User user1, @Param("user2") User user2);
 
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Match m " +
+            "WHERE ((m.initiatorUser = :user1 AND m.targetUser = :user2) OR " +
+            "(m.initiatorUser = :user2 AND m.targetUser = :user1)) AND m.status = 'PENDING'")
+    boolean existsPendingMatchBetweenUsers(@Param("user1") User user1, @Param("user2") User user2);
+
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM Match m " +
+            "WHERE ((m.initiatorUser = :user1 AND m.targetUser = :user2) OR " +
+            "(m.initiatorUser = :user2 AND m.targetUser = :user1)) AND m.status = 'ACCEPTED'")
+    boolean existsAcceptedMatchBetweenUsers(@Param("user1") User user1, @Param("user2") User user2);
+
     @Query("SELECT CASE WHEN m.initiatorUser.id = :userId THEN m.targetUser.id ELSE m.initiatorUser.id END " +
             "FROM Match m " +
             "WHERE (m.initiatorUser.id = :userId OR m.targetUser.id = :userId) AND m.status = 'REJECTED'")

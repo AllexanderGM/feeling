@@ -32,6 +32,7 @@ public class Event {
     private String title;
 
     @NotBlank(message = "La descripción es obligatoria")
+    @Size(max = 2000, message = "La descripción no puede exceder 2000 caracteres")
     @Column(columnDefinition = "TEXT")
     private String description;
 

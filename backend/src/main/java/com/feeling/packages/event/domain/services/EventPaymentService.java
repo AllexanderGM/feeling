@@ -100,7 +100,9 @@ public class EventPaymentService {
         }
 
         EventRegistration registration = registrationRepository.findByStripePaymentIntentId(paymentReference)
-            .orElseThrow(() -> new NotFoundException("Registro no encontrado para esta referencia de pago"));
+            .orElseGet(() -> extractRegistrationId(paymentReference)
+                .flatMap(registrationRepository::findById)
+                .orElseThrow(() -> new NotFoundException("Registro no encontrado para esta referencia de pago")));
 
         if (!isSuccessfulStatus(response.status())) {
             registrationService.markPaymentFailed(registration.getId());
@@ -178,5 +180,23 @@ public class EventPaymentService {
                 "approved".equalsIgnoreCase(status) ||
                 "success".equalsIgnoreCase(status)
         );
+    }
+
+    private Optional<Long> extractRegistrationId(String paymentReference) {
+        if (paymentReference == null || paymentReference.isBlank()) {
+            return Optional.empty();
+        }
+
+        String[] parts = paymentReference.split("-");
+        if (parts.length < 4) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(Long.parseLong(parts[2]));
+        } catch (NumberFormatException exception) {
+            log.warn("Unable to extract registration id from reference {}", paymentReference, exception);
+            return Optional.empty();
+        }
     }
 }

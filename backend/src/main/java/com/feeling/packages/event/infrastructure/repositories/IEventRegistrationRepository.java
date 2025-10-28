@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,11 @@ public interface IEventRegistrationRepository extends JpaRepository<EventRegistr
     boolean existsByUserIdAndEventId(Long userId, Long eventId);
 
     List<EventRegistration> findByPaymentStatus(PaymentStatus paymentStatus);
+
+    List<EventRegistration> findByPaymentStatusAndRegistrationDateBefore(
+        PaymentStatus paymentStatus,
+        LocalDateTime registrationDateBefore
+    );
 
     @Query("SELECT er FROM EventRegistration er WHERE er.user.id = :userId AND er.paymentStatus = :status ORDER BY er.registrationDate DESC")
     List<EventRegistration> findByUserIdAndPaymentStatus(@Param("userId") Long userId, @Param("complaintStatus") PaymentStatus status);

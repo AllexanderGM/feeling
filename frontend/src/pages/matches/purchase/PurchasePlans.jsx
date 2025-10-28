@@ -66,7 +66,7 @@ const PurchasePlans = () => {
   }
 
   const handleGoBack = () => {
-    navigate(APP_PATHS.USER.MATCHES)
+    navigate(APP_PATHS.USER.MY_MATCHES)
   }
 
   if (loading) return <LoadData>Cargando paquetes disponibles...</LoadData>

@@ -22,10 +22,9 @@ import Home from '@pages/home/Home.jsx'
 import Profile from '@pages/user/me/Me.jsx'
 import Settings from '@pages/user/settings/Settings.jsx'
 import Help from '@pages/support/Help.jsx'
-import Matches from '@pages/matches/Matches.jsx'
 import Favorites from '@pages/user/favorites/Favorites.jsx'
 import Search from '@pages/user/search/Search.jsx'
-import UserDetail from '@pages/user/profile/Profile.jsx'
+import UserDetail from '@pages/user/detail/Detail.jsx'
 import EventsPage from '@pages/event/Event.jsx'
 import EventDetail from '@pages/event/detail/EventDetail.jsx'
 import EventPaymentStatus from '@pages/event/payment/EventPaymentStatus.jsx'
@@ -86,7 +85,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.USER.MATCHES.slice(1),
             element: (
               <RequireCompleteProfile>
-                <Matches />
+                <MyMatches />
               </RequireCompleteProfile>
             )
           },

@@ -303,6 +303,7 @@ const Settings = () => {
                   <span className='text-gray-300'>{profileStats?.completionPercentage || 0}%</span>
                 </div>
                 <Progress
+                  aria-label='Completitud del perfil'
                   className='h-1.5'
                   classNames={{ indicator: 'bg-gradient-to-r from-primary-400 to-primary-600', track: 'bg-gray-700' }}
                   value={profileStats?.completionPercentage || 0}

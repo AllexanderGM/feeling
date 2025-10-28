@@ -50,7 +50,7 @@ const PlansManagement = memo(() => {
       setPlanStats(statsResponse || {})
     } catch (error) {
       Logger.error('Error loading plans data:', error, { category: Logger.CATEGORIES.SERVICE })
-      handleError('Error al cargar los datos de planes de match')
+      handleError(error, { customMessage: 'Error al cargar los datos de planes de match' })
     } finally {
       setLoading(false)
     }
@@ -156,7 +156,7 @@ const PlansManagement = memo(() => {
         setIsCreateModalOpen(false)
         handleSuccess('Plan de match creado exitosamente')
       } catch (error) {
-        handleError('Error al crear el plan de match', error)
+        handleError(error, { customMessage: 'Error al crear el plan de match' })
       } finally {
         setLoading(false)
       }
@@ -176,7 +176,7 @@ const PlansManagement = memo(() => {
         setSelectedPlan(null)
         handleSuccess('Plan de match actualizado exitosamente')
       } catch (error) {
-        handleError('Error al actualizar el plan de match', error)
+        handleError(error, { customMessage: 'Error al actualizar el plan de match' })
       } finally {
         setLoading(false)
       }
@@ -195,7 +195,7 @@ const PlansManagement = memo(() => {
       setSelectedPlan(null)
       handleSuccess('Plan de match eliminado exitosamente')
     } catch (error) {
-      handleError('Error al eliminar el plan de match', error)
+      handleError(error, { customMessage: 'Error al eliminar el plan de match' })
     } finally {
       setLoading(false)
     }

@@ -78,10 +78,10 @@ public class UserService {
 
     /**
      * Email del administrador principal del sistema.
-     * Configurado vía application.properties con la clave 'admin.username'.
+     * Configurado vía application.properties con la clave 'app.admin.email'.
      * Este usuario tiene protecciones especiales contra eliminación y cambios de rol.
      */
-    @Value("${admin.username}")
+    @Value("${app.admin.email}")
     private String adminEmail;
 
     // ========================================

@@ -35,7 +35,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches enviados', error)
+        handleError(error, { customMessage: 'Error al cargar matches enviados' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -55,7 +55,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches recibidos', error)
+        handleError(error, { customMessage: 'Error al cargar matches recibidos' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -75,7 +75,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches recibidos pendientes', error)
+        handleError(error, { customMessage: 'Error al cargar matches recibidos pendientes' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -95,7 +95,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches aceptados', error)
+        handleError(error, { customMessage: 'Error al cargar matches aceptados' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -115,7 +115,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar favoritos', error)
+        handleError(error, { customMessage: 'Error al cargar favoritos' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -133,7 +133,7 @@ export const useMatches = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar estadísticas de matches', error)
+      handleError(error, { customMessage: 'Error al cargar estadísticas de matches' })
 
       return {}
     }
@@ -147,7 +147,7 @@ export const useMatches = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar intentos disponibles', error)
+      handleError(error, { customMessage: 'Error al cargar intentos disponibles' })
 
       return { remainingAttempts: 0 }
     }
@@ -161,7 +161,7 @@ export const useMatches = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar notificaciones', error)
+      handleError(error, { customMessage: 'Error al cargar notificaciones' })
 
       return []
     }
@@ -177,7 +177,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar historial de matches', error)
+        handleError(error, { customMessage: 'Error al cargar historial de matches' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -194,7 +194,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar detalle de match', error)
+        handleError(error, { customMessage: 'Error al cargar detalle de match' })
         throw error
       }
     },
@@ -216,7 +216,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al enviar match', error)
+        handleError(error, { customMessage: 'Error al enviar match' })
         throw error
       } finally {
         setLoading(false)
@@ -236,7 +236,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al aceptar match', error)
+        handleError(error, { customMessage: 'Error al aceptar match' })
         throw error
       } finally {
         setLoading(false)
@@ -256,13 +256,33 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al rechazar match', error)
+        handleError(error, { customMessage: 'Error al rechazar match' })
         throw error
       } finally {
         setLoading(false)
       }
     },
     [handleError, fetchReceivedMatches]
+  )
+
+  const withdrawMatch = useCallback(
+    async matchId => {
+      try {
+        setLoading(true)
+        const response = await matchService.withdrawMatch(matchId)
+
+        // Refresh sent matches and remaining attempts
+        await Promise.all([fetchSentMatches(), fetchRemainingAttempts()])
+
+        return response
+      } catch (error) {
+        handleError(error, { customMessage: 'Error al retirar match' })
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError, fetchSentMatches, fetchRemainingAttempts]
   )
 
   const getMatchContact = useCallback(
@@ -272,7 +292,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al obtener información de contacto', error)
+        handleError(error, { customMessage: 'Error al obtener información de contacto' })
         throw error
       }
     },
@@ -294,7 +314,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al agregar a favoritos', error)
+        handleError(error, { customMessage: 'Error al agregar a favoritos' })
         throw error
       } finally {
         setLoading(false)
@@ -314,7 +334,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al remover de favoritos', error)
+        handleError(error, { customMessage: 'Error al remover de favoritos' })
         throw error
       } finally {
         setLoading(false)
@@ -330,7 +350,7 @@ export const useMatches = () => {
 
         return response.isFavorite || false
       } catch (error) {
-        handleError('Error al verificar favorito', error)
+        handleError(error, { customMessage: 'Error al verificar favorito' })
 
         return false
       }
@@ -356,7 +376,7 @@ export const useMatches = () => {
         fetchNotifications()
       ])
     } catch (error) {
-      handleError('Error al actualizar datos de matches', error)
+      handleError(error, { customMessage: 'Error al actualizar datos de matches' })
     } finally {
       setLoading(false)
     }
@@ -386,7 +406,7 @@ export const useMatches = () => {
 
         return response
       } catch (error) {
-        handleError('Error al marcar notificación como leída', error)
+        handleError(error, { customMessage: 'Error al marcar notificación como leída' })
         throw error
       }
     },
@@ -424,6 +444,7 @@ export const useMatches = () => {
     sendMatch,
     acceptMatch,
     rejectMatch,
+    withdrawMatch,
     getMatchContact,
 
     // Favorites operations

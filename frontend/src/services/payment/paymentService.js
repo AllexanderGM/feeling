@@ -63,7 +63,26 @@ export class PaymentService {
     if (!status) return 'UNKNOWN'
     const normalized = status.toString().trim().toUpperCase()
 
-    return this.STATUS_CONFIG[normalized] ? normalized : 'UNKNOWN'
+    const aliasMap = {
+      SUCCESS: 'APPROVED',
+      SUCCEEDED: 'APPROVED',
+      COMPLETED: 'APPROVED',
+      APPROVED: 'APPROVED',
+      PENDING: 'PENDING',
+      IN_PROGRESS: 'PENDING',
+      WAITING: 'PENDING',
+      DECLINED: 'DECLINED',
+      REJECTED: 'DECLINED',
+      FAILED: 'DECLINED',
+      ERROR: 'ERROR',
+      VOIDED: 'VOIDED',
+      CANCELLED: 'VOIDED',
+      CANCELED: 'VOIDED'
+    }
+
+    const mapped = aliasMap[normalized] || normalized
+
+    return this.STATUS_CONFIG[mapped] ? mapped : 'UNKNOWN'
   }
 
   /**

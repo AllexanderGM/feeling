@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -168,6 +169,25 @@ public class EventRegistrationService {
                     registrationRepository.delete(registration);
                 }
             });
+    }
+
+    @Transactional
+    public int releaseStalePendingRegistrations(Duration maxAge) {
+        LocalDateTime cutoff = LocalDateTime.now().minus(maxAge);
+        List<EventRegistration> staleRegistrations = registrationRepository
+            .findByPaymentStatusAndRegistrationDateBefore(PaymentStatus.PENDING, cutoff);
+
+        int released = 0;
+        for (EventRegistration registration : staleRegistrations) {
+            if (registration.isPaid()) {
+                continue;
+            }
+
+            registrationRepository.delete(registration);
+            released++;
+        }
+
+        return released;
     }
 
     @Transactional

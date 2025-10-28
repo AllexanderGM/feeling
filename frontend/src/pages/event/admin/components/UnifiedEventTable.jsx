@@ -25,6 +25,7 @@ import { Eye, Edit, Trash2, ToggleLeft, ToggleRight, Calendar, MapPin, Users, Do
 import { useError } from '@hooks'
 import { EVENT_CATEGORY_COLORS } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate } from '@utils/dateUtils.js'
+import { RichTextViewer } from '@components/ui/richtext'
 
 const UnifiedEventTable = memo(
   ({
@@ -95,7 +96,7 @@ const UnifiedEventTable = memo(
                 <div className='flex flex-col'>
                   <p className='text-sm font-semibold text-foreground'>{event.title || event.name || 'Sin título'}</p>
                   <p className='text-xs text-default-500 line-clamp-1'>
-                    {event.description ? event.description.substring(0, 50) + '...' : 'Sin descripción'}
+                    {event.description ? event.description.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : 'Sin descripción'}
                   </p>
                 </div>
               </div>
@@ -428,9 +429,7 @@ const UnifiedEventTable = memo(
                     </CardHeader>
                     <CardBody className='pt-0'>
                       <div className='bg-gray-900 p-4 rounded-lg'>
-                        <p className='text-sm text-gray-200 whitespace-pre-wrap'>
-                          {selectedEvent.description || 'Sin descripción disponible'}
-                        </p>
+                        <RichTextViewer className='text-sm' content={selectedEvent.description || 'Sin descripción disponible'} />
                       </div>
                     </CardBody>
                   </Card>

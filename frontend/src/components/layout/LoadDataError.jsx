@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths'
 import { AlertCircle } from 'lucide-react'
 
-export default function LoadDataError({ children, message }) {
+export default function LoadDataError({ children, message, retryAction, retryButtonText = 'Reintentar' }) {
   const navigate = useNavigate()
 
   const handleRetry = () => {
-    window.location.reload()
+    if (retryAction) {
+      retryAction()
+    } else {
+      window.location.reload()
+    }
   }
 
   const handleGoHome = () => {
@@ -28,7 +32,7 @@ export default function LoadDataError({ children, message }) {
         </div>
         <div className='flex items-center justify-center gap-3'>
           <Button color='primary' variant='bordered' onPress={handleRetry}>
-            Reintentar
+            {retryButtonText}
           </Button>
           <Button variant='bordered' onPress={handleGoHome}>
             Ir al inicio

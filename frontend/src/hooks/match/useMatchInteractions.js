@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { matchInteractionService, matchSuggestionService } from '@services'
-import { useError } from '@hooks'
+import { useError, useConfetti } from '@hooks'
 import { useMatch } from '@contexts/MatchContext'
 import { Logger } from '@utils/logger.js'
 
@@ -19,6 +19,9 @@ export const useMatchInteractions = (options = {}) => {
 
   // Obtener funciones del contexto global de matches
   const { showPremiumModal } = useMatch()
+
+  // Hook de confeti para efectos visuales
+  const { fireHeartsConfetti } = useConfetti()
 
   // ===============================
   // UTILIDADES
@@ -63,6 +66,9 @@ export const useMatchInteractions = (options = {}) => {
         setLoading(true)
         const response = await matchInteractionService.sendMatch(targetUserId)
 
+        // 💕 Disparar efecto de corazones cuando se envía el match exitosamente
+        fireHeartsConfetti()
+
         return response
       } catch (error) {
         // Detectar error de intentos agotados
@@ -78,7 +84,7 @@ export const useMatchInteractions = (options = {}) => {
           }
         } else {
           // Error general
-          handleError('Error al enviar match', error)
+          handleError(error, { customMessage: 'Error al enviar match' })
         }
 
         throw error
@@ -86,7 +92,7 @@ export const useMatchInteractions = (options = {}) => {
         setLoading(false)
       }
     },
-    [handleError, isNoAttemptsError, onNoAttemptsAvailable, showPremiumModal]
+    [handleError, isNoAttemptsError, onNoAttemptsAvailable, showPremiumModal, fireHeartsConfetti]
   )
 
   /**
@@ -98,15 +104,18 @@ export const useMatchInteractions = (options = {}) => {
         setLoading(true)
         const response = await matchInteractionService.acceptMatch(matchId)
 
+        // 💕 Disparar efecto de corazones cuando se acepta un match
+        fireHeartsConfetti()
+
         return response
       } catch (error) {
-        handleError('Error al aceptar match', error)
+        handleError(error, { customMessage: 'Error al aceptar match' })
         throw error
       } finally {
         setLoading(false)
       }
     },
-    [handleError]
+    [handleError, fireHeartsConfetti]
   )
 
   /**
@@ -120,7 +129,27 @@ export const useMatchInteractions = (options = {}) => {
 
         return response
       } catch (error) {
-        handleError('Error al rechazar match', error)
+        handleError(error, { customMessage: 'Error al rechazar match' })
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    [handleError]
+  )
+
+  /**
+   * Withdraw a sent match request
+   */
+  const withdrawMatch = useCallback(
+    async matchId => {
+      try {
+        setLoading(true)
+        const response = await matchInteractionService.withdrawMatch(matchId)
+
+        return response
+      } catch (error) {
+        handleError(error, { customMessage: 'Error al retirar el match' })
         throw error
       } finally {
         setLoading(false)
@@ -140,7 +169,7 @@ export const useMatchInteractions = (options = {}) => {
 
         return response
       } catch (error) {
-        handleError('Error al descartar sugerencia', error)
+        handleError(error, { customMessage: 'Error al descartar sugerencia' })
         throw error
       } finally {
         setLoading(false)
@@ -163,7 +192,7 @@ export const useMatchInteractions = (options = {}) => {
 
         return response
       } catch (error) {
-        handleError('Error al obtener detalle de match', error)
+        handleError(error, { customMessage: 'Error al obtener detalle de match' })
         throw error
       }
     },
@@ -180,7 +209,7 @@ export const useMatchInteractions = (options = {}) => {
 
         return response
       } catch (error) {
-        handleError('Error al obtener información de contacto', error)
+        handleError(error, { customMessage: 'Error al obtener información de contacto' })
         throw error
       }
     },
@@ -195,6 +224,7 @@ export const useMatchInteractions = (options = {}) => {
     sendMatch,
     acceptMatch,
     rejectMatch,
+    withdrawMatch,
     dismissSuggestion,
 
     // Queries

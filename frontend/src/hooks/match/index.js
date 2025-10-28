@@ -15,6 +15,8 @@ export { default as useMatchQuery } from './useMatchQuery.js'
 export { default as useMatchFavorites } from './useMatchFavorites.js'
 export { default as useMatchPlans } from './useMatchPlans.js'
 export { default as useMatchStatistics } from './useMatchStatistics.js'
+export { default as useMatchOperations } from './useMatchOperations.js'
+export { default as useMyMatchesData } from './useMyMatchesData.js'
 export { default as useDiscoveryCards } from '../../components/ui/userSuggestionCards/hooks/useDiscoveryCards.js'
 
 // Hook legacy (mantener por retrocompatibilidad temporal)

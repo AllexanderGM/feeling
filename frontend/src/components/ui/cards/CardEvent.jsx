@@ -93,9 +93,13 @@ const CardEvent = ({ event, onSelect }) => {
 
   const truncatedDescription = useMemo(() => {
     if (!description) return 'Descubre esta experiencia única.'
-    if (description.length <= 100) return description
 
-    const truncated = description.substring(0, 97)
+    // Eliminar etiquetas HTML para obtener solo el texto
+    const plainText = description.replace(/<[^>]*>/g, '')
+
+    if (plainText.length <= 100) return plainText
+
+    const truncated = plainText.substring(0, 97)
 
     return `${truncated}...`
   }, [description])

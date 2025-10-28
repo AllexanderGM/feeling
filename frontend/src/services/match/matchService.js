@@ -30,14 +30,34 @@ class MatchService extends ServiceREST {
     }
   }
 
+  async createMatchPlanPaymentIntent(matchPlanId) {
+    const context = 'crear intento de pago de plan de match'
+
+    try {
+      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PAYMENT_INTENT, { matchPlanId })
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
   /**
    * Purchase a match plan
    */
-  async purchaseMatchPlan(planId) {
-    const context = 'comprar plan de match'
+  async purchaseMatchPlan(payload) {
+    return this.confirmMatchPlanPurchase(payload)
+  }
+
+  /**
+   * Confirm a match plan purchase
+   */
+  async confirmMatchPlanPurchase(payload) {
+    const context = 'confirmar compra de plan de match'
 
     try {
-      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PURCHASE_PLAN, { planId })
+      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PURCHASE_PLAN, payload)
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
@@ -106,6 +126,22 @@ class MatchService extends ServiceREST {
 
     try {
       const response = await ServiceREST.post(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/reject`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Withdraw a sent match request
+   */
+  async withdrawMatch(matchId) {
+    const context = 'retirar match'
+
+    try {
+      const response = await ServiceREST.post(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/withdraw`)
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {

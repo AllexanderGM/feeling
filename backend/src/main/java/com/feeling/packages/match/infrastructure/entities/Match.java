@@ -1,10 +1,13 @@
 package com.feeling.packages.match.infrastructure.entities;
 
+import com.feeling.packages.match.infrastructure.entities.UserMatchPlan;
 import com.feeling.packages.user.infrastructure.entities.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -32,6 +35,12 @@ public class Match {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchStatus status = MatchStatus.PENDING;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "initiator_plan_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private UserMatchPlan initiatorReservedPlan;
 
     @Column
     private LocalDateTime respondedAt;

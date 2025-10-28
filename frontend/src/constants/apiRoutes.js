@@ -334,8 +334,7 @@ export const API_ENDPOINTS = {
     CATEGORY_STATS: '/events/stats/category',
     TOGGLE_STATUS: '/events/{id}/admin-toggle-status',
     FORCE_DELETE: '/events/{id}/force-delete',
-    REGISTRATION: '/events/registration',
-    PAYMENT: '/events/payment'
+    REGISTRATION: '/events/registration'
   },
 
   PAYMENTS: {
@@ -356,11 +355,13 @@ export const API_ENDPOINTS = {
   MATCHES: {
     BASE: '/matches',
     PLANS: '/matches/plans',
+    PAYMENT_INTENT: '/matches/plans/payment-intent',
     PURCHASE_PLAN: '/matches/plans/purchase',
     DISMISS_SUGGESTION: '/matches/suggestions/{userId}/dismiss',
     SEND: '/matches/send',
     ACCEPT: '/matches/{id}/accept',
     REJECT: '/matches/{id}/reject',
+    WITHDRAW: '/matches/{id}/withdraw',
     CONTACT: '/matches/{id}/contact',
     SENT: '/matches/sent',
     RECEIVED: '/matches/received',

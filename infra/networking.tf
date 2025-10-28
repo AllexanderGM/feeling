@@ -1,145 +1,99 @@
 module "vpc" {
-  source             = "terraform-aws-modules/vpc/aws"
-  version            = "5.19.0"
-  name               = replace(lower("${var.prefix}-vpc"), "_", "-")
-  cidr               = "10.0.0.0/16"
-  azs                = var.availability_zone
-  public_subnets     = var.public_subnet_cidrs
-  private_subnets    = var.private_subnet_cidrs
-  enable_nat_gateway = false # Mantenemos NAT Gateway desactivado
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.19.0"
 
-  # Configuración adicional para permitir que instancias en subredes públicas accedan a internet
+  name = "${local.name_prefix}-vpc"
+  cidr = var.vpc_cidr
+
+  azs             = var.availability_zones
+  public_subnets  = var.public_subnet_cidrs
+  private_subnets = var.private_subnet_cidrs
+
+  enable_nat_gateway = false
+  single_nat_gateway = false
+
+  map_public_ip_on_launch = true
+
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  # Tags para las subredes públicas para auto-asignar IPs públicas
   public_subnet_tags = {
-    Name = "${replace(lower(var.prefix), "_", "-")}-public-subnet"
+    "kubernetes.io/role/elb" = "1"
+    Name                     = "${local.name_prefix}-public"
   }
 
-  tags = {
-    Name         = replace(lower("${var.prefix}-vpc"), "_", "-")
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "VPC"
+  private_subnet_tags = {
+    Name = "${local.name_prefix}-private"
   }
+
+  tags = merge(local.default_tags, {
+    Name        = "${local.name_prefix}-vpc"
+    Environment = lower(var.environment)
+  })
 }
 
-module "security_groups" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "5.3.0"
-  name    = replace(lower("${var.prefix}-sg"), "_", "-")
-  vpc_id  = module.vpc.vpc_id
-
-  tags = {
-    Name         = replace(lower("${var.prefix}-sg"), "_", "-")
-    Project      = replace(lower(var.prefix), "_", "-")
-    Environment  = "Production"
-    ManagedBy    = "Terraform"
-    ResourceType = "Security Group"
-  }
-
-  # Reglas de ingreso más seguras
-  ingress_with_cidr_blocks = [
-    {
-      from_port   = 8080
-      to_port     = 8080
-      protocol    = "tcp"
-      description = "Backend port"
-      cidr_blocks = "0.0.0.0/0" # Acceso público a la API
-    },
-    {
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      description = "SSH access"
-      cidr_blocks = "0.0.0.0/0" # Considera restringir esto a tu IP en producción
-    },
-    {
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-      description = "MySQL access from backend"
-      cidr_blocks = join(",", concat(var.public_subnet_cidrs, var.private_subnet_cidrs)) # Permitir acceso desde subredes públicas y privadas
-    }
-  ]
-
-  egress_with_cidr_blocks = [
-    {
-      from_port   = 0
-      to_port     = 0
-      protocol    = "-1"
-      description = "Allow all outbound traffic"
-      cidr_blocks = "0.0.0.0/0"
-    }
-  ]
-}
-
-# Security group para la instancia EC2
-resource "aws_security_group" "ec2_sg" {
-  name        = "${replace(lower(var.prefix), "_", "-")}-ec2-sg"
-  description = "Security group for EC2 instance"
+resource "aws_security_group" "backend" {
+  name        = "${local.name_prefix}-backend-sg"
+  description = "Acceso al backend Spring Boot"
   vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "SSH access"
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Backend port"
-  }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
+    description = "Salida a Internet"
   }
 
-  tags = {
-    Name        = "${replace(lower(var.prefix), "_", "-")}-ec2-sg"
-    Project     = replace(lower(var.prefix), "_", "-")
-    Environment = "Production"
-    ManagedBy   = "Terraform"
-  }
+  tags = merge(local.default_tags, {
+    Name = "${local.name_prefix}-backend-sg"
+  })
 }
 
-# Security group para MySQL
-resource "aws_security_group" "rds_sg" {
-  name        = "${replace(lower(var.prefix), "_", "-")}-rds-sg"
-  description = "Security group for RDS instance"
-  vpc_id      = module.vpc.vpc_id
+resource "aws_security_group_rule" "backend_ssh" {
+  description       = "SSH"
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  security_group_id = aws_security_group.backend.id
+  cidr_blocks       = var.allowed_ssh_cidrs
+}
 
-  ingress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = var.public_subnet_cidrs # Permite tráfico desde tus subredes públicas
-    description = "MySQL access from backend"
-  }
+resource "aws_security_group_rule" "backend_http" {
+  description       = "API HTTP access"
+  type              = "ingress"
+  from_port         = local.backend_port
+  to_port           = local.backend_port
+  protocol          = "tcp"
+  security_group_id = aws_security_group.backend.id
+  cidr_blocks       = var.backend_http_cidrs
+}
+
+resource "aws_security_group" "database" {
+  name        = "${local.name_prefix}-db-sg"
+  description = "Acceso a MySQL desde backend"
+  vpc_id      = module.vpc.vpc_id
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound traffic"
+    description = "Salida"
   }
 
-  tags = {
-    Name        = "${replace(lower(var.prefix), "_", "-")}-rds-sg"
-    Project     = replace(lower(var.prefix), "_", "-")
-    Environment = "Production"
-    ManagedBy   = "Terraform"
-  }
+  tags = merge(local.default_tags, {
+    Name = "${local.name_prefix}-db-sg"
+  })
+}
+
+resource "aws_security_group_rule" "db_from_backend" {
+  type                     = "ingress"
+  description              = "MySQL desde backend"
+  from_port                = var.db_port
+  to_port                  = var.db_port
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.database.id
+  source_security_group_id = aws_security_group.backend.id
 }

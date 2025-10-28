@@ -62,7 +62,7 @@ public class FavoriteService {
 
         log.info("User {} successfully added user {} to favorites", user.getId(), favoriteUser.getId());
 
-        return convertToResponseDTO(userFavorite);
+        return convertToResponseDTO(userFavorite, user);
     }
 
     @Transactional
@@ -83,8 +83,9 @@ public class FavoriteService {
     @Transactional(readOnly = true)
     public Page<FavoriteResponseDTO> getUserFavorites(User user, Pageable pageable) {
         log.debug("Getting favorites for user: {}", user.getId());
-        return userFavoriteRepository.findUserFavorites(user, pageable)
-            .map(this::convertToResponseDTO);
+        Page<UserFavorite> favoritesPage = userFavoriteRepository.findUserFavorites(user, pageable);
+
+        return favoritesPage.map(favorite -> convertToResponseDTO(favorite, user));
     }
 
     @Transactional(readOnly = true)
@@ -102,16 +103,23 @@ public class FavoriteService {
         return userFavoriteRepository.countUserFavorites(user);
     }
 
-    private FavoriteResponseDTO convertToResponseDTO(UserFavorite userFavorite) {
+    private FavoriteResponseDTO convertToResponseDTO(UserFavorite userFavorite, User currentUser) {
         UserResponseDTO favoriteUserDTO = userResponseFactory.create(
             userFavorite.getFavoriteUser(),
             UserResponseLevel.PUBLIC
         );
 
+        // Determinar estado de match con este usuario favorito
+        Long favoriteUserId = userFavorite.getFavoriteUser().getId();
+        boolean hasPendingMatch = matchRepository.existsPendingMatchBetweenUsers(currentUser, userFavorite.getFavoriteUser());
+        boolean hasAcceptedMatch = matchRepository.existsAcceptedMatchBetweenUsers(currentUser, userFavorite.getFavoriteUser());
+
         return new FavoriteResponseDTO(
             userFavorite.getId(),
             favoriteUserDTO,
-            userFavorite.getCreatedAt()
+            userFavorite.getCreatedAt(),
+            hasPendingMatch,
+            hasAcceptedMatch
         );
     }
 }

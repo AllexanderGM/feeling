@@ -67,6 +67,23 @@ class MatchInteractionService extends ServiceREST {
     }
   }
 
+  /**
+   * Withdraw a sent match before it is accepted/rejected
+   * POST /matches/{matchId}/withdraw
+   */
+  async withdrawMatch(matchId) {
+    const context = 'retirar match'
+
+    try {
+      const response = await ServiceREST.post(`${API_ENDPOINTS.MATCHES.BASE}/${encodeURIComponent(matchId)}/withdraw`)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
   // ========================================
   // LECTURAS DETALLE
   // ========================================

@@ -10,6 +10,7 @@ import com.feeling.packages.match.domain.dto.MatchResponseDTO;
 import com.feeling.packages.match.domain.enums.MatchParticipantRole;
 import com.feeling.packages.match.infrastructure.entities.Match;
 import com.feeling.packages.match.infrastructure.repositories.IMatchRepository;
+import com.feeling.packages.match.infrastructure.entities.UserMatchPlan;
 import com.feeling.packages.user.domain.dto.mapper.UserResponseFactory;
 import com.feeling.packages.user.domain.dto.user.UserResponseDTO;
 import com.feeling.packages.user.domain.enums.UserResponseLevel;
@@ -116,10 +117,6 @@ public class MatchService {
     public MatchResponseDTO sendMatch(User initiatorUser, MatchRequestDTO request) {
         log.info("User {} sending match to user {}", initiatorUser.getId(), request.getTargetUserId());
 
-        if (!matchPlanService.hasAvailableAttempts(initiatorUser)) {
-            throw new BadRequestException("No tienes intentos disponibles. Compra un plan de matches para continuar.");
-        }
-
         User targetUser = userRepository.findById(request.getTargetUserId())
             .orElseThrow(() -> new NotFoundException("No se encontró al usuario objetivo con id: " + request.getTargetUserId()));
 
@@ -131,10 +128,21 @@ public class MatchService {
             throw new BadRequestException("Ya existe un match entre estos usuarios.");
         }
 
-        matchPlanService.useAttempt(initiatorUser);
+        int availableToUse = matchPlanService.getAvailableAttemptsForNewMatch(initiatorUser);
+        if (availableToUse <= 0) {
+            throw new BadRequestException("No tienes intentos disponibles para iniciar un nuevo match. Compra más intentos o libera los pendientes.");
+        }
+
+        UserMatchPlan reservedPlan = matchPlanService.reserveAttempt(initiatorUser);
 
         Match match = new Match(initiatorUser, targetUser);
-        match = matchRepository.save(match);
+        match.setInitiatorReservedPlan(reservedPlan);
+        try {
+            match = matchRepository.save(match);
+        } catch (RuntimeException ex) {
+            matchPlanService.releaseReservedAttempt(reservedPlan);
+            throw ex;
+        }
 
         log.info("Match sent successfully from user {} to user {}", initiatorUser.getId(), targetUser.getId());
 
@@ -156,16 +164,15 @@ public class MatchService {
             throw new BadRequestException("El match ya no está pendiente.");
         }
 
-        if (!matchPlanService.hasAvailableAttempts(targetUser)) {
-            throw new BadRequestException("No tienes intentos disponibles. Compra un plan de matches para continuar.");
-        }
-
-        matchPlanService.useAttempt(targetUser);
+        // Solo se consume el intento del usuario que envió la solicitud (initiator)
+        // El usuario que acepta NO consume intentos
+        matchPlanService.consumeReservedAttempt(match.getInitiatorReservedPlan());
+        match.setInitiatorReservedPlan(null);
 
         match.accept();
         match = matchRepository.save(match);
 
-        log.info("Match {} accepted successfully by user {}", matchId, targetUser.getId());
+        log.info("Match {} accepted successfully by user {}. Attempt consumed from initiator only.", matchId, targetUser.getId());
 
         return convertToResponseDTO(match);
     }
@@ -185,12 +192,42 @@ public class MatchService {
             throw new BadRequestException("El match ya no está pendiente.");
         }
 
+        matchPlanService.releaseReservedAttempt(match.getInitiatorReservedPlan());
+        match.setInitiatorReservedPlan(null);
         match.reject();
         match = matchRepository.save(match);
 
         log.info("Match {} rejected by user {}", matchId, targetUser.getId());
 
         return convertToResponseDTO(match);
+    }
+
+    @Transactional
+    public MatchResponseDTO withdrawMatch(User initiatorUser, Long matchId) {
+        log.info("User {} withdrawing match {}", initiatorUser.getId(), matchId);
+
+        Match match = matchRepository.findById(matchId)
+            .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));
+
+        if (!match.getInitiatorUser().getId().equals(initiatorUser.getId())) {
+            throw new UnauthorizedException("No estás autorizado para retirar este match.");
+        }
+
+        if (!match.isPending()) {
+            throw new BadRequestException("Solo puedes retirar matches pendientes.");
+        }
+
+        if (match.getInitiatorReservedPlan() != null) {
+            matchPlanService.releaseReservedAttempt(match.getInitiatorReservedPlan());
+            match.setInitiatorReservedPlan(null);
+        }
+
+        MatchResponseDTO response = convertToResponseDTO(match);
+        matchRepository.delete(match);
+
+        log.info("Match {} withdrawn by user {}", matchId, initiatorUser.getId());
+
+        return response;
     }
 
     @Transactional
@@ -219,10 +256,24 @@ public class MatchService {
     }
 
     @Transactional(readOnly = true)
+    public Page<MatchHistoryItemDTO> getSentMatchesAsHistory(User user, Pageable pageable) {
+        log.debug("Getting sent matches as history for user: {}", user.getId());
+        return matchRepository.findSentMatches(user, pageable)
+            .map(match -> convertToHistoryItem(match, user));
+    }
+
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getReceivedMatches(User user, Pageable pageable) {
         log.debug("Getting received matches for user: {}", user.getId());
         return matchRepository.findReceivedMatches(user, pageable)
             .map(this::convertToResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MatchHistoryItemDTO> getReceivedMatchesAsHistory(User user, Pageable pageable) {
+        log.debug("Getting received matches as history for user: {}", user.getId());
+        return matchRepository.findReceivedMatches(user, pageable)
+            .map(match -> convertToHistoryItem(match, user));
     }
 
     @Transactional(readOnly = true)
@@ -233,10 +284,24 @@ public class MatchService {
     }
 
     @Transactional(readOnly = true)
+    public Page<MatchHistoryItemDTO> getPendingReceivedMatchesAsHistory(User user, Pageable pageable) {
+        log.debug("Getting pending received matches as history for user: {}", user.getId());
+        return matchRepository.findPendingReceivedMatches(user, pageable)
+            .map(match -> convertToHistoryItem(match, user));
+    }
+
+    @Transactional(readOnly = true)
     public Page<MatchResponseDTO> getAcceptedMatches(User user, Pageable pageable) {
         log.debug("Getting accepted matches for user: {}", user.getId());
         return matchRepository.findAcceptedMatches(user, pageable)
             .map(this::convertToResponseDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MatchHistoryItemDTO> getAcceptedMatchesAsHistory(User user, Pageable pageable) {
+        log.debug("Getting accepted matches as history for user: {}", user.getId());
+        return matchRepository.findAcceptedMatches(user, pageable)
+            .map(match -> convertToHistoryItem(match, user));
     }
 
     @Transactional(readOnly = true)
@@ -299,7 +364,8 @@ public class MatchService {
             ? match.getTargetUser()
             : match.getInitiatorUser();
 
-        UserResponseDTO otherUserDTO = userResponseFactory.create(otherUser, UserResponseLevel.PUBLIC);
+        User detailedOtherUser = loadUserWithProfileData(otherUser);
+        UserResponseDTO otherUserDTO = userResponseFactory.create(detailedOtherUser, UserResponseLevel.PUBLIC);
 
         return new MatchHistoryItemDTO(
             match.getId(),
@@ -314,8 +380,11 @@ public class MatchService {
     }
 
     private MatchResponseDTO convertToResponseDTO(Match match) {
-        UserResponseDTO initiatorUserDTO = userResponseFactory.create(match.getInitiatorUser(), UserResponseLevel.PUBLIC);
-        UserResponseDTO targetUserDTO = userResponseFactory.create(match.getTargetUser(), UserResponseLevel.PUBLIC);
+        User initiator = loadUserWithProfileData(match.getInitiatorUser());
+        User target = loadUserWithProfileData(match.getTargetUser());
+
+        UserResponseDTO initiatorUserDTO = userResponseFactory.create(initiator, UserResponseLevel.PUBLIC);
+        UserResponseDTO targetUserDTO = userResponseFactory.create(target, UserResponseLevel.PUBLIC);
 
         return new MatchResponseDTO(
             match.getId(),
@@ -336,5 +405,13 @@ public class MatchService {
         String phoneCode = user.getPhoneCode() != null ? user.getPhoneCode().trim() : "";
         String number = user.getPhone().trim();
         return (phoneCode + " " + number).trim();
+    }
+
+    private User loadUserWithProfileData(User user) {
+        if (user == null || user.getId() == null) {
+            return user;
+        }
+
+        return userRepository.findByIdWithProfileData(user.getId()).orElse(user);
     }
 }

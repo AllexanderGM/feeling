@@ -14,4 +14,6 @@ public class FavoriteResponseDTO {
     private Long id;
     private UserResponseDTO favoriteUser;
     private LocalDateTime createdAt;
+    private Boolean hasPendingMatch;
+    private Boolean hasAcceptedMatch;
 }

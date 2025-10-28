@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Form, Input, Button, Checkbox, Link } from '@heroui/react'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import { Form, Input, Button, Checkbox } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema } from '@schemas'
@@ -135,13 +135,13 @@ const Register = () => {
           <div className='py-4 px-2 bg-gray-800/30 rounded-lg border border-gray-700/50'>
             <p className='text-xs text-gray-400 text-center leading-relaxed'>
               Al registrarte mediante Google, aceptas automáticamente nuestros{' '}
-              <Link className='text-gray-300 text-xs hover:underline' href='/terminos'>
+              <RouterLink className='text-gray-300 text-xs hover:underline' to='/terminos'>
                 Términos y Condiciones
-              </Link>{' '}
+              </RouterLink>{' '}
               y la{' '}
-              <Link className='text-gray-300 text-xs hover:underline' href='/privacidad'>
+              <RouterLink className='text-gray-300 text-xs hover:underline' to='/privacidad'>
                 Política de Privacidad
-              </Link>
+              </RouterLink>
               .
             </p>
           </div>
@@ -276,13 +276,13 @@ const Register = () => {
             />
             <span className='text-xs text-gray-500 ml-2'>
               Acepto los{' '}
-              <Link className='text-gray-300 text-xs hover:underline' href='/terminos'>
+              <RouterLink className='text-gray-300 text-xs hover:underline' to='/terminos'>
                 Términos y Condiciones
-              </Link>{' '}
+              </RouterLink>{' '}
               y la{' '}
-              <Link className='text-gray-300 text-xs hover:underline' href='/privacidad'>
+              <RouterLink className='text-gray-300 text-xs hover:underline' to='/privacidad'>
                 Política de Privacidad
-              </Link>
+              </RouterLink>
             </span>
           </label>
           {termsError && <p className='text-red-500 text-xs mt-1'>{termsError}</p>}
@@ -303,9 +303,9 @@ const Register = () => {
 
           <div className='w-full text-center'>
             <p className='text-sm text-gray-400 mb-2'>¿Ya tienes una cuenta?</p>
-            <Link className='text-sm text-gray-300 hover:text-white transition-colors underline' href={APP_PATHS.AUTH.LOGIN}>
+            <RouterLink className='text-sm text-gray-300 hover:text-white transition-colors underline' to={APP_PATHS.AUTH.LOGIN}>
               Inicia sesión aquí
-            </Link>
+            </RouterLink>
           </div>
         </div>
       </Form>

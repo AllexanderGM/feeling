@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
-
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import RateLimitModal from '@components/common/feedback/RateLimitModal.jsx'
 
 const RateLimitContext = createContext()
@@ -18,22 +17,25 @@ export const RateLimitProvider = ({ children }) => {
   const [rateLimitError, setRateLimitError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const showRateLimitModal = error => {
+  const showRateLimitModal = useCallback(error => {
     setRateLimitError(error)
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const hideRateLimitModal = () => {
+  const hideRateLimitModal = useCallback(() => {
     setIsModalOpen(false)
     setRateLimitError(null)
-  }
+  }, [])
 
-  const value = {
-    showRateLimitModal,
-    hideRateLimitModal,
-    isModalOpen,
-    rateLimitError
-  }
+  const value = useMemo(
+    () => ({
+      showRateLimitModal,
+      hideRateLimitModal,
+      isModalOpen,
+      rateLimitError
+    }),
+    [showRateLimitModal, hideRateLimitModal, isModalOpen, rateLimitError]
+  )
 
   return (
     <RateLimitContext.Provider value={value}>

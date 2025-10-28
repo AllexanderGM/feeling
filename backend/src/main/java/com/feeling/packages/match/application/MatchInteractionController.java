@@ -67,6 +67,18 @@ public class MatchInteractionController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/{matchId}/withdraw")
+    public ResponseEntity<MatchResponseDTO> withdrawMatch(
+        @PathVariable Long matchId,
+        Authentication authentication) {
+
+        User user = userAuthorizationService.getCurrentUser(authentication);
+        log.info("User {} withdrawing match {}", user.getId(), matchId);
+
+        MatchResponseDTO result = matchService.withdrawMatch(user, matchId);
+        return ResponseEntity.ok(result);
+    }
+
     // ========================================
     // CLIENTE - LECTURAS DETALLE
     // ========================================

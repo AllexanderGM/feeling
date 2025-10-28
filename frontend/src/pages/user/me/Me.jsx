@@ -14,7 +14,8 @@ import {
   ExternalLink,
   CheckCircle,
   Users,
-  Eye
+  Eye,
+  ArrowLeft
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths'
@@ -24,6 +25,7 @@ import {
   getUserCity,
   getUserCategoryInterest,
   getUserMatches,
+  getUserStatus,
   getUserPrivacy,
   getUserMetrics,
   getUserDateOfBirth,
@@ -76,20 +78,33 @@ const Profile = () => {
     if (!user) return {}
 
     const matches = getUserMatches(user)
+    const status = getUserStatus(user)
     const privacy = getUserPrivacy(user)
     const metrics = getUserMetrics(user)
 
     return {
       // Match Information
-      getMatchAttempts: () => matches?.availableAttempts || 0,
-      getTodayMatches: () => matches?.todayMatches || 0,
-      getTotalMatches: () => matches?.totalMatches || 0,
-      getMaxDailyAttempts: () => matches?.maxDailyAttempts || 10,
-      getPendingSentMatches: () => matches?.pendingSent || 0,
-      getPendingReceivedMatches: () => matches?.pendingReceived || 0,
-      getAcceptedMattempts: () => matches?.accepted || 0,
-      getFavoritesCount: () => matches?.favorites || 0,
-      getRemainingAttempts: () => matches?.availableAttempts || 0,
+      getMatchAttempts: () => matches?.availableAttempts ?? status?.availableAttempts ?? 0,
+      getReservedAttempts: () => matches?.reservedAttempts ?? 0,
+      getAttemptBalance: () => {
+        if (typeof matches?.totalRemainingAttempts === 'number') {
+          return matches.totalRemainingAttempts
+        }
+        const available = matches?.availableAttempts ?? status?.availableAttempts ?? 0
+        const reserved = matches?.reservedAttempts ?? 0
+
+        return available + reserved
+      },
+      getTodayMatches: () => matches?.todayMatches ?? 0,
+      getSentMatches: () => matches?.sentMatches ?? 0,
+      getReceivedMatches: () => matches?.receivedMatches ?? 0,
+      getTotalMatches: () => matches?.accepted ?? 0,
+      getPendingSentMatches: () => matches?.pendingSent ?? 0,
+      getPendingReceivedMatches: () => matches?.pendingReceived ?? 0,
+      getPendingMatches: () => (matches?.pendingSent ?? 0) + (matches?.pendingReceived ?? 0),
+      getAcceptedMatches: () => matches?.accepted ?? 0,
+      getFavoritesCount: () => matches?.favorites ?? 0,
+      getRemainingAttempts: () => matches?.availableAttempts ?? status?.availableAttempts ?? 0,
 
       // Privacy helpers
       getProfilePrivacy: () => (privacy?.publicAccount ? 'Público' : 'Privado'),
@@ -218,6 +233,17 @@ const Profile = () => {
 
   return (
     <LiteContainer ariaLabel='Página de perfil de usuario' className='gap-4 !pt-0'>
+      <div className='flex justify-start w-full'>
+        <Button
+          className='text-gray-400 hover:text-gray-200 backdrop-blur-sm'
+          size='sm'
+          startContent={<ArrowLeft className='w-4 h-4' />}
+          variant='light'
+          onPress={() => navigate(APP_PATHS.ROOT)}>
+          Volver
+        </Button>
+      </div>
+
       {/* Profile Header */}
       <ProfileHeader
         categoryInterestDetails={categoryInterestDetails}

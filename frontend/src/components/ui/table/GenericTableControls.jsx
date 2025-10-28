@@ -1,6 +1,5 @@
 import { Button, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
 import { Search, ChevronDown, Plus, RefreshCw } from 'lucide-react'
-
 import { ROWS_PER_PAGE_OPTIONS } from '@constants/tableConstants.js'
 import { capitalize } from '@utils/capitalize.js'
 

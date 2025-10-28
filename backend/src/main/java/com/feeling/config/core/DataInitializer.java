@@ -46,7 +46,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserAttributeService userAttributeService;
 
     // Usar variables de entorno para el administrador del sistema
-    @Value("${admin.username}")
+    @Value("${app.admin.email}")
     private String adminEmail;
 
     @Value("${admin.password}")
@@ -450,30 +450,30 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // Plan básico - 1 intento
+        // Plan básico - 1 intento (150.000 COP por intento)
         MatchPlan basicPlan = new MatchPlan(
             "Plan Básico",
             "Perfecto para probar el servicio. 1 intento de match para conectar con alguien especial.",
             1,
-            new BigDecimal("2.99"),
+            new BigDecimal("150000"),
             1
         );
 
-        // Plan estándar - 5 intentos
+        // Plan estándar - 5 intentos (140.000 COP por intento - 6.67% descuento)
         MatchPlan standardPlan = new MatchPlan(
             "Plan Estándar",
             "El más popular. 5 intentos de match para aumentar tus posibilidades de encontrar conexiones auténticas.",
             5,
-            new BigDecimal("9.99"),
+            new BigDecimal("700000"),
             2
         );
 
-        // Plan premium - 10 intentos
+        // Plan premium - 10 intentos (130.000 COP por intento - 13.33% descuento)
         MatchPlan premiumPlan = new MatchPlan(
             "Plan Premium",
             "La mejor opción para usuarios activos. 10 intentos de match para maximizar tus oportunidades de conexión.",
             10,
-            new BigDecimal("16.99"),
+            new BigDecimal("1300000"),
             3
         );
 
@@ -481,7 +481,7 @@ public class DataInitializer implements CommandLineRunner {
         matchPlanRepository.save(standardPlan);
         matchPlanRepository.save(premiumPlan);
 
-        logger.info("Planes de match creados: Plan Básico (1 intento - $2.99), Plan Estándar (5 intentos - $9.99), Plan Premium (10 intentos - $16.99)");
+        logger.info("Planes de match creados: Plan Básico (1 intento - $150.000 COP), Plan Estándar (5 intentos - $700.000 COP), Plan Premium (10 intentos - $1.300.000 COP)");
     }
 
     // ==============================

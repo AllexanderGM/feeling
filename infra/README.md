@@ -53,7 +53,7 @@ La infraestructura está diseñada para ser escalable, segura y optimizada para 
 
 ### Compute
 
-- **EC2 t2.micro**: Instancia para backend Spring Boot
+- **EC2 t3.micro**: Instancia para backend Spring Boot (puedes cambiar a t4g.micro para ARM si tus imágenes son multi-arquitectura)
 - **Auto Scaling Group**: Escalado automático (futuro)
 - **Application Load Balancer**: Distribución de carga (futuro)
 
@@ -65,7 +65,7 @@ La infraestructura está diseñada para ser escalable, segura y optimizada para 
 
 ### Database
 
-- **RDS MySQL 8.0**: Base de datos principal (db.t3.micro)
+- **RDS MySQL 8.0**: Base de datos principal (db.t3.micro sobre gp3)
 - **Multi-AZ**: Alta disponibilidad (producción)
 - **Automated Backups**: Respaldos diarios
 
@@ -122,28 +122,63 @@ aws configure
 Crear archivo `terraform.tfvars`:
 
 ```hcl
-# Configuración del proyecto
+# Proyecto y entorno
 project_name = "feeling"
-environment  = "production"
+environment  = "test"          # Cambia a "prod" cuando tengas dominio
 region       = "us-east-1"
 
-# Configuración de red
-vpc_cidr = "10.0.0.0/16"
+# Credenciales (prefiere perfiles)
+aws_profile      = "default"
+# aws_access_key = "AKIA..."
+# aws_secret_key = "xxxxxxxxxxxx"
+# aws_session_token = "..."
+
+# Base de datos
+db_name       = "feelingdb"
+db_username   = "admin"
+db_password   = "SuperSecurePassword123!"
+db_port       = 3306
+db_skip_final_snapshot       = false
+db_final_snapshot_identifier = "feeling-final-snapshot"
+db_deletion_protection       = true
+db_backup_retention          = 7
+
+# Redes (opcional si deseas personalizar)
+vpc_cidr           = "10.0.0.0/16"
 availability_zones = ["us-east-1a", "us-east-1b"]
 
-# Configuración de instancias
-instance_type = "t2.micro"
-key_pair_name = "feeling-key"
+# Seguridad
+allowed_ssh_cidrs      = ["203.0.113.10/32"]
+backend_http_cidrs     = ["34.123.45.67/32"]
+enable_backend_eip     = true
+backend_instance_type  = "t3.micro"
+backend_root_volume_size = 16
 
-# Configuración de base de datos
-db_instance_class = "db.t3.micro"
-db_name          = "feelingdb"
-db_username      = "admin"
-db_password      = "SuperSecurePassword123!"
+# Dominios / distribución
+use_domain                   = false
+domain_name                  = ""
+hosted_zone_id               = null
+create_hosted_zone           = false
+enable_cloudfront            = true
+allow_public_frontend_bucket = false
+enable_access_logs_bucket    = false
 
-# Configuración de dominio (opcional)
-domain_name = "feeling.com"
+# Integración con WordPress en Lightsail (opcional)
+wordpress_subdomain = "www"
+lightsail_wordpress_ip = "34.123.45.67"
 ```
+
+- 💡 **Modo test sin dominio:** deja `use_domain = false` y mantén CloudFront habilitado para servir desde el dominio `*.cloudfront.net`. Solo activa `allow_public_frontend_bucket` si quieres usar el endpoint S3 temporalmente.
+
+- `backend_instance_type = "t3.micro"` (x86). Cambia a `t4g.micro` para reducir costos si tus imágenes Docker soportan ARM64.
+- `enable_backend_eip = true` garantiza IP fija para DNS. Desactívalo solo en entornos de laboratorio.
+- `backend_root_volume_size = 16` GB ofrece margen para actualizaciones y logs. Ajusta si necesitas más o menos espacio.
+- `db_backup_retention = 7` y `db_deletion_protection = true` protegen RDS. Incrementa retención y activa snapshots manuales en producción.
+- `enable_access_logs_bucket = true` crea un bucket extra para logs (tendrás costo de almacenamiento adicional si lo habilitas).
+- Define `backend_http_cidrs` con la IP pública de Lightsail (`"${var.lightsail_wordpress_ip}/32"`) para que WordPress consuma la API sin exponerla globalmente.
+- `ENABLE_S3_BACKUPS=false` (en `.env.prod`) evita subir respaldos a S3 hasta que estés listo para asumir ese costo.
+- Para que WordPress (Lightsail) consuma la API, añade su IP pública (p.ej. `"34.123.45.67/32"`) a `backend_http_cidrs` o expón la API sólo detrás del dominio (`api.midominio.com`). Evita dejar `0.0.0.0/0` en producción.
+- Deja `PAYMENTS_REDIRECT_URL` y `WOMPI_REDIRECT_URL` vacíos en `.env.prod`; `deploy.sh` generará automáticamente la URL final del frontend (usa `*_OVERRIDE` si necesitas forzar un valor distinto).
 
 ### Estructura de archivos
 
@@ -156,7 +191,9 @@ infra/
 ├── compute.tf           # EC2, Auto Scaling
 ├── database.tf          # RDS MySQL
 ├── storage.tf           # S3 buckets
-├── cdn.tf              # CloudFront (opcional)
+├── dns.tf              # Registros DNS (Route 53)
+├── acm.tf              # Certificados ACM para SSL
+├── cloudfront.tf       # Distribución CloudFront (opcional)
 ├── monitoring.tf        # CloudWatch
 └── terraform.tfvars     # Valores de variables
 ```

@@ -1,8 +1,12 @@
 package com.feeling.packages.match.application;
 
+import com.feeling.packages.match.domain.dto.ConfirmMatchPlanPurchaseRequestDTO;
+import com.feeling.packages.match.domain.dto.MatchPlanPaymentIntentRequestDTO;
+import com.feeling.packages.match.domain.dto.MatchPlanPaymentIntentResponseDTO;
+import com.feeling.packages.match.domain.dto.MatchPlanPurchaseResponseDTO;
 import com.feeling.packages.match.domain.dto.MatchPlanResponseDTO;
-import com.feeling.packages.match.domain.dto.PurchaseMatchPlanRequestDTO;
 import com.feeling.packages.match.domain.dto.UserMatchPlanResponseDTO;
+import com.feeling.packages.match.domain.services.MatchPlanPurchaseService;
 import com.feeling.packages.match.domain.services.MatchPlanService;
 import com.feeling.packages.user.domain.services.UserAuthorizationService;
 import com.feeling.packages.user.infrastructure.entities.User;
@@ -28,6 +32,7 @@ import java.util.Map;
 public class MatchPlanClientController {
 
     private final MatchPlanService matchPlanService;
+    private final MatchPlanPurchaseService matchPlanPurchaseService;
     private final UserAuthorizationService userAuthorizationService;
 
     // ========================================
@@ -77,15 +82,29 @@ public class MatchPlanClientController {
     // CLIENTE - CREACIÓN
     // ========================================
 
-    @PostMapping("/plans/purchase")
-    public ResponseEntity<UserMatchPlanResponseDTO> purchaseMatchPlan(
-        @Valid @RequestBody PurchaseMatchPlanRequestDTO request,
+    @PostMapping("/plans/payment-intent")
+    public ResponseEntity<MatchPlanPaymentIntentResponseDTO> createPaymentIntent(
+        @Valid @RequestBody MatchPlanPaymentIntentRequestDTO request,
         Authentication authentication) {
 
         User user = userAuthorizationService.getCurrentUser(authentication);
-        log.info("User {} purchasing match plan", user.getId());
+        log.info("User {} creating payment intent for match plan {}", user.getId(), request.matchPlanId());
 
-        UserMatchPlanResponseDTO result = matchPlanService.purchaseMatchPlan(user, request);
+        MatchPlanPaymentIntentResponseDTO intent = matchPlanPurchaseService.createPaymentIntent(user, request);
+
+        return ResponseEntity.ok(intent);
+    }
+
+    @PostMapping("/plans/purchase")
+    public ResponseEntity<MatchPlanPurchaseResponseDTO> confirmPurchase(
+        @Valid @RequestBody ConfirmMatchPlanPurchaseRequestDTO request,
+        Authentication authentication) {
+
+        User user = userAuthorizationService.getCurrentUser(authentication);
+        log.info("User {} confirming match plan purchase {}", user.getId(), request.paymentReference());
+
+        MatchPlanPurchaseResponseDTO result = matchPlanPurchaseService.confirmPurchase(user, request);
+
         return ResponseEntity.ok(result);
     }
 }

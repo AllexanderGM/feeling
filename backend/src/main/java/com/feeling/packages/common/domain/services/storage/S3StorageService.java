@@ -10,6 +10,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,6 +61,14 @@ public class S3StorageService {
         }
     }
 
+    public boolean deleteFileByUrl(String fileUrl) {
+        String objectKey = extractKeyFromUrl(fileUrl);
+        if (objectKey == null) {
+            return false;
+        }
+        return deleteFile(objectKey);
+    }
+
     public List<String> listFiles(String folder) {
         List<String> fileUrls = new ArrayList<>();
         try {
@@ -82,6 +92,40 @@ public class S3StorageService {
             // Log error but return empty list
         }
         return fileUrls;
+    }
+
+    private String extractKeyFromUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            URI uri = new URI(fileUrl);
+            String path = uri.getPath();
+            if (path == null || path.isBlank()) {
+                return null;
+            }
+
+            // Remove leading slash
+            if (path.startsWith("/")) {
+                path = path.substring(1);
+            }
+
+            // When using path-style URLs the first segment is the bucket name
+            if (path.startsWith(bucketName + "/")) {
+                path = path.substring(bucketName.length() + 1);
+            }
+
+            return path;
+        } catch (URISyntaxException e) {
+            // Fall back to simple substring search
+            String marker = bucketName + "/";
+            int index = fileUrl.indexOf(marker);
+            if (index >= 0) {
+                return fileUrl.substring(index + marker.length());
+            }
+            return null;
+        }
     }
 
     private boolean isImageFile(String filename) {

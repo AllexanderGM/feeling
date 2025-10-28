@@ -224,9 +224,11 @@ export const USER_PROFILE_RESPONSE_TYPE = {
   },
   matches: {
     availableAttempts: 'number',
+    reservedAttempts: 'number',
+    totalRemainingAttempts: 'number',
     todayMatches: 'number',
-    totalMatches: 'number',
-    maxDailyAttempts: 'number',
+    sentMatches: 'number',
+    receivedMatches: 'number',
     pendingSent: 'number',
     pendingReceived: 'number',
     accepted: 'number',

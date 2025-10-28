@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react'
-import { Heart, MapPin, Eye, ChevronLeft, ChevronRight, X, Bookmark, Clock, CheckCircle2, Mail } from 'lucide-react'
+import { Heart, MapPin, Eye, ChevronLeft, ChevronRight, X, Bookmark, Clock, CheckCircle2, Mail, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { APP_PATHS } from '@constants/paths.js'
 import {
@@ -114,6 +114,11 @@ const UserCard = ({
 
   // Handlers para acciones de match
   const handleLike = () => {
+    // No permitir enviar match si ya hay uno pendiente o aceptado
+    if (hasPendingMatch || hasAcceptedMatch) {
+      return
+    }
+
     if (onLike) {
       onLike(user)
     }
@@ -122,6 +127,13 @@ const UserCard = ({
   const handlePass = () => {
     if (onPass) {
       onPass(user)
+    }
+  }
+
+  const handleContinue = () => {
+    // Solo avanzar a la siguiente card sin rechazar al usuario
+    if (onPass) {
+      onPass(user, true) // El segundo parámetro indica que es "continuar" sin rechazar
     }
   }
 
@@ -308,22 +320,38 @@ const UserCard = ({
 
         {/* Controles de match - 3 botones optimizados para mobile */}
         {showMatchControls && (
-          <div className='px-4 py-3 bg-gray-900 space-y-2'>
+          <div className='px-4 py-3 bg-gray-900'>
             <div className='flex items-center justify-center gap-4'>
-              {/* Botón Pasar - Izquierda */}
-              <Button
-                isIconOnly
-                className='bg-white/10 hover:bg-red-500/20 active:bg-red-500/30 border-2 border-white/20 hover:border-red-500/60 text-red-400 hover:text-red-300 transition-all duration-200'
-                radius='full'
-                variant='flat'
-                onPress={handlePass}>
-                <X className='w-5 h-5' strokeWidth={2.5} />
-              </Button>
+              {/* Botón Pasar/Continuar - Izquierda */}
+              {hasPendingMatch || hasAcceptedMatch ? (
+                <Button
+                  isIconOnly
+                  className='bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 border-2 border-blue-300/40 shadow-lg shadow-blue-500/30 text-white transition-all duration-200'
+                  radius='full'
+                  variant='solid'
+                  onPress={handleContinue}>
+                  <ArrowRight className='w-5 h-5' strokeWidth={2.5} />
+                </Button>
+              ) : (
+                <Button
+                  isIconOnly
+                  className='bg-white/10 hover:bg-red-500/20 active:bg-red-500/30 border-2 border-white/20 hover:border-red-500/60 text-red-400 hover:text-red-300 transition-all duration-200'
+                  radius='full'
+                  variant='flat'
+                  onPress={handlePass}>
+                  <X className='w-5 h-5' strokeWidth={2.5} />
+                </Button>
+              )}
 
               {/* Botón Match - Centro (más grande) */}
               <Button
                 isIconOnly
-                className='bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 hover:from-pink-600 hover:via-rose-600 hover:to-red-600 active:scale-95 transition-all duration-200 shadow-xl shadow-pink-500/40 border-2 border-white/20'
+                className={`${
+                  hasPendingMatch || hasAcceptedMatch
+                    ? 'bg-gray-700 border-2 border-gray-600/50 cursor-not-allowed opacity-50'
+                    : 'bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 hover:from-pink-600 hover:via-rose-600 hover:to-red-600 active:scale-95 shadow-xl shadow-pink-500/40 border-2 border-white/20'
+                } transition-all duration-200`}
+                isDisabled={hasPendingMatch || hasAcceptedMatch}
                 isLoading={matchLoading}
                 radius='full'
                 size='lg'

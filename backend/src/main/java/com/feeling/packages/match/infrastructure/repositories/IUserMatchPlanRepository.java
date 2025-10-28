@@ -21,9 +21,11 @@ public interface IUserMatchPlanRepository extends JpaRepository<UserMatchPlan, L
             "ORDER BY ump.createdAt DESC")
     List<UserMatchPlan> findActiveUserMatchPlans(@Param("user") User user);
 
-    Optional<UserMatchPlan> findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(
-        User user,
-        Integer remainingAttempts);
+    @Query("SELECT ump FROM UserMatchPlan ump " +
+            "WHERE ump.user = :user AND ump.isActive = true " +
+            "AND (ump.remainingAttempts - COALESCE(ump.reservedAttempts, 0)) > 0 " +
+            "ORDER BY ump.createdAt DESC")
+    List<UserMatchPlan> findActivePlansWithAvailableAttempts(@Param("user") User user);
 
     @Query("SELECT ump FROM UserMatchPlan ump " +
             "WHERE ump.user = :user " +
@@ -33,6 +35,10 @@ public interface IUserMatchPlanRepository extends JpaRepository<UserMatchPlan, L
     @Query("SELECT COALESCE(SUM(ump.remainingAttempts), 0) FROM UserMatchPlan ump " +
             "WHERE ump.user = :user AND ump.isActive = true")
     Integer getTotalRemainingAttempts(@Param("user") User user);
+
+    @Query("SELECT COALESCE(SUM(ump.reservedAttempts), 0) FROM UserMatchPlan ump " +
+            "WHERE ump.user = :user AND ump.isActive = true")
+    Integer getTotalReservedAttempts(@Param("user") User user);
 
     @Query("SELECT ump FROM UserMatchPlan ump WHERE ump.matchPlan = :matchPlan")
     List<UserMatchPlan> findByMatchPlan(@Param("matchPlan") MatchPlan matchPlan);

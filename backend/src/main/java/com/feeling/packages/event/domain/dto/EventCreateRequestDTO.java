@@ -12,6 +12,7 @@ public record EventCreateRequestDTO(
         String title,
 
         @NotBlank(message = "La descripción es obligatoria")
+        @Size(max = 2000, message = "La descripción no puede exceder 2000 caracteres")
         String description,
 
         @NotBlank(message = "La ubicación es obligatoria")

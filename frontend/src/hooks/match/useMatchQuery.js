@@ -36,7 +36,7 @@ export const useMatchQuery = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar historial de matches', error)
+        handleError(error, { customMessage: 'Error al cargar historial de matches' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -59,7 +59,7 @@ export const useMatchQuery = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches enviados', error)
+        handleError(error, { customMessage: 'Error al cargar matches enviados' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -82,7 +82,7 @@ export const useMatchQuery = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches recibidos', error)
+        handleError(error, { customMessage: 'Error al cargar matches recibidos' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -105,7 +105,7 @@ export const useMatchQuery = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches recibidos pendientes', error)
+        handleError(error, { customMessage: 'Error al cargar matches recibidos pendientes' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -128,7 +128,7 @@ export const useMatchQuery = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar matches aceptados', error)
+        handleError(error, { customMessage: 'Error al cargar matches aceptados' })
 
         return { content: [], totalElements: 0 }
       } finally {
@@ -146,7 +146,7 @@ export const useMatchQuery = () => {
       setLoading(true)
       await Promise.all([fetchSentMatches(), fetchReceivedMatches(), fetchPendingReceivedMatches(), fetchAcceptedMatches()])
     } catch (error) {
-      handleError('Error al actualizar matches', error)
+      handleError(error, { customMessage: 'Error al actualizar matches' })
     } finally {
       setLoading(false)
     }

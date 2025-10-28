@@ -59,26 +59,15 @@ public class StorageService {
     }
 
     public boolean deleteImage(String imageUrl) {
-        try {
-            String fileName = extractFileNameFromUrl(imageUrl);
-            return switch (storageType.toLowerCase()) {
-                case "s3" -> {
-                    if (s3StorageService == null) {
-                        yield false;
-                    }
-                    yield s3StorageService.deleteFile(fileName);
-                }
-                case "minio" -> {
-                    if (minioStorageService == null) {
-                        yield false;
-                    }
-                    yield minioStorageService.deleteFile(fileName);
-                }
-                default -> false;
-            };
-        } catch (Exception e) {
+        if (imageUrl == null || imageUrl.isBlank()) {
             return false;
         }
+
+        return switch (storageType.toLowerCase()) {
+            case "s3" -> s3StorageService != null && s3StorageService.deleteFileByUrl(imageUrl);
+            case "minio" -> minioStorageService != null && minioStorageService.deleteFileByUrl(imageUrl);
+            default -> false;
+        };
     }
 
     public void deleteImages(List<String> imageUrls) {
@@ -115,7 +104,4 @@ public class StorageService {
         return UUID.randomUUID() + extension;
     }
 
-    private String extractFileNameFromUrl(String url) {
-        return url.substring(url.lastIndexOf("/") + 1);
-    }
 }

@@ -490,7 +490,7 @@ const Help = () => {
               size='sm'
               startContent={<Heart className='w-4 h-4 text-pink-400' />}
               variant='bordered'
-              onPress={() => navigate(APP_PATHS.USER.MATCHES)}>
+              onPress={() => navigate(APP_PATHS.USER.MY_MATCHES)}>
               Mis Matches
             </Button>
           </div>

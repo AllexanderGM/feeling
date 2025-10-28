@@ -89,20 +89,49 @@ class MatchPlanService extends ServiceREST {
   // ========================================
 
   /**
-   * Purchase a match plan
-   * POST /matches/plans/purchase
+   * Create a Wompi payment intent for a match plan
+   * POST /matches/plans/payment-intent
    */
-  async purchaseMatchPlan(planId) {
-    const context = 'comprar plan de match'
+  async createPaymentIntent(matchPlanId) {
+    const context = 'crear intención de pago de plan de match'
 
     try {
-      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PURCHASE_PLAN, { planId })
+      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PAYMENT_INTENT, { matchPlanId })
 
       return ServiceREST.handleServiceResponse(response, context)
     } catch (error) {
       this.logError(context, error)
       throw error
     }
+  }
+
+  /**
+   * Confirm a match plan purchase after payment gateway approval
+   * POST /matches/plans/purchase
+   */
+  async confirmMatchPlanPurchase(payload) {
+    const context = 'confirmar compra de plan de match'
+
+    try {
+      const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.PURCHASE_PLAN, payload)
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Backwards compatible helper for legacy imports.
+   * Delegates to confirmMatchPlanPurchase.
+   */
+  async purchaseMatchPlan(payload) {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('purchaseMatchPlan ahora requiere transactionId y paymentReference')
+    }
+
+    return this.confirmMatchPlanPurchase(payload)
   }
 
   // ========================================

@@ -45,7 +45,7 @@ export const useMatchStatistics = () => {
 
         return response
       } catch (error) {
-        handleError('Error al cargar estadísticas de matches', error)
+        handleError(error, { customMessage: 'Error al cargar estadísticas de matches' })
 
         return {}
       } finally {
@@ -66,7 +66,7 @@ export const useMatchStatistics = () => {
 
       return response
     } catch (error) {
-      handleError('Error al cargar notificaciones', error)
+      handleError(error, { customMessage: 'Error al cargar notificaciones' })
 
       return { pendingMatches: 0, acceptedMatches: 0, hasNotifications: false }
     }
@@ -80,7 +80,7 @@ export const useMatchStatistics = () => {
       setLoading(true)
       await Promise.all([fetchMatchStats(), fetchMatchNotifications()])
     } catch (error) {
-      handleError('Error al actualizar estadísticas', error)
+      handleError(error, { customMessage: 'Error al actualizar estadísticas' })
     } finally {
       setLoading(false)
     }

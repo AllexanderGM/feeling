@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut, UserCircle, Settings, HelpCircle, Shield } from 'lucide-react'
+import { LogOut, UserCircle, Settings, HelpCircle, Shield, ShoppingCart } from 'lucide-react'
 import {
   Button,
   Chip,
@@ -75,14 +75,27 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
         icon: Settings,
         label: 'Configuración',
         action: () => navigate(isAdmin ? APP_PATHS.ADMIN.SETTINGS_PROFILE : APP_PATHS.USER.SETTINGS)
-      },
-      {
-        key: 'help',
-        icon: HelpCircle,
-        label: 'Ayuda',
-        action: () => navigate(isAdmin ? APP_PATHS.ADMIN.HELP : APP_PATHS.GENERAL.HELP)
       }
     ]
+
+    // Agregar "Comprar Intentos" solo para clientes (no admin)
+    if (!isAdmin) {
+      baseItems.push({
+        key: 'purchase',
+        icon: ShoppingCart,
+        label: 'Comprar Intentos',
+        action: () => navigate(APP_PATHS.USER.PURCHASE_PLANS),
+        isPremium: true
+      })
+    }
+
+    // Agregar Ayuda
+    baseItems.push({
+      key: 'help',
+      icon: HelpCircle,
+      label: 'Ayuda',
+      action: () => navigate(isAdmin ? APP_PATHS.ADMIN.HELP : APP_PATHS.GENERAL.HELP)
+    })
 
     // Agregar logout al final
     baseItems.push({
@@ -151,12 +164,34 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
                     <Button
                       className={`
                         w-full justify-start px-4 py-2 h-10
-                        ${menuItem.isDanger ? 'text-danger hover:bg-danger-50' : 'text-gray-400 hover:bg-gray-100'}
+                        ${
+                          menuItem.isPremium
+                            ? 'bg-gradient-to-r from-primary-500/10 via-purple-500/10 to-pink-500/10 hover:from-primary-500/20 hover:via-purple-500/20 hover:to-pink-500/20 border border-primary-500/20'
+                            : menuItem.isDanger
+                              ? 'text-danger hover:bg-danger-50'
+                              : 'text-gray-400 hover:bg-gray-100'
+                        }
                       `}
-                      startContent={<IconComponent size={16} />}
+                      startContent={
+                        menuItem.isPremium ? (
+                          <div className='relative'>
+                            <IconComponent className='text-primary-400' size={16} />
+                            <div className='absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse' />
+                          </div>
+                        ) : (
+                          <IconComponent size={16} />
+                        )
+                      }
                       variant='light'
                       onPress={() => handleMenuAction(menuItem.action)}>
-                      {menuItem.label}
+                      <span
+                        className={
+                          menuItem.isPremium
+                            ? 'text-transparent bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text font-semibold'
+                            : ''
+                        }>
+                        {menuItem.label}
+                      </span>
                     </Button>
                   </div>
                 )

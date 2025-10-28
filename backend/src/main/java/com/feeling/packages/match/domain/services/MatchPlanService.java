@@ -111,16 +111,76 @@ public class MatchPlanService {
     }
 
     @Transactional(readOnly = true)
+    public Integer getTotalReservedAttempts(User user) {
+        log.debug("Getting total reserved attempts for user: {}", user.getId());
+        Integer total = userMatchPlanRepository.getTotalReservedAttempts(user);
+        return Optional.ofNullable(total).orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getAvailableAttemptsForNewMatch(User user) {
+        int remaining = getTotalRemainingAttempts(user);
+        int reserved = getTotalReservedAttempts(user);
+        return Math.max(remaining - reserved, 0);
+    }
+
+    private Optional<UserMatchPlan> findFirstPlanWithAvailability(User user) {
+        List<UserMatchPlan> plans = userMatchPlanRepository.findActivePlansWithAvailableAttempts(user);
+        if (plans == null || plans.isEmpty()) {
+            return Optional.empty();
+        }
+        return plans.stream()
+            .filter(UserMatchPlan::hasSpareAttempts)
+            .findFirst();
+    }
+
+    @Transactional(readOnly = true)
     public boolean hasAvailableAttempts(User user) {
-        return getTotalRemainingAttempts(user) > 0;
+        return getAvailableAttemptsForNewMatch(user) > 0;
+    }
+
+    @Transactional
+    public UserMatchPlan reserveAttempt(User user) {
+        log.debug("Reserving one attempt for user: {}", user.getId());
+
+        UserMatchPlan plan = findFirstPlanWithAvailability(user)
+            .orElseThrow(() -> new NotFoundException("No se encontraron planes de matches activos para reservar intentos."));
+
+        plan.reserveAttempt();
+        UserMatchPlan saved = userMatchPlanRepository.save(plan);
+
+        log.info("Reserved one attempt for user {}. Remaining attempts: {}, reserved attempts: {}",
+            user.getId(), saved.getRemainingAttempts(), saved.getReservedAttempts());
+        return saved;
+    }
+
+    @Transactional
+    public void releaseReservedAttempt(UserMatchPlan plan) {
+        if (plan == null) {
+            return;
+        }
+
+        log.debug("Releasing reserved attempt for plan {}", plan.getId());
+        plan.releaseReservedAttempt();
+        userMatchPlanRepository.save(plan);
+    }
+
+    @Transactional
+    public void consumeReservedAttempt(UserMatchPlan plan) {
+        if (plan == null) {
+            return;
+        }
+
+        log.debug("Consuming reserved attempt for plan {}", plan.getId());
+        plan.consumeReservedAttempt();
+        userMatchPlanRepository.save(plan);
     }
 
     @Transactional
     public void useAttempt(User user) {
         log.debug("Using one attempt for user: {}", user.getId());
 
-        UserMatchPlan activeUserMatchPlan = userMatchPlanRepository
-            .findFirstByUserAndIsActiveTrueAndRemainingAttemptsGreaterThanOrderByCreatedAtDesc(user, 0)
+        UserMatchPlan activeUserMatchPlan = findFirstPlanWithAvailability(user)
             .orElseThrow(() -> new NotFoundException("No se encontraron planes de matches activos para el usuario."));
 
         activeUserMatchPlan.useAttempt();

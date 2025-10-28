@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Form, Input, Button, Link } from '@heroui/react'
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'
+import { Form, Input, Button } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useVerification, useNotification } from '@hooks'
@@ -397,13 +397,13 @@ const VerifyEmail = () => {
             <div className='text-center text-xs text-gray-500'>
               <p className='mb-3'>¿Problemas con la verificación?</p>
               <div className='flex flex-col sm:flex-row gap-2 justify-center'>
-                <Link className='text-gray-400 hover:text-gray-300 underline transition-colors' href={APP_PATHS.AUTH.LOGIN}>
+                <RouterLink className='text-gray-400 hover:text-gray-300 underline transition-colors' to={APP_PATHS.AUTH.LOGIN}>
                   Volver al inicio de sesión
-                </Link>
+                </RouterLink>
                 <span className='hidden sm:inline text-gray-600'>•</span>
-                <Link className='text-gray-400 hover:text-gray-300 underline transition-colors' href={APP_PATHS.AUTH.REGISTER}>
+                <RouterLink className='text-gray-400 hover:text-gray-300 underline transition-colors' to={APP_PATHS.AUTH.REGISTER}>
                   Crear nueva cuenta
-                </Link>
+                </RouterLink>
               </div>
             </div>
 

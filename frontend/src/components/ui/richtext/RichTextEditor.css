@@ -1,0 +1,72 @@
+/* Estilos específicos para el editor TipTap (ProseMirror) */
+.ProseMirror {
+  @apply text-gray-200 outline-none;
+}
+
+.ProseMirror p {
+  @apply mb-3;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-bold mb-3 mt-4 text-gray-100;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-semibold mb-2 mt-3 text-gray-100;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-6 mb-3;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+.ProseMirror li {
+  @apply mb-1;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-primary-500 pl-4 py-2 my-3 italic text-gray-300 bg-gray-900/20;
+}
+
+.ProseMirror hr {
+  @apply my-4 border-t border-gray-700;
+}
+
+.ProseMirror code {
+  @apply bg-gray-900/60 text-primary-300 px-1.5 py-0.5 rounded text-sm;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-900/60 text-gray-200 p-3 rounded-lg my-3 overflow-x-auto;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-gray-500;
+  content: attr(data-placeholder);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Focus state */
+.ProseMirror:focus {
+  @apply outline-none;
+}
+
+/* Selection */
+.ProseMirror ::selection {
+  @apply bg-primary-500/30;
+}

@@ -21,17 +21,20 @@ export const PaymentStatusCard = ({ statusConfig, message, description, badge })
   const StatusIcon = statusConfig.icon
 
   return (
-    <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/60'>
-      <CardBody className='flex flex-col items-center gap-4 text-center'>
-        <div className='rounded-full bg-black/30 p-4 border border-gray-700/60'>
-          <StatusIcon className={`h-10 w-10 ${statusConfig.iconClass}`} />
+    <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+      <CardBody className='flex flex-col items-center gap-4 text-center py-6'>
+        {/* Icono - Estilo consistente */}
+        <div className='w-16 h-16 rounded-full bg-black/30 p-4 border border-gray-700/60'>
+          <StatusIcon className={`h-8 w-8 ${statusConfig.iconClass}`} />
         </div>
 
-        <div>
+        {/* Título y descripción */}
+        <div className='space-y-2'>
           <h1 className='text-2xl font-semibold text-gray-100'>{statusConfig.title}</h1>
-          <p className='mt-2 text-sm text-gray-400'>{message || description}</p>
+          <p className='text-sm text-gray-400'>{message || description}</p>
         </div>
 
+        {/* Badge */}
         {badge}
       </CardBody>
     </Card>

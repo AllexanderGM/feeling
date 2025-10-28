@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Form, Input, Button, Link } from '@heroui/react'
+import { Link as RouterLink } from 'react-router-dom'
+import { Form, Input, Button } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { CheckCircle, Mail } from 'lucide-react'
@@ -46,7 +47,7 @@ const ForgotPassword = () => {
               Revisa tu bandeja de entrada y sigue las instrucciones para crear una nueva contraseña.
             </p>
           </div>
-          <Button as={Link} className='w-full mt-4' color='default' href={APP_PATHS.AUTH.LOGIN} radius='full' variant='bordered'>
+          <Button as={RouterLink} className='w-full mt-4' color='default' radius='full' to={APP_PATHS.AUTH.LOGIN} variant='bordered'>
             Volver al inicio de sesión
           </Button>
         </div>
@@ -91,11 +92,11 @@ const ForgotPassword = () => {
           <div className='w-full text-center text-xs text-gray-500 mt-6'>
             ¿Recordaste tu contraseña?
             <Button
-              as={Link}
+              as={RouterLink}
               className='w-full mt-4 transition-colors'
               color='default'
-              href={APP_PATHS.AUTH.LOGIN}
               radius='full'
+              to={APP_PATHS.AUTH.LOGIN}
               variant='bordered'>
               Inicia sesión
             </Button>

@@ -1,10 +1,10 @@
-import { useContext, useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@services'
 import { Logger } from '@utils/logger.js'
-import AuthContext from '@contexts/AuthContext.jsx'
-import { useError, useAsyncOperation } from '@hooks'
 import { isValidLoginResponse } from '@schemas'
+
+import useAuthOperations from './useAuthOperations.js'
 
 /**
  * Hook de autenticación - AuthController
@@ -16,25 +16,10 @@ import { isValidLoginResponse } from '@schemas'
  * - useOAuth() → Autenticación con Google, Facebook, Apple
  */
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const { authContext, handleApiResponse, handleAuthError, loading, withLoading } = useAuthOperations()
   const navigate = useNavigate()
 
-  // Pasar el contexto de auth al hook de error para usar clearAllAuth
-  const { handleApiResponse, handleAuthError } = useError(context)
-
-  // Hook centralizado para operaciones asíncronas con configuración estable
-  const asyncOptions = useMemo(
-    () => ({
-      authContext: context,
-      showNotifications: true,
-      autoHandleAuth: true
-    }),
-    [context]
-  )
-
-  const { loading, withLoading } = useAsyncOperation(asyncOptions)
-
-  if (!context) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
+  if (!authContext) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
 
   const {
     // Estados principales
@@ -69,7 +54,7 @@ export const useAuth = () => {
     updateTokens,
     clearTokens,
     clearAllAuth
-  } = context
+  } = authContext
 
   // ========================================
   // REGISTRO Y LOGIN
