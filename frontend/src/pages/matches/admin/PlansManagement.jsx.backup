@@ -141,19 +141,18 @@ const PlansManagement = memo(() => {
     async planData => {
       try {
         setLoading(true)
+        // TODO: Implement API call
         Logger.info('Creating plan', { planData }, { category: Logger.CATEGORIES.SERVICE })
 
-        // Agregar sortOrder si no existe
-        const planDataWithDefaults = {
+        const newPlan = {
+          id: Date.now(),
           ...planData,
-          sortOrder: planData.sortOrder || 0
+          totalPurchases: 0,
+          revenue: 0,
+          createdAt: new Date().toISOString()
         }
 
-        await matchService.createPlan(planDataWithDefaults)
-
-        // Recargar datos después de crear
-        await loadPlansData()
-
+        setPlans(prev => [...prev, newPlan])
         setIsCreateModalOpen(false)
         handleSuccess('Plan de match creado exitosamente')
       } catch (error) {
@@ -162,26 +161,17 @@ const PlansManagement = memo(() => {
         setLoading(false)
       }
     },
-    [handleError, handleSuccess, loadPlansData]
+    [handleError, handleSuccess]
   )
 
   const handleEditPlan = useCallback(
     async planData => {
       try {
         setLoading(true)
-        Logger.info('Editing plan', { planData, planId: selectedPlan.id }, { category: Logger.CATEGORIES.SERVICE })
+        // TODO: Implement API call
+        Logger.info('Editing plan', { planData }, { category: Logger.CATEGORIES.SERVICE })
 
-        // Agregar sortOrder si no existe
-        const planDataWithDefaults = {
-          ...planData,
-          sortOrder: planData.sortOrder || selectedPlan.sortOrder || 0
-        }
-
-        await matchService.updatePlan(selectedPlan.id, planDataWithDefaults)
-
-        // Recargar datos después de actualizar
-        await loadPlansData()
-
+        setPlans(prev => prev.map(plan => (plan.id === selectedPlan.id ? { ...plan, ...planData } : plan)))
         setIsEditModalOpen(false)
         setSelectedPlan(null)
         handleSuccess('Plan de match actualizado exitosamente')
@@ -191,19 +181,16 @@ const PlansManagement = memo(() => {
         setLoading(false)
       }
     },
-    [selectedPlan, handleError, handleSuccess, loadPlansData]
+    [selectedPlan, handleError, handleSuccess]
   )
 
   const handleDeletePlan = useCallback(async () => {
     try {
       setLoading(true)
+      // TODO: Implement API call
       Logger.info('Deleting plan', { planId: selectedPlan.id }, { category: Logger.CATEGORIES.SERVICE })
 
-      await matchService.deletePlan(selectedPlan.id)
-
-      // Recargar datos después de eliminar
-      await loadPlansData()
-
+      setPlans(prev => prev.filter(plan => plan.id !== selectedPlan.id))
       setIsDeleteModalOpen(false)
       setSelectedPlan(null)
       handleSuccess('Plan de match eliminado exitosamente')
@@ -212,7 +199,7 @@ const PlansManagement = memo(() => {
     } finally {
       setLoading(false)
     }
-  }, [selectedPlan, handleError, handleSuccess, loadPlansData])
+  }, [selectedPlan, handleError, handleSuccess])
 
   const openEditModal = useCallback(plan => {
     setSelectedPlan(plan)
@@ -252,17 +239,14 @@ const PlansManagement = memo(() => {
         <div className='space-y-4'>
           <GenericTableControls
             columns={MATCH_PLAN_COLUMNS}
-            createButtonLabel='Crear Plan'
+            createButtonIcon={<Package className='w-4 h-4' />}
+            createButtonText='Crear Plan'
             filterPlaceholder='Buscar planes de match...'
             filterValue={filterValue}
-            itemsLabel='planes'
-            loading={loading}
-            totalItems={sortedPlans.length}
             visibleColumns={visibleColumns}
-            onCreateItem={() => setIsCreateModalOpen(true)}
-            onRefresh={loadPlansData}
-            onSearchChange={setFilterValue}
-            setVisibleColumns={setVisibleColumns}
+            onCreateNew={() => setIsCreateModalOpen(true)}
+            onFilterChange={setFilterValue}
+            onVisibleColumnsChange={setVisibleColumns}
           />
 
           <UnifiedPlanTable
@@ -278,13 +262,12 @@ const PlansManagement = memo(() => {
           />
 
           <TablePagination
-            filteredItemsLength={sortedPlans.length}
             page={page}
             pages={pages}
-            selectedKeys={selectedKeys}
-            onNextPage={() => setPage(prev => Math.min(prev + 1, pages))}
+            rowsPerPage={rowsPerPage}
+            total={sortedPlans.length}
             onPageChange={setPage}
-            onPreviousPage={() => setPage(prev => Math.max(prev - 1, 1))}
+            onRowsPerPageChange={setRowsPerPage}
           />
         </div>
       </div>

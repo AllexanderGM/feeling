@@ -176,7 +176,7 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
                     }}
                     errorMessage={errors.price}
                     isInvalid={!!errors.price}
-                    label='Precio (USD)'
+                    label='Precio (COP)'
                     min='0'
                     placeholder='2.99, 9.99, 16.99...'
                     startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
@@ -241,8 +241,8 @@ const EditPlanForm = ({ isOpen, onClose, onSubmit, loading, plan }) => {
                       </div>
                       {formData.price && (
                         <div className='text-right'>
-                          <p className='text-2xl font-bold text-green-400'>${parseFloat(formData.price).toFixed(2)}</p>
-                          <p className='text-xs text-gray-400'>USD</p>
+                          <p className='text-2xl font-bold text-green-400'>{parseFloat(formData.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          <p className='text-xs text-gray-400'>COP</p>
                         </div>
                       )}
                     </div>
