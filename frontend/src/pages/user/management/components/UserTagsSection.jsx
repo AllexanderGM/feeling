@@ -299,13 +299,13 @@ const UserTagsSection = ({ onError, onSuccess }) => {
         await userTagsService.approveTag(tag.id)
         onSuccess?.('Tag aprobado exitosamente')
         loadTags()
-        loadTagStats()
+        // loadTagStats()
       } catch (error) {
         Logger.error('Error approving tag:', error, { category: Logger.CATEGORIES.USER })
         onError?.('Error al aprobar tag')
       }
     },
-    [onSuccess, onError, loadTags, loadTagStats]
+    [onSuccess, onError, loadTags]
   )
 
   const handleCreateSubmit = useCallback(async () => {
@@ -326,12 +326,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       onSuccess?.('Tag creado exitosamente')
       onCreateClose()
       loadTags()
-      loadTagStats()
+      // loadTagStats()
     } catch (error) {
       Logger.error('Error creating tag:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al crear tag')
     }
-  }, [tagForm, onSuccess, onError, onCreateClose, loadTags, loadTagStats])
+  }, [tagForm, onSuccess, onError, onCreateClose, loadTags])
 
   const handleEditSubmit = useCallback(async () => {
     if (!selectedTag || !tagForm.name) return
@@ -347,12 +347,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       onSuccess?.('Tag actualizado exitosamente')
       onEditClose()
       loadTags()
-      loadTagStats()
+      // loadTagStats()
     } catch (error) {
       Logger.error('Error updating tag:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al actualizar tag')
     }
-  }, [selectedTag, tagForm, onSuccess, onError, onEditClose, loadTags, loadTagStats])
+  }, [selectedTag, tagForm, onSuccess, onError, onEditClose, loadTags])
 
   const confirmDelete = useCallback(async () => {
     if (!selectedTag) return
@@ -363,12 +363,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       onSuccess?.('Tag eliminado exitosamente')
       onDeleteClose()
       loadTags()
-      loadTagStats()
+      // loadTagStats()
     } catch (error) {
       Logger.error('Error deleting tag:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al eliminar tag')
     }
-  }, [selectedTag, onSuccess, onError, onDeleteClose, loadTags, loadTagStats])
+  }, [selectedTag, onSuccess, onError, onDeleteClose, loadTags])
 
   const confirmReject = useCallback(async () => {
     if (!selectedTag || !rejectionReason.trim()) {
@@ -382,12 +382,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
       onSuccess?.('Tag rechazado exitosamente')
       onRejectClose()
       loadTags()
-      loadTagStats()
+      // loadTagStats()
     } catch (error) {
       Logger.error('Error rejecting tag:', error, { category: Logger.CATEGORIES.USER })
       onError?.('Error al rechazar tag')
     }
-  }, [selectedTag, rejectionReason, onSuccess, onError, onRejectClose, loadTags, loadTagStats])
+  }, [selectedTag, rejectionReason, onSuccess, onError, onRejectClose, loadTags])
 
   const handleCleanupTags = useCallback(async () => {
     try {
@@ -395,12 +395,12 @@ const UserTagsSection = ({ onError, onSuccess }) => {
 
       onSuccess?.(`Limpieza completada: ${result.deletedCount || 0} tags eliminados`)
       loadTags()
-      loadTagStats()
+      // loadTagStats()
     } catch (error) {
       Logger.error('Error during cleanup:', error, { category: Logger.CATEGORIES.SYSTEM })
       onError?.('Error durante la limpieza')
     }
-  }, [onSuccess, onError, loadTags, loadTagStats])
+  }, [onSuccess, onError, loadTags])
 
   // Función de búsqueda
   const handleSearch = useCallback(
@@ -420,8 +420,8 @@ const UserTagsSection = ({ onError, onSuccess }) => {
   // Función de refresh
   const handleRefresh = useCallback(() => {
     loadTags()
-    loadTagStats()
-  }, [loadTags, loadTagStats])
+    // loadTagStats()
+  }, [loadTags])
 
   // Función de cambio de página
   const handlePageChange = useCallback(page => {

@@ -183,7 +183,8 @@ public class UserService {
         UserResponseLevel appropriateLevel = userResponseFactory
             .determineAppropriateLevel(currentUser, targetUser, requestedLevel);
 
-        return userResponseFactory.create(targetUser, appropriateLevel);
+        // Usar el método que incluye información de match cuando hay un usuario actual
+        return userResponseFactory.create(targetUser, currentUser, appropriateLevel);
     }
 
     /**

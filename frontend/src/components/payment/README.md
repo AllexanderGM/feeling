@@ -20,20 +20,19 @@ src/components/payment/
 Muestra una fila de detalle con label y valor.
 
 **Props:**
+
 - `label` (string): Etiqueta del campo
 - `value` (string|number): Valor a mostrar
 
 **Ejemplo:**
+
 ```jsx
 import { PaymentDetailRow } from '@components/payment'
-
-<PaymentDetailRow
-  label="ID de transacción"
-  value="11979555-1761314156-38572"
-/>
+;<PaymentDetailRow label='ID de transacción' value='11979555-1761314156-38572' />
 ```
 
 **Resultado:**
+
 ```
 ┌─────────────────────────────────┐
 │ ID DE TRANSACCIÓN               │
@@ -48,12 +47,14 @@ import { PaymentDetailRow } from '@components/payment'
 Badge que muestra el estado del pago con icono.
 
 **Props:**
+
 - `status` (string): Estado del pago (APPROVED, PENDING, etc.)
 - `config` (object): Configuración visual del estado
   - `badgeClass` (string): Clases CSS para el badge
 - `icon` (Component): Icono opcional (default: CalendarDays)
 
 **Ejemplo:**
+
 ```jsx
 import { PaymentStatusBadge } from '@components/payment'
 import { PaymentService } from '@services/payment'
@@ -67,6 +68,7 @@ const config = PaymentService.getStatusConfig('APPROVED')
 ```
 
 **Resultado:**
+
 ```
 ┌────────────────────────────────┐
 │ 📅 Estado reportado: APPROVED  │ (fondo verde)
@@ -80,6 +82,7 @@ const config = PaymentService.getStatusConfig('APPROVED')
 Card principal que muestra el estado del pago con icono grande, título y descripción.
 
 **Props:**
+
 - `statusConfig` (object): Configuración del estado
   - `icon` (Component): Icono del estado
   - `iconClass` (string): Clases CSS para el icono
@@ -89,6 +92,7 @@ Card principal que muestra el estado del pago con icono grande, título y descri
 - `badge` (ReactNode): Badge de estado a mostrar
 
 **Ejemplo:**
+
 ```jsx
 import { PaymentStatusCard, PaymentStatusBadge } from '@components/payment'
 import { PaymentService } from '@services/payment'
@@ -104,6 +108,7 @@ const config = PaymentService.getStatusConfig('APPROVED')
 ```
 
 **Resultado:**
+
 ```
 ┌───────────────────────────────────────────┐
 │              ┌─────────┐                  │
@@ -137,7 +142,7 @@ const EventPaymentStatus = () => {
   const config = PaymentService.getStatusConfig(status)
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className='max-w-3xl mx-auto space-y-6'>
       {/* Card principal de estado */}
       <PaymentStatusCard
         statusConfig={config}
@@ -148,19 +153,10 @@ const EventPaymentStatus = () => {
       {/* Card con detalles */}
       <Card>
         <CardBody>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <PaymentDetailRow
-              label="ID de transacción"
-              value={params.transactionId}
-            />
-            <PaymentDetailRow
-              label="Referencia"
-              value={params.reference}
-            />
-            <PaymentDetailRow
-              label="Ambiente"
-              value={params.environment}
-            />
+          <div className='grid gap-3 sm:grid-cols-2'>
+            <PaymentDetailRow label='ID de transacción' value={params.transactionId} />
+            <PaymentDetailRow label='Referencia' value={params.reference} />
+            <PaymentDetailRow label='Ambiente' value={params.environment} />
           </div>
         </CardBody>
       </Card>
@@ -172,6 +168,7 @@ const EventPaymentStatus = () => {
 ## 🎨 Estilos
 
 Todos los componentes usan:
+
 - **Tema oscuro** (gray-800, gray-900, gray-950)
 - **Backdrop blur** para efecto de vidrio
 - **Bordes sutiles** (border-gray-700/50)
@@ -206,9 +203,11 @@ export { PaymentStatusCard } from './PaymentStatusCard.jsx'
 ## 🚀 Uso en Páginas
 
 ### Eventos
+
 `src/pages/event/payment/EventPaymentStatus.jsx`
 
 ### Matches (próximamente)
+
 `src/pages/matches/purchase/MatchPaymentStatus.jsx`
 
 ## ✨ Beneficios

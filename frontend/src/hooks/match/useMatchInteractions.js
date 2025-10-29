@@ -31,6 +31,14 @@ export const useMatchInteractions = (options = {}) => {
    * Detecta si el error es por falta de intentos
    */
   const isNoAttemptsError = useCallback(error => {
+    // Primero verificar si es USER_NOT_APPROVED (no debe tratarse como error de intentos)
+    // El backend envía el código en el campo 'error', no 'code'
+    const errorCode = error?.response?.data?.error || error?.response?.data?.code || error?.code
+
+    if (errorCode === 'USER_NOT_APPROVED') {
+      return false
+    }
+
     // Verificar mensaje del backend
     const errorMessage = error?.response?.data?.message || error?.message || ''
     const errorStatus = error?.response?.status
@@ -47,8 +55,9 @@ export const useMatchInteractions = (options = {}) => {
 
     const hasNoAttemptsMessage = noAttemptsPatterns.some(pattern => errorMessage.toLowerCase().includes(pattern))
 
-    // También puede ser un 403 (Forbidden) o 429 (Too Many Requests)
-    const isLimitError = errorStatus === 403 || errorStatus === 429
+    // También puede ser un 429 (Too Many Requests)
+    // NOTA: Ya no verificamos 403 aquí porque puede ser USER_NOT_APPROVED
+    const isLimitError = errorStatus === 429
 
     return hasNoAttemptsMessage || isLimitError
   }, [])

@@ -460,13 +460,12 @@ class MatchService extends ServiceREST {
   }
 
   /**
-   * Create new match plan (admin only) - TO BE IMPLEMENTED
+   * Create new match plan (admin only)
    */
   async createPlan(planData) {
     const context = 'crear plan de match'
 
     try {
-      // TODO: Implement this endpoint in backend
       const response = await ServiceREST.post(API_ENDPOINTS.MATCHES.ADMIN_CREATE_PLAN, planData)
 
       return ServiceREST.handleServiceResponse(response, context)
@@ -477,13 +476,12 @@ class MatchService extends ServiceREST {
   }
 
   /**
-   * Update match plan (admin only) - TO BE IMPLEMENTED
+   * Update match plan (admin only)
    */
   async updatePlan(planId, planData) {
     const context = 'actualizar plan de match'
 
     try {
-      // TODO: Implement this endpoint in backend
       const url = API_ENDPOINTS.MATCHES.ADMIN_UPDATE_PLAN.replace('{planId}', encodeURIComponent(planId))
       const response = await ServiceREST.put(url, planData)
 
@@ -495,13 +493,29 @@ class MatchService extends ServiceREST {
   }
 
   /**
-   * Delete match plan (admin only) - TO BE IMPLEMENTED
+   * Update match plan status (admin only)
+   */
+  async updatePlanStatus(planId, isActive) {
+    const context = 'actualizar estado del plan de match'
+
+    try {
+      const url = `${API_ENDPOINTS.MATCHES.ADMIN_UPDATE_PLAN.replace('{planId}', encodeURIComponent(planId))}/status`
+      const response = await ServiceREST.patch(url, { isActive })
+
+      return ServiceREST.handleServiceResponse(response, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  /**
+   * Delete match plan (admin only)
    */
   async deletePlan(planId) {
     const context = 'eliminar plan de match'
 
     try {
-      // TODO: Implement this endpoint in backend
       const url = API_ENDPOINTS.MATCHES.ADMIN_DELETE_PLAN.replace('{planId}', encodeURIComponent(planId))
       const response = await ServiceREST.delete(url)
 

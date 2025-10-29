@@ -25,7 +25,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   aliases = local.domain_enabled ? local.cloudfront_aliases : []
 
   origin {
-    domain_name              = module.frontend_bucket.s3_bucket_regional_domain_name
+    domain_name              = module.frontend_bucket.s3_bucket_bucket_regional_domain_name
     origin_id                = "frontend-s3-origin"
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend[0].id
 

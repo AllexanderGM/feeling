@@ -34,7 +34,11 @@ const ConfigurationManagement = memo(() => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        await Promise.all([loadConfigurations({ sections: ['system'], notifyOnSuccess: false }), fetchMaintenanceMode()])
+        // TODO: Backend endpoints not implemented yet:
+        // - GET /api/admin/configuration/system
+        // - GET /api/admin/configuration/maintenance
+        // Uncomment when backend is ready
+        // await Promise.all([loadConfigurations({ sections: ['system'], notifyOnSuccess: false }), fetchMaintenanceMode()])
       } catch (error) {
         Logger.error(Logger.CATEGORIES.SYSTEM, 'initialize_system_configuration', 'Error inicializando configuraciones del sistema', {
           error
@@ -46,8 +50,9 @@ const ConfigurationManagement = memo(() => {
   }, [fetchMaintenanceMode, loadConfigurations])
 
   const handleRetry = useCallback(() => {
-    loadConfigurations({ sections: ['system'], notifyOnSuccess: false })
-    fetchMaintenanceMode()
+    // TODO: Uncomment when backend endpoints are implemented
+    // loadConfigurations({ sections: ['system'], notifyOnSuccess: false })
+    // fetchMaintenanceMode()
   }, [fetchMaintenanceMode, loadConfigurations])
 
   if (!isLoading && pageError && !hasSystemConfig) {
@@ -172,7 +177,7 @@ const ConfigurationManagement = memo(() => {
         </CardBody>
       </Card>
 
-      <SystemConfiguration config={systemConfig} loading={loading} maintenanceMode={maintenanceMode} />
+      <SystemConfiguration />
 
       <Card className='w-full bg-gray-800/30 border-gray-700/40'>
         <CardBody className='p-4 sm:p-6'>

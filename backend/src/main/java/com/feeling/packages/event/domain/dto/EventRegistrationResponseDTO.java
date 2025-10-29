@@ -9,6 +9,7 @@ public record EventRegistrationResponseDTO(
         Long id,
         Long userId,
         String userName,
+        String userEmail,
         Long eventId,
         String eventTitle,
         LocalDateTime eventDate,

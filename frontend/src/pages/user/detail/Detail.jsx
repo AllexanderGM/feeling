@@ -175,14 +175,31 @@ const Detail = () => {
 
   // Handlers para acciones de match
   const handleLike = useCallback(async () => {
+    // No permitir enviar match si ya hay uno pendiente o aceptado
+    if (userData?.hasPendingMatch || userData?.hasAcceptedMatch) {
+      handleError(
+        { message: 'Ya tienes un match con este usuario' },
+        { customMessage: 'Ya enviaste una solicitud de match a este usuario o tienen un match aceptado.' }
+      )
+
+      return
+    }
+
     await sendMatch(userId)
+    // Recargar datos del usuario para actualizar estados
+    await fetchUser({ withLoader: false })
     handleBack()
-  }, [userId, sendMatch, handleBack])
+  }, [userId, sendMatch, handleBack, userData, handleError, fetchUser])
 
   const handlePass = useCallback(async () => {
     await dismissSuggestion(userId)
     handleBack()
   }, [userId, dismissSuggestion, handleBack])
+
+  const handleContinue = useCallback(() => {
+    // Solo volver sin rechazar al usuario
+    handleBack()
+  }, [handleBack])
 
   const handleToggleFavorite = useCallback(async () => {
     const newFavoriteStatus = await toggleFavorite(userId)
@@ -285,7 +302,7 @@ const Detail = () => {
   // Datos de compatibilidad
   const compatibilityPercentage = compatibility?.totalPercentage
 
-  const { text: lastActiveText, color: lastActiveColor } = formatLastActive(lastActive)
+  const { text: lastActiveText } = formatLastActive(lastActive)
   const fullLocation = formatLocation(city, department, locality)
 
   const hasMultipleImages = images.length > 1
@@ -300,38 +317,54 @@ const Detail = () => {
 
   return (
     <div className='min-h-screen'>
-      {/* Header fijo */}
-      <div className='fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800'>
-        <div className='max-w-4xl mx-auto px-4 py-3 flex items-center justify-between'>
-          <Button isIconOnly className='bg-transparent text-gray-300' radius='full' size='sm' variant='light' onPress={handleBack}>
-            <ArrowLeft className='w-5 h-5' />
-          </Button>
-          <div className='flex items-center gap-2'>
-            {lastActiveText && (
-              <Chip color={lastActiveColor} size='sm' startContent={<Clock className='w-3 h-3' />} variant='flat'>
-                {lastActiveText}
-              </Chip>
-            )}
-            <Dropdown placement='bottom-end'>
-              <DropdownTrigger>
-                <Button isIconOnly className='bg-transparent text-gray-300' radius='full' size='sm' variant='light'>
-                  <MoreVertical className='w-5 h-5' />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu aria-label='Opciones de usuario' variant='flat'>
-                <DropdownItem
-                  key='report'
-                  className='text-danger'
-                  color='danger'
-                  startContent={<Flag className='w-4 h-4' />}
-                  onPress={onReportModalOpen}>
-                  Reportar usuario
-                </DropdownItem>
-                <DropdownItem key='block' className='text-danger' color='danger' startContent={<Ban className='w-4 h-4' />}>
-                  Bloquear usuario
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
+      {/* Header fijo mejorado */}
+      <div className='fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-md border-b border-gray-800/60 shadow-lg'>
+        <div className='max-w-4xl mx-auto px-4 py-3'>
+          <div className='flex items-center justify-between'>
+            {/* Botón volver */}
+            <Button
+              className='text-gray-400 hover:text-gray-200 backdrop-blur-sm'
+              size='sm'
+              startContent={<ArrowLeft className='w-4 h-4' />}
+              variant='light'
+              onPress={handleBack}>
+              Volver
+            </Button>
+
+            {/* Badges y opciones */}
+            <div className='flex items-center gap-2'>
+              {lastActiveText && (
+                <Chip
+                  className='bg-gray-800/60 backdrop-blur-md border border-gray-700/50'
+                  size='sm'
+                  startContent={<Clock className='w-3 h-3' />}
+                  variant='flat'>
+                  {lastActiveText}
+                </Chip>
+              )}
+
+              {/* Dropdown de opciones */}
+              <Dropdown placement='bottom-end'>
+                <DropdownTrigger>
+                  <Button isIconOnly className='bg-transparent text-gray-300 hover:text-gray-100' radius='full' size='sm' variant='light'>
+                    <MoreVertical className='w-5 h-5' />
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu aria-label='Opciones de usuario' variant='flat'>
+                  <DropdownItem
+                    key='report'
+                    className='text-danger'
+                    color='danger'
+                    startContent={<Flag className='w-4 h-4' />}
+                    onPress={onReportModalOpen}>
+                    Reportar usuario
+                  </DropdownItem>
+                  <DropdownItem key='block' className='text-danger' color='danger' startContent={<Ban className='w-4 h-4' />}>
+                    Bloquear usuario
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </div>
           </div>
         </div>
       </div>
@@ -488,43 +521,59 @@ const Detail = () => {
                     </div>
                   )}
 
-                  {/* Badges superiores */}
-                  <div className='absolute top-3 left-3 flex flex-col gap-1.5 z-20'>
+                  {/* Badges superiores - Similar a UserCard */}
+                  <div className='absolute top-3 left-3 right-3 flex justify-between items-start z-20'>
+                    {/* Badges izquierda - Estados de match */}
+                    <div className='flex flex-col gap-1.5 items-start'>
+                      {hasAcceptedMatch && (
+                        <Chip
+                          className='bg-gradient-to-r from-green-500/80 to-emerald-500/80 backdrop-blur-md border-green-300/40 text-white text-[11px] h-auto py-0.5 shadow-lg'
+                          size='sm'
+                          startContent={<CheckCircle2 className='w-2.5 h-2.5' />}
+                          variant='bordered'>
+                          Match aceptado
+                        </Chip>
+                      )}
+                      {hasPendingMatch && !hasAcceptedMatch && (
+                        <Chip
+                          className='bg-gradient-to-r from-yellow-500/80 to-orange-500/80 backdrop-blur-md border-yellow-300/40 text-white text-[11px] h-auto py-0.5 shadow-lg'
+                          size='sm'
+                          startContent={<Mail className='w-2.5 h-2.5' />}
+                          variant='bordered'>
+                          Match pendiente
+                        </Chip>
+                      )}
+                      {isFavorite && (
+                        <Chip
+                          className='bg-gradient-to-br from-blue-500/80 to-cyan-500/80 backdrop-blur-md border-2 border-blue-300/40 shadow-lg shadow-blue-500/40 text-white text-[11px] h-auto py-0.5'
+                          size='sm'
+                          startContent={<Bookmark className='w-2.5 h-2.5 fill-current' />}>
+                          Favorito
+                        </Chip>
+                      )}
+                      {isVerified && (
+                        <Chip
+                          className='bg-primary/80 text-white backdrop-blur-md border border-primary-300/40 text-[11px] h-auto py-0.5 shadow-lg'
+                          size='sm'
+                          startContent={<CheckCircle2 className='w-2.5 h-2.5' />}
+                          variant='bordered'>
+                          Verificado
+                        </Chip>
+                      )}
+                    </div>
+
+                    {/* Badge derecha - Compatibilidad */}
                     {compatibilityPercentage && (
                       <Chip
                         className={`${
                           compatibilityPercentage >= 80
-                            ? 'bg-gradient-to-r from-pink-500 to-rose-500'
+                            ? 'bg-gradient-to-r from-pink-500 to-rose-500 shadow-lg shadow-pink-500/30 ring-1 ring-secondary-500/30'
                             : compatibilityPercentage >= 60
                               ? 'bg-gradient-to-r from-primary-500 to-purple-500'
                               : 'bg-gray-600'
-                        } text-white font-bold shadow-lg`}
-                        size='md'>
+                        } text-white font-bold text-xs h-6 shadow-lg`}
+                        size='sm'>
                         {compatibilityPercentage}% Compatible
-                      </Chip>
-                    )}
-                    {isVerified && (
-                      <Chip
-                        className='bg-primary/90 text-white backdrop-blur-md'
-                        size='sm'
-                        startContent={<CheckCircle2 className='w-3 h-3' />}>
-                        Verificado
-                      </Chip>
-                    )}
-                    {hasAcceptedMatch && (
-                      <Chip
-                        className='bg-gradient-to-r from-green-500 to-emerald-500 text-white backdrop-blur-md'
-                        size='sm'
-                        startContent={<CheckCircle2 className='w-3 h-3' />}>
-                        Match aceptado
-                      </Chip>
-                    )}
-                    {hasPendingMatch && !hasAcceptedMatch && (
-                      <Chip
-                        className='bg-gradient-to-r from-yellow-500 to-orange-500 text-white backdrop-blur-md'
-                        size='sm'
-                        startContent={<Mail className='w-3 h-3' />}>
-                        Match pendiente
                       </Chip>
                     )}
                   </div>
@@ -557,13 +606,13 @@ const Detail = () => {
 
           {/* Información del usuario - Columna derecha */}
           <div className='space-y-4 lg:sticky lg:top-20 lg:self-start'>
-            {/* Nombre y básicos */}
-            <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+            {/* Nombre y básicos - Mejorado con gradiente */}
+            <Card className='bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-800/30 backdrop-blur-sm border-gray-700/50 shadow-lg'>
               <CardBody className='p-5'>
                 <div className='space-y-3'>
                   {/* Nombre y edad */}
                   <div>
-                    <h1 className='text-2xl font-bold text-gray-100'>
+                    <h1 className='text-2xl font-bold text-gray-100 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent'>
                       {lastName ? `${name} ${lastName[0]}.` : name}
                       {age && <span className='text-gray-400'>, {age}</span>}
                     </h1>
@@ -573,7 +622,7 @@ const Detail = () => {
                   <div className='flex flex-wrap gap-2'>
                     {profession && (
                       <Chip
-                        className='bg-purple-500/20 text-purple-300 border-purple-500/30'
+                        className='bg-purple-500/20 text-purple-300 border-purple-500/30 backdrop-blur-sm'
                         size='sm'
                         startContent={<Briefcase className='w-3 h-3' />}
                         variant='bordered'>
@@ -581,7 +630,7 @@ const Detail = () => {
                       </Chip>
                     )}
                     {gender && (
-                      <Chip className='bg-blue-500/20 text-blue-300 border-blue-500/30' size='sm' variant='bordered'>
+                      <Chip className='bg-blue-500/20 text-blue-300 border-blue-500/30 backdrop-blur-sm' size='sm' variant='bordered'>
                         {gender}
                       </Chip>
                     )}
@@ -589,8 +638,8 @@ const Detail = () => {
 
                   {/* Ubicación */}
                   {fullLocation && (
-                    <div className='flex items-center gap-2 text-gray-300 text-sm'>
-                      <MapPin className='w-4 h-4 text-gray-400 flex-shrink-0' />
+                    <div className='flex items-center gap-2 text-gray-300 text-sm bg-gray-700/20 rounded-lg p-2'>
+                      <MapPin className='w-4 h-4 text-primary-400 flex-shrink-0' />
                       <span className='truncate'>{fullLocation}</span>
                     </div>
                   )}
@@ -599,7 +648,7 @@ const Detail = () => {
                   {quickInfo.length > 0 && (
                     <div className='pt-2 border-t border-gray-700/50'>
                       <div className='flex items-start gap-2 text-sm'>
-                        <Info className='w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5' />
+                        <Info className='w-4 h-4 text-primary-400 flex-shrink-0 mt-0.5' />
                         <span className='text-gray-300'>{quickInfo.join(' • ')}</span>
                       </div>
                     </div>
@@ -608,26 +657,43 @@ const Detail = () => {
               </CardBody>
             </Card>
 
-            {/* Botones de acción */}
+            {/* Botones de acción - Mejorados según estados */}
             <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
               <CardBody className='p-4'>
-                <div className='flex items-center justify-center gap-3'>
-                  {/* Botón Pasar */}
-                  <Button
-                    isIconOnly
-                    className='bg-white/10 hover:bg-red-500/20 border-2 border-white/20 hover:border-red-500/60 text-red-400'
-                    isDisabled={matchLoading}
-                    radius='full'
-                    size='lg'
-                    variant='flat'
-                    onPress={handlePass}>
-                    <X className='w-6 h-6' strokeWidth={2.5} />
-                  </Button>
+                <div className='flex items-center justify-center gap-4'>
+                  {/* Botón Pasar/Continuar - Cambia según estado */}
+                  {hasPendingMatch || hasAcceptedMatch ? (
+                    <Button
+                      isIconOnly
+                      className='bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 border-2 border-blue-300/40 shadow-lg shadow-blue-500/30 text-white transition-all duration-200'
+                      radius='full'
+                      size='lg'
+                      variant='solid'
+                      onPress={handleContinue}>
+                      <ArrowRight className='w-6 h-6' strokeWidth={2.5} />
+                    </Button>
+                  ) : (
+                    <Button
+                      isIconOnly
+                      className='bg-white/10 hover:bg-red-500/20 active:bg-red-500/30 border-2 border-white/20 hover:border-red-500/60 text-red-400 hover:text-red-300 transition-all duration-200'
+                      isDisabled={matchLoading}
+                      radius='full'
+                      size='lg'
+                      variant='flat'
+                      onPress={handlePass}>
+                      <X className='w-6 h-6' strokeWidth={2.5} />
+                    </Button>
+                  )}
 
-                  {/* Botón Match - Centro (más grande) */}
+                  {/* Botón Match - Centro (más grande) - Deshabilitado si ya hay match */}
                   <Button
                     isIconOnly
-                    className='bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 hover:from-pink-600 hover:via-rose-600 hover:to-red-600 shadow-xl shadow-pink-500/40'
+                    className={`${
+                      hasPendingMatch || hasAcceptedMatch || matchLoading
+                        ? 'bg-gray-700 border-2 border-gray-600/50 cursor-not-allowed opacity-50'
+                        : 'bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 hover:from-pink-600 hover:via-rose-600 hover:to-red-600 active:scale-95 shadow-xl shadow-pink-500/40 border-2 border-white/20'
+                    } transition-all duration-200`}
+                    isDisabled={hasPendingMatch || hasAcceptedMatch || matchLoading}
                     isLoading={matchLoading}
                     radius='full'
                     size='lg'
@@ -642,9 +708,9 @@ const Detail = () => {
                     isIconOnly
                     className={`${
                       isFavorite
-                        ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/40'
+                        ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/40 border-2 border-blue-300/40'
                         : 'bg-white/10 border-2 border-white/20 hover:border-blue-500/60 hover:bg-blue-500/20'
-                    } text-blue-300`}
+                    } text-blue-300 hover:text-blue-200 active:scale-95 transition-all duration-200`}
                     isDisabled={favoriteLoading}
                     radius='full'
                     size='lg'
@@ -653,16 +719,29 @@ const Detail = () => {
                     <Bookmark className={`w-6 h-6 ${isFavorite ? 'fill-current' : ''}`} strokeWidth={2.5} />
                   </Button>
                 </div>
+
+                {/* Texto indicativo según estado */}
+                {(hasPendingMatch || hasAcceptedMatch) && (
+                  <div className='mt-3 text-center'>
+                    <p className='text-xs text-gray-400'>
+                      {hasAcceptedMatch
+                        ? 'Ya tienes un match aceptado con este usuario'
+                        : 'Ya enviaste una solicitud de match a este usuario'}
+                    </p>
+                  </div>
+                )}
               </CardBody>
             </Card>
 
-            {/* Descripción */}
+            {/* Descripción - Mejorada */}
             {description && description !== 'TEMPORAL_DESCRIPTION' && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
-                  <div className='space-y-2'>
-                    <div className='flex items-center gap-2'>
-                      <Users className='w-4 h-4 text-primary-400' />
+                  <div className='space-y-3'>
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-primary-500/20 to-purple-500/20 rounded-lg flex items-center justify-center'>
+                        <Users className='w-4 h-4 text-primary-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Acerca de {name}</h3>
                     </div>
                     <p className='text-sm text-gray-300 leading-relaxed'>{description}</p>
@@ -671,18 +750,20 @@ const Detail = () => {
               </Card>
             )}
 
-            {/* Intereses */}
+            {/* Intereses - Mejorados */}
             {tags.length > 0 && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
                   <div className='space-y-3'>
-                    <div className='flex items-center gap-2'>
-                      <Tag className='w-4 h-4 text-orange-400' />
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-lg flex items-center justify-center'>
+                        <Tag className='w-4 h-4 text-orange-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Intereses</h3>
                     </div>
                     <div className='flex flex-wrap gap-2'>
                       {tags.map((tag, index) => (
-                        <Chip key={index} className='bg-primary/15 text-primary-300' size='sm' variant='flat'>
+                        <Chip key={index} className='bg-primary/15 text-primary-300 border border-primary-500/20' size='sm' variant='flat'>
                           {tag}
                         </Chip>
                       ))}
@@ -692,13 +773,15 @@ const Detail = () => {
               </Card>
             )}
 
-            {/* Características Físicas */}
+            {/* Características Físicas - Mejoradas */}
             {(height || eyeColor || hairColor || bodyType) && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
                   <div className='space-y-3'>
-                    <div className='flex items-center gap-2'>
-                      <Ruler className='w-4 h-4 text-green-400' />
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-lg flex items-center justify-center'>
+                        <Ruler className='w-4 h-4 text-green-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Características Físicas</h3>
                     </div>
                     <div className='grid grid-cols-2 gap-3 text-sm'>
@@ -744,13 +827,15 @@ const Detail = () => {
               </Card>
             )}
 
-            {/* Información Personal */}
+            {/* Información Personal - Mejorada */}
             {(education || maritalStatus || categoryInterest) && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
                   <div className='space-y-3'>
-                    <div className='flex items-center gap-2'>
-                      <GraduationCap className='w-4 h-4 text-blue-400' />
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center'>
+                        <GraduationCap className='w-4 h-4 text-blue-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Información Personal</h3>
                     </div>
                     <div className='space-y-3 text-sm'>
@@ -787,13 +872,15 @@ const Detail = () => {
               </Card>
             )}
 
-            {/* Preferencias de Relación */}
+            {/* Preferencias de Relación - Mejoradas */}
             {(relationshipType || sexualRole) && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
                   <div className='space-y-3'>
-                    <div className='flex items-center gap-2'>
-                      <Heart className='w-4 h-4 text-pink-400' />
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg flex items-center justify-center'>
+                        <Heart className='w-4 h-4 text-pink-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Preferencias</h3>
                     </div>
                     <div className='space-y-3 text-sm'>
@@ -821,13 +908,15 @@ const Detail = () => {
               </Card>
             )}
 
-            {/* Espiritualidad */}
+            {/* Espiritualidad - Mejorada */}
             {(religion || church || spiritualMoments || spiritualPractices) && (
-              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50 shadow-md'>
                 <CardBody className='p-5'>
                   <div className='space-y-3'>
-                    <div className='flex items-center gap-2'>
-                      <ChurchIcon className='w-4 h-4 text-purple-400' />
+                    <div className='flex items-center gap-2 pb-2 border-b border-gray-700/30'>
+                      <div className='w-8 h-8 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center'>
+                        <ChurchIcon className='w-4 h-4 text-purple-400' />
+                      </div>
                       <h3 className='text-sm font-semibold text-gray-200'>Espiritualidad</h3>
                     </div>
                     <div className='space-y-3 text-sm'>

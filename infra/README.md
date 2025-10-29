@@ -1,542 +1,98 @@
-# Infraestructura - Feeling AWS + Terraform
+# Infraestructura AWS · Terraform
 
-## 📋 Índice
+Documentación abreviada para operar la infraestructura de Feeling en AWS usando Terraform y los scripts del repositorio.
 
-- [Arquitectura AWS](#arquitectura-aws)
-- [Componentes](#componentes)
-- [Requisitos](#requisitos)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Despliegue](#despliegue)
-- [Recursos Terraform](#recursos-terraform)
-- [Seguridad](#seguridad)
-- [Monitoreo](#monitoreo)
-- [Costos](#costos)
-- [Troubleshooting](#troubleshooting)
+## 1. Qué despliega
 
-## 🏗️ Arquitectura AWS
+- **Red**: VPC / subredes públicas y privadas, security groups mínimos.
+- **Compute**: EC2 `t3.micro` con Docker (backend) y clave generada automáticamente.
+- **Base de datos**: RDS MySQL `db.t3.micro` cifrada, snapshots automáticos (7 días) y protección contra borrado.
+- **Almacenamiento**: S3 privado para frontend estático y assets; opcional bucket de logs.
+- **CDN/DNS (opcionales)**: CloudFront y Route 53 sólo si activas `USE_DOMAIN=true`.
+- **WordPress**: se expone vía subdominio dedicado (`WORDPRESS_SUBDOMAIN`) apuntando a una instancia Lightsail existente.
 
-La infraestructura está diseñada para ser escalable, segura y optimizada para la capa gratuita de AWS:
+## 2. Requisitos
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         Internet                             │
-└─────────────────┬───────────────────┬───────────────────────┘
-                  │                   │
-            ┌─────▼─────┐       ┌─────▼─────┐
-            │CloudFront │       │    ALB    │
-            │    CDN    │       │           │
-            └─────┬─────┘       └─────┬─────┘
-                  │                   │
-            ┌─────▼─────┐       ┌─────▼─────┐
-            │ S3 Bucket │       │    EC2    │
-            │ Frontend  │       │  Backend  │
-            └───────────┘       └─────┬─────┘
-                                      │
-                          ┌───────────┴───────────┐
-                          │                       │
-                    ┌─────▼─────┐           ┌─────▼─────┐
-                    │    RDS    │           │ S3 Bucket │
-                    │   MySQL   │           │  Images   │
-                    └───────────┘           └───────────┘
-```
+- Terraform ≥ 1.5 y AWS CLI configurado con permisos administrativos.
+- Docker y npm para construir imágenes/frontend.
+- Cuenta en GitHub Container Registry (GHCR) para publicar imágenes `backend` y `frontend`.
 
-## 🔧 Componentes
+## 3. Variables y archivos
 
-### Networking
+### `.env` (desarrollo local)
+Genera MinIO, MySQL y servicios Docker. No impacta producción.
 
-- **VPC**: Red privada virtual aislada (10.0.0.0/16)
-- **Subredes Públicas**: 2 subredes en diferentes AZs para alta disponibilidad
-- **Subredes Privadas**: 2 subredes para RDS y servicios internos
-- **Internet Gateway**: Conectividad a internet
-- **Security Groups**: Firewalls a nivel de instancia
+### `.env.prod` (despliegue)
+Completa antes de ejecutar `./deploy.sh`.
 
-### Compute
+| Grupo | Claves clave |
+| --- | --- |
+| AWS | `AWS_PROFILE` **o** `AWS_ACCESS_KEY` + `AWS_SECRET_KEY`, `AWS_REGION` |
+| Infraestructura | `USE_DOMAIN`, `DOMAIN_NAME`, `HOSTED_ZONE_ID`, `ENABLE_CLOUDFRONT` |
+| Red | `SSH_ALLOWED_CIDRS`, `BACKEND_HTTP_CIDRS`, `LIGHTSAIL_WORDPRESS_IP`, `WORDPRESS_SUBDOMAIN` |
+| DB / Secrets | `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `SESSION_SECRET`, `JWT_SECRET` |
+| Admin / OAuth / SMTP | `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `GOOGLE_CLIENT_*`, `MAIL`, `MAILPASS` |
+| Pagos | Llaves de Wompi (sandbox o prod) |
 
-- **EC2 t3.micro**: Instancia para backend Spring Boot (puedes cambiar a t4g.micro para ARM si tus imágenes son multi-arquitectura)
-- **Auto Scaling Group**: Escalado automático (futuro)
-- **Application Load Balancer**: Distribución de carga (futuro)
+Deja vacíos `PAYMENTS_REDIRECT_URL`, `WOMPI_REDIRECT_URL` y otras URLs: el script las completa con la URL final del frontend.
 
-### Storage
+## 4. Flujo de `deploy.sh`
 
-- **S3 Frontend**: Hosting estático para React
-- **S3 Images**: Almacenamiento de imágenes de usuarios
-- **S3 Backups**: Respaldos automáticos
+1. (Opcional) Ejecuta `./deploy.sh --verify` para generar `terraform.tfvars` y correr `terraform plan` sin aplicar cambios.
+2. Valida dependencias y lee `.env.prod`.
+3. Genera `infra/terraform.tfvars` con los valores necesarios (credenciales, subdominios, cidrs, etc.).
+4. Ejecuta `terraform init && terraform apply -auto-approve` dentro de `infra/`.
+5. Procesa *outputs* y genera:
+   - `frontend/.env` y `backend/.env` con URLs reales (CloudFront/S3 o dominio).
+   - Clave PEM para la EC2 (`infra/.<prefix>-ec2-key.pem` → `.ec2-key.pem`).
+6. Construye y publica imágenes en GHCR (`backend:latest`, `frontend:latest`). 
+7. Conecta por SSH a la instancia, descarga la imagen de backend y levanta el contenedor (modo `--restart unless-stopped`).
+8. Compila React y sincroniza el `dist/` al bucket S3 del frontend.
+9. Muestra resumen con endpoints (API, frontend, RDS, CloudFront, etc.).
 
-### Database
+> Nota: El script también limpia/crea archivos `.env` y no requiere intervención manual para las URLs de retorno de pagos.
 
-- **RDS MySQL 8.0**: Base de datos principal (db.t3.micro sobre gp3)
-- **Multi-AZ**: Alta disponibilidad (producción)
-- **Automated Backups**: Respaldos diarios
+## 5. Terraform
 
-### CDN y Distribución
-
-- **CloudFront**: CDN para frontend (opcional)
-- **Route 53**: DNS y dominio personalizado (opcional)
-
-## 📋 Requisitos
-
-- **Terraform** >= 1.0
-- **AWS CLI** configurado
-- **Cuenta AWS** con permisos adecuados
-- **Docker** (para builds)
-- **Git**
-
-## 💻 Instalación
-
-### 1. Instalar Terraform
+Comandos útiles (directorio `infra/`):
 
 ```bash
-# macOS
-brew install terraform
-
-# Linux
-wget https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
-unzip terraform_1.5.0_linux_amd64.zip
-sudo mv terraform /usr/local/bin/
-
-# Verificar instalación
-terraform version
-```
-
-### 2. Configurar AWS CLI
-
-```bash
-# Instalar AWS CLI
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-sudo ./aws/install
-
-# Configurar credenciales
-aws configure
-# AWS Access Key ID: [tu-access-key]
-# AWS Secret Access Key: [tu-secret-key]
-# Default region name: us-east-1
-# Default output format: json
-```
-
-## ⚙️ Configuración
-
-### Variables de Terraform
-
-Crear archivo `terraform.tfvars`:
-
-```hcl
-# Proyecto y entorno
-project_name = "feeling"
-environment  = "test"          # Cambia a "prod" cuando tengas dominio
-region       = "us-east-1"
-
-# Credenciales (prefiere perfiles)
-aws_profile      = "default"
-# aws_access_key = "AKIA..."
-# aws_secret_key = "xxxxxxxxxxxx"
-# aws_session_token = "..."
-
-# Base de datos
-db_name       = "feelingdb"
-db_username   = "admin"
-db_password   = "SuperSecurePassword123!"
-db_port       = 3306
-db_skip_final_snapshot       = false
-db_final_snapshot_identifier = "feeling-final-snapshot"
-db_deletion_protection       = true
-db_backup_retention          = 7
-
-# Redes (opcional si deseas personalizar)
-vpc_cidr           = "10.0.0.0/16"
-availability_zones = ["us-east-1a", "us-east-1b"]
-
-# Seguridad
-allowed_ssh_cidrs      = ["203.0.113.10/32"]
-backend_http_cidrs     = ["34.123.45.67/32"]
-enable_backend_eip     = true
-backend_instance_type  = "t3.micro"
-backend_root_volume_size = 16
-
-# Dominios / distribución
-use_domain                   = false
-domain_name                  = ""
-hosted_zone_id               = null
-create_hosted_zone           = false
-enable_cloudfront            = true
-allow_public_frontend_bucket = false
-enable_access_logs_bucket    = false
-
-# Integración con WordPress en Lightsail (opcional)
-wordpress_subdomain = "www"
-lightsail_wordpress_ip = "34.123.45.67"
-```
-
-- 💡 **Modo test sin dominio:** deja `use_domain = false` y mantén CloudFront habilitado para servir desde el dominio `*.cloudfront.net`. Solo activa `allow_public_frontend_bucket` si quieres usar el endpoint S3 temporalmente.
-
-- `backend_instance_type = "t3.micro"` (x86). Cambia a `t4g.micro` para reducir costos si tus imágenes Docker soportan ARM64.
-- `enable_backend_eip = true` garantiza IP fija para DNS. Desactívalo solo en entornos de laboratorio.
-- `backend_root_volume_size = 16` GB ofrece margen para actualizaciones y logs. Ajusta si necesitas más o menos espacio.
-- `db_backup_retention = 7` y `db_deletion_protection = true` protegen RDS. Incrementa retención y activa snapshots manuales en producción.
-- `enable_access_logs_bucket = true` crea un bucket extra para logs (tendrás costo de almacenamiento adicional si lo habilitas).
-- Define `backend_http_cidrs` con la IP pública de Lightsail (`"${var.lightsail_wordpress_ip}/32"`) para que WordPress consuma la API sin exponerla globalmente.
-- `ENABLE_S3_BACKUPS=false` (en `.env.prod`) evita subir respaldos a S3 hasta que estés listo para asumir ese costo.
-- Para que WordPress (Lightsail) consuma la API, añade su IP pública (p.ej. `"34.123.45.67/32"`) a `backend_http_cidrs` o expón la API sólo detrás del dominio (`api.midominio.com`). Evita dejar `0.0.0.0/0` en producción.
-- Deja `PAYMENTS_REDIRECT_URL` y `WOMPI_REDIRECT_URL` vacíos en `.env.prod`; `deploy.sh` generará automáticamente la URL final del frontend (usa `*_OVERRIDE` si necesitas forzar un valor distinto).
-
-### Estructura de archivos
-
-```
-infra/
-├── main.tf              # Configuración principal
-├── variables.tf         # Definición de variables
-├── outputs.tf           # Outputs del stack
-├── networking.tf        # VPC, subnets, security groups
-├── compute.tf           # EC2, Auto Scaling
-├── database.tf          # RDS MySQL
-├── storage.tf           # S3 buckets
-├── dns.tf              # Registros DNS (Route 53)
-├── acm.tf              # Certificados ACM para SSL
-├── cloudfront.tf       # Distribución CloudFront (opcional)
-├── monitoring.tf        # CloudWatch
-└── terraform.tfvars     # Valores de variables
-```
-
-## 🚀 Despliegue
-
-### Despliegue automático
-
-```bash
-# Usar script de despliegue
-cd feeling
-chmod +x deploy.sh
-./deploy.sh
-```
-
-### Despliegue manual
-
-```bash
-# Inicializar Terraform
-cd infra
-terraform init
-
-# Planificar cambios
-terraform plan
-
-# Aplicar cambios
-terraform apply
-
-# Ver outputs
-terraform output
-```
-
-### Comandos útiles
-
-```bash
-# Validar configuración
-terraform validate
-
-# Formatear archivos
 terraform fmt
-
-# Ver estado actual
-terraform show
-
-# Destruir infraestructura
-terraform destroy
+terraform plan
+terraform apply -auto-approve
+terraform destroy -auto-approve   # sólo entornos de prueba
 ```
 
-## 📦 Recursos Terraform
+> Estado local: si necesitas compartirlo con el equipo, migra a backend remoto (S3 + DynamoDB).
 
-### networking.tf
+## 6. Modos de despliegue
 
-```hcl
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+| Modo | Flags clave | Resultado |
+| --- | --- | --- |
+| **Pruebas sin dominio** | `USE_DOMAIN=false`, `ENABLE_CLOUDFRONT=false` | Accedes vía endpoint S3 (`bucket.s3-website-...`) o la IP de EC2. |
+| **Pruebas con CDN** | `USE_DOMAIN=false`, `ENABLE_CLOUDFRONT=true` | Terraform crea CloudFront y `deploy.sh` usa el dominio `*.cloudfront.net`. |
+| **Producción con dominio** | `USE_DOMAIN=true`, `DOMAIN_NAME`, `HOSTED_ZONE_ID` | Se crean registros Route 53, ACM en us-east-1 y CloudFront/EC2 usan los FQDN (`api/app/www`). |
 
-  tags = {
-    Name = "${var.project_name}-vpc"
-  }
-}
+Para WordPress en Lightsail debes definir `WORDPRESS_SUBDOMAIN` y `LIGHTSAIL_WORDPRESS_IP`; Terraform crea el registro A y restringe la API al CIDR indicado.
 
-# Subnets públicas
-resource "aws_subnet" "public" {
-  count                   = 2
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
-  availability_zone       = var.availability_zones[count.index]
-  map_public_ip_on_launch = true
-}
+## 7. Buenas prácticas de costo y seguridad
 
-# Security Groups
-resource "aws_security_group" "backend" {
-  name   = "${var.project_name}-backend-sg"
-  vpc_id = aws_vpc.main.id
+- Mantén `ENABLE_CLOUDFRONT` desactivado hasta que tengas dominio/SSL.
+- `ENABLE_S3_BACKUPS=false` por defecto: activa sólo cuando quieras subir dumps automáticos al bucket de assets.
+- Define `SSH_ALLOWED_CIDRS` y `BACKEND_HTTP_CIDRS` con IPs específicas (Lightsail, tu oficina, etc.). Evita `0.0.0.0/0` en producción.
+- Usa tamaños mínimos (`t3.micro`, `db.t3.micro`) y considera detener EC2/RDS fuera de horario laboral.
+- Habilita logs en S3/CloudFront (`ENABLE_LOGS_BUCKET=true`) sólo si necesitas auditoría (añade costo).
 
-  ingress {
-    from_port   = 8081
-    to_port     = 8081
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+## 8. Problemas frecuentes
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-```
-
-### compute.tf
-
-```hcl
-# EC2 Instance
-resource "aws_instance" "backend" {
-  ami           = data.aws_ami.amazon_linux_2.id
-  instance_type = var.instance_type
-  subnet_id     = aws_subnet.public[0].id
-
-  vpc_security_group_ids = [aws_security_group.backend.id]
-  key_name              = aws_key_pair.main.key_name
-
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    db_host     = aws_db_instance.main.endpoint
-    db_name     = var.db_name
-    db_username = var.db_username
-    db_password = var.db_password
-  }))
-
-  tags = {
-    Name = "${var.project_name}-backend"
-  }
-}
-
-# Elastic IP
-resource "aws_eip" "backend" {
-  instance = aws_instance.backend.id
-  domain   = "vpc"
-}
-```
-
-### database.tf
-
-```hcl
-# RDS MySQL
-resource "aws_db_instance" "main" {
-  identifier     = "${var.project_name}-db"
-  engine         = "mysql"
-  engine_version = "8.0"
-
-  instance_class        = var.db_instance_class
-  allocated_storage     = 20
-  storage_type          = "gp2"
-  storage_encrypted     = true
-
-  db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
-
-  vpc_security_group_ids = [aws_security_group.database.id]
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-
-  skip_final_snapshot = true
-  deletion_protection = false
-
-  tags = {
-    Name = "${var.project_name}-db"
-  }
-}
-```
-
-### storage.tf
-
-```hcl
-# S3 Bucket para Frontend
-resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.project_name}-frontend-${random_id.bucket_suffix.hex}"
-}
-
-resource "aws_s3_bucket_website_configuration" "frontend" {
-  bucket = aws_s3_bucket.frontend.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "index.html"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "frontend" {
-  bucket = aws_s3_bucket.frontend.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-# S3 Bucket para Imágenes
-resource "aws_s3_bucket" "images" {
-  bucket = "${var.project_name}-images-${random_id.bucket_suffix.hex}"
-}
-
-resource "aws_s3_bucket_cors_configuration" "images" {
-  bucket = aws_s3_bucket.images.id
-
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "PUT", "POST"]
-    allowed_origins = ["*"]
-    expose_headers  = ["ETag"]
-    max_age_seconds = 3000
-  }
-}
-```
-
-## 🔒 Seguridad
-
-### Mejores prácticas implementadas
-
-1. **VPC Aislada**: Red privada completamente separada
-2. **Security Groups**: Principio de menor privilegio
-3. **Subredes privadas**: Base de datos sin acceso directo
-4. **Encriptación**: En tránsito (HTTPS) y en reposo (RDS, S3)
-5. **IAM Roles**: Permisos específicos por servicio
-6. **Secrets Manager**: Gestión segura de credenciales
-7. **MFA**: Multi-factor authentication en cuenta AWS
-
-### Security Groups
-
-- **Backend SG**: Puerto 8081 (API) y 22 (SSH)
-- **Database SG**: Puerto 3306 solo desde backend
-- **Frontend SG**: Puerto 80/443 público
-
-## 📊 Monitoreo
-
-### CloudWatch
-
-- **Métricas EC2**: CPU, memoria, disco
-- **Métricas RDS**: Conexiones, IOPS, latencia
-- **Logs**: Application logs centralizados
-- **Alarmas**: Notificaciones por email/SMS
-
-### Configuración de alertas
-
-```hcl
-resource "aws_cloudwatch_metric_alarm" "high_cpu" {
-  alarm_name          = "${var.project_name}-high-cpu"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
-  period              = "120"
-  statistic           = "Average"
-  threshold           = "80"
-  alarm_description   = "This metric monitors ec2 cpu utilization"
-}
-```
-
-## 💰 Costos
-
-### Estimación mensual (Free Tier)
-
-- **EC2 t2.micro**: $0 (750 horas/mes gratis)
-- **RDS db.t3.micro**: $0 (750 horas/mes gratis)
-- **S3**: $0 (5GB gratis)
-- **Data Transfer**: $0 (15GB gratis)
-- **Total**: $0 (primer año)
-
-### Optimización de costos
-
-1. **Auto-stop**: Apagar instancias fuera de horario
-2. **Reserved Instances**: Descuentos a largo plazo
-3. **Spot Instances**: Para ambientes de desarrollo
-4. **S3 Lifecycle**: Archivar objetos antiguos
-
-## 🔧 Troubleshooting
-
-### Problemas comunes
-
-#### Error: "UnauthorizedOperation"
-
-```bash
-# Verificar permisos IAM
-aws iam get-user
-aws iam list-attached-user-policies --user-name tu-usuario
-```
-
-#### Error: "InvalidSubnetID.NotFound"
-
-```bash
-# Verificar VPC y subnets
-aws ec2 describe-vpcs
-aws ec2 describe-subnets
-```
-
-#### Base de datos no accesible
-
-```bash
-# Verificar security groups
-aws ec2 describe-security-groups --group-ids sg-xxx
-
-# Test de conexión
-mysql -h endpoint-rds -u admin -p
-```
-
-### Logs y debugging
-
-```bash
-# Ver logs de EC2
-ssh ec2-user@ip-publica
-sudo journalctl -u docker -f
-
-# Ver logs de RDS
-aws rds describe-db-log-files --db-instance-identifier feeling-db
-aws rds download-db-log-file-portion --db-instance-identifier feeling-db --log-file-name error/mysql-error.log
-```
-
-## 🚀 CI/CD
-
-### GitHub Actions
-
-```yaml
-name: Deploy to AWS
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-      - name: Deploy with Terraform
-        run: |
-          cd infra
-          terraform init
-          terraform apply -auto-approve
-```
+| Síntoma | Posible causa | Solución |
+| --- | --- | --- |
+| `terraform apply` falla por credenciales | `AWS_PROFILE` o llaves no definidas | Revisa `.env.prod` y `aws configure list`. |
+| Backend no responde en EC2 | SG restringe CIDR o contenedor no levantó | Verifica `BACKEND_HTTP_CIDRS`, revisa `docker ps` en la instancia. |
+| Frontend muestra 403 desde CloudFront | Certificado ACM sin validar o dominio mal configurado | Confirma `HOSTED_ZONE_ID`, validación DNS y vuelve a ejecutar `deploy.sh`. |
+| WordPress no puede llamar al backend | Falta IP en `BACKEND_HTTP_CIDRS` | Añade `LIGHTSAIL_WORDPRESS_IP/32` y re-ejecuta. |
+| URLs incorrectas en Wompi | Intento de usar dominios sin ejecutar `deploy.sh` | Borra `frontend/.env` y vuelve a lanzar el script para regenerar URLs. |
 
 ---
 
-Para más información, consulta la [documentación principal](../README.md)
+Para cambios mayores (nuevos servicios, escalamiento, backend remoto de Terraform) crea un PR con la actualización y documenta la variación en este archivo. Mantén este README corto y accionable. ¡Buen despliegue! 🚀

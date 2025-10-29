@@ -1,0 +1,50 @@
+# robots.txt for Feeling - https://feeling.com.co/
+
+# Allow all search engines and AI crawlers
+User-agent: *
+Allow: /
+
+# Specific rules for major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# AI Crawlers - Allow for better AI-powered search results
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Block sensitive routes (adjust according to your app structure)
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+# Performance optimization - don't crawl static assets repeatedly
+User-agent: *
+Disallow: /*.json$
+Disallow: /*.map$
+
+# Sitemap location
+Sitemap: https://feeling.com.co/sitemap.xml
+
+# Crawl-delay (optional - uncomment if needed)
+# Crawl-delay: 1

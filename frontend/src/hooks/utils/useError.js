@@ -5,6 +5,7 @@ import { useNotification } from '@hooks'
 import { ErrorManager } from '@utils/errorManager'
 import { APP_PATHS } from '@constants/paths'
 import { Logger } from '@utils/logger.js'
+import { useUserApproval } from '@contexts/UserApprovalContext'
 
 /**
  * Hook unificado para manejo de errores
@@ -13,6 +14,7 @@ import { Logger } from '@utils/logger.js'
 export const useError = (authContext = null) => {
   const errorContext = useContext(ErrorContext)
   const { showError, showSuccess, showWarning, showInfo, clearAllNotifications } = useNotification()
+  const { showNotApprovedModal } = useUserApproval()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -86,6 +88,17 @@ export const useError = (authContext = null) => {
       const formattedError = ErrorManager.formatError(error)
       const errorType = ErrorManager.getErrorType(error)
 
+      // Manejo especial para usuario no aprobado
+      // El backend envía el código en el campo 'error', no 'code'
+      const errorCode = error?.response?.data?.error || error?.response?.data?.code || error?.code
+
+      if (errorCode === 'USER_NOT_APPROVED') {
+        Logger.info(Logger.CATEGORIES.SYSTEM, 'Usuario no aprobado detectado', { errorCode })
+        showNotApprovedModal()
+
+        return formattedError
+      }
+
       // Manejo especial para errores de autenticación
       if (errorType === ErrorManager.ERROR_TYPES.AUTH) {
         if (onAuthError) {
@@ -136,7 +149,7 @@ export const useError = (authContext = null) => {
 
       return formattedError
     },
-    [errorContext, handleAuthError, showError]
+    [errorContext, handleAuthError, showError, showNotApprovedModal]
   )
 
   // ========================================

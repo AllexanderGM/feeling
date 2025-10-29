@@ -15,6 +15,7 @@ src/services/payment/
 ## 🎯 Propósito
 
 Este módulo centraliza la lógica compartida de pagos que se utiliza en:
+
 - **Pagos de eventos** (`src/pages/event/payment/`)
 - **Compra de planes de match** (`src/pages/matches/purchase/`)
 
@@ -25,6 +26,7 @@ Este módulo centraliza la lógica compartida de pagos que se utiliza en:
 Servicio base que proporciona:
 
 #### Gestión de Estados
+
 - `normalizeStatus(status)` - Normaliza estados de pago
 - `getStatusConfig(status)` - Obtiene configuración visual por estado
 - `isSuccessStatus(status)` - Verifica si el pago fue exitoso
@@ -32,10 +34,12 @@ Servicio base que proporciona:
 - `isPendingStatus(status)` - Verifica si el pago está pendiente
 
 #### Formateo
+
 - `formatCurrency(amount)` - Formatea montos en COP
 - `formatTransactionDate(date)` - Formatea fechas de transacción
 
 #### Extracción de Datos
+
 - `extractEntityTypeFromReference(reference)` - Extrae tipo de entidad (event/match)
 - `extractEntityIdFromReference(reference)` - Extrae ID de la entidad
 
@@ -44,6 +48,7 @@ Servicio base que proporciona:
 Adaptador especializado para Wompi que proporciona:
 
 #### Extracción de Parámetros URL
+
 - `extractTransactionId(searchParams)` - ID de transacción
 - `extractReference(searchParams)` - Referencia de pago
 - `extractStatus(searchParams)` - Estado del pago
@@ -51,10 +56,12 @@ Adaptador especializado para Wompi que proporciona:
 - `extractAllParams(searchParams)` - Todos los parámetros
 
 #### Manejo de Webhooks
+
 - `formatWebhookPayload(payload)` - Formatea payload del webhook
 - `isValidTransaction(transaction)` - Valida transacción
 
 #### Utilidades
+
 - `getCheckoutUrl(checkoutId, env)` - URL del checkout de Wompi
 - `getErrorMessage(errorCode)` - Mensaje amigable por código de error
 
@@ -106,18 +113,19 @@ const formatted = PaymentService.formatCurrency(amount) // '$50.000'
 
 ## 🔄 Estados de Pago Soportados
 
-| Estado | Descripción | Color |
-|--------|-------------|-------|
-| `APPROVED` | Pago confirmado | Verde |
-| `PENDING` | Pago en revisión | Amarillo |
-| `DECLINED` | Pago rechazado | Rojo |
-| `ERROR` | Error en verificación | Naranja |
-| `VOIDED` | Pago anulado | Gris |
-| `UNKNOWN` | Estado desconocido | Gris |
+| Estado     | Descripción           | Color    |
+| ---------- | --------------------- | -------- |
+| `APPROVED` | Pago confirmado       | Verde    |
+| `PENDING`  | Pago en revisión      | Amarillo |
+| `DECLINED` | Pago rechazado        | Rojo     |
+| `ERROR`    | Error en verificación | Naranja  |
+| `VOIDED`   | Pago anulado          | Gris     |
+| `UNKNOWN`  | Estado desconocido    | Gris     |
 
 ## 🎨 Configuración Visual
 
 Cada estado incluye:
+
 - **title**: Título a mostrar
 - **description**: Descripción por defecto
 - **icon**: Componente de icono (Lucide React)
@@ -127,17 +135,20 @@ Cada estado incluye:
 ## 📝 Formato de Referencia de Pago
 
 Las referencias de pago siguen el formato:
+
 ```
 {TIPO}-{ID}-{TIMESTAMP}
 ```
 
 Ejemplos:
+
 - `EVENT-123-1634567890` - Pago de evento con ID 123
 - `MATCH-456-1634567890` - Compra de plan de match con ID 456
 
 ## 🔗 Integración con Componentes UI
 
 Este módulo trabaja en conjunto con:
+
 - `src/components/payment/` - Componentes UI compartidos
 - `src/pages/event/payment/` - Páginas de pago de eventos
 - `src/pages/matches/purchase/` - Páginas de compra de planes

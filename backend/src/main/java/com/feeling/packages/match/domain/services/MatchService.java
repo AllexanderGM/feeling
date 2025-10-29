@@ -117,6 +117,14 @@ public class MatchService {
     public MatchResponseDTO sendMatch(User initiatorUser, MatchRequestDTO request) {
         log.info("User {} sending match to user {}", initiatorUser.getId(), request.getTargetUserId());
 
+        // Validar que el usuario esté aprobado
+        if (!initiatorUser.isApproved()) {
+            throw new com.feeling.exception.UserNotApprovedException(
+                "Tu cuenta aún no ha sido aprobada. Por ahora solo puedes ver perfiles y guardar favoritos. " +
+                "Te notificaremos cuando puedas enviar matches."
+            );
+        }
+
         User targetUser = userRepository.findById(request.getTargetUserId())
             .orElseThrow(() -> new NotFoundException("No se encontró al usuario objetivo con id: " + request.getTargetUserId()));
 
@@ -152,6 +160,14 @@ public class MatchService {
     @Transactional
     public MatchResponseDTO acceptMatch(User targetUser, Long matchId) {
         log.info("User {} accepting match {}", targetUser.getId(), matchId);
+
+        // Validar que el usuario esté aprobado
+        if (!targetUser.isApproved()) {
+            throw new com.feeling.exception.UserNotApprovedException(
+                "Tu cuenta aún no ha sido aprobada. Por ahora solo puedes ver perfiles y guardar favoritos. " +
+                "Te notificaremos cuando puedas aceptar matches."
+            );
+        }
 
         Match match = matchRepository.findById(matchId)
             .orElseThrow(() -> new NotFoundException("No se encontró el match con id: " + matchId));

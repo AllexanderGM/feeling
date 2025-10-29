@@ -59,7 +59,7 @@ VITE_NAME=$NAME
 VITE_ENV=$ENV
 
 # Variables de archivos estáticos
-VITE_STATIC_FILE_PATH=$STATIC_FILE_PATH
+VITE_STATIC_FILE_PATH=$URL_FRONT
 
 # Configuración de URLs
 VITE_URL=$URL

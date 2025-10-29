@@ -52,6 +52,14 @@ public class MatchPlanPurchaseService {
 
     @Transactional
     public MatchPlanPaymentIntentResponseDTO createPaymentIntent(User user, MatchPlanPaymentIntentRequestDTO request) {
+        // Validar que el usuario esté aprobado
+        if (!user.isApproved()) {
+            throw new com.feeling.exception.UserNotApprovedException(
+                "Tu cuenta aún no ha sido aprobada. Por ahora solo puedes ver perfiles y guardar favoritos. " +
+                "Te notificaremos cuando puedas comprar intentos de match."
+            );
+        }
+
         MatchPlan matchPlan = matchPlanRepository.findById(request.matchPlanId())
             .orElseThrow(() -> new NotFoundException("No se encontró el plan de matches con id: " + request.matchPlanId()));
 
@@ -120,6 +128,14 @@ public class MatchPlanPurchaseService {
 
     @Transactional
     public MatchPlanPurchaseResponseDTO confirmPurchase(User user, ConfirmMatchPlanPurchaseRequestDTO request) {
+        // Validar que el usuario esté aprobado
+        if (!user.isApproved()) {
+            throw new com.feeling.exception.UserNotApprovedException(
+                "Tu cuenta aún no ha sido aprobada. Por ahora solo puedes ver perfiles y guardar favoritos. " +
+                "Te notificaremos cuando puedas comprar intentos de match."
+            );
+        }
+
         MatchPlanPurchase purchase = matchPlanPurchaseRepository.findByPaymentReference(request.paymentReference())
             .orElseThrow(() -> new NotFoundException("No se encontró una compra asociada a la referencia proporcionada."));
 

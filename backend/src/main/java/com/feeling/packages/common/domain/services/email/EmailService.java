@@ -414,11 +414,8 @@ public class EmailService {
         }
     }
 
-    // Helper method - in a real implementation, you might want to include user email in the DTO
     private String getUserEmailFromRegistration(EventRegistrationResponseDTO registration) {
-        // This is a placeholder - you might want to include user email in the registration DTO
-        // or fetch it from the user service
-        return "user@example.com"; // Replace with actual logic
+        return registration.userEmail();
     }
 
     /**

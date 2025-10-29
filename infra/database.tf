@@ -31,10 +31,9 @@ module "rds" {
   backup_window           = "03:00-05:00"
   maintenance_window      = "Mon:00:00-Mon:03:00"
 
-  deletion_protection       = var.db_deletion_protection
-  skip_final_snapshot       = var.db_skip_final_snapshot
-  final_snapshot_identifier = var.db_skip_final_snapshot ? null : var.db_final_snapshot_identifier
-  copy_tags_to_snapshot     = true
+  deletion_protection   = var.db_deletion_protection
+  skip_final_snapshot   = var.db_skip_final_snapshot
+  copy_tags_to_snapshot = true
 
   create_db_subnet_group = true
   subnet_ids             = module.vpc.private_subnets

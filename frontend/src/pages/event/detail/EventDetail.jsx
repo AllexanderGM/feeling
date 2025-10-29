@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Helmet } from 'react-helmet-async'
 import {
   Button,
   Card,
@@ -27,6 +26,8 @@ import LiteContainer from '@components/layout/LiteContainer.jsx'
 import { RichTextViewer } from '@components/ui/richtext'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
+import { EventSEO } from '@components/seo'
+import Breadcrumbs from '@components/ui/Breadcrumbs.jsx'
 
 import ImageGallery from './components/ImageGallery.jsx'
 
@@ -1124,14 +1125,22 @@ const EventDetail = () => {
     )
   }
 
+  // Breadcrumbs para navegación y SEO
+  const breadcrumbItems = [
+    { label: 'Inicio', href: APP_PATHS.ROOT, showHomeIcon: true },
+    { label: 'Eventos', href: APP_PATHS.USER.EVENTS },
+    { label: eventData?.title || 'Cargando...', href: null }
+  ]
+
   return (
     <>
-      <Helmet>
-        <title>{eventData ? `${eventData.title} - Feeling` : 'Detalle de evento - Feeling'}</title>
-        <meta content='Descubre eventos para conocer gente nueva y reserva tu lugar en la comunidad Feeling.' name='description' />
-      </Helmet>
+      {/* SEO Optimizado para el evento */}
+      <EventSEO event={eventData} />
 
       <LiteContainer ariaLabel='Detalle del evento' className='gap-4 !pt-0'>
+        {/* Breadcrumbs para navegación */}
+        <Breadcrumbs className='mb-2' items={breadcrumbItems} />
+
         <div className='flex justify-start w-full'>
           <Button
             className='text-gray-400 hover:text-gray-200 backdrop-blur-sm'

@@ -82,7 +82,13 @@ export const clearUserSpecificData = (userId, localStorageApi) => {
  * Determinar si estamos en producción
  * secure debe ser true solo en producción (HTTPS), false en desarrollo (HTTP)
  */
-const isProduction = import.meta.env.VITE_ENV === 'production'
+const forceSecureEnv = import.meta.env.VITE_FORCE_SECURE_COOKIES
+const normalizedForceSecure = typeof forceSecureEnv === 'string' ? forceSecureEnv.trim().toLowerCase() : 'auto'
+
+const runtimeProtocol = typeof window !== 'undefined' ? window.location?.protocol : undefined
+const isHttpsRuntime = runtimeProtocol === 'https:'
+
+const shouldUseSecureCookies = normalizedForceSecure === 'true' ? true : normalizedForceSecure === 'false' ? false : isHttpsRuntime
 
 /**
  * Configuración de cookies por defecto
@@ -90,7 +96,7 @@ const isProduction = import.meta.env.VITE_ENV === 'production'
 export const COOKIE_CONFIG = {
   // Configuración para tokens (más segura)
   SECURE_TOKEN: {
-    secure: isProduction,
+    secure: shouldUseSecureCookies,
     sameSite: 'strict',
     httpOnly: false, // Debe ser false para acceso desde JS
     maxAge: 60 * 60 * 24 * 7 // 7 días
@@ -98,7 +104,7 @@ export const COOKIE_CONFIG = {
 
   // Configuración para sesión temporal
   SESSION: {
-    secure: isProduction,
+    secure: shouldUseSecureCookies,
     sameSite: 'strict',
     httpOnly: false
     // Sin maxAge = cookie de sesión

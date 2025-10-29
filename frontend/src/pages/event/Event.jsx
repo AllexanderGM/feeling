@@ -131,8 +131,78 @@ const EventsPage = () => {
   return (
     <>
       <Helmet>
-        <title>Próximos Eventos - Feeling</title>
-        <meta content='Descubre los próximos eventos y experiencias organizadas por la comunidad Feeling.' name='description' />
+        {/* Primary Meta Tags */}
+        <title>Próximos Eventos - Feeling | Descubre Experiencias para Conectar</title>
+        <meta content='Próximos Eventos - Feeling | Descubre Experiencias para Conectar' name='title' />
+        <meta
+          content='Explora y reserva eventos exclusivos de Feeling. Experiencias diseñadas para crear conexiones auténticas con personas afines. Actividades sociales, networking y comunidad en Colombia.'
+          name='description'
+        />
+        <meta
+          content='eventos sociales colombia, eventos feeling, networking colombia, eventos para solteros, actividades sociales, conexiones significativas, eventos bogotá, comunidad social'
+          name='keywords'
+        />
+        <link href='https://feeling.com.co/events' rel='canonical' />
+
+        {/* Open Graph / Facebook */}
+        <meta content='website' property='og:type' />
+        <meta content='https://feeling.com.co/events' property='og:url' />
+        <meta content='Feeling' property='og:site_name' />
+        <meta content='Próximos Eventos - Feeling' property='og:title' />
+        <meta
+          content='Descubre eventos exclusivos para crear conexiones auténticas. Experiencias sociales diseñadas por Feeling.'
+          property='og:description'
+        />
+        <meta content='https://feeling.com.co/images/feeling-social.jpg' property='og:image' />
+        <meta content='1200' property='og:image:width' />
+        <meta content='630' property='og:image:height' />
+        <meta content='Próximos Eventos de Feeling' property='og:image:alt' />
+        <meta content='es_CO' property='og:locale' />
+
+        {/* Twitter Card */}
+        <meta content='summary_large_image' name='twitter:card' />
+        <meta content='https://feeling.com.co/events' name='twitter:url' />
+        <meta content='Próximos Eventos - Feeling' name='twitter:title' />
+        <meta content='Explora eventos exclusivos para crear conexiones auténticas. ¡Reserva tu lugar!' name='twitter:description' />
+        <meta content='https://feeling.com.co/images/feeling-social.jpg' name='twitter:image' />
+        <meta content='Próximos Eventos de Feeling' name='twitter:image:alt' />
+
+        {/* Structured Data (JSON-LD) */}
+        <script type='application/ld+json'>
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: 'Próximos Eventos',
+            description: 'Explora y reserva eventos exclusivos de Feeling para crear conexiones significativas',
+            url: 'https://feeling.com.co/events',
+            publisher: {
+              '@type': 'Organization',
+              name: 'Feeling',
+              url: 'https://feeling.com.co',
+              logo: {
+                '@type': 'ImageObject',
+                url: 'https://feeling.com.co/favicon.svg'
+              }
+            },
+            breadcrumb: {
+              '@type': 'BreadcrumbList',
+              itemListElement: [
+                {
+                  '@type': 'ListItem',
+                  position: 1,
+                  name: 'Inicio',
+                  item: 'https://feeling.com.co'
+                },
+                {
+                  '@type': 'ListItem',
+                  position: 2,
+                  name: 'Eventos',
+                  item: 'https://feeling.com.co/events'
+                }
+              ]
+            }
+          })}
+        </script>
       </Helmet>
 
       <LiteContainer ariaLabel='Próximos eventos disponibles' className='gap-4 !pt-0'>

@@ -233,7 +233,7 @@ class UserService extends ServiceREST {
 
   /**
    * GET /user/{status} - Obtener usuarios por estatus (pageable)
-   * status: active, pending-approval, unverified, non-approved, deactivated, incomplete-profiles
+   * status: active, pending-approval, unverified, non-approved, deactivated, incomplete-user
    */
   async getUsersByStatus(status, page = 0, size = 20, search = '') {
     try {

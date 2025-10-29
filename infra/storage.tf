@@ -23,7 +23,7 @@ module "frontend_bucket" {
   website = local.frontend_bucket_is_public ? {
     index_document = "index.html"
     error_document = "index.html"
-  } : null
+  } : {}
 
   attach_policy = local.frontend_bucket_is_public
   policy = local.frontend_bucket_is_public ? jsonencode({
@@ -65,27 +65,31 @@ module "assets_bucket" {
 
   force_destroy = var.assets_bucket_force_destroy
 
-  acl = "private"
+  acl = "public-read"
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
 
   control_object_ownership = true
   object_ownership         = "BucketOwnerPreferred"
 
-  attach_policy = false
-
-  lifecycle_rule = [
-    {
-      id      = "cleanup-incomplete-uploads"
-      enabled = true
-      abort_incomplete_multipart_upload = {
-        days_after_initiation = 7
+  attach_policy = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = [
+          "s3:GetObject"
+        ]
+        Resource = "arn:aws:s3:::${local.assets_bucket_name}/*"
       }
-    }
-  ]
+    ]
+  })
 
   server_side_encryption_configuration = {
     rule = {

@@ -373,11 +373,11 @@ export const API_ENDPOINTS = {
     NOTIFICATIONS: '/matches/notifications',
     ATTEMPTS: '/matches/attempts',
     // Admin endpoints
-    ADMIN_ALL_PLANS: '/matches/plans/admin/all',
-    ADMIN_PLAN_STATS: '/matches/plans/admin/stats',
-    ADMIN_CREATE_PLAN: '/matches/plans/admin/create',
-    ADMIN_UPDATE_PLAN: '/matches/plans/admin/{planId}',
-    ADMIN_DELETE_PLAN: '/matches/plans/admin/{planId}'
+    ADMIN_ALL_PLANS: '/admin/match-plans',
+    ADMIN_PLAN_STATS: '/admin/match-plans/stats',
+    ADMIN_CREATE_PLAN: '/admin/match-plans',
+    ADMIN_UPDATE_PLAN: '/admin/match-plans/{planId}',
+    ADMIN_DELETE_PLAN: '/admin/match-plans/{planId}'
   },
 
   // ComplaintController - Gestión de quejas y reclamos (/complaints)

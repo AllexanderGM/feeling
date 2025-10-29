@@ -4,7 +4,8 @@ Página para que los clientes vean y gestionen sus matches, incluyendo matches a
 
 ## 📁 Ubicación
 
-Este módulo reemplaza la vista legacy `Matches.jsx`. Asegúrate de que las rutas usen `APP_PATHS.USER.MY_MATCHES` cuando quieras llevar al usuario a esta pantalla.
+Este módulo reemplaza la vista legacy `Matches.jsx`. Asegúrate de que las rutas usen `APP_PATHS.USER.MY_MATCHES` cuando quieras llevar al
+usuario a esta pantalla.
 
 ## 🎯 Propósito
 

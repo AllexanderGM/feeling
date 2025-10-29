@@ -23,6 +23,11 @@ output "db_endpoint" {
   value       = module.rds.db_instance_endpoint
 }
 
+output "db_instance_id" {
+  description = "Identificador de la instancia RDS."
+  value       = module.rds.db_instance_identifier
+}
+
 output "db_username" {
   description = "Usuario administrador configurado en RDS."
   value       = module.rds.db_instance_username

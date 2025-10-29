@@ -201,14 +201,19 @@ const PurchasePlans = () => {
                     {isPremium && <div className='absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 blur-2xl' />}
                     <div className='relative'>
                       <div
-                        className={`text-4xl font-bold mb-1 ${
+                        className={`text-2xl font-bold mb-1 ${
                           isPremium
                             ? 'text-transparent bg-gradient-to-r from-green-400 via-emerald-400 to-green-400 bg-clip-text'
                             : 'text-green-400'
                         }`}>
-                        ${plan.price.toFixed(2)}
+                        {plan.price.toLocaleString('es-CO', {
+                          style: 'currency',
+                          currency: 'COP',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        })}
                       </div>
-                      <div className='text-xs text-gray-400'>USD / paquete</div>
+                      <div className='text-xs text-gray-400'>COP / paquete</div>
                     </div>
                   </div>
 
@@ -272,7 +277,14 @@ const PurchasePlans = () => {
                     className={`rounded-lg p-2 mb-3 ${isPremium ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50' : 'bg-gray-700/30'}`}>
                     <div className='flex items-center justify-between text-xs'>
                       <span className='text-gray-400'>Precio por intento:</span>
-                      <span className='text-gray-200 font-bold'>${(plan.price / plan.attempts).toFixed(2)}</span>
+                      <span className='text-gray-200 font-bold'>
+                        {(plan.price / plan.attempts).toLocaleString('es-CO', {
+                          style: 'currency',
+                          currency: 'COP',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0
+                        })}
+                      </span>
                     </div>
                   </div>
 

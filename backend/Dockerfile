@@ -8,6 +8,7 @@ RUN chmod +x mvnw && ./mvnw clean package -DskipTests
 FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 COPY --from=build /app/target/feeling-0.0.1-SNAPSHOT.jar app.jar
+COPY --from=build /app/.env .env
 
 EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]

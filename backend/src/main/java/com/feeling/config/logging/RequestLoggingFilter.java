@@ -1,6 +1,7 @@
 package com.feeling.config.logging;
 
 import jakarta.servlet.*;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
@@ -38,6 +39,11 @@ public class RequestLoggingFilter implements Filter {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
+
+        if (httpRequest.getDispatcherType() != DispatcherType.REQUEST) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         // Generar ID único para la request
         String requestId = generateRequestId();

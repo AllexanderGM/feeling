@@ -34,6 +34,8 @@ public interface IUserResponseMapper {
     @Mapping(target = "matches", ignore = true)
     @Mapping(target = "auth", ignore = true)
     @Mapping(target = "notifications", ignore = true)
+    @Mapping(target = "hasPendingMatch", ignore = true)
+    @Mapping(target = "hasAcceptedMatch", ignore = true)
     UserResponseDTO toPublicResponse(User user);
 
     @Mapping(target = "status", source = "user", qualifiedByName = "fullStatus")
@@ -43,6 +45,8 @@ public interface IUserResponseMapper {
     @Mapping(target = "matches", ignore = true)
     @Mapping(target = "auth", ignore = true)
     @Mapping(target = "notifications", ignore = true)
+    @Mapping(target = "hasPendingMatch", ignore = true)
+    @Mapping(target = "hasAcceptedMatch", ignore = true)
     UserResponseDTO toStandardResponse(User user);
 
     @Mapping(target = "status", source = "user", qualifiedByName = "fullStatus")
@@ -52,6 +56,8 @@ public interface IUserResponseMapper {
     @Mapping(target = "matches", source = "user")
     @Mapping(target = "auth", ignore = true)
     @Mapping(target = "notifications", source = "user")
+    @Mapping(target = "hasPendingMatch", ignore = true)
+    @Mapping(target = "hasAcceptedMatch", ignore = true)
     UserResponseDTO toExtendedResponse(User user);
 
     @Mapping(target = "status", source = "user", qualifiedByName = "fullStatus")
@@ -61,6 +67,8 @@ public interface IUserResponseMapper {
     @Mapping(target = "matches", source = "user")
     @Mapping(target = "auth", source = "user")
     @Mapping(target = "notifications", source = "user")
+    @Mapping(target = "hasPendingMatch", ignore = true)
+    @Mapping(target = "hasAcceptedMatch", ignore = true)
     UserResponseDTO toFullResponse(User user);
 
     @Mapping(target = "status", source = "user", qualifiedByName = "publicStatus")
@@ -70,5 +78,7 @@ public interface IUserResponseMapper {
     @Mapping(target = "matches", ignore = true)
     @Mapping(target = "auth", ignore = true)
     @Mapping(target = "notifications", ignore = true)
+    @Mapping(target = "hasPendingMatch", ignore = true)
+    @Mapping(target = "hasAcceptedMatch", ignore = true)
     UserResponseDTO toSuggestionResponse(User user);
 }

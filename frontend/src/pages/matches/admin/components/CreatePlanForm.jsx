@@ -164,7 +164,7 @@ const CreatePlanForm = ({ isOpen, onClose, onSubmit, loading }) => {
                     }}
                     errorMessage={errors.price}
                     isInvalid={!!errors.price}
-                    label='Precio (USD)'
+                    label='Precio (COP)'
                     min='0'
                     placeholder='2.99, 9.99, 16.99...'
                     startContent={<DollarSign className='w-4 h-4 text-gray-400' />}

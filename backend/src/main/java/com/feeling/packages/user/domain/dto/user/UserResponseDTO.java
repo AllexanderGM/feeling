@@ -26,7 +26,14 @@ public record UserResponseDTO(
     AuthProviderInfoDTO auth,
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    UserNotificationDTO notifications
+    UserNotificationDTO notifications,
+
+    // Estado de match con el usuario actual (solo cuando se consulta el perfil de otro usuario)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    Boolean hasPendingMatch,
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    Boolean hasAcceptedMatch
 
 ) {
 }

@@ -298,6 +298,7 @@ public class EventRegistrationService {
             registration.getId(),
             registration.getUser() != null ? registration.getUser().getId() : null,
             registration.getUser() != null ? registration.getUser().getName() + " " + registration.getUser().getLastName() : null,
+            registration.getUser() != null ? registration.getUser().getEmail() : null,
             registration.getEvent() != null ? registration.getEvent().getId() : null,
             registration.getEvent() != null ? registration.getEvent().getTitle() : null,
             registration.getEvent() != null ? registration.getEvent().getEventDate() : null,

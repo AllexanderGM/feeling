@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_URL_BACK || 'http://localhost:8081'
 const api = axios.create({
   baseURL: API_URL,
   timeout: 15000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json; charset=UTF-8'
   }

@@ -186,13 +186,13 @@ variable "backend_root_volume_type" {
 variable "allowed_ssh_cidrs" {
   description = "CIDRs permitidos para acceder por SSH a la instancia."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "backend_http_cidrs" {
   description = "CIDRs autorizados para consumir la API directamente."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "enable_backend_eip" {
@@ -257,17 +257,6 @@ variable "db_skip_final_snapshot" {
   description = "Omite la snapshot final al destruir la instancia (no recomendado en producción)."
   type        = bool
   default     = false
-}
-
-variable "db_final_snapshot_identifier" {
-  description = "Nombre de la snapshot final cuando se destruye la instancia. Requerido si db_skip_final_snapshot es false."
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = var.db_skip_final_snapshot || length(trimspace(var.db_final_snapshot_identifier)) > 0
-    error_message = "Debes definir db_final_snapshot_identifier cuando db_skip_final_snapshot es false."
-  }
 }
 
 variable "db_enable_performance_insights" {

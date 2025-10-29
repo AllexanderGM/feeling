@@ -12,6 +12,7 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 
 @Configuration
 @ConditionalOnProperty(name = "storage.type", havingValue = "s3")
@@ -71,9 +72,18 @@ public class S3Configuration {
 
     private void verifyConnection(S3Client client) {
         try {
-            // Verificar que el cliente puede hacer una operación básica
-            client.listBuckets();
-            log.info("🔗 Conexión con S3 verificada correctamente");
+            // Verificar que el cliente puede hacer una operación básica sobre el bucket configurado
+            if (!StringUtils.hasText(bucketName)) {
+                log.warn("⚠️  Bucket no configurado, se omite la verificación de S3");
+                return;
+            }
+
+            HeadBucketRequest request = HeadBucketRequest.builder()
+                .bucket(bucketName)
+                .build();
+
+            client.headBucket(request);
+            log.info("🔗 Conexión con S3 verificada correctamente para el bucket {}", bucketName);
         } catch (Exception e) {
             log.warn("⚠️  No se pudo verificar la conexión con S3: {}", e.getMessage());
             // No lanzamos excepción aquí, ya que podría ser un problema de permisos específicos

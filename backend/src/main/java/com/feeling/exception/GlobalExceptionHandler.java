@@ -86,6 +86,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponseDTO("EMAIL_NOT_VERIFIED", ex.getMessage(), "422"));
     }
 
+    @ExceptionHandler(UserNotApprovedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleUserNotApprovedException(UserNotApprovedException ex) {
+        logger.warn("Usuario no aprobado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponseDTO("USER_NOT_APPROVED", ex.getMessage(), "403"));
+    }
+
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<ErrorResponseDTO> handleTooManyRequestsException(TooManyRequestsException ex) {
         logger.warn("Demasiadas solicitudes: {}", ex.getMessage());

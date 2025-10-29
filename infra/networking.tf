@@ -51,13 +51,14 @@ resource "aws_security_group" "backend" {
 }
 
 resource "aws_security_group_rule" "backend_ssh" {
-  description       = "SSH"
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
+  description = "SSH"
+  type        = "ingress"
+  from_port   = 22
+  to_port     = 22
+  protocol    = "tcp"
+
   security_group_id = aws_security_group.backend.id
-  cidr_blocks       = var.allowed_ssh_cidrs
+  cidr_blocks       = length(var.allowed_ssh_cidrs) > 0 ? var.allowed_ssh_cidrs : ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "backend_http" {
@@ -67,7 +68,7 @@ resource "aws_security_group_rule" "backend_http" {
   to_port           = local.backend_port
   protocol          = "tcp"
   security_group_id = aws_security_group.backend.id
-  cidr_blocks       = var.backend_http_cidrs
+  cidr_blocks       = length(var.backend_http_cidrs) > 0 ? var.backend_http_cidrs : ["0.0.0.0/0"]
 }
 
 resource "aws_security_group" "database" {

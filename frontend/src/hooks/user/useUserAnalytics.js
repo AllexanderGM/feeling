@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import userAnalyticsService from '@services'
+import { userAnalyticsService } from '@services'
 import { Logger } from '@utils/logger.js'
 import { useError, useAsyncOperation } from '@hooks'
 

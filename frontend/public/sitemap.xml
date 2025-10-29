@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Página Principal -->
+  <url>
+    <loc>https://feeling.com.co/</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Páginas de Autenticación (Landing) -->
+  <url>
+    <loc>https://feeling.com.co/welcome</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://feeling.com.co/login</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://feeling.com.co/register</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://feeling.com.co/forgot-password</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Páginas Legales -->
+  <url>
+    <loc>https://feeling.com.co/terms</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://feeling.com.co/privacy</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <url>
+    <loc>https://feeling.com.co/support</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Página de Contacto -->
+  <url>
+    <loc>https://feeling.com.co/contact</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Eventos - Listado Principal -->
+  <url>
+    <loc>https://feeling.com.co/events</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- API Status -->
+  <url>
+    <loc>https://feeling.com.co/api-status</loc>
+    <lastmod>2025-10-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+
+  <!--
+  NOTA: Este sitemap es estático y solo incluye rutas públicas.
+
+  Para un sitemap completo y dinámico, considera:
+  1. Generar sitemaps dinámicos desde el backend para eventos individuales
+  2. Crear un sitemap index que agrupe múltiples sitemaps
+  3. Incluir URLs de eventos específicos con sus fechas de modificación
+  4. Actualizar automáticamente cuando se agreguen nuevos eventos
+
+  Ejemplo de estructura con sitemap index:
+  - sitemap.xml (este archivo) - rutas estáticas
+  - sitemap-events.xml - eventos dinámicos generados desde el backend
+  - sitemap-index.xml - índice que referencia ambos
+  -->
+
+</urlset>

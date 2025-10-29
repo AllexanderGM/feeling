@@ -158,7 +158,7 @@ const UserTableTest = memo(() => {
     const statusMap = {
       active: 'active',
       pending: 'pending-approval',
-      incomplete: 'incomplete-profiles',
+      incomplete: 'incomplete-user',
       unverified: 'unverified',
       nonApproved: 'non-approved',
       deactivated: 'deactivated'
