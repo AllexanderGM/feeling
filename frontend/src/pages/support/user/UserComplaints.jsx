@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState, useEffect, memo } from 'react'
-import { Button, Card, CardBody, Input, Spinner } from '@heroui/react'
+import { Button, Spinner } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
-import { MessageSquare, Plus, Search, RefreshCw, MessageCircle, Clock, CheckCircle } from 'lucide-react'
+import { MessageSquare, Plus, RefreshCw, MessageCircle, Clock, CheckCircle, AlertCircle } from 'lucide-react'
 import { useError, useComplaints } from '@hooks'
 import { COMPLAINT_TYPE_COLUMNS } from '@constants/tableConstants.js'
+import LiteContainer from '@components/layout/LiteContainer.jsx'
 
 import { UnifiedComplaintTable } from '../components/UnifiedComplaintTable.jsx'
 import { CreateComplaintForm } from '../components/CreateComplaintForm.jsx'
@@ -11,8 +12,7 @@ import { ComplaintChatModal } from '../components/ComplaintChatModal.jsx'
 
 const UserComplaints = memo(() => {
   const { showError } = useError()
-  const { myComplaints, loading, createComplaint, getMyComplaints, sendMessage, pagination, setPagination, searchTerm, setSearchTerm } =
-    useComplaints()
+  const { myComplaints, loading, createComplaint, getMyComplaints, sendMessage } = useComplaints()
 
   // Estados para modales
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -36,21 +36,6 @@ const UserComplaints = memo(() => {
   const handleRefresh = useCallback(() => {
     handleLoadMyComplaints()
   }, [handleLoadMyComplaints])
-
-  const handleSearch = useCallback(
-    value => {
-      setSearchTerm(value)
-      setPagination(prev => ({ ...prev, page: 0 }))
-    },
-    [setSearchTerm, setPagination]
-  )
-
-  const handlePageChange = useCallback(
-    newPage => {
-      setPagination(prev => ({ ...prev, page: newPage }))
-    },
-    [setPagination]
-  )
 
   // Handlers para acciones de tabla
   const handleViewComplaint = useCallback(complaint => {
@@ -82,7 +67,6 @@ const UserComplaints = memo(() => {
     async (complaintId, message) => {
       try {
         await sendMessage(complaintId, message)
-        // Actualizar la lista de quejas para mostrar la nueva actividad
         handleLoadMyComplaints()
       } catch (error) {
         showError('Error al enviar mensaje: ' + error.message)
@@ -94,197 +78,172 @@ const UserComplaints = memo(() => {
 
   // Estadísticas para mostrar al usuario
   const complaintStats = useMemo(() => {
-    if (!myComplaints.length) return null
+    if (!myComplaints.length)
+      return {
+        total: 0,
+        open: 0,
+        resolved: 0,
+        waiting: 0
+      }
 
     const stats = myComplaints.reduce(
       (acc, complaint) => {
         acc.total++
-        acc[complaint.status] = (acc[complaint.status] || 0) + 1
+        if (complaint.status === 'RESOLVED') {
+          acc.resolved++
+        } else if (complaint.status === 'WAITING_USER') {
+          acc.waiting++
+        } else {
+          acc.open++
+        }
 
         return acc
       },
-      { total: 0 }
+      { total: 0, open: 0, resolved: 0, waiting: 0 }
     )
 
     return stats
   }, [myComplaints])
 
-  // Filtrar quejas basado en búsqueda
-  const filteredComplaints = useMemo(() => {
-    if (!searchTerm) return myComplaints
-
-    return myComplaints.filter(
-      complaint =>
-        complaint.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        complaint.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        complaint.complaintType.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [myComplaints, searchTerm])
-
   return (
     <>
       <Helmet>
-        <title>Mis Quejas y Reclamos - Feeling</title>
+        <title>Soporte - Feeling</title>
         <meta content='Gestiona tus quejas y reclamos' name='description' />
       </Helmet>
 
-      <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
-        {/* Header */}
-        <div className='flex flex-col gap-4'>
-          <div>
-            <h1 className='text-2xl font-bold text-gray-200 flex items-center gap-3'>
-              <div className='w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center'>
-                <MessageSquare className='w-5 h-5 text-purple-400' />
-              </div>
-              Mis Quejas y Reclamos
-            </h1>
-            <p className='text-gray-400 mt-1'>Gestiona tus consultas, problemas y sugerencias</p>
+      <LiteContainer ariaLabel='Soporte y PQR' className='gap-4 px-4'>
+        {/* Header con estilo consistente */}
+        <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4 sm:p-6'>
+          {/* Título principal */}
+          <div className='flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-3 mb-6'>
+            <div className='w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center'>
+              <MessageSquare className='w-5 h-5 text-purple-400' />
+            </div>
+            <div className='text-center sm:text-left flex-1'>
+              <h1 className='text-lg sm:text-xl font-semibold text-gray-200'>Soporte</h1>
+              <p className='text-sm text-gray-400'>Gestiona tus consultas, problemas y sugerencias</p>
+            </div>
+            <div className='flex items-center gap-2'>
+              <Button color='primary' size='sm' startContent={<Plus size={16} />} variant='flat' onPress={() => setIsCreateModalOpen(true)}>
+                Nueva Solicitud
+              </Button>
+              <Button isIconOnly isLoading={loading} size='sm' variant='light' onPress={handleRefresh}>
+                <RefreshCw size={16} />
+              </Button>
+            </div>
           </div>
 
-          <div className='flex items-center gap-2 justify-end'>
-            <Button color='primary' startContent={<Plus size={16} />} onPress={() => setIsCreateModalOpen(true)}>
-              Nueva Queja
-            </Button>
-            <Button isIconOnly isLoading={loading} variant='light' onPress={handleRefresh}>
-              <RefreshCw size={16} />
-            </Button>
+          {/* Estadísticas */}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+            <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <MessageCircle className='text-blue-400' size={16} />
+                <span className='text-xs text-gray-400'>Total</span>
+              </div>
+              <p className='text-lg font-bold text-gray-200'>{complaintStats.total}</p>
+            </div>
+
+            <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <Clock className='text-orange-400' size={16} />
+                <span className='text-xs text-gray-400'>Abiertas</span>
+              </div>
+              <p className='text-lg font-bold text-gray-200'>{complaintStats.open}</p>
+            </div>
+
+            <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <CheckCircle className='text-green-400' size={16} />
+                <span className='text-xs text-gray-400'>Resueltas</span>
+              </div>
+              <p className='text-lg font-bold text-gray-200'>{complaintStats.resolved}</p>
+            </div>
+
+            <div className='bg-gray-800/50 border border-gray-700/30 rounded-lg p-3'>
+              <div className='flex items-center gap-2 mb-1'>
+                <AlertCircle className='text-purple-400' size={16} />
+                <span className='text-xs text-gray-400'>En espera</span>
+              </div>
+              <p className='text-lg font-bold text-gray-200'>{complaintStats.waiting}</p>
+            </div>
           </div>
         </div>
 
-        {/* Estadísticas rápidas */}
-        {complaintStats && (
-          <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-            <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-              <CardBody className='p-4'>
-                <div className='flex items-center gap-3'>
-                  <MessageCircle className='text-blue-400' size={20} />
-                  <div>
-                    <p className='text-sm text-gray-400'>Total</p>
-                    <p className='text-lg font-semibold text-gray-200'>{complaintStats.total}</p>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-              <CardBody className='p-4'>
-                <div className='flex items-center gap-3'>
-                  <Clock className='text-orange-400' size={20} />
-                  <div>
-                    <p className='text-sm text-gray-400'>Abiertas</p>
-                    <p className='text-lg font-semibold text-gray-200'>{(complaintStats.OPEN || 0) + (complaintStats.IN_PROGRESS || 0)}</p>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-              <CardBody className='p-4'>
-                <div className='flex items-center gap-3'>
-                  <CheckCircle className='text-green-400' size={20} />
-                  <div>
-                    <p className='text-sm text-gray-400'>Resueltas</p>
-                    <p className='text-lg font-semibold text-gray-200'>{complaintStats.RESOLVED || 0}</p>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-              <CardBody className='p-4'>
-                <div className='flex items-center gap-3'>
-                  <MessageCircle className='text-purple-400' size={20} />
-                  <div>
-                    <p className='text-sm text-gray-400'>En espera</p>
-                    <p className='text-lg font-semibold text-gray-200'>{complaintStats.WAITING_USER || 0}</p>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        )}
-
-        {/* Barra de búsqueda */}
-        <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-          <CardBody className='p-4'>
-            <div className='flex flex-col sm:flex-row gap-4'>
-              <Input
-                isClearable
-                className='flex-1'
-                placeholder='Buscar por asunto, mensaje o tipo...'
-                startContent={<Search size={16} />}
-                value={searchTerm}
-                onClear={() => handleSearch('')}
-                onValueChange={handleSearch}
-              />
+        {/* Información útil */}
+        <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 p-4'>
+          <div className='flex items-start gap-3'>
+            <div className='w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+              <MessageSquare className='text-blue-400' size={16} />
             </div>
-          </CardBody>
-        </Card>
-
-        {/* Información útil para usuarios */}
-        <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-          <CardBody className='p-4'>
-            <div className='flex items-start gap-3'>
-              <MessageSquare className='text-blue-400 mt-1' size={20} />
-              <div className='text-sm text-gray-300'>
-                <p className='font-medium mb-2 text-gray-200'>¿Cómo funciona el sistema de quejas?</p>
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-xs'>
-                  <div>
-                    <p className='font-medium mb-1 text-gray-200'>1. Crear Queja</p>
-                    <p>Describe tu problema de manera detallada usando el botón &quot;Nueva Queja&quot;</p>
-                  </div>
-                  <div>
-                    <p className='font-medium mb-1 text-gray-200'>2. Seguimiento</p>
-                    <p>Haz clic en el ícono de chat para ver el progreso y comunicarte con nuestro equipo</p>
-                  </div>
-                  <div>
-                    <p className='font-medium mb-1 text-gray-200'>3. Resolución</p>
-                    <p>Recibirás notificaciones cuando tu queja sea atendida y resuelta</p>
-                  </div>
+            <div className='text-sm text-gray-300'>
+              <p className='font-medium mb-2 text-gray-200'>¿Cómo funciona el sistema de soporte?</p>
+              <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs'>
+                <div className='bg-gray-800/30 border border-gray-700/20 rounded-lg p-3'>
+                  <p className='font-medium mb-1 text-gray-200'>1. Crear Solicitud</p>
+                  <p className='text-gray-400'>Describe tu problema usando el botón &quot;Nueva Solicitud&quot;</p>
+                </div>
+                <div className='bg-gray-800/30 border border-gray-700/20 rounded-lg p-3'>
+                  <p className='font-medium mb-1 text-gray-200'>2. Seguimiento</p>
+                  <p className='text-gray-400'>Haz clic en el ícono de chat para ver el progreso</p>
+                </div>
+                <div className='bg-gray-800/30 border border-gray-700/20 rounded-lg p-3'>
+                  <p className='font-medium mb-1 text-gray-200'>3. Resolución</p>
+                  <p className='text-gray-400'>Recibirás notificaciones cuando sea atendida</p>
                 </div>
               </div>
             </div>
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
         {/* Tabla de quejas */}
-        <Card className='bg-gray-800/40 backdrop-blur-sm border border-gray-700/50'>
-          <CardBody className='p-0'>
-            {loading && myComplaints.length === 0 ? (
-              <div className='flex justify-center items-center py-12'>
-                <div className='text-center'>
-                  <Spinner size='lg' />
-                  <p className='text-gray-400 mt-2'>Cargando tus quejas...</p>
-                </div>
+        <div className='w-full bg-gray-800/40 backdrop-blur-sm rounded-xl border border-gray-700/50 overflow-hidden'>
+          {loading && myComplaints.length === 0 ? (
+            <div className='flex justify-center items-center py-12'>
+              <div className='text-center'>
+                <Spinner size='lg' />
+                <p className='text-gray-400 mt-2 text-sm'>Cargando tus solicitudes...</p>
               </div>
-            ) : (
-              <UnifiedComplaintTable
-                columns={COMPLAINT_TYPE_COLUMNS.my}
-                complaints={filteredComplaints}
-                currentPage={pagination.page}
-                loading={loading}
-                showActions={true}
-                totalPages={pagination.totalPages}
-                viewType='my'
-                onOpenChat={handleOpenChat}
-                onPageChange={handlePageChange}
-                onView={handleViewComplaint}
-              />
-            )}
+            </div>
+          ) : myComplaints.length === 0 ? (
+            <div className='text-center py-12 px-4'>
+              <div className='w-16 h-16 bg-gray-700/30 rounded-full flex items-center justify-center mx-auto mb-4'>
+                <MessageSquare className='text-gray-500' size={32} />
+              </div>
+              <h3 className='text-base font-medium text-gray-200 mb-2'>No tienes solicitudes registradas</h3>
+              <p className='text-sm text-gray-400 mb-4'>Cuando tengas algún problema o sugerencia, puedes crear una nueva solicitud</p>
+              <Button color='primary' startContent={<Plus size={16} />} onPress={() => setIsCreateModalOpen(true)}>
+                Crear Primera Solicitud
+              </Button>
+            </div>
+          ) : (
+            <UnifiedComplaintTable
+              columns={COMPLAINT_TYPE_COLUMNS.my}
+              complaints={myComplaints}
+              loading={loading}
+              showActions={true}
+              viewType='my'
+              onOpenChat={handleOpenChat}
+              onView={handleViewComplaint}
+            />
+          )}
+        </div>
 
-            {!loading && myComplaints.length === 0 && (
-              <div className='text-center py-12'>
-                <MessageSquare className='mx-auto text-gray-500 mb-4' size={64} />
-                <h3 className='text-lg font-medium text-gray-200 mb-2'>No tienes quejas registradas</h3>
-                <p className='text-gray-400 mb-4'>Cuando tengas algún problema o sugerencia, puedes crear una nueva queja</p>
-                <Button color='primary' startContent={<Plus size={16} />} onPress={() => setIsCreateModalOpen(true)}>
-                  Crear Primera Queja
-                </Button>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      </div>
+        {/* Ayuda adicional */}
+        <div className='w-full bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl border border-blue-500/20 p-4'>
+          <div className='flex items-start gap-3'>
+            <div className='w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+              <AlertCircle className='text-blue-400' size={16} />
+            </div>
+            <div className='text-sm'>
+              <p className='font-medium mb-1 text-gray-200'>¿Necesitas ayuda inmediata?</p>
+              <p className='text-xs text-gray-400'>
+                Nuestro equipo responde en un plazo de 24-48 horas. Las solicitudes urgentes son priorizadas automáticamente.
+              </p>
+            </div>
+          </div>
+        </div>
+      </LiteContainer>
 
       {/* Modales */}
       <CreateComplaintForm

@@ -257,12 +257,12 @@ const PlansManagement = memo(() => {
             filterValue={filterValue}
             itemsLabel='planes'
             loading={loading}
+            setVisibleColumns={setVisibleColumns}
             totalItems={sortedPlans.length}
             visibleColumns={visibleColumns}
             onCreateItem={() => setIsCreateModalOpen(true)}
             onRefresh={loadPlansData}
             onSearchChange={setFilterValue}
-            setVisibleColumns={setVisibleColumns}
           />
 
           <UnifiedPlanTable

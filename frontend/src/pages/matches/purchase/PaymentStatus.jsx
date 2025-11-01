@@ -11,7 +11,7 @@ import { APP_PATHS } from '@constants/paths.js'
 import { useError } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
-const MatchPaymentStatus = () => {
+const PaymentStatus = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { handleError, handleSuccess, handleWarning } = useError()
@@ -22,7 +22,7 @@ const MatchPaymentStatus = () => {
   const environmentFromQuery = rawEnvironment === 'undefined' ? null : rawEnvironment
   const { transactionId, reference: referenceFromQuery, status: statusFromQuery } = params
 
-  const [isLoading, setIsLoading] = useState(Boolean(transactionId))
+  const [isLoading, setIsLoading] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [errorState, setErrorState] = useState(null)
 
@@ -363,4 +363,4 @@ const MatchPaymentStatus = () => {
   )
 }
 
-export default MatchPaymentStatus
+export default PaymentStatus

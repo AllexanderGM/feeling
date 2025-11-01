@@ -4,6 +4,7 @@ import com.feeling.packages.auth.domain.dto.auth.AuthRegisterRequestDTO;
 import com.feeling.packages.auth.domain.dto.oauth.GoogleUserInfoDTO;
 import com.feeling.packages.auth.domain.enums.AuthProvider;
 import com.feeling.packages.auth.domain.services.GoogleOAuthService;
+import com.feeling.packages.user.domain.enums.UserAccountType;
 import com.feeling.packages.user.domain.enums.UserRoleList;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.entities.UserRole;
@@ -53,6 +54,7 @@ public class UserFactory {
             .password(passwordEncoder.encode(registerData.password()))
             .userRole(clientRole)
             .userAuthProvider(AuthProvider.LOCAL)
+            .accountType(UserAccountType.FULL_APP)
             .verified(false)
             .profileComplete(false)
             .createdAt(LocalDateTime.now())
@@ -89,6 +91,7 @@ public class UserFactory {
             ))
             .userRole(clientRole)
             .userAuthProvider(AuthProvider.GOOGLE)
+            .accountType(UserAccountType.FULL_APP)
             .externalId(googleUser.sub())
             .externalAvatarUrl(googleUser.picture())
             .verified(true)  // Google users are pre-verified

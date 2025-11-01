@@ -251,6 +251,7 @@ public class SecurityConfiguration {
     }
 
     private void configureBookingRoutes(AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry auth) {
+        auth.requestMatchers(HttpMethod.POST, "/bookings/guest").permitAll();
         auth.requestMatchers("/bookings/**").authenticated();
     }
 

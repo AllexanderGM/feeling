@@ -203,7 +203,14 @@ const CreatePlanForm = ({ isOpen, onClose, onSubmit, loading }) => {
                       </div>
                       {formData.price && (
                         <div className='text-right'>
-                          <p className='text-2xl font-bold text-green-400'>{parseFloat(formData.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+                          <p className='text-2xl font-bold text-green-400'>
+                            {parseFloat(formData.price).toLocaleString('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })}
+                          </p>
                           <p className='text-xs text-gray-400'>COP</p>
                         </div>
                       )}

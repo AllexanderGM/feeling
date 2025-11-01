@@ -127,10 +127,10 @@ public class PasswordService {
             // Verificar que sea usuario LOCAL (no OAuth)
             if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
                 String message = switch (user.getUserAuthProvider()) {
-                    case GOOGLE ->
-                        "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
-                    case FACEBOOK ->
-                        "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
+                    case GOOGLE -> "Esta cuenta está registrada con Google. Usa 'Iniciar Sesión con Google' en su lugar.";
+                    case FACEBOOK -> "Esta cuenta está registrada con Facebook. Usa 'Iniciar Sesión con Facebook' en su lugar.";
+                    case APPLE -> "Esta cuenta está registrada con Apple. Usa 'Iniciar Sesión con Apple' en su lugar.";
+                    case GUEST -> "Este correo se utilizó para reservar eventos. Completa tu registro creando una contraseña desde la opción 'Crear cuenta'.";
                     default -> "Esta cuenta usa un método de autenticación externo.";
                 };
                 throw new UnauthorizedException(message);

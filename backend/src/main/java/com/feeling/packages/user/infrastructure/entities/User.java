@@ -5,6 +5,7 @@ import com.feeling.packages.auth.infrastructure.entities.AuthToken;
 import com.feeling.packages.complaint.infrastructure.entities.Complaint;
 import com.feeling.packages.user.domain.enums.UserApprovalStatus;
 import com.feeling.packages.user.domain.enums.UserCategoryInterestList;
+import com.feeling.packages.user.domain.enums.UserAccountType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -83,9 +84,8 @@ public class User implements UserDetails {
      * Contraseña del usuario para autenticación local.
      * Puede ser null para usuarios que solo usan OAuth.
      */
-    @NotNull
-    @NotBlank(message = "La contraseña no puede estar vacía")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    @Column(nullable = true)
     private String password;
 
     /**
@@ -120,6 +120,15 @@ public class User implements UserDetails {
     @Column(name = "approval_status", nullable = false)
     @Builder.Default
     private UserApprovalStatus userApprovalStatus = UserApprovalStatus.PENDING;
+
+    /**
+     * Tipo de cuenta asociada al usuario.
+     * Determina el alcance de funcionalidades disponibles (ej: eventos únicamente).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false, columnDefinition = "varchar(20) default 'FULL_APP'")
+    @Builder.Default
+    private UserAccountType accountType = UserAccountType.FULL_APP;
 
     /**
      * Fecha y hora de creación del usuario.
@@ -660,6 +669,13 @@ public class User implements UserDetails {
     }
 
     /**
+     * Indica si la cuenta está limitada únicamente al módulo de eventos.
+     */
+    public boolean isEventsOnlyAccount() {
+        return accountType == UserAccountType.EVENTS_ONLY;
+    }
+
+    /**
      * Obtiene el mensaje apropiado para mostrar al usuario cuando intenta
      * usar un método de login incorrecto
      */
@@ -669,6 +685,7 @@ public class User implements UserDetails {
             case GOOGLE -> "Inicia sesión con tu cuenta de Google";
             case FACEBOOK -> "Inicia sesión con tu cuenta de Facebook";
             case APPLE -> "Inicia sesión con tu cuenta de Apple";
+            case GUEST -> "Completa tu registro para acceder con email y contraseña";
         };
     }
 
@@ -1242,6 +1259,9 @@ public class User implements UserDetails {
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
         this.profileComplete = isProfileComplete();
+        if (this.accountType == null) {
+            this.accountType = UserAccountType.FULL_APP;
+        }
     }
 
     @PrePersist
@@ -1250,6 +1270,9 @@ public class User implements UserDetails {
             this.createdAt = LocalDateTime.now();
         }
         this.updatedAt = LocalDateTime.now();
+        if (this.accountType == null) {
+            this.accountType = UserAccountType.FULL_APP;
+        }
         this.profileComplete = isProfileComplete();
     }
 

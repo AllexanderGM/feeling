@@ -7,6 +7,7 @@
  * - useMatchFavorites → MatchFavoriteController
  * - useMatchPlans → MatchPlanClientController
  * - useMatchStatistics → MatchStatisticsController
+ * - useAdminMatches → MatchAdminMatchController
  */
 
 // Hooks especializados
@@ -17,6 +18,7 @@ export { default as useMatchPlans } from './useMatchPlans.js'
 export { default as useMatchStatistics } from './useMatchStatistics.js'
 export { default as useMatchOperations } from './useMatchOperations.js'
 export { default as useMyMatchesData } from './useMyMatchesData.js'
+export { default as useAdminMatches } from './useAdminMatches.js'
 export { default as useDiscoveryCards } from '../../components/ui/userSuggestionCards/hooks/useDiscoveryCards.js'
 
 // Hook legacy (mantener por retrocompatibilidad temporal)

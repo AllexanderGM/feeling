@@ -38,6 +38,44 @@ class EventRegistrationService extends ServiceREST {
   }
 
   /**
+   * Crear reserva de evento para usuario autenticado
+   * @param {Object} bookingData - Datos de la reserva
+   * @returns {Promise<Object>} Respuesta con detalles de la reserva
+   */
+  async createBooking(bookingData) {
+    const context = 'Crear reserva de evento'
+
+    try {
+      const payload = this.normalizeBookingPayload(bookingData)
+      const result = await ServiceREST.post(API_ENDPOINTS.BOOKINGS.BASE, payload)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error.response?.data || error)
+      throw error
+    }
+  }
+
+  /**
+   * Crear reserva de evento para invitado sin autenticación
+   * @param {Object} guestBookingData - Datos de la reserva invitados
+   * @returns {Promise<Object>} Respuesta con detalles de la reserva
+   */
+  async registerGuestToEvent(guestBookingData) {
+    const context = 'Registrar invitado a evento'
+
+    try {
+      const payload = this.normalizeGuestBookingPayload(guestBookingData)
+      const result = await ServiceREST.post(API_ENDPOINTS.BOOKINGS.GUEST, payload)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error.response?.data || error)
+      throw error
+    }
+  }
+
+  /**
    * Cancelar inscripción a un evento
    * @param {number} registrationId - ID de la inscripción
    * @returns {Promise<Object>} Respuesta de cancelación
@@ -297,6 +335,59 @@ class EventRegistrationService extends ServiceREST {
   }
 
   /**
+   * Normaliza el payload base de reservas
+   * @private
+   */
+  normalizeBookingPayload(data) {
+    this.validateRegistrationData(data)
+
+    const parsedAttendees = Number.parseInt(data.attendees ?? 1, 10)
+    const normalized = {
+      eventId: Number(data.eventId),
+      attendees: Number.isFinite(parsedAttendees) && parsedAttendees > 0 ? parsedAttendees : 1,
+      bookingDate: data.bookingDate || data.eventDate,
+      specialRequests: data.specialRequests ?? data.notes ?? data.comments ?? ''
+    }
+
+    if (!normalized.bookingDate) {
+      throw new Error('La fecha del evento es obligatoria para registrar la reserva')
+    }
+
+    return normalized
+  }
+
+  /**
+   * Normaliza el payload para reservas de invitados
+   * @private
+   */
+  normalizeGuestBookingPayload(data) {
+    if (!data) {
+      throw new Error('Datos de invitado requeridos')
+    }
+
+    const payload = this.normalizeBookingPayload(data)
+
+    const requiredFields = ['name', 'lastName', 'email', 'document', 'phone', 'phoneCode']
+    requiredFields.forEach(field => {
+      if (!data[field]) {
+        throw new Error(`El campo ${field} es obligatorio`)
+      }
+    })
+
+    return {
+      ...payload,
+      name: String(data.name).trim(),
+      lastName: String(data.lastName).trim(),
+      email: String(data.email).trim().toLowerCase(),
+      document: String(data.document).trim(),
+      phone: String(data.phone).trim(),
+      phoneCode: String(data.phoneCode).trim(),
+      city: data.city ? String(data.city).trim() : undefined,
+      country: data.country ? String(data.country).trim() : undefined
+    }
+  }
+
+  /**
    * Manejo de errores específico del servicio
    */
   logError(operation, error) {
@@ -313,6 +404,8 @@ export default eventRegistrationService
 // Exportaciones específicas para compatibilidad
 export const {
   registerToEvent,
+  createBooking,
+  registerGuestToEvent,
   cancelEventRegistration,
   getMyRegistrations,
   isRegisteredToEvent,

@@ -44,7 +44,7 @@ const Home = () => {
       <Header user={user} onRefresh={handleRefresh} />
 
       {/* Main Content - CardStack maneja tanto las cards como el EmptyState */}
-      <main className='flex-1 flex items-center justify-center mt-10'>
+      <main className='flex-1 flex items-center justify-center'>
         <CardStack fetchUserSuggestions={fetchUserSuggestions} suggestions={suggestions} suggestionsPagination={suggestionsPagination} />
       </main>
     </div>

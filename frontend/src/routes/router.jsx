@@ -32,7 +32,7 @@ import EventPaymentStatus from '@pages/event/payment/EventPaymentStatus.jsx'
 import PurchasePlans from '@pages/matches/purchase/PurchasePlans.jsx'
 import Checkout from '@pages/matches/purchase/Checkout.jsx'
 import Payment from '@pages/matches/purchase/Payment.jsx'
-import MatchPaymentStatus from '@pages/matches/purchase/MatchPaymentStatus.jsx'
+import MatchPaymentStatus from '@pages/matches/purchase/PaymentStatus.jsx'
 import PaymentSuccess from '@pages/matches/purchase/PaymentSuccess.jsx'
 import PaymentError from '@pages/matches/purchase/PaymentError.jsx'
 import MyMatches from '@pages/matches/myMatches/MyMatches.jsx'
@@ -47,6 +47,7 @@ import ConfigurationManagement from '@pages/admin/configuration/ConfigurationMan
 // Páginas de ejemplos
 import GenericTableExample from '@pages/examples/GenericTableExample.jsx'
 import UserTableTest from '@pages/examples/UserTableTest.jsx'
+import SimplifiedComplaintManagement from '@pages/support/admin/SimplifiedComplaintManagement.jsx'
 // Constantes
 import { APP_PATHS } from '@constants/paths.js'
 
@@ -99,27 +100,15 @@ const router = createBrowserRouter([
           },
           {
             path: APP_PATHS.USER.EVENTS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <EventsPage />
-              </RequireCompleteProfile>
-            )
+            element: <EventsPage />
           },
           {
             path: APP_PATHS.USER.EVENT_DETAIL.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <EventDetail />
-              </RequireCompleteProfile>
-            )
+            element: <EventDetail />
           },
           {
             path: APP_PATHS.USER.EVENT_PAYMENT_STATUS.slice(1),
-            element: (
-              <RequireCompleteProfile>
-                <EventPaymentStatus />
-              </RequireCompleteProfile>
-            )
+            element: <EventPaymentStatus />
           },
           {
             path: APP_PATHS.USER.PROFILE.slice(1),
@@ -256,7 +245,7 @@ const router = createBrowserRouter([
             path: APP_PATHS.ADMIN.HELP.slice(1),
             element: (
               <RequireAdmin>
-                <Help />
+                <SimplifiedComplaintManagement />
               </RequireAdmin>
             )
           },

@@ -32,6 +32,45 @@ const removeEventFromCollection = (collection, eventId) => {
   return collection.filter(item => item.id !== eventId)
 }
 
+const syncEventByStatusCollections = (collections, updatedEvent) => {
+  if (!updatedEvent?.id) return collections
+
+  const nextCollections = {}
+
+  Object.entries(collections || {}).forEach(([statusKey, events]) => {
+    nextCollections[statusKey] = removeEventFromCollection(events || [], updatedEvent.id)
+  })
+
+  if (updatedEvent.status) {
+    const statusKey = updatedEvent.status
+    const currentList = nextCollections[statusKey] || []
+
+    nextCollections[statusKey] = addEventToCollection(currentList, updatedEvent)
+  }
+
+  return nextCollections
+}
+
+const addEventToCollectionsState = (setters, event) => {
+  if (!event?.id) return
+
+  setters.setActiveEvents(prev => addEventToCollection(prev, event))
+  setters.setAllEvents(prev => addEventToCollection(prev, event))
+  setters.setUpcomingEvents(prev => addEventToCollection(prev, event))
+  setters.setEventsByCategory(prev => addEventToCollection(prev, event))
+  setters.setEventsByStatus(prev => syncEventByStatusCollections(prev, event))
+}
+
+const updateEventCollectionsState = (setters, event) => {
+  if (!event?.id) return
+
+  setters.setActiveEvents(prev => updateEventInCollection(prev, event.id, event))
+  setters.setAllEvents(prev => updateEventInCollection(prev, event.id, event))
+  setters.setUpcomingEvents(prev => updateEventInCollection(prev, event.id, event))
+  setters.setEventsByCategory(prev => updateEventInCollection(prev, event.id, event))
+  setters.setEventsByStatus(prev => syncEventByStatusCollections(prev, event))
+}
+
 const buildPaginationFromResponse = (mappedResponse, fallbackPage = 0, fallbackSize = DEFAULT_ROWS_PER_PAGE, itemsLength = 0) => {
   const totalElements = mappedResponse.totalElements ?? itemsLength
   const totalPages = mappedResponse.totalPages ?? (itemsLength > 0 ? 1 : 0)
@@ -51,7 +90,7 @@ const buildPaginationFromResponse = (mappedResponse, fallbackPage = 0, fallbackS
 }
 
 const useEvents = () => {
-  const { handleApiResponse, loading, submitting, withLoading, withSubmitting } = useEventOperations()
+  const { handleApiResponse, handleError, loading, submitting, withLoading, withSubmitting } = useEventOperations()
 
   // Estado para eventos activos
   const [activeEvents, setActiveEvents] = useState([])
@@ -278,49 +317,159 @@ const useEvents = () => {
   )
 
   const createEvent = useCallback(
-    async (eventData, showNotifications = true) => {
+    async (eventData, { mainImageFile = null, showNotifications = true } = {}) => {
       const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', `Creando evento: ${eventData.name}`)
+        Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', `Creando evento: ${eventData?.title || eventData?.name || 'sin_titulo'}`)
         const response = await eventService.createEvent(eventData)
         const newEvent = unwrapServiceResponse(response)
 
-        // Actualizar las listas locales agregando el nuevo evento
-        setActiveEvents(prevEvents => addEventToCollection(prevEvents, newEvent))
-        setAllEvents(prevEvents => addEventToCollection(prevEvents, newEvent))
-        setUpcomingEvents(prevEvents => addEventToCollection(prevEvents, newEvent))
-        setEventsByCategory(prevEvents => addEventToCollection(prevEvents, newEvent))
+        addEventToCollectionsState(
+          {
+            setActiveEvents,
+            setAllEvents,
+            setUpcomingEvents,
+            setEventsByCategory,
+            setEventsByStatus
+          },
+          newEvent
+        )
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', 'Evento creado exitosamente', { context: { eventId: newEvent.id } })
 
         return newEvent
       }, 'crear evento')
 
+      if (result?.success && result.data?.id && mainImageFile) {
+        try {
+          const uploadResponse = await eventService.uploadEventMainImage(result.data.id, mainImageFile)
+          const uploadData = unwrapServiceResponse(uploadResponse)
+          const imageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData
+
+          if (imageUrl) {
+            const updatedEvent = { ...result.data, mainImage: imageUrl }
+
+            updateEventCollectionsState(
+              {
+                setActiveEvents,
+                setAllEvents,
+                setUpcomingEvents,
+                setEventsByCategory,
+                setEventsByStatus
+              },
+              updatedEvent
+            )
+
+            result.data = updatedEvent
+          }
+        } catch (error) {
+          Logger.error('Error uploading event main image after creation', error, { category: Logger.CATEGORIES.SERVICE })
+          handleError(error, {
+            showToast: true,
+            customMessage: 'El evento se creó correctamente, pero ocurrió un error al subir la imagen.'
+          })
+        }
+      }
+
       return handleApiResponse(result, 'Evento creado exitosamente.', { showNotifications })
     },
-    [withSubmitting, handleApiResponse, unwrapServiceResponse]
+    [
+      withSubmitting,
+      handleApiResponse,
+      unwrapServiceResponse,
+      handleError,
+      setActiveEvents,
+      setAllEvents,
+      setUpcomingEvents,
+      setEventsByCategory,
+      setEventsByStatus
+    ]
   )
 
   const updateEvent = useCallback(
-    async (eventId, eventData, showNotifications = true) => {
+    async (eventId, eventData, { mainImageFile = null, removeMainImage = false, showNotifications = true } = {}) => {
       const result = await withSubmitting(async () => {
-        Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', `Actualizando evento: ${eventId}`)
+        Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', `Actualizando evento: ${eventId} (${eventData?.title || 'sin_titulo'})`)
         const response = await eventService.updateEvent(eventId, eventData)
         const updatedEvent = unwrapServiceResponse(response)
 
-        // Actualizar las listas locales
-        setActiveEvents(prevEvents => updateEventInCollection(prevEvents, eventId, updatedEvent))
-        setAllEvents(prevEvents => updateEventInCollection(prevEvents, eventId, updatedEvent))
-        setUpcomingEvents(prevEvents => updateEventInCollection(prevEvents, eventId, updatedEvent))
-        setEventsByCategory(prevEvents => updateEventInCollection(prevEvents, eventId, updatedEvent))
+        updateEventCollectionsState(
+          {
+            setActiveEvents,
+            setAllEvents,
+            setUpcomingEvents,
+            setEventsByCategory,
+            setEventsByStatus
+          },
+          updatedEvent
+        )
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', 'Evento actualizado exitosamente', { context: { eventId } })
 
         return updatedEvent
       }, 'actualizar evento')
 
+      if (result?.success && result.data?.id) {
+        let currentEvent = result.data
+
+        if (removeMainImage) {
+          try {
+            await eventService.deleteEventMainImage(eventId)
+            currentEvent = { ...currentEvent, mainImage: null }
+          } catch (error) {
+            Logger.error('Error deleting event main image', error, { category: Logger.CATEGORIES.SERVICE })
+            handleError(error, {
+              showToast: true,
+              customMessage: 'El evento se actualizó, pero ocurrió un error al eliminar la imagen.'
+            })
+          }
+        }
+
+        if (mainImageFile) {
+          try {
+            const uploadResponse = await eventService.updateEventMainImage(eventId, mainImageFile)
+            const uploadData = unwrapServiceResponse(uploadResponse)
+            const imageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData
+
+            if (imageUrl) {
+              currentEvent = { ...currentEvent, mainImage: imageUrl }
+            }
+          } catch (error) {
+            Logger.error('Error updating event main image', error, { category: Logger.CATEGORIES.SERVICE })
+            handleError(error, {
+              showToast: true,
+              customMessage: 'El evento se actualizó, pero ocurrió un error al cargar la nueva imagen.'
+            })
+          }
+        }
+
+        if (currentEvent !== result.data) {
+          updateEventCollectionsState(
+            {
+              setActiveEvents,
+              setAllEvents,
+              setUpcomingEvents,
+              setEventsByCategory,
+              setEventsByStatus
+            },
+            currentEvent
+          )
+          result.data = currentEvent
+        }
+      }
+
       return handleApiResponse(result, 'Evento actualizado exitosamente.', { showNotifications })
     },
-    [withSubmitting, handleApiResponse, unwrapServiceResponse]
+    [
+      withSubmitting,
+      handleApiResponse,
+      unwrapServiceResponse,
+      setActiveEvents,
+      setAllEvents,
+      setUpcomingEvents,
+      setEventsByCategory,
+      setEventsByStatus,
+      handleError
+    ]
   )
 
   const deleteEvent = useCallback(
@@ -334,6 +483,24 @@ const useEvents = () => {
         setAllEvents(prevEvents => removeEventFromCollection(prevEvents, eventId))
         setUpcomingEvents(prevEvents => removeEventFromCollection(prevEvents, eventId))
         setEventsByCategory(prevEvents => removeEventFromCollection(prevEvents, eventId))
+        setEventsByStatus(prev => {
+          const updated = { ...prev }
+
+          Object.keys(updated).forEach(statusKey => {
+            updated[statusKey] = removeEventFromCollection(updated[statusKey] || [], eventId)
+          })
+
+          return updated
+        })
+        setEventsByStatus(prev => {
+          const updated = { ...prev }
+
+          Object.keys(updated).forEach(statusKey => {
+            updated[statusKey] = removeEventFromCollection(updated[statusKey] || [], eventId)
+          })
+
+          return updated
+        })
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'eliminar evento', 'Evento eliminado exitosamente', { context: { eventId } })
 

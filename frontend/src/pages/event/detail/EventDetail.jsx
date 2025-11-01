@@ -8,14 +8,16 @@ import {
   CardHeader,
   Chip,
   Divider,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Skeleton,
   Spinner,
-  Tooltip,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter
+  Textarea,
+  Tooltip
 } from '@heroui/react'
 import { ArrowLeft, CalendarDays, Clock, MapPin, Ticket, Users, AlertTriangle, Check, Sparkles, ShieldCheck, XCircle } from 'lucide-react'
 import { bookingService, eventService } from '@services'
@@ -30,6 +32,19 @@ import { EventSEO } from '@components/seo'
 import Breadcrumbs from '@components/ui/Breadcrumbs.jsx'
 
 import ImageGallery from './components/ImageGallery.jsx'
+
+const GUEST_FORM_DEFAULT = {
+  name: '',
+  lastName: '',
+  email: '',
+  phoneCode: '+57',
+  phone: '',
+  document: '',
+  city: '',
+  country: '',
+  attendees: 1,
+  notes: ''
+}
 
 const priceFormatter = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -54,7 +69,7 @@ const EventDetail = () => {
   const navigate = useNavigate()
   const numericEventId = Number(eventId)
   const { handleError, handleSuccess, handleWarning } = useError()
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
 
   const [eventData, setEventData] = useState(null)
   const [eventLoading, setEventLoading] = useState(true)
@@ -68,6 +83,10 @@ const EventDetail = () => {
   const [isReserveModalOpen, setIsReserveModalOpen] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  const [guestForm, setGuestForm] = useState(GUEST_FORM_DEFAULT)
+  const [guestFormErrors, setGuestFormErrors] = useState({})
+  const [guestBooking, setGuestBooking] = useState(null)
+  const [guestContactEmail, setGuestContactEmail] = useState('')
 
   const registrationStatus = registration?.paymentStatus || null
   const registrationStatusKey = registrationStatus ? registrationStatus.toUpperCase() : null
@@ -126,10 +145,18 @@ const EventDetail = () => {
     } finally {
       setEventLoading(false)
     }
-  }, [handleError, numericEventId, unwrapResponse])
+  }, [handleError, isAuthenticated, numericEventId, unwrapResponse])
 
   const loadRegistrationState = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) {
+      setRegistrationLoading(false)
+      setIsRegistered(false)
+      setRegistration(null)
+
+      return
+    }
+
+    if (!isAuthenticated) {
       setRegistrationLoading(false)
       setIsRegistered(false)
       setRegistration(null)
@@ -196,7 +223,23 @@ const EventDetail = () => {
   }, [loadEvent, loadRegistrationState])
 
   useEffect(() => {
-    if (!isRegistrationPending) {
+    setGuestBooking(null)
+    setGuestContactEmail('')
+    setGuestForm({ ...GUEST_FORM_DEFAULT })
+    setGuestFormErrors({})
+  }, [numericEventId])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setGuestBooking(null)
+      setGuestContactEmail('')
+      setGuestForm({ ...GUEST_FORM_DEFAULT })
+      setGuestFormErrors({})
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated || !isRegistrationPending) {
       return
     }
 
@@ -205,7 +248,7 @@ const EventDetail = () => {
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [isRegistrationPending, loadRegistrationState])
+  }, [isAuthenticated, isRegistrationPending, loadRegistrationState])
 
   const eventDate = useMemo(() => parseJavaDate(eventData?.eventDate), [eventData?.eventDate])
   const createdAt = useMemo(() => parseJavaDate(eventData?.createdAt), [eventData?.createdAt])
@@ -267,12 +310,58 @@ const EventDetail = () => {
   const canAttemptReservation = useMemo(() => {
     if (!isEventOpenForRegistration) return false
 
-    return !hasConfirmedRegistration
-  }, [hasConfirmedRegistration, isEventOpenForRegistration])
+    if (isAuthenticated) {
+      return !hasConfirmedRegistration
+    }
+
+    if (!guestBooking) {
+      return true
+    }
+
+    if (eventData?.price > 0) {
+      const status = guestBooking.paymentStatus?.toUpperCase() || ''
+      return status !== 'CONFIRMED' && status !== 'COMPLETED'
+    }
+
+    return false
+  }, [eventData?.price, guestBooking, hasConfirmedRegistration, isAuthenticated, isEventOpenForRegistration])
 
   const registrationNote = useMemo(() => {
     if (!eventData) {
       return { text: 'Información no disponible', tone: 'warning' }
+    }
+
+    if (!isAuthenticated) {
+      if (guestBooking) {
+        const status = guestBooking.paymentStatus?.toUpperCase() || ''
+        if (status === 'PENDING') {
+          return {
+            text: 'Estamos validando tu pago. Te enviaremos un correo con la confirmación en los próximos minutos.',
+            tone: 'warning'
+          }
+        }
+        if (status === 'CONFIRMED' || status === 'COMPLETED' || status === 'APPROVED') {
+          return {
+            text: 'Tu reserva está confirmada. Revisa tu correo para más información.',
+            tone: 'success'
+          }
+        }
+        if (!status || status === 'NOT_REQUIRED') {
+          return {
+            text: 'Tu cupo ha sido registrado. Te contactaremos antes del evento para confirmar asistencia.',
+            tone: 'success'
+          }
+        }
+        return {
+          text: 'Hemos recibido tus datos. Revisa tu correo para confirmar los detalles del evento.',
+          tone: 'info'
+        }
+      }
+
+      return {
+        text: 'Completa tus datos básicos para reservar tu lugar. No necesitas crear una contraseña.',
+        tone: 'info'
+      }
     }
 
     if (isRegistrationPaid) {
@@ -305,7 +394,7 @@ const EventDetail = () => {
     }
 
     return { text: 'Asegura tu cupo cuanto antes', tone: 'info' }
-  }, [eventData, isRegistrationFailed, isRegistrationPaid, isRegistrationPending])
+  }, [eventData, guestBooking, isAuthenticated, isRegistrationFailed, isRegistrationPaid, isRegistrationPending])
 
   const registrationDate = useMemo(() => parseJavaDate(registration?.registrationDate), [registration?.registrationDate])
   const paymentDate = useMemo(() => parseJavaDate(registration?.paymentDate), [registration?.paymentDate])
@@ -430,21 +519,37 @@ const EventDetail = () => {
   }, [])
 
   const launchWompiCheckout = useCallback(
-    async paymentSetup => {
+    async (paymentSource, options = {}) => {
       await ensureWompiScriptLoaded()
 
       if (typeof window === 'undefined' || !window.WidgetCheckout) {
         throw new Error('No fue posible inicializar el checkout de Wompi')
       }
 
-      const wompiData = paymentSetup?.data ?? paymentSetup
+      const wompiData = (() => {
+        if (!paymentSource) return {}
+        if (paymentSource.paymentMetadata) {
+          return {
+            ...paymentSource.paymentMetadata,
+            signature: paymentSource.paymentClientSecret || paymentSource.paymentMetadata.signature,
+            paymentReference: paymentSource.paymentMetadata.reference || paymentSource.paymentIntentId
+          }
+        }
+
+        const data = paymentSource.data ?? paymentSource.metadata ?? paymentSource
+        return {
+          ...data,
+          signature: data.signature || paymentSource.clientSecret,
+          paymentReference: data.paymentReference || paymentSource.paymentReference || data.reference
+        }
+      })()
 
       const publicKey = wompiData?.publicKey || import.meta.env.VITE_WOMPI_PUBLIC_KEY
-      const amountInCents = Number(wompiData?.amountInCents ?? 0)
+      const amountInCents = Number(wompiData?.amountInCents ?? wompiData?.amount ?? 0)
       const currency = wompiData?.currency || 'COP'
       const signature = wompiData?.signature
       const redirectUrl = wompiData?.redirectUrl || window.location.href
-      const paymentReference = paymentSetup?.paymentReference ?? wompiData?.paymentReference
+      const paymentReference = wompiData?.paymentReference
 
       if (!publicKey || !signature || !paymentReference) {
         // eslint-disable-next-line no-console
@@ -452,7 +557,10 @@ const EventDetail = () => {
         throw new Error('Datos de pago incompletos para iniciar Wompi')
       }
 
-      const customerName = [user?.name, user?.lastName].filter(Boolean).join(' ').trim()
+      const customerName =
+        options.customerName || [user?.name, user?.lastName].filter(Boolean).join(' ').trim() || wompiData?.customerName || ''
+      const customerEmail = options.customerEmail || user?.email || wompiData?.email || ''
+      const skipBackendConfirmation = Boolean(options.skipBackendConfirmation)
 
       // eslint-disable-next-line no-console
       console.info('[Wompi] inicializando checkout', {
@@ -488,7 +596,7 @@ const EventDetail = () => {
           },
           customerData: {
             fullName: customerName,
-            email: user?.email || ''
+            email: customerEmail
           }
         })
 
@@ -514,18 +622,23 @@ const EventDetail = () => {
             const transactionId = result?.transaction?.id
 
             if (transactionStatus === 'APPROVED' && transactionId) {
-              try {
-                await unwrapResponse(await bookingService.confirmEventPayment(transactionId))
-                handleSuccess('¡Pago confirmado! Tu lugar está reservado.')
-                await loadEvent()
-                await loadRegistrationState()
+              if (skipBackendConfirmation) {
+                handleSuccess('¡Pago reportado! Te enviaremos la confirmación definitiva en cuanto validemos la transacción.')
                 resolve(result)
-              } catch (error) {
-                handleError(error, {
-                  customMessage: 'No pudimos confirmar el pago con nuestro servidor.',
-                  showToast: true
-                })
-                reject(error)
+              } else {
+                try {
+                  await unwrapResponse(await bookingService.confirmEventPayment(transactionId))
+                  handleSuccess('¡Pago confirmado! Tu lugar está reservado.')
+                  await loadEvent()
+                  await loadRegistrationState()
+                  resolve(result)
+                } catch (error) {
+                  handleError(error, {
+                    customMessage: 'No pudimos confirmar el pago con nuestro servidor.',
+                    showToast: true
+                  })
+                  reject(error)
+                }
               }
 
               return
@@ -539,11 +652,11 @@ const EventDetail = () => {
             }
 
             if (transactionStatus === 'PENDING') {
-              handleWarning('El pago quedó en estado pendiente. Te notificaremos cuando se actualice su estado.')
-              resolve(result)
+            handleWarning('El pago quedó en estado pendiente. Te notificaremos cuando se actualice su estado.')
+            resolve(result)
 
-              return
-            }
+            return
+          }
 
             handleWarning('No completaste el proceso de pago. Puedes intentarlo nuevamente cuando lo desees.')
             resolve(result)
@@ -569,14 +682,128 @@ const EventDetail = () => {
     ]
   )
 
+  const handleGuestFieldChange = useCallback((field, value) => {
+    setGuestForm(prev => ({
+      ...prev,
+      [field]: field === 'attendees' ? value.replace(/[^0-9]/g, '') : value
+    }))
+    setGuestFormErrors(prev => ({
+      ...prev,
+      [field]: undefined
+    }))
+  }, [])
+
+  const validateGuestForm = useCallback(
+    form => {
+      const errors = {}
+      const trimmed = {
+        name: form.name.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        document: form.document.trim(),
+        phoneCode: form.phoneCode.trim(),
+        phone: form.phone.trim(),
+        city: form.city ? form.city.trim() : '',
+        country: form.country ? form.country.trim() : '',
+        attendees: form.attendees
+      }
+
+      if (!trimmed.name) errors.name = 'Nombre requerido'
+      if (!trimmed.lastName) errors.lastName = 'Apellido requerido'
+      if (!trimmed.email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(trimmed.email)) errors.email = 'Correo válido requerido'
+      if (!trimmed.document) errors.document = 'Documento requerido'
+      if (!trimmed.phoneCode) errors.phoneCode = 'Indicativo requerido'
+      if (!trimmed.phone) errors.phone = 'Teléfono requerido'
+
+      const attendeesValue = Number.parseInt(trimmed.attendees ?? 1, 10)
+      if (!Number.isFinite(attendeesValue) || attendeesValue <= 0) {
+        errors.attendees = 'Cantidad de asistentes inválida'
+      }
+
+      setGuestFormErrors(errors)
+      return Object.keys(errors).length === 0
+    },
+    [setGuestFormErrors]
+  )
+
   const handleRegister = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) return
+
+    if (!isAuthenticated) {
+      const isValid = validateGuestForm(guestForm)
+      if (!isValid) {
+        return
+      }
+    }
 
     setActionLoading(true)
     setPaymentError('')
 
     try {
       const eventPrice = Number(eventData?.price ?? 0)
+
+      if (!isAuthenticated) {
+        const payload = {
+          eventId: numericEventId,
+          attendees: guestForm.attendees,
+          bookingDate: eventData?.eventDate,
+          specialRequests: guestForm.notes,
+          name: guestForm.name,
+          lastName: guestForm.lastName,
+          email: guestForm.email,
+          document: guestForm.document,
+          phone: guestForm.phone,
+          phoneCode: guestForm.phoneCode,
+          city: guestForm.city,
+          country: guestForm.country
+        }
+
+        setIsReserveModalOpen(false)
+
+        try {
+        const response = await bookingService.registerGuestToEvent(payload)
+        const bookingCreated = unwrapResponse(response)
+
+        setGuestBooking(bookingCreated)
+        setGuestContactEmail(guestForm.email.trim())
+        if (eventPrice <= 0) {
+          handleSuccess('Hemos recibido tu reserva. Te enviaremos un correo con todos los detalles.')
+        }
+
+          if (eventPrice > 0 && bookingCreated?.paymentMetadata?.integration === 'WOMPI') {
+            setIsProcessingPayment(true)
+            try {
+              await launchWompiCheckout(bookingCreated, {
+                customerName: `${guestForm.name} ${guestForm.lastName}`.trim(),
+                customerEmail: guestForm.email,
+                skipBackendConfirmation: true
+              })
+            } catch (error) {
+              setPaymentError(error?.message || 'No fue posible iniciar el pago con Wompi.')
+              handleError(error, {
+                customMessage: 'No pudimos iniciar el proceso de pago. Puedes intentarlo nuevamente.',
+                showToast: true
+              })
+            } finally {
+              setIsProcessingPayment(false)
+            }
+          } else if (eventPrice > 0) {
+            handleSuccess('Hemos recibido tu reserva. Te enviaremos un correo con todos los detalles.')
+          }
+
+          await loadEvent()
+
+          setGuestForm({ ...GUEST_FORM_DEFAULT })
+          setGuestFormErrors({})
+        } catch (error) {
+          handleError(error, {
+            customMessage: 'No pudimos completar tu reserva. Por favor intenta de nuevo.',
+            showToast: true
+          })
+        }
+
+        return
+      }
 
       if (eventPrice > 0) {
         setIsReserveModalOpen(false)
@@ -629,18 +856,35 @@ const EventDetail = () => {
     } finally {
       setActionLoading(false)
     }
-  }, [eventData?.price, handleError, handleSuccess, launchWompiCheckout, loadEvent, loadRegistrationState, numericEventId, unwrapResponse])
+  }, [
+    eventData?.eventDate,
+    eventData?.price,
+    guestForm,
+    handleError,
+    handleSuccess,
+    isAuthenticated,
+    launchWompiCheckout,
+    loadEvent,
+    loadRegistrationState,
+    numericEventId,
+    unwrapResponse,
+    validateGuestForm
+  ])
 
   const handleOpenReserveModal = useCallback(() => {
     if (actionLoading || isProcessingPayment) return
     if (!canAttemptReservation) return
+    if (!isAuthenticated) {
+      setIsReserveModalOpen(true)
+      return
+    }
     if (!(eventData?.price > 0)) {
       handleRegister()
 
       return
     }
     setIsReserveModalOpen(true)
-  }, [actionLoading, canAttemptReservation, eventData?.price, handleRegister, isProcessingPayment])
+  }, [actionLoading, canAttemptReservation, eventData?.price, handleRegister, isAuthenticated, isProcessingPayment])
 
   const handleConfirmReserve = useCallback(async () => {
     await handleRegister()
@@ -1084,7 +1328,55 @@ const EventDetail = () => {
             </Card>
           ) : null}
 
-          {/* Modal de confirmación */}
+          {!isAuthenticated && guestBooking ? (
+            <Card className='bg-green-500/15 backdrop-blur-sm border-green-500/30'>
+              <CardHeader className='p-5 sm:p-6 pb-3 flex flex-col gap-2'>
+                <div className='flex items-center gap-3'>
+                  <div className='w-11 h-11 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
+                    <Check className='w-6 h-6 text-green-400' />
+                  </div>
+                  <div>
+                    <p className='text-sm font-semibold text-gray-200'>¡Gracias por reservar!</p>
+                    <p className='text-xs text-gray-400'>Te enviaremos un correo con los detalles del evento.</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <Divider className='border-green-500/30' />
+              <CardBody className='p-5 sm:p-6 space-y-3 text-sm text-gray-300'>
+                <div className='flex items-center justify-between gap-4'>
+                  <span className='text-gray-200/80'>Evento</span>
+                  <span className='text-right text-gray-100 font-medium'>{guestBooking.eventTitle}</span>
+                </div>
+                {guestBooking.totalPrice ? (
+                  <div className='flex items-center justify-between gap-4'>
+                    <span className='text-gray-200/80'>Valor</span>
+                    <span className='text-right text-gray-100 font-medium'>
+                      {Number(guestBooking.totalPrice).toLocaleString('es-CO', {
+                        style: 'currency',
+                        currency: guestBooking.currency || 'COP',
+                        maximumFractionDigits: 0
+                      })}
+                    </span>
+                  </div>
+                ) : null}
+                <div className='flex items-center justify-between gap-4'>
+                  <span className='text-gray-200/80'>Asistentes</span>
+                  <span className='text-right text-gray-100'>{guestBooking.attendees ?? 1}</span>
+                </div>
+                {guestBooking.paymentStatus ? (
+                  <div className='flex items-center justify-between gap-4'>
+                    <span className='text-gray-200/80'>Estado de pago</span>
+                    <Chip className='bg-green-500/20 text-green-200 border-green-500/30' size='sm' variant='flat'>
+                      {guestBooking.paymentStatus || 'Registrado'}
+                    </Chip>
+                  </div>
+                ) : null}
+                <p className='text-xs text-gray-400'>Guarda este correo como referencia: {guestContactEmail || guestBooking.userEmail || 'revisa tu bandeja'}.</p>
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {/* Modal de confirmación / formulario para invitados */}
           <Modal
             isDismissable={!actionLoading && !isProcessingPayment}
             isKeyboardDismissDisabled={actionLoading || isProcessingPayment}
@@ -1093,13 +1385,105 @@ const EventDetail = () => {
             <ModalContent>
               {onClose => (
                 <>
-                  <ModalHeader className='flex flex-col gap-1 text-left'>Confirmar reserva</ModalHeader>
-                  <ModalBody className='space-y-3 text-sm text-gray-300'>
-                    <p>Estás a punto de reservar tu lugar en este evento.</p>
-                    <p>
-                      Ten en cuenta que las reservas no tienen reembolso automático. Si necesitas cancelar y solicitar un reembolso, deberás
-                      comunicarte con el equipo de Feeling.
-                    </p>
+                  <ModalHeader className='flex flex-col gap-1 text-left'>
+                    {isAuthenticated ? 'Confirmar reserva' : 'Reserva tu lugar'}
+                  </ModalHeader>
+                  <ModalBody className='space-y-4 text-sm text-gray-300'>
+                    {isAuthenticated ? (
+                      <>
+                        <p>Estás a punto de reservar tu lugar en este evento.</p>
+                        <p>
+                          Ten en cuenta que las reservas no tienen reembolso automático. Si necesitas cancelar y solicitar un reembolso, deberás
+                          comunicarte con el equipo de Feeling.
+                        </p>
+                        {eventData?.price > 0 ? (
+                          <div className='bg-primary-500/10 border border-primary-500/40 rounded-lg p-3 text-xs text-primary-100'>
+                            <p className='font-semibold text-sm'>Este evento requiere pago seguro en línea.</p>
+                            <p>Serás redirigido a la pasarela de pagos de Wompi para completar la transacción.</p>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <p className='text-sm text-gray-200'>Completa tus datos básicos. No necesitas crear una contraseña.</p>
+                        <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                          <Input
+                            isRequired
+                            label='Nombre'
+                            value={guestForm.name}
+                            errorMessage={guestFormErrors.name}
+                            onValueChange={value => handleGuestFieldChange('name', value)}
+                          />
+                          <Input
+                            isRequired
+                            label='Apellido'
+                            value={guestForm.lastName}
+                            errorMessage={guestFormErrors.lastName}
+                            onValueChange={value => handleGuestFieldChange('lastName', value)}
+                          />
+                          <Input
+                            isRequired
+                            label='Correo electrónico'
+                            type='email'
+                            value={guestForm.email}
+                            errorMessage={guestFormErrors.email}
+                            onValueChange={value => handleGuestFieldChange('email', value)}
+                          />
+                          <Input
+                            isRequired
+                            label='Documento de identidad'
+                            value={guestForm.document}
+                            errorMessage={guestFormErrors.document}
+                            onValueChange={value => handleGuestFieldChange('document', value)}
+                          />
+                          <div className='grid grid-cols-[90px_1fr] gap-2 sm:col-span-2'>
+                            <Input
+                              isRequired
+                              label='Indicativo'
+                              value={guestForm.phoneCode}
+                              errorMessage={guestFormErrors.phoneCode}
+                              onValueChange={value => handleGuestFieldChange('phoneCode', value)}
+                            />
+                            <Input
+                              isRequired
+                              label='Teléfono'
+                              value={guestForm.phone}
+                              errorMessage={guestFormErrors.phone}
+                              onValueChange={value => handleGuestFieldChange('phone', value)}
+                            />
+                          </div>
+                          <Input
+                            label='Ciudad'
+                            value={guestForm.city}
+                            onValueChange={value => handleGuestFieldChange('city', value)}
+                          />
+                          <Input
+                            label='País'
+                            value={guestForm.country}
+                            onValueChange={value => handleGuestFieldChange('country', value)}
+                          />
+                          <Input
+                            label='Número de asistentes'
+                            type='number'
+                            value={String(guestForm.attendees)}
+                            errorMessage={guestFormErrors.attendees}
+                            onValueChange={value => handleGuestFieldChange('attendees', value)}
+                          />
+                        </div>
+                        <Textarea
+                          label='Notas adicionales (opcional)'
+                          minRows={3}
+                          value={guestForm.notes}
+                          onValueChange={value => handleGuestFieldChange('notes', value)}
+                        />
+                        {eventData?.price > 0 ? (
+                          <div className='bg-primary-500/10 border border-primary-500/40 rounded-lg p-3 text-xs text-primary-100'>
+                            <p className='font-semibold text-sm'>Este evento requiere pago seguro en línea.</p>
+                            <p>Después de enviar tus datos te redirigiremos a la pasarela de pagos de Wompi.</p>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   </ModalBody>
                   <ModalFooter>
                     <Button
@@ -1112,8 +1496,11 @@ const EventDetail = () => {
                       }}>
                       Cancelar
                     </Button>
-                    <Button color='primary' isLoading={actionLoading || isProcessingPayment} onPress={handleConfirmReserve}>
-                      Confirmar reserva
+                    <Button
+                      color='primary'
+                      isLoading={actionLoading || isProcessingPayment}
+                      onPress={handleConfirmReserve}>
+                      {isAuthenticated ? 'Confirmar reserva' : 'Reservar lugar'}
                     </Button>
                   </ModalFooter>
                 </>

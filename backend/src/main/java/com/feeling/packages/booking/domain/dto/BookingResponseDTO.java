@@ -7,6 +7,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -37,6 +39,7 @@ public class BookingResponseDTO {
     private String paymentIntentId;
     private String paymentStatus;
     private String paymentClientSecret;
+    private Map<String, String> paymentMetadata = Collections.emptyMap();
 
     public BookingResponseDTO(Booking booking) {
         this.id = booking.getId();

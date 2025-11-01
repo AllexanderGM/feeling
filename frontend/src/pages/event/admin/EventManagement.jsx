@@ -399,29 +399,49 @@ const EventManagement = memo(() => {
   }, [tableStates, getEventsData, fetchEventStats])
 
   const handleCreateEvent = useCallback(
-    async eventData => {
+    async ({ eventData, mainImageFile }) => {
       try {
-        await createEvent(eventData)
+        const result = await createEvent(eventData, { mainImageFile, showNotifications: false })
+
+        if (result?.success === false) {
+          handleError(result.message || 'Error al crear el evento')
+
+          return
+        }
+
         handleSuccess('Evento creado exitosamente')
         handleOperationSuccess()
-      } catch {
+      } catch (error) {
+        Logger.error('Error creating event', error, { category: Logger.CATEGORIES.SERVICE })
         handleError('Error al crear el evento')
       }
     },
-    [createEvent, handleSuccess, handleError, handleOperationSuccess]
+    [createEvent, handleError, handleOperationSuccess, handleSuccess]
   )
 
   const handleUpdateEvent = useCallback(
-    async (eventId, eventData) => {
+    async ({ eventId, eventData, mainImageFile, removeMainImage }) => {
       try {
-        await updateEvent(eventId, eventData)
+        const result = await updateEvent(eventId, eventData, {
+          mainImageFile,
+          removeMainImage,
+          showNotifications: false
+        })
+
+        if (result?.success === false) {
+          handleError(result.message || 'Error al actualizar el evento')
+
+          return
+        }
+
         handleSuccess('Evento actualizado exitosamente')
         handleOperationSuccess()
-      } catch {
+      } catch (error) {
+        Logger.error('Error updating event', error, { category: Logger.CATEGORIES.SERVICE })
         handleError('Error al actualizar el evento')
       }
     },
-    [updateEvent, handleSuccess, handleError, handleOperationSuccess]
+    [handleError, handleOperationSuccess, handleSuccess, updateEvent]
   )
 
   const handleDeleteEvent = useCallback(

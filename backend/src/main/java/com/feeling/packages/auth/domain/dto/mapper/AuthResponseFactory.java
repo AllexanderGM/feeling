@@ -191,6 +191,7 @@ public class AuthResponseFactory {
             case FACEBOOK -> "Esta cuenta está registrada con Facebook";
             case LOCAL -> "Esta cuenta está registrada con email y contraseña";
             case APPLE -> "Esta cuenta está registrada con Apple";
+            case GUEST -> "Este correo se usó para reservar eventos. Completa tu registro creando una contraseña.";
         };
     }
 
@@ -203,6 +204,8 @@ public class AuthResponseFactory {
                 "Este email ya tiene una cuenta con Facebook. Ve a 'Iniciar Sesión' y usa 'Continuar con Facebook'.";
             case APPLE ->
                 "Este email ya tiene una cuenta con Apple. Ve a 'Iniciar Sesión' y usa 'Continuar con Apple'.";
+            case GUEST ->
+                "Este email ya fue usado para registrarse a eventos. Completa tu registro para usar email y contraseña.";
         };
     }
 }

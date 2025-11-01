@@ -27,8 +27,26 @@ const ENABLE_STEP_SAVE_DEBUG = import.meta?.env?.VITE_ENABLE_STEP_SAVE_DEBUG ===
  *   images: [file1, file2]
  * })
  */
-export const useStepSave = user => {
-  const { updateCurrentProfile, submitting } = useUser()
+export const useStepSave = (user, options = {}) => {
+  const { updateCurrentProfile, updateUserProfileByAdmin, submitting } = useUser()
+  const { overrideUser = null, overrideSaveFn = null } = options
+
+  const targetUser = overrideUser || user
+
+  const resolveSaveHandler = useCallback(
+    (profileData, profileImages = null, replaceImages = false) => {
+      if (typeof overrideSaveFn === 'function') {
+        return overrideSaveFn(profileData, profileImages, replaceImages)
+      }
+
+      if (overrideUser?.id && typeof updateUserProfileByAdmin === 'function') {
+        return updateUserProfileByAdmin(overrideUser.id, profileData, profileImages)
+      }
+
+      return updateCurrentProfile(profileData, profileImages, replaceImages)
+    },
+    [overrideSaveFn, overrideUser?.id, updateCurrentProfile, updateUserProfileByAdmin]
+  )
 
   /**
    * Guarda los datos de un paso del perfil
@@ -50,14 +68,14 @@ export const useStepSave = user => {
         const preparedData = prepareDataForBackend(profileData)
 
         // Verificar si hay cambios en los DATOS del paso actual (sin images)
-        const hasDataChanges = hasFormChanges(preparedData, user, stepNumber)
+        const hasDataChanges = hasFormChanges(preparedData, targetUser, stepNumber)
 
         // Preparar imágenes
         const imagesToSend = images || formImages
         const validImages = imagesToSend ? filterNullValues(imagesToSend) : null
 
         // Comparar imágenes por separado
-        const userImages = user?.user?.images ?? user?.images ?? []
+        const userImages = targetUser?.user?.images ?? targetUser?.images ?? []
         const formImagesCount = validImages ? validImages.length : 0
         const userImagesCount = Array.isArray(userImages) ? userImages.filter(img => img).length : 0
 
@@ -179,14 +197,14 @@ export const useStepSave = user => {
         }
 
         // Guardar en el backend
-        const result = await updateCurrentProfile(
+        const result = await resolveSaveHandler(
           preparedData,
           finalImagesToSend && finalImagesToSend.length > 0 ? finalImagesToSend : null,
-          shouldReplaceImages // Si hay nuevos Files, reemplazar todas las imágenes existentes
+          shouldReplaceImages
         )
 
         return {
-          success: result.success,
+          success: result?.success ?? true,
           hasChanges: true,
           skipped: false,
           result
@@ -204,11 +222,12 @@ export const useStepSave = user => {
         }
       }
     },
-    [user, updateCurrentProfile]
+    [targetUser, resolveSaveHandler]
   )
 
   return {
     saveStepData,
-    submitting
+    submitting,
+    targetUser
   }
 }

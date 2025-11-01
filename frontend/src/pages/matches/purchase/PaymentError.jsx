@@ -77,39 +77,35 @@ const PaymentError = () => {
         <meta content='Hubo un problema al procesar tu pago' name='description' />
       </Helmet>
 
-      <LiteContainer ariaLabel='Página de error de pago' className='gap-6 max-w-3xl'>
-        {/* Error Animation */}
-        <div className='text-center space-y-6'>
-          <div className='relative inline-block'>
-            <div className='absolute inset-0 bg-red-500/20 rounded-full blur-xl animate-pulse' />
-            <div className='relative w-24 h-24 bg-gradient-to-br from-red-500/30 to-orange-500/30 rounded-full flex items-center justify-center mx-auto border-4 border-red-500/50'>
-              <XCircle className='w-14 h-14 text-red-400' />
-            </div>
-          </div>
+      <LiteContainer ariaLabel='Página de error de pago' className='gap-6 max-w-4xl !pt-0 !min-h-0 py-8'>
+        {/* Header */}
+        <div className='space-y-4 w-full'>
+          <Button
+            className='text-gray-400 hover:text-gray-200'
+            size='sm'
+            startContent={<ArrowLeft className='w-4 h-4' />}
+            variant='light'
+            onPress={handleGoBack}>
+            Volver a Matches
+          </Button>
 
-          <div className='space-y-3'>
-            <h1 className='text-4xl font-bold text-gray-100'>{errorInfo.title}</h1>
-            <p className='text-lg text-gray-300'>{errorInfo.message}</p>
-            <p className='text-sm text-gray-400'>No te preocupes, no se realizó ningún cargo a tu cuenta</p>
+          <div className='flex items-center gap-3'>
+            <div className='w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center'>
+              <XCircle className='w-6 h-6 text-red-400' />
+            </div>
+            <div>
+              <h1 className='text-2xl font-bold text-gray-100'>{errorInfo.title}</h1>
+              <p className='text-sm text-gray-400'>{errorInfo.message}</p>
+            </div>
           </div>
         </div>
 
         {/* Error Details */}
         {transaction && (
-          <Card className='bg-gradient-to-br from-red-900/20 via-orange-900/20 to-yellow-900/20 border-red-500/30'>
+          <Card className='bg-gray-800/40 border-gray-700/50 w-full'>
             <CardBody className='p-6'>
-              <div className='flex items-start gap-3 mb-6'>
-                <div className='w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center'>
-                  <AlertTriangle className='w-5 h-5 text-red-400' />
-                </div>
-                <div>
-                  <h2 className='text-lg font-semibold text-gray-100'>Detalles del Error</h2>
-                  <p className='text-sm text-gray-400'>Información sobre el problema</p>
-                </div>
-              </div>
-
               <div className='space-y-3'>
-                <div className='bg-gray-800/40 rounded-lg p-4 space-y-2'>
+                <div className='bg-gray-700/30 rounded-lg p-4 space-y-2'>
                   <div className='flex items-center justify-between text-sm'>
                     <span className='text-gray-400'>ID de transacción:</span>
                     <span className='text-gray-300 font-mono'>{transaction.id || 'N/A'}</span>
@@ -150,27 +146,29 @@ const PaymentError = () => {
         )}
 
         {/* Action Buttons */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-          <Button
-            className='w-full'
-            color='primary'
-            size='lg'
-            startContent={<RefreshCw className='w-4 h-4' />}
-            variant='solid'
-            onPress={handleRetryPayment}>
-            Reintentar Pago
-          </Button>
+        <Card className='bg-gray-800/40 border-gray-700/50 w-full '>
+          <CardBody className='p-6 grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <Button
+              className='w-full'
+              color='primary'
+              size='md'
+              startContent={<RefreshCw className='w-4 h-4' />}
+              variant='solid'
+              onPress={handleRetryPayment}>
+              Reintentar Pago
+            </Button>
 
-          <Button
-            className='w-full'
-            color='secondary'
-            size='lg'
-            startContent={<ArrowLeft className='w-4 h-4' />}
-            variant='bordered'
-            onPress={handleGoToPlans}>
-            Ver Otros Planes
-          </Button>
-        </div>
+            <Button
+              className='w-full'
+              color='default'
+              size='md'
+              startContent={<ArrowLeft className='w-4 h-4' />}
+              variant='bordered'
+              onPress={handleGoToPlans}>
+              Ver Otros Planes
+            </Button>
+          </CardBody>
+        </Card>
 
         {/* Common Reasons */}
         <Card className='bg-gray-800/40 border-gray-700/50'>
@@ -185,30 +183,30 @@ const PaymentError = () => {
               </div>
             </div>
 
-            <div className='space-y-3'>
-              <div className='bg-gray-700/30 rounded-lg p-4'>
-                <h3 className='text-sm font-semibold text-gray-200 mb-2'>Fondos Insuficientes</h3>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div className='bg-gray-700/30 rounded-lg p-3'>
+                <h3 className='text-sm font-semibold text-gray-200 mb-1'>Fondos Insuficientes</h3>
                 <p className='text-xs text-gray-400'>
                   Verifica que tu tarjeta o cuenta tenga fondos suficientes para completar la transacción.
                 </p>
               </div>
 
-              <div className='bg-gray-700/30 rounded-lg p-4'>
-                <h3 className='text-sm font-semibold text-gray-200 mb-2'>Datos Incorrectos</h3>
+              <div className='bg-gray-700/30 rounded-lg p-3'>
+                <h3 className='text-sm font-semibold text-gray-200 mb-1'>Datos Incorrectos</h3>
                 <p className='text-xs text-gray-400'>
                   Asegúrate de ingresar correctamente el número de tarjeta, fecha de vencimiento y código de seguridad.
                 </p>
               </div>
 
-              <div className='bg-gray-700/30 rounded-lg p-4'>
-                <h3 className='text-sm font-semibold text-gray-200 mb-2'>Límites de la Tarjeta</h3>
+              <div className='bg-gray-700/30 rounded-lg p-3'>
+                <h3 className='text-sm font-semibold text-gray-200 mb-1'>Límites de la Tarjeta</h3>
                 <p className='text-xs text-gray-400'>
                   Tu tarjeta puede tener límites diarios o mensuales. Contacta a tu banco para verificar.
                 </p>
               </div>
 
-              <div className='bg-gray-700/30 rounded-lg p-4'>
-                <h3 className='text-sm font-semibold text-gray-200 mb-2'>Restricciones del Banco</h3>
+              <div className='bg-gray-700/30 rounded-lg p-3'>
+                <h3 className='text-sm font-semibold text-gray-200 mb-1'>Restricciones del Banco</h3>
                 <p className='text-xs text-gray-400'>
                   Algunos bancos bloquean transacciones en línea por seguridad. Contacta a tu banco para autorizar el pago.
                 </p>
@@ -217,53 +215,16 @@ const PaymentError = () => {
           </CardBody>
         </Card>
 
-        {/* Help Section */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-          <Card className='bg-blue-500/5 border-blue-500/20'>
-            <CardBody className='p-4'>
-              <div className='flex items-start gap-3'>
-                <div className='w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center'>
-                  <MessageCircle className='w-5 h-5 text-blue-400' />
-                </div>
-                <div className='flex-1'>
-                  <h3 className='text-sm font-semibold text-blue-400 mb-1'>¿Necesitas Ayuda?</h3>
-                  <p className='text-xs text-blue-300/80 mb-3'>Nuestro equipo de soporte está aquí para ayudarte</p>
-                  <Button color='primary' size='sm' variant='flat' onPress={handleContactSupport}>
-                    Contactar Soporte
-                  </Button>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          <Card className='bg-purple-500/5 border-purple-500/20'>
-            <CardBody className='p-4'>
-              <div className='flex items-start gap-3'>
-                <div className='w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center'>
-                  <HelpCircle className='w-5 h-5 text-purple-400' />
-                </div>
-                <div className='flex-1'>
-                  <h3 className='text-sm font-semibold text-purple-400 mb-1'>Otros Métodos de Pago</h3>
-                  <p className='text-xs text-purple-300/80 mb-3'>Intenta con otra tarjeta o método de pago</p>
-                  <Button color='secondary' size='sm' variant='flat' onPress={handleRetryPayment}>
-                    Intentar de Nuevo
-                  </Button>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-
         {/* Tips */}
-        <Card className='bg-yellow-500/5 border-yellow-500/20'>
+        <Card className='bg-yellow-500/5 border-yellow-500/20 w-full'>
           <CardBody className='p-4'>
             <div className='flex items-start gap-3'>
-              <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
-                <AlertTriangle className='w-4 h-4 text-yellow-400' />
+              <div className='w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+                <AlertTriangle className='w-5 h-5 text-yellow-400' />
               </div>
               <div>
                 <h3 className='text-sm font-semibold text-yellow-400 mb-2'>Consejos para tu Próximo Intento</h3>
-                <ul className='text-xs text-yellow-300/80 space-y-1 list-disc list-inside'>
+                <ul className='text-xs text-gray-400 space-y-1 list-disc list-inside'>
                   <li>Verifica que todos los datos de tu tarjeta sean correctos</li>
                   <li>Asegúrate de tener fondos suficientes en tu cuenta</li>
                   <li>Intenta con un método de pago diferente si el problema persiste</li>
@@ -275,12 +236,49 @@ const PaymentError = () => {
           </CardBody>
         </Card>
 
-        {/* Back Button */}
-        <div className='text-center'>
-          <Button color='default' size='sm' variant='light' onPress={handleGoBack}>
-            <ArrowLeft className='w-4 h-4' />
-            Volver a Matches
-          </Button>
+        {/* Help Section */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 w-full'>
+          <Card className='bg-blue-500/5 border-blue-500/20'>
+            <CardBody className='p-4'>
+              <div className='flex items-start gap-3'>
+                <div className='w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+                  <MessageCircle className='w-5 h-5 text-blue-400' />
+                </div>
+                <div className='flex-1'>
+                  <h3 className='text-sm font-semibold text-blue-400 mb-1'>¿Necesitas Ayuda?</h3>
+                  <p className='text-xs text-gray-400 mb-3'>Nuestro equipo de soporte está aquí para ayudarte</p>
+                  <Button
+                    className='bg-blue-500/5 border-blue-500/20 text-blue-300'
+                    size='sm'
+                    variant='flat'
+                    onPress={handleContactSupport}>
+                    Contactar Soporte
+                  </Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card className='bg-purple-500/5 border-purple-500/20'>
+            <CardBody className='p-4'>
+              <div className='flex items-start gap-3'>
+                <div className='w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+                  <HelpCircle className='w-5 h-5 text-purple-400' />
+                </div>
+                <div className='flex-1'>
+                  <h3 className='text-sm font-semibold text-purple-400 mb-1'>Otros Métodos de Pago</h3>
+                  <p className='text-xs text-gray-400 mb-3'>Intenta con otra tarjeta o método de pago</p>
+                  <Button
+                    className='bg-purple-500/5 border-purple-500/20 text-purple-300'
+                    size='sm'
+                    variant='flat'
+                    onPress={handleRetryPayment}>
+                    Intentar de Nuevo
+                  </Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </LiteContainer>
     </>

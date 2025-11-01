@@ -15,14 +15,42 @@ resource "aws_acm_certificate" "wildcard" {
   })
 }
 
-resource "aws_route53_record" "acm_validation" {
-  count = local.domain_enabled ? length(aws_acm_certificate.wildcard[0].domain_validation_options) : 0
+locals {
+  acm_validation_domains = local.domain_enabled && length(local._trimmed_domain) > 0 ? [
+    local._trimmed_domain,
+    "*.${local._trimmed_domain}"
+  ] : []
+}
 
+resource "aws_route53_record" "acm_validation" {
+  count = length(local.acm_validation_domains)
+
+  allow_overwrite = true
   zone_id = local.route53_zone_id
-  name    = aws_acm_certificate.wildcard[0].domain_validation_options[count.index].resource_record_name
-  type    = aws_acm_certificate.wildcard[0].domain_validation_options[count.index].resource_record_type
+  name = element(
+    concat(
+      [for dvo in aws_acm_certificate.wildcard[0].domain_validation_options : dvo.resource_record_name if dvo.domain_name == local.acm_validation_domains[count.index]],
+      [""]
+    ),
+    0
+  )
+  type = element(
+    concat(
+      [for dvo in aws_acm_certificate.wildcard[0].domain_validation_options : dvo.resource_record_type if dvo.domain_name == local.acm_validation_domains[count.index]],
+      [""]
+    ),
+    0
+  )
   ttl     = 60
-  records = [aws_acm_certificate.wildcard[0].domain_validation_options[count.index].resource_record_value]
+  records = [
+    element(
+      concat(
+        [for dvo in aws_acm_certificate.wildcard[0].domain_validation_options : dvo.resource_record_value if dvo.domain_name == local.acm_validation_domains[count.index]],
+        [""]
+      ),
+      0
+    )
+  ]
 }
 
 resource "aws_acm_certificate_validation" "wildcard" {

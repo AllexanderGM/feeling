@@ -1,5 +1,7 @@
 locals {
   _trimmed_domain = trimspace(var.domain_name)
+  wordpress_ip    = var.lightsail_wordpress_ip != null ? trimspace(var.lightsail_wordpress_ip) : ""
+
   route53_zone_id = local.domain_enabled ? (
     var.hosted_zone_id != null ? var.hosted_zone_id :
     var.create_hosted_zone ?
@@ -60,12 +62,22 @@ resource "aws_route53_record" "frontend_cloudfront" {
   }
 }
 
+resource "aws_route53_record" "wordpress_root" {
+  count = local.domain_enabled && local.wordpress_ip != "" ? 1 : 0
+
+  zone_id = local.route53_zone_id
+  name    = local._trimmed_domain
+  type    = "A"
+  ttl     = 300
+  records = [local.wordpress_ip]
+}
+
 resource "aws_route53_record" "wordpress" {
-  count = local.domain_enabled && var.lightsail_wordpress_ip != null && trimspace(var.lightsail_wordpress_ip) != "" ? 1 : 0
+  count = local.domain_enabled && local.wordpress_ip != "" ? 1 : 0
 
   zone_id = local.route53_zone_id
   name    = "${var.wordpress_subdomain}.${local._trimmed_domain}"
   type    = "A"
   ttl     = 300
-  records = [trimspace(var.lightsail_wordpress_ip)]
+  records = [local.wordpress_ip]
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Modal,
   ModalContent,
@@ -13,7 +13,7 @@ import {
   CardBody,
   Chip
 } from '@heroui/react'
-import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon, Upload, X } from 'lucide-react'
 import { RichTextEditor } from '@components/ui/richtext'
 
 const EVENT_CATEGORIES = [
@@ -28,6 +28,7 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     title: '',
     description: '',
     eventDate: '',
+    location: '',
     price: '',
     maxCapacity: '',
     category: '',
@@ -35,6 +36,17 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
   })
 
   const [errors, setErrors] = useState({})
+  const [mainImageFile, setMainImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const fileInputRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, [imagePreview])
 
   const validateForm = () => {
     const newErrors = {}
@@ -47,6 +59,12 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
 
     if (!formData.description.trim()) {
       newErrors.description = 'La descripción es requerida'
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'La ubicación es requerida'
+    } else if (formData.location.length > 300) {
+      newErrors.location = 'La ubicación no puede exceder 300 caracteres'
     }
 
     if (!formData.eventDate) {
@@ -78,19 +96,21 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
   }
 
   const handleSubmit = () => {
+    if (loading) return
     if (!validateForm()) return
 
     const eventData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
       eventDate: new Date(formData.eventDate).toISOString(),
+      location: formData.location.trim(),
       price: parseFloat(formData.price),
       maxCapacity: parseInt(formData.maxCapacity),
       category: formData.category,
-      mainImage: formData.mainImage.trim() || null
+      mainImage: mainImageFile ? null : formData.mainImage.trim() || null
     }
 
-    onSubmit(eventData)
+    onSubmit({ eventData, mainImageFile })
   }
 
   const handleClose = () => {
@@ -98,12 +118,18 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       title: '',
       description: '',
       eventDate: '',
+      location: '',
       price: '',
       maxCapacity: '',
       category: '',
       mainImage: ''
     })
     setErrors({})
+    setMainImageFile(null)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview('')
+    }
     onClose()
   }
 
@@ -111,6 +137,14 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
+    }
+
+    if (field === 'mainImage' && value) {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+        setImagePreview('')
+      }
+      setMainImageFile(null)
     }
   }
 
@@ -124,6 +158,28 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
   }
 
   const selectedCategory = EVENT_CATEGORIES.find(cat => cat.key === formData.category)
+
+  const handleImageSelection = event => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+    }
+
+    setMainImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setFormData(prev => ({ ...prev, mainImage: '' }))
+  }
+
+  const handleRemoveImage = () => {
+    setMainImageFile(null)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview('')
+    }
+  }
 
   return (
     <Modal
@@ -194,12 +250,65 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  errorMessage={errors.location}
+                  isInvalid={!!errors.location}
+                  label='Ubicación del Evento'
+                  maxLength={300}
+                  placeholder='Ej: Teatro Nacional, Bogotá'
+                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
+                  value={formData.location}
+                  onChange={e => handleInputChange('location', e.target.value)}
+                />
+
+                <Input
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
                   label='URL de Imagen Principal (Opcional)'
                   placeholder='https://ejemplo.com/imagen.jpg'
                   startContent={<ImageIcon className='w-4 h-4 text-gray-400' />}
                   value={formData.mainImage}
                   onChange={e => handleInputChange('mainImage', e.target.value)}
                 />
+
+                <div className='space-y-3'>
+                  <div className='flex items-center justify-between'>
+                    <p className='text-sm font-medium text-gray-200'>Imagen Principal</p>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        color='primary'
+                        size='sm'
+                        startContent={<Upload className='w-4 h-4' />}
+                        variant='flat'
+                        onPress={() => fileInputRef.current?.click()}>
+                        Subir imagen
+                      </Button>
+                      {mainImageFile && (
+                        <Button
+                          color='danger'
+                          size='sm'
+                          startContent={<X className='w-4 h-4' />}
+                          variant='light'
+                          onPress={handleRemoveImage}>
+                          Quitar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <input ref={fileInputRef} accept='image/*' className='hidden' type='file' onChange={handleImageSelection} />
+
+                  {(imagePreview || (!mainImageFile && formData.mainImage)) && (
+                    <div className='relative h-40 rounded-xl overflow-hidden border border-dashed border-gray-600 bg-gray-900/40 flex items-center justify-center'>
+                      <img alt='Previsualización' className='object-cover w-full h-full' src={imagePreview || formData.mainImage} />
+                    </div>
+                  )}
+                  {!imagePreview && !formData.mainImage && (
+                    <Chip className='self-start' color='default' size='sm' variant='flat'>
+                      Puedes subir una imagen o indicar una URL externa
+                    </Chip>
+                  )}
+                </div>
               </CardBody>
             </Card>
 
@@ -333,6 +442,16 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                           <div>
                             <p className='text-xs text-gray-400'>Capacidad</p>
                             <p className='text-sm text-gray-200'>{formData.maxCapacity} personas</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.location && (
+                        <div className='flex items-center gap-2'>
+                          <MapPin className='w-4 h-4 text-amber-400' />
+                          <div>
+                            <p className='text-xs text-gray-400'>Ubicación</p>
+                            <p className='text-sm text-gray-200'>{formData.location}</p>
                           </div>
                         </div>
                       )}

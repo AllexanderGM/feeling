@@ -3,6 +3,7 @@ package com.feeling.packages.booking.application;
 import com.feeling.packages.booking.domain.dto.BookingRequestDTO;
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
 import com.feeling.packages.booking.domain.dto.BookingStatisticsDTO;
+import com.feeling.packages.booking.domain.dto.GuestBookingRequestDTO;
 import com.feeling.packages.booking.domain.services.BookingService;
 import com.feeling.packages.booking.infrastructure.entities.Booking;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,13 @@ import java.util.List;
 public class BookingController {
 
     private final BookingService bookingService;
+
+    @PostMapping("/guest")
+    @Operation(summary = "Crear reserva para invitado", description = "Permite generar una reserva sin autenticación, registrando los datos básicos del participante")
+    public ResponseEntity<BookingResponseDTO> createGuestBooking(@Valid @RequestBody GuestBookingRequestDTO bookingRequestDTO) {
+        BookingResponseDTO booking = bookingService.createGuestBooking(bookingRequestDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+    }
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")

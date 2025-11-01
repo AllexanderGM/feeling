@@ -50,7 +50,9 @@ const ProfileComplete = () => {
     storage.set(STORAGE_KEY, progressData)
   }, [currentStep, STORAGE_KEY, storage])
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = useCallback(result => {
+    if (result?.success === false) return
+
     setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
@@ -60,11 +62,16 @@ const ProfileComplete = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  const handleFinalComplete = useCallback(() => {
-    storage.remove(STORAGE_KEY)
-    navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
-    Logger.info(Logger.CATEGORIES.UI, 'completar perfil', 'Perfil completado correctamente')
-  }, [navigate, storage, STORAGE_KEY])
+  const handleFinalComplete = useCallback(
+    result => {
+      if (result?.success === false) return
+
+      storage.remove(STORAGE_KEY)
+      navigate(APP_PATHS.USER.WELCOME_ONBOARDING, { replace: true })
+      Logger.info(Logger.CATEGORIES.UI, 'completar perfil', 'Perfil completado correctamente')
+    },
+    [navigate, storage, STORAGE_KEY]
+  )
 
   // Función para manejar el click en "Continuar"
   const handleContinueClick = useCallback(() => {

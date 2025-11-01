@@ -56,7 +56,8 @@ public class RouteSecurityConfig {
             "/auth/resend-verification",
             "/auth/forgot-password",
             "/auth/reset-password",
-            "/auth/refresh-token"
+            "/auth/refresh-token",
+            "/bookings/guest"
         )
     );
 
@@ -296,7 +297,10 @@ public class RouteSecurityConfig {
 
             // Datos públicos
             "/geographic/**", "/user-attributes/**", "/user-interests/**",
-            "/user-tags/popular/**", "/user-tags/search/**", "/user-tags/trending/**"
+            "/user-tags/popular/**", "/user-tags/search/**", "/user-tags/trending/**",
+
+            // Reservas públicas de eventos
+            "/bookings/guest"
         );
     }
 

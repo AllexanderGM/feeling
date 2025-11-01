@@ -388,6 +388,43 @@ export const MATCH_STATUS_LABELS = {
   REJECTED: 'Rechazado'
 }
 
+// Columnas para admin de matches
+export const MATCH_ADMIN_TYPE_COLUMNS = {
+  all: [
+    { name: 'ID', uid: 'id', sortable: true },
+    { name: 'INICIADOR', uid: 'initiatorUser', sortable: true },
+    { name: 'DESTINATARIO', uid: 'targetUser', sortable: true },
+    { name: 'ESTADO', uid: 'status', sortable: true },
+    { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
+    { name: 'ÚLTIMA ACTUALIZACIÓN', uid: 'updatedAt', sortable: true },
+    { name: 'ACCIONES', uid: 'actions' }
+  ],
+  pending: [
+    { name: 'ID', uid: 'id', sortable: true },
+    { name: 'INICIADOR', uid: 'initiatorUser', sortable: true },
+    { name: 'DESTINATARIO', uid: 'targetUser', sortable: true },
+    { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
+    { name: 'TIEMPO TRANSCURRIDO', uid: 'elapsed', sortable: true },
+    { name: 'ACCIONES', uid: 'actions' }
+  ],
+  accepted: [
+    { name: 'ID', uid: 'id', sortable: true },
+    { name: 'INICIADOR', uid: 'initiatorUser', sortable: true },
+    { name: 'DESTINATARIO', uid: 'targetUser', sortable: true },
+    { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
+    { name: 'FECHA ACEPTACIÓN', uid: 'acceptedAt', sortable: true },
+    { name: 'ACCIONES', uid: 'actions' }
+  ],
+  rejected: [
+    { name: 'ID', uid: 'id', sortable: true },
+    { name: 'INICIADOR', uid: 'initiatorUser', sortable: true },
+    { name: 'DESTINATARIO', uid: 'targetUser', sortable: true },
+    { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
+    { name: 'FECHA RECHAZO', uid: 'rejectedAt', sortable: true },
+    { name: 'ACCIONES', uid: 'actions' }
+  ]
+}
+
 export const MATCH_SECTIONS = {
   DISCOVER: 'discover',
   SENT: 'sent',

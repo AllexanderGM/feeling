@@ -27,6 +27,12 @@ const eventValidations = {
     .max(2000, 'La descripción no puede exceder 2000 caracteres')
     .required('La descripción es requerida'),
 
+  location: yup
+    .string()
+    .min(5, 'La ubicación debe tener al menos 5 caracteres')
+    .max(300, 'La ubicación no puede exceder 300 caracteres')
+    .required('La ubicación es requerida'),
+
   eventDate: yup
     .string()
     .required('La fecha del evento es requerida')
@@ -127,6 +133,7 @@ const eventValidations = {
 export const createEventSchema = yup.object().shape({
   title: eventValidations.title,
   description: eventValidations.description,
+  location: eventValidations.location,
   eventDate: eventValidations.eventDate,
   price: eventValidations.price,
   maxCapacity: eventValidations.maxCapacity,
@@ -137,6 +144,7 @@ export const createEventSchema = yup.object().shape({
 export const editEventSchema = yup.object().shape({
   title: eventValidations.title,
   description: eventValidations.description,
+  location: eventValidations.location,
   eventDate: eventValidations.eventDate,
   price: eventValidations.price,
   maxCapacity: eventValidations.maxCapacity,

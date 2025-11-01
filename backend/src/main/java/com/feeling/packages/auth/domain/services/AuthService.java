@@ -20,6 +20,7 @@ import com.feeling.packages.auth.infrastructure.repositories.IAuthVerificationCo
 import com.feeling.packages.common.domain.dto.response.MessageResponseDTO;
 import com.feeling.packages.common.domain.services.email.EmailService;
 import com.feeling.packages.user.domain.services.UserFactory;
+import com.feeling.packages.user.domain.enums.UserAccountType;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -85,7 +86,33 @@ public class AuthService {
     @Transactional
     public MessageResponseDTO register(AuthRegisterRequestDTO newUser) {
         try {
-            validateExistingUser(newUser.email(), AuthProvider.LOCAL);
+            String normalizedEmail = newUser.email().toLowerCase().trim();
+
+            Optional<User> existingUserOpt = userRepository.findByEmail(normalizedEmail);
+            if (existingUserOpt.isPresent() && existingUserOpt.get().getAccountType() == UserAccountType.EVENTS_ONLY) {
+                User guestUser = existingUserOpt.get();
+                guestUser.setName(newUser.name().trim());
+                guestUser.setLastName(newUser.lastName().trim());
+                guestUser.setPassword(passwordEncoder.encode(newUser.password()));
+                guestUser.setUserAuthProvider(AuthProvider.LOCAL);
+                guestUser.setAccountType(UserAccountType.FULL_APP);
+                guestUser.setVerified(false);
+                guestUser.setConfigurationCompleted(false);
+                guestUser.setProfileComplete(false);
+                guestUser.setUpdatedAt(LocalDateTime.now());
+                guestUser.setShowMeInSearch(true);
+                guestUser.setSearchVisibility(true);
+                guestUser.setPublicAccount(true);
+                guestUser.setAllowNotifications(true);
+
+                User savedUser = userRepository.save(guestUser);
+                createAndSendVerificationCode(savedUser);
+                logger.logAuth("register", newUser.email(), "éxito - conversión desde invitado");
+
+                return new MessageResponseDTO("Tu cuenta se actualizó correctamente. Revisa tu correo para verificarla y completa tu perfil cuando inicies sesión.");
+            }
+
+            validateExistingUser(normalizedEmail, AuthProvider.LOCAL);
 
             User userEntity = userFactory.createLocalUser(newUser);
             User savedUser = userRepository.save(userEntity);
@@ -257,6 +284,12 @@ public class AuthService {
             User user = userOptional.get();
 
             // Verificar que el usuario pueda usar login tradicional
+            if (user.getUserAuthProvider() == AuthProvider.GUEST) {
+                throw new UnauthorizedException(
+                    "Este correo se utilizó para reservar eventos. Completa tu registro creando una contraseña para acceder a la plataforma."
+                );
+            }
+
             if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
                 logger.warn("Intento de login tradicional con cuenta OAuth", Map.of(
                     "email", auth.email(),
@@ -833,6 +866,9 @@ public class AuthService {
                     "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Google'.";
                 case FACEBOOK -> "Esta cuenta ya está registrada con Facebook. " +
                     "Ve a 'Iniciar Sesión' y usa el botón 'Continuar con Facebook'.";
+                case APPLE -> "Esta cuenta ya está registrada con Apple. " +
+                    "Usa 'Iniciar Sesión con Apple' para continuar.";
+                case GUEST -> "Este correo ya fue utilizado para reservas de eventos. Completa tu registro con el formulario principal para acceder a la plataforma.";
                 default -> "Esta cuenta ya existe con otro método de autenticación.";
             };
         }
@@ -843,8 +879,13 @@ public class AuthService {
                 ". Usa 'Iniciar Sesión' con ese método o vincula tu cuenta de Google.";
             case FACEBOOK -> "Esta cuenta ya está registrada con " + existingProvider +
                 ". Usa 'Iniciar Sesión' con ese método o vincula tu cuenta de Facebook.";
-            case LOCAL -> "El correo ya está registrado con " + existingProvider +
-                ". Usa el método correspondiente para iniciar sesión.";
+            case LOCAL -> {
+                if (existingProvider == AuthProvider.GUEST) {
+                    yield "Este correo ya se utilizó para reservas de eventos. Completa tu registro e inicia sesión con tu nueva contraseña.";
+                }
+                yield "El correo ya está registrado con " + existingProvider +
+                    ". Usa el método correspondiente para iniciar sesión.";
+            }
             default -> "El correo ya está registrado con otro método.";
         };
     }

@@ -664,6 +664,18 @@ configure_ec2() {
         die "No se obtuvo una IP válida para la instancia EC2."
     fi
 
+    local backend_domain_value="${API_FQDN:-}"
+    local proxy_tls_email="${TLS_CONTACT_EMAIL:-}"
+    if [[ -z "$proxy_tls_email" ]]; then
+        if [[ -n "${LETSENCRYPT_EMAIL:-}" ]]; then
+            proxy_tls_email="${LETSENCRYPT_EMAIL}"
+        elif [[ -n "${MAIL:-}" ]]; then
+            proxy_tls_email="${MAIL}"
+        elif [[ -n "${ADMIN_EMAIL:-}" ]]; then
+            proxy_tls_email="${ADMIN_EMAIL}"
+        fi
+    fi
+
     # Crear script de configuración que se ejecutará en la instancia
     local setup_script="${TERRAFORM_DIR}/ec2-setup.sh"
     cat <<'EOL' >"$setup_script"
@@ -698,11 +710,14 @@ REPO_SLUG_LOWER="$(echo "$GITHUB_REPO" | tr '[:upper:]' '[:lower:]')"
 echo "$GHCR_TOKEN" | sudo docker login ghcr.io -u "$REPO_OWNER" --password-stdin
 sudo docker pull ghcr.io/$REPO_SLUG_LOWER/backend:latest
 
+sudo docker network create feeling-net >/dev/null 2>&1 || true
+
 sudo docker stop feeling-backend 2>/dev/null || true
 sudo docker rm feeling-backend 2>/dev/null || true
 
 sudo docker run -d \
   --name feeling-backend \
+  --network feeling-net \
   --restart unless-stopped \
   -p "$PORT_BACK":"$PORT_BACK" \
   --env-file /opt/feeling/backend.env \
@@ -710,6 +725,37 @@ sudo docker run -d \
   --log-opt max-size=25m \
   --log-opt max-file=3 \
   ghcr.io/$REPO_SLUG_LOWER/backend:latest
+
+if [[ -n "${BACKEND_DOMAIN:-}" ]]; then
+  TLS_EMAIL_VALUE="${TLS_EMAIL:-}"
+
+  sudo install -d -o root -g root -m 755 /opt/feeling/caddy
+  sudo install -d -o root -g root -m 755 /opt/feeling/caddy-data
+
+  sudo tee /opt/feeling/caddy/Caddyfile >/dev/null <<EOF
+${TLS_EMAIL_VALUE:+{
+    email ${TLS_EMAIL_VALUE}
+}}
+${BACKEND_DOMAIN} {
+    encode gzip
+    reverse_proxy http://feeling-backend:${PORT_BACK}
+}
+EOF
+
+  sudo docker pull caddy:2
+  sudo docker stop feeling-proxy 2>/dev/null || true
+  sudo docker rm feeling-proxy 2>/dev/null || true
+
+  sudo docker run -d \
+    --name feeling-proxy \
+    --network feeling-net \
+    --restart unless-stopped \
+    -p 80:80 \
+    -p 443:443 \
+    -v /opt/feeling/caddy/Caddyfile:/etc/caddy/Caddyfile \
+    -v /opt/feeling/caddy-data:/data \
+    caddy:2
+fi
 EOL
 
     chmod +x "$setup_script"
@@ -742,7 +788,7 @@ EOL
 
     echo -e "${BLUE}🔄 Ejecutando script de configuración en la instancia EC2...${NC}"
     ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no ec2-user@"$BACKEND_IP" \
-        "chmod +x /home/ec2-user/ec2-setup.sh && GHCR_TOKEN='${GHCR_TOKEN}' GITHUB_REPO='${GITHUB_REPO}' PORT_BACK='${PORT_BACK}' /home/ec2-user/ec2-setup.sh"
+        "chmod +x /home/ec2-user/ec2-setup.sh && GHCR_TOKEN='${GHCR_TOKEN}' GITHUB_REPO='${GITHUB_REPO}' PORT_BACK='${PORT_BACK}' BACKEND_DOMAIN='${backend_domain_value}' TLS_EMAIL='${proxy_tls_email}' /home/ec2-user/ec2-setup.sh"
 
     rm -f "$setup_script"
 

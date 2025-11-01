@@ -17,7 +17,8 @@ import {
   Chip,
   Autocomplete,
   AutocompleteItem,
-  Button
+  Button,
+  Spinner
 } from '@heroui/react'
 import { Brain, Sparkles, Tag, Heart, GraduationCap, Briefcase, Accessibility, Ruler } from 'lucide-react'
 import { Controller } from 'react-hook-form'
@@ -898,7 +899,7 @@ const StepCharacteristicsContent = ({
   )
 }
 
-const StepCharacteristics = forwardRef(({ onStepComplete }, ref) => {
+const StepCharacteristics = forwardRef(({ onStepComplete, overrideUser = null, saveOptions = {} }, ref) => {
   const {
     control,
     errors,
@@ -907,8 +908,9 @@ const StepCharacteristics = forwardRef(({ onStepComplete }, ref) => {
     clearErrors,
     handleFormSubmit,
     userAttributes: resolvedUserAttributes,
-    userTags: resolvedUserTags
-  } = useStepCharacteristics({ onStepComplete })
+    userTags: resolvedUserTags,
+    isSaving
+  } = useStepCharacteristics({ onStepComplete, overrideUser, saveOptions })
 
   // Exponer método submit al componente padre
   useImperativeHandle(ref, () => ({
@@ -916,16 +918,24 @@ const StepCharacteristics = forwardRef(({ onStepComplete }, ref) => {
   }))
 
   return (
-    <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
-      <StepCharacteristicsContent
-        clearErrors={clearErrors}
-        control={control}
-        errors={errors}
-        setValue={setValue}
-        userAttributes={resolvedUserAttributes}
-        userTags={resolvedUserTags}
-        watch={watch}
-      />
+    <div className='relative'>
+      {isSaving && (
+        <div className='absolute inset-0 z-50 flex items-center justify-center rounded-2xl bg-gray-900/70 backdrop-blur-sm'>
+          <Spinner color='primary' size='lg' />
+        </div>
+      )}
+
+      <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
+        <StepCharacteristicsContent
+          clearErrors={clearErrors}
+          control={control}
+          errors={errors}
+          setValue={setValue}
+          userAttributes={resolvedUserAttributes}
+          userTags={resolvedUserTags}
+          watch={watch}
+        />
+      </div>
     </div>
   )
 })

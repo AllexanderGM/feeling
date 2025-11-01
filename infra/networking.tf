@@ -71,6 +71,26 @@ resource "aws_security_group_rule" "backend_http" {
   cidr_blocks       = length(var.backend_http_cidrs) > 0 ? var.backend_http_cidrs : ["0.0.0.0/0"]
 }
 
+resource "aws_security_group_rule" "backend_http_80" {
+  description       = "HTTP (80) access"
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  security_group_id = aws_security_group.backend.id
+  cidr_blocks       = length(var.backend_http_cidrs) > 0 ? var.backend_http_cidrs : ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "backend_https_443" {
+  description       = "HTTPS (443) access"
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  security_group_id = aws_security_group.backend.id
+  cidr_blocks       = length(var.backend_http_cidrs) > 0 ? var.backend_http_cidrs : ["0.0.0.0/0"]
+}
+
 resource "aws_security_group" "database" {
   name        = "${local.name_prefix}-db-sg"
   description = "Acceso a MySQL desde backend"

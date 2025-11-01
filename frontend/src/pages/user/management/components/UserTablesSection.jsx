@@ -185,13 +185,7 @@ const UserTablesSection = memo(() => {
   }, [])
 
   const handleOpenEditModal = useCallback(user => {
-    setSelectedUser({
-      id: user.id,
-      name: user.user?.name || '',
-      lastName: user.user?.lastName || '',
-      email: user.user?.email,
-      role: user.status?.role
-    })
+    setSelectedUser(user || null)
     setIsEditModalOpen(true)
   }, [])
 

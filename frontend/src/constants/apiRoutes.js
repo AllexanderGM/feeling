@@ -372,12 +372,17 @@ export const API_ENDPOINTS = {
     STATS: '/matches/stats',
     NOTIFICATIONS: '/matches/notifications',
     ATTEMPTS: '/matches/attempts',
-    // Admin endpoints
+    // Admin endpoints - Match Plans
     ADMIN_ALL_PLANS: '/admin/match-plans',
     ADMIN_PLAN_STATS: '/admin/match-plans/stats',
     ADMIN_CREATE_PLAN: '/admin/match-plans',
     ADMIN_UPDATE_PLAN: '/admin/match-plans/{planId}',
-    ADMIN_DELETE_PLAN: '/admin/match-plans/{planId}'
+    ADMIN_DELETE_PLAN: '/admin/match-plans/{planId}',
+    // Admin endpoints - Match Management
+    ADMIN_ALL_MATCHES: '/admin/matches',
+    ADMIN_MATCH_SUMMARY: '/admin/matches/summary',
+    ADMIN_TOP_INITIATORS: '/admin/matches/top-initiators',
+    ADMIN_TOP_RECEIVERS: '/admin/matches/top-receivers'
   },
 
   // ComplaintController - Gestión de quejas y reclamos (/complaints)
@@ -416,7 +421,8 @@ export const API_ENDPOINTS = {
     BASE: '/bookings',
     HISTORIC: '/bookings/historic',
     BY_ID: '/bookings/{id}',
-    CANCEL: '/bookings/{id}'
+    CANCEL: '/bookings/{id}',
+    GUEST: '/bookings/guest'
   },
 
   // Disponibilidades

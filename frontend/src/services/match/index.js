@@ -8,6 +8,7 @@
  * - matchPlanService → MatchPlanClientController
  * - matchStatisticsService → MatchStatisticsController
  * - matchSuggestionService → MatchSuggestionController
+ * - matchAdminService → MatchAdminMatchController
  */
 
 // Servicios especializados
@@ -17,6 +18,7 @@ export { default as matchFavoriteService } from './matchFavoriteService.js'
 export { default as matchPlanService } from './matchPlanService.js'
 export { default as matchStatisticsService } from './matchStatisticsService.js'
 export { default as matchSuggestionService } from './matchSuggestionService.js'
+export { default as matchAdminService } from './matchAdminService.js'
 
 // Servicio legacy (mantener por retrocompatibilidad temporal)
 export { default as matchService } from './matchService.js'

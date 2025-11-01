@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Modal,
   ModalContent,
@@ -13,7 +13,7 @@ import {
   CardBody,
   Chip
 } from '@heroui/react'
-import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon, Edit } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon, Edit, Upload, X } from 'lucide-react'
 import { RichTextEditor } from '@components/ui/richtext'
 
 const EVENT_CATEGORIES = [
@@ -28,6 +28,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
     title: '',
     description: '',
     eventDate: '',
+    location: '',
     price: '',
     maxCapacity: '',
     category: '',
@@ -35,22 +36,53 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
   })
 
   const [errors, setErrors] = useState({})
+  const [mainImageFile, setMainImageFile] = useState(null)
+  const [removeMainImage, setRemoveMainImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState('')
+  const fileInputRef = useRef(null)
 
-  // Llenar formulario cuando cambie eventData
   useEffect(() => {
     if (eventData && isOpen) {
       setFormData({
         title: eventData.title || '',
         description: eventData.description || '',
         eventDate: eventData.eventDate ? formatDateForInput(eventData.eventDate) : '',
-        price: eventData.price ? eventData.price.toString() : '',
-        maxCapacity: eventData.maxCapacity ? eventData.maxCapacity.toString() : '',
+        location: eventData.location || '',
+        price: eventData.price !== undefined ? String(eventData.price) : '',
+        maxCapacity: eventData.maxCapacity !== undefined ? String(eventData.maxCapacity) : '',
         category: eventData.category || '',
         mainImage: eventData.mainImage || eventData.mainImageUrl || ''
       })
       setErrors({})
+      setMainImageFile(null)
+      setRemoveMainImage(false)
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+        setImagePreview('')
+      }
     }
-  }, [eventData, isOpen])
+  }, [eventData, imagePreview, isOpen])
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, [imagePreview])
+
+  const formatDateForInput = value => {
+    if (!value) return ''
+    const date = new Date(value)
+
+    return date.toISOString().slice(0, 16)
+  }
+
+  const getMinDateTime = () => {
+    const now = new Date()
+
+    return now.toISOString().slice(0, 16)
+  }
 
   const validateForm = () => {
     const newErrors = {}
@@ -65,6 +97,12 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
       newErrors.description = 'La descripción es requerida'
     }
 
+    if (!formData.location.trim()) {
+      newErrors.location = 'La ubicación es requerida'
+    } else if (formData.location.length > 300) {
+      newErrors.location = 'La ubicación no puede exceder 300 caracteres'
+    }
+
     if (!formData.eventDate) {
       newErrors.eventDate = 'La fecha del evento es requerida'
     }
@@ -73,7 +111,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
       newErrors.price = 'Debe ser un precio válido (mayor o igual a 0)'
     }
 
-    if (!formData.maxCapacity || parseInt(formData.maxCapacity) <= 0) {
+    if (!formData.maxCapacity || parseInt(formData.maxCapacity, 10) <= 0) {
       newErrors.maxCapacity = 'La capacidad debe ser mayor a 0'
     }
 
@@ -87,19 +125,26 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
   }
 
   const handleSubmit = () => {
-    if (!validateForm()) return
+    if (loading) return
+    if (!validateForm() || !eventData?.id) return
 
     const updatedEventData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
       eventDate: new Date(formData.eventDate).toISOString(),
+      location: formData.location.trim(),
       price: parseFloat(formData.price),
-      maxCapacity: parseInt(formData.maxCapacity),
+      maxCapacity: parseInt(formData.maxCapacity, 10),
       category: formData.category,
-      mainImage: formData.mainImage.trim() || null
+      mainImage: mainImageFile || removeMainImage ? null : formData.mainImage.trim() || null
     }
 
-    onSubmit(eventData.id, updatedEventData)
+    onSubmit({
+      eventId: eventData.id,
+      eventData: updatedEventData,
+      mainImageFile,
+      removeMainImage
+    })
   }
 
   const handleClose = () => {
@@ -107,12 +152,19 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
       title: '',
       description: '',
       eventDate: '',
+      location: '',
       price: '',
       maxCapacity: '',
       category: '',
       mainImage: ''
     })
     setErrors({})
+    setMainImageFile(null)
+    setRemoveMainImage(false)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview('')
+    }
     onClose()
   }
 
@@ -121,21 +173,42 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+
+    if (field === 'mainImage') {
+      if (value) {
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview)
+          setImagePreview('')
+        }
+        setMainImageFile(null)
+        setRemoveMainImage(false)
+      }
+    }
   }
 
-  // Formatear fecha para el input datetime-local
-  const formatDateForInput = dateString => {
-    if (!dateString) return ''
-    const date = new Date(dateString)
+  const handleImageSelection = event => {
+    const file = event.target.files?.[0]
 
-    return date.toISOString().slice(0, 16)
+    if (!file) return
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+    }
+
+    setMainImageFile(file)
+    setRemoveMainImage(false)
+    setImagePreview(URL.createObjectURL(file))
+    setFormData(prev => ({ ...prev, mainImage: '' }))
   }
 
-  // Obtener fecha mínima (ahora)
-  const getMinDateTime = () => {
-    const now = new Date()
-
-    return now.toISOString().slice(0, 16)
+  const handleRemoveImage = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+      setImagePreview('')
+    }
+    setMainImageFile(null)
+    setRemoveMainImage(true)
+    setFormData(prev => ({ ...prev, mainImage: '' }))
   }
 
   const selectedCategory = EVENT_CATEGORIES.find(cat => cat.key === formData.category)
@@ -166,7 +239,6 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
         <ModalBody className='gap-6'>
           <div className='space-y-6'>
-            {/* Información básica */}
             <Card className='bg-gray-700/30 border-gray-600/50'>
               <CardBody className='gap-4'>
                 <h3 className='text-lg font-medium text-gray-200 flex items-center gap-2'>
@@ -209,16 +281,68 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                     input: 'text-gray-200',
                     inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
                   }}
+                  errorMessage={errors.location}
+                  isInvalid={!!errors.location}
+                  label='Ubicación del Evento'
+                  maxLength={300}
+                  placeholder='Ej: Auditorio Principal, Medellín'
+                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
+                  value={formData.location}
+                  onChange={e => handleInputChange('location', e.target.value)}
+                />
+
+                <Input
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
                   label='URL de Imagen Principal (Opcional)'
                   placeholder='https://ejemplo.com/imagen.jpg'
                   startContent={<ImageIcon className='w-4 h-4 text-gray-400' />}
                   value={formData.mainImage}
                   onChange={e => handleInputChange('mainImage', e.target.value)}
                 />
+
+                <div className='space-y-3'>
+                  <div className='flex items-center justify-between'>
+                    <p className='text-sm font-medium text-gray-200'>Imagen Principal</p>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        color='primary'
+                        size='sm'
+                        startContent={<Upload className='w-4 h-4' />}
+                        variant='flat'
+                        onPress={() => fileInputRef.current?.click()}>
+                        Subir nueva imagen
+                      </Button>
+                      {(mainImageFile || formData.mainImage || imagePreview) && (
+                        <Button
+                          color='danger'
+                          size='sm'
+                          startContent={<X className='w-4 h-4' />}
+                          variant='light'
+                          onPress={handleRemoveImage}>
+                          Quitar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <input ref={fileInputRef} accept='image/*' className='hidden' type='file' onChange={handleImageSelection} />
+
+                  {(imagePreview || (formData.mainImage && !removeMainImage)) && (
+                    <div className='relative h-40 rounded-xl overflow-hidden border border-dashed border-gray-600 bg-gray-900/40 flex items-center justify-center'>
+                      <img alt='Previsualización' className='object-cover w-full h-full' src={imagePreview || formData.mainImage} />
+                    </div>
+                  )}
+                  {removeMainImage && !imagePreview && !mainImageFile && (
+                    <Chip className='self-start' color='danger' size='sm' variant='flat'>
+                      La imagen se eliminará al guardar
+                    </Chip>
+                  )}
+                </div>
               </CardBody>
             </Card>
 
-            {/* Configuración del evento */}
             <Card className='bg-gray-700/30 border-gray-600/50'>
               <CardBody className='gap-4'>
                 <h3 className='text-lg font-medium text-gray-200 flex items-center gap-2'>
@@ -253,7 +377,11 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                     placeholder='Selecciona una categoría'
                     selectedKeys={formData.category ? [formData.category] : []}
                     startContent={<Tag className='w-4 h-4 text-gray-400' />}
-                    onSelectionChange={keys => handleInputChange('category', Array.from(keys)[0] || '')}>
+                    onSelectionChange={keys => {
+                      const selectedKey = Array.from(keys)[0]
+
+                      handleInputChange('category', selectedKey)
+                    }}>
                     {EVENT_CATEGORIES.map(category => (
                       <SelectItem key={category.key} value={category.key}>
                         {category.label}
@@ -270,9 +398,9 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                     }}
                     errorMessage={errors.price}
                     isInvalid={!!errors.price}
-                    label='Precio (USD)'
-                    min='0'
-                    placeholder='0.00, 25.00, 150.00...'
+                    label='Precio de Entrada'
+                    min={0}
+                    placeholder='0.00'
                     startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
                     step='0.01'
                     type='number'
@@ -288,93 +416,31 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                     errorMessage={errors.maxCapacity}
                     isInvalid={!!errors.maxCapacity}
                     label='Capacidad Máxima'
-                    min='1'
-                    placeholder='10, 50, 200...'
+                    min={1}
+                    placeholder='Ej: 100'
                     startContent={<Users className='w-4 h-4 text-gray-400' />}
                     type='number'
                     value={formData.maxCapacity}
                     onChange={e => handleInputChange('maxCapacity', e.target.value)}
                   />
                 </div>
+
+                {selectedCategory && (
+                  <Chip color='primary' size='sm' variant='flat'>
+                    Categoría seleccionada: {selectedCategory.label}
+                  </Chip>
+                )}
               </CardBody>
             </Card>
-
-            {/* Preview actualizado */}
-            {(formData.title || formData.price || formData.maxCapacity || formData.category) && (
-              <Card className='bg-gradient-to-br from-orange-900/20 via-orange-800/10 to-red-900/20 border-orange-700/50'>
-                <CardBody>
-                  <h3 className='text-lg font-medium text-orange-300 mb-3'>Vista Previa Actualizada</h3>
-                  <div className='bg-gray-800/50 rounded-lg p-6 border border-gray-600/30'>
-                    <div className='flex items-start justify-between mb-4'>
-                      <div className='flex-1'>
-                        <h4 className='font-bold text-xl text-gray-100 mb-2'>{formData.title || 'Título del Evento'}</h4>
-                        {selectedCategory && (
-                          <Chip className='mb-2' color='warning' size='sm' variant='flat'>
-                            {selectedCategory.label}
-                          </Chip>
-                        )}
-                        <p className='text-sm text-gray-400 mb-3'>{formData.description || 'Descripción del evento...'}</p>
-                      </div>
-                      {formData.price && (
-                        <div className='text-right ml-4'>
-                          <p className='text-2xl font-bold text-green-400'>${parseFloat(formData.price || 0).toFixed(2)}</p>
-                          <p className='text-xs text-gray-400'>USD</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-600/30'>
-                      {formData.eventDate && (
-                        <div className='flex items-center gap-2'>
-                          <Calendar className='w-4 h-4 text-blue-400' />
-                          <div>
-                            <p className='text-xs text-gray-400'>Fecha</p>
-                            <p className='text-sm text-gray-200'>
-                              {new Date(formData.eventDate).toLocaleDateString('es-ES', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.maxCapacity && (
-                        <div className='flex items-center gap-2'>
-                          <Users className='w-4 h-4 text-purple-400' />
-                          <div>
-                            <p className='text-xs text-gray-400'>Capacidad</p>
-                            <p className='text-sm text-gray-200'>{formData.maxCapacity} personas</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {formData.mainImage && (
-                        <div className='flex items-center gap-2'>
-                          <ImageIcon className='w-4 h-4 text-orange-400' />
-                          <div>
-                            <p className='text-xs text-gray-400'>Imagen</p>
-                            <p className='text-sm text-gray-200'>Configurada</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            )}
           </div>
         </ModalBody>
 
         <ModalFooter>
-          <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={handleClose}>
+          <Button disabled={loading} variant='light' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='warning' isLoading={loading} startContent={!loading && <Edit className='w-4 h-4' />} onPress={handleSubmit}>
-            Guardar Cambios
+          <Button color='primary' isDisabled={loading} isLoading={loading} onPress={handleSubmit}>
+            Guardar cambios
           </Button>
         </ModalFooter>
       </ModalContent>

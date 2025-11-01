@@ -12,14 +12,43 @@ export const mapBackendUserToFrontend = backendUser => {
     return null
   }
 
+  const getAttributeName = attribute => {
+    if (!attribute) return undefined
+    if (typeof attribute === 'string') return attribute
+
+    return attribute.name || attribute.label || attribute.value || attribute.code || attribute.description
+  }
+
+  const getAttributeId = attribute => {
+    if (!attribute) return undefined
+    if (typeof attribute === 'number' || typeof attribute === 'string') return attribute
+
+    return attribute.id ?? attribute.value ?? attribute.key ?? attribute.code ?? attribute.identifier
+  }
+
+  const getCategoryValue = category => {
+    if (!category) return undefined
+    if (typeof category === 'string') return category
+
+    return category.code || category.value || category.name || category.label || category.identifier
+  }
+
   // Si ya viene en formato plano (fallback)
   if (!backendUser.status && !backendUser.profile && !backendUser.user) {
     return backendUser
   }
 
-  const { status, profile, privacy, notifications, metrics, auth } = backendUser
+  const status =
+    backendUser.status || backendUser.userStatus || backendUser.accountStatus || backendUser.state || backendUser.profileStatus || {}
+  const profile =
+    backendUser.user || backendUser.profile || backendUser.profileData || backendUser.data?.user || backendUser.data?.profile || {}
+  const privacy = backendUser.privacy || backendUser.privacySettings || backendUser.settings?.privacy || profile.privacy || {}
+  const notifications =
+    backendUser.notifications || backendUser.notificationSettings || backendUser.settings?.notifications || profile.notifications || {}
+  const metrics = backendUser.metrics || backendUser.userMetrics || backendUser.statistics || {}
+  const auth = backendUser.auth || backendUser.authentication || backendUser.authInfo || {}
   // UserResponseDTO usa 'user' en lugar de 'profile'
-  const userData = backendUser.user || profile || {}
+  const userData = profile
 
   const mappedUser = {
     // ID del usuario
@@ -45,33 +74,33 @@ export const mapBackendUserToFrontend = backendUser => {
       image: userData?.mainImage || userData?.image,
       mainImage: userData?.mainImage || userData?.image,
       images: userData?.images || [],
-      categoryInterest: userData?.categoryInterest,
+      categoryInterest: getCategoryValue(userData?.categoryInterest),
       description: userData?.description || userData?.bio,
-      gender: userData?.gender,
-      genderId: userData?.genderId,
+      gender: getAttributeName(userData?.gender) ?? userData?.gender,
+      genderId: userData?.genderId ?? getAttributeId(userData?.gender),
       profession: userData?.profession,
       height: userData?.height,
-      eyeColor: userData?.eyeColor,
-      eyeColorId: userData?.eyeColorId,
-      hairColor: userData?.hairColor,
-      hairColorId: userData?.hairColorId,
-      bodyType: userData?.bodyType,
-      bodyTypeId: userData?.bodyTypeId,
-      maritalStatus: userData?.maritalStatus,
-      maritalStatusId: userData?.maritalStatusId,
-      education: userData?.education,
-      educationLevelId: userData?.educationLevelId,
+      eyeColor: getAttributeName(userData?.eyeColor) ?? userData?.eyeColor,
+      eyeColorId: userData?.eyeColorId ?? getAttributeId(userData?.eyeColor),
+      hairColor: getAttributeName(userData?.hairColor) ?? userData?.hairColor,
+      hairColorId: userData?.hairColorId ?? getAttributeId(userData?.hairColor),
+      bodyType: getAttributeName(userData?.bodyType) ?? userData?.bodyType,
+      bodyTypeId: userData?.bodyTypeId ?? getAttributeId(userData?.bodyType),
+      maritalStatus: getAttributeName(userData?.maritalStatus) ?? userData?.maritalStatus,
+      maritalStatusId: userData?.maritalStatusId ?? getAttributeId(userData?.maritalStatus),
+      education: getAttributeName(userData?.education) ?? userData?.education,
+      educationLevelId: userData?.educationLevelId ?? getAttributeId(userData?.education),
       tags: userData?.tags || [],
-      religion: userData?.religion,
-      religionId: userData?.religionId,
-      church: userData?.church,
-      churchId: userData?.churchId,
+      religion: getAttributeName(userData?.religion) ?? userData?.religion,
+      religionId: userData?.religionId ?? getAttributeId(userData?.religion),
+      church: getAttributeName(userData?.church) ?? userData?.church,
+      churchId: userData?.churchId ?? getAttributeId(userData?.church),
       spiritualMoments: userData?.spiritualMoments,
       spiritualPractices: userData?.spiritualPractices,
-      sexualRole: userData?.sexualRole,
-      sexualRoleId: userData?.sexualRoleId,
-      relationshipType: userData?.relationshipType,
-      relationshipId: userData?.relationshipId,
+      sexualRole: getAttributeName(userData?.sexualRole) ?? userData?.sexualRole,
+      sexualRoleId: userData?.sexualRoleId ?? getAttributeId(userData?.sexualRole),
+      relationshipType: getAttributeName(userData?.relationshipType) ?? userData?.relationshipType,
+      relationshipId: userData?.relationshipId ?? getAttributeId(userData?.relationshipType),
       agePreferenceMin: userData?.agePreferenceMin,
       agePreferenceMax: userData?.agePreferenceMax,
       locationPreferenceRadius: userData?.locationPreferenceRadius
@@ -80,6 +109,7 @@ export const mapBackendUserToFrontend = backendUser => {
     // Sección de status
     status: {
       role: status?.role || 'CLIENT',
+      accountType: status?.accountType || backendUser.accountType || 'FULL_APP',
       verified: status?.verified || false,
       approved: status?.approved || false,
       approvalStatus: status?.approvalStatus,
@@ -147,11 +177,33 @@ export const mapBackendUserToFrontend = backendUser => {
     lastName: userData?.lastName || '',
     email: userData?.email || status?.email,
     role: status?.role || 'CLIENT',
+    accountType: status?.accountType || backendUser.accountType || 'FULL_APP',
     verified: status?.verified || false,
     approved: status?.approved || false,
     profileComplete: status?.profileComplete || false,
     image: userData?.mainImage || userData?.image,
     mainImage: userData?.mainImage || userData?.image,
+    categoryInterest: getCategoryValue(userData?.categoryInterest),
+    gender: getAttributeName(userData?.gender) ?? userData?.gender,
+    genderId: userData?.genderId ?? getAttributeId(userData?.gender),
+    maritalStatus: getAttributeName(userData?.maritalStatus) ?? userData?.maritalStatus,
+    maritalStatusId: userData?.maritalStatusId ?? getAttributeId(userData?.maritalStatus),
+    education: getAttributeName(userData?.education) ?? userData?.education,
+    educationLevelId: userData?.educationLevelId ?? getAttributeId(userData?.education),
+    bodyType: getAttributeName(userData?.bodyType) ?? userData?.bodyType,
+    bodyTypeId: userData?.bodyTypeId ?? getAttributeId(userData?.bodyType),
+    eyeColor: getAttributeName(userData?.eyeColor) ?? userData?.eyeColor,
+    eyeColorId: userData?.eyeColorId ?? getAttributeId(userData?.eyeColor),
+    hairColor: getAttributeName(userData?.hairColor) ?? userData?.hairColor,
+    hairColorId: userData?.hairColorId ?? getAttributeId(userData?.hairColor),
+    religion: getAttributeName(userData?.religion) ?? userData?.religion,
+    religionId: userData?.religionId ?? getAttributeId(userData?.religion),
+    church: getAttributeName(userData?.church) ?? userData?.church,
+    churchId: userData?.churchId ?? getAttributeId(userData?.church),
+    sexualRole: getAttributeName(userData?.sexualRole) ?? userData?.sexualRole,
+    sexualRoleId: userData?.sexualRoleId ?? getAttributeId(userData?.sexualRole),
+    relationshipType: getAttributeName(userData?.relationshipType) ?? userData?.relationshipType,
+    relationshipId: userData?.relationshipId ?? getAttributeId(userData?.relationshipType),
     fullName: `${userData?.name || ''} ${userData?.lastName || ''}`.trim(),
     initials: `${userData?.name?.[0] || ''}${userData?.lastName?.[0] || ''}`.toUpperCase()
   }

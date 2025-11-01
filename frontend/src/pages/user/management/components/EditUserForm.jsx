@@ -1,370 +1,366 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
-import { useForm } from 'react-hook-form'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Tabs, Tab, Button, Chip, Spinner, Card, CardBody } from '@heroui/react'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
-import { useUser, useError, useLocation, useUserAttributes, useUserTags, useUserInterests } from '@hooks'
-import { completeProfileSchema, getFieldsForStep, getDefaultValuesForStep } from '@schemas'
-
-import StepBasicInfo from '../../complete/components/StepBasicInfo.jsx'
-import StepCharacteristics from '../../complete/components/StepCharacteristics.jsx'
-import StepPreferences from '../../complete/components/StepPreferences.jsx'
-import StepConfiguration from '../../complete/components/StepConfiguration.jsx'
+import * as yup from 'yup'
+import { useForm } from 'react-hook-form'
+import { Lock, Sparkles, Shield, User, Settings } from 'lucide-react'
+import { useUser, useError } from '@hooks'
+import { mapBackendUserToFrontend } from '@utils/userMapper.js'
 
 import StepBasicEdit from './StepBasicEdit.jsx'
 
-const TOTAL_STEPS = 5
+const TAB_KEYS = {
+  ACCESS: 'access',
+  PROFILE: 'profile',
+  PREFERENCES: 'preferences',
+  SETTINGS: 'settings'
+}
 
-const EditUserForm = ({ isOpen, onClose, onSuccess, userData }) => {
-  const { updateUserAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
+const PLACEHOLDER_SECTIONS = [
+  {
+    key: TAB_KEYS.PROFILE,
+    icon: User,
+    title: 'Información personal',
+    description: 'Datos generales, características y multimedia del perfil'
+  },
+  {
+    key: TAB_KEYS.PREFERENCES,
+    icon: Shield,
+    title: 'Preferencias y experiencia',
+    description: 'Preferencias de compatibilidad, intereses y comportamiento'
+  },
+  {
+    key: TAB_KEYS.SETTINGS,
+    icon: Settings,
+    title: 'Configuraciones avanzadas',
+    description: 'Privacidad, notificaciones y controles de seguridad'
+  }
+]
+
+const roleSchema = yup.object({
+  email: yup.string().email('Correo inválido').required('El correo es requerido'),
+  role: yup.string().required('Selecciona un rol')
+})
+
+const EditUserForm = memo(({ isOpen, onClose, user }) => {
+  const { getUserByEmail, getUserProfileById, updateUserProfileByAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
   const { handleError, handleSuccess } = useError()
-  const [currentStep, setCurrentStep] = useState(0)
-  const [originalRole, setOriginalRole] = useState('')
 
-  // Configuración de ubicación
-  const locationConfig = useMemo(
-    () => ({
-      defaultCountry: userData?.country || 'Colombia',
-      defaultCity: userData?.city || 'Bogotá'
-    }),
-    [userData]
-  )
+  const [activeTab, setActiveTab] = useState(TAB_KEYS.ACCESS)
+  const [editingUser, setEditingUser] = useState(null)
+  const [originalRole, setOriginalRole] = useState('CLIENT')
+  const [loadingUser, setLoadingUser] = useState(false)
+  const [stepSubmitting, setStepSubmitting] = useState(false)
 
-  // Hooks de datos
-  const location = useLocation(locationConfig)
-  const userAttributes = useUserAttributes()
-  const userTags = useUserTags()
-  const userInterests = useUserInterests()
-
-  // Valores por defecto del formulario con datos del usuario
-  const defaultValues = useMemo(
-    () => ({
-      // Step 0: Basic Edit
-      email: userData?.email || '',
-      role: userData?.role || 'CLIENT',
-      // Steps 1-4: Profile completion con datos del usuario
-      ...getDefaultValuesForStep(1, userData)
-    }),
-    [userData]
-  )
-
-  // React Hook Form
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    trigger,
-    watch,
-    getValues,
-    setValue,
-    setError,
-    clearErrors,
-    reset
-  } = useForm({
-    resolver: yupResolver(completeProfileSchema),
-    defaultValues,
-    mode: 'onChange'
+  const roleForm = useForm({
+    resolver: yupResolver(roleSchema),
+    mode: 'onChange',
+    defaultValues: {
+      email: '',
+      role: 'CLIENT'
+    }
   })
 
-  // Datos de hooks
-  const hookData = useMemo(
-    () => ({
-      location,
-      userAttributes,
-      userTags,
-      userInterests
-    }),
-    [location, userAttributes, userTags, userInterests]
+  const cleanupState = useCallback(() => {
+    setActiveTab(TAB_KEYS.ACCESS)
+    setEditingUser(null)
+    setOriginalRole('CLIENT')
+    setLoadingUser(false)
+    setStepSubmitting(false)
+    roleForm.reset({
+      email: '',
+      role: 'CLIENT'
+    })
+  }, [roleForm])
+
+  const handleModalClose = useCallback(() => {
+    cleanupState()
+    onClose?.()
+  }, [cleanupState, onClose])
+
+  const resolveUserEmail = useCallback(usr => {
+    if (!usr) return ''
+
+    return usr?.email || usr?.user?.email || usr?.status?.email || usr?.profile?.email || usr?.auth?.email || ''
+  }, [])
+
+  const resolveUserId = useCallback(usr => {
+    if (!usr) return ''
+
+    return usr?.id || usr?.user?.id || usr?.profile?.id || usr?.status?.id || ''
+  }, [])
+
+  const applyUserData = useCallback(
+    mappedUser => {
+      if (!mappedUser) return false
+
+      const roleValue = mappedUser?.status?.role || mappedUser?.role || 'CLIENT'
+      const emailValue = resolveUserEmail(mappedUser)
+
+      setEditingUser(mappedUser)
+      setOriginalRole(roleValue)
+      roleForm.reset(
+        {
+          email: emailValue || '',
+          role: roleValue
+        },
+        { keepDefaultValues: false }
+      )
+
+      return true
+    },
+    [resolveUserEmail, roleForm]
   )
 
-  // Funciones del formulario
-  const formMethods = useMemo(
-    () => ({
-      control,
-      watch,
-      getValues,
-      setValue,
-      setError,
-      clearErrors,
-      trigger,
-      reset
-    }),
-    [control, watch, getValues, setValue, setError, clearErrors, trigger, reset]
-  )
+  const loadUserData = useCallback(async () => {
+    if (!isOpen || !user) {
+      setEditingUser(null)
 
-  // Actualizar formulario cuando cambian los datos del usuario
-  useEffect(() => {
-    if (userData) {
-      setOriginalRole(userData.role || 'CLIENT')
-      reset({
-        email: userData.email || '',
-        role: userData.role || 'CLIENT',
-        ...getDefaultValuesForStep(1, userData)
-      })
+      return
     }
-  }, [userData, reset])
 
-  // Información del paso actual
-  const stepInfo = useMemo(() => {
-    const progress = Math.round(((currentStep + 1) / TOTAL_STEPS) * 100)
+    setLoadingUser(true)
 
-    return {
-      current: currentStep + 1,
-      total: TOTAL_STEPS,
-      progress,
-      isFirst: currentStep === 0,
-      isLast: currentStep === TOTAL_STEPS - 1
-    }
-  }, [currentStep])
+    try {
+      const fallback = mapBackendUserToFrontend(user)
 
-  // Funciones de navegación
-  const stepActions = useMemo(
-    () => ({
-      validateCurrentStep: async () => {
-        if (currentStep === 0) {
-          // Validación para step básico
-          const basicFields = ['email', 'role']
+      applyUserData(fallback)
 
-          return await formMethods.trigger(basicFields)
-        } else {
-          // Validación para steps de ProfileComplete
-          const fieldsToValidate = getFieldsForStep(currentStep)
+      let backendData = null
+      const userId = resolveUserId(user)
 
-          if (fieldsToValidate.length === 0) return true
+      if (userId) {
+        const response = await getUserProfileById(userId, 'extended', false)
 
-          return await formMethods.trigger(fieldsToValidate)
-        }
-      },
+        backendData = response?.data ?? response?.result ?? response
+      } else {
+        const userEmail = resolveUserEmail(user)
 
-      nextStep: async () => {
-        const isValid = await stepActions.validateCurrentStep()
+        if (userEmail) {
+          const response = await getUserByEmail(userEmail, false)
 
-        if (isValid && currentStep < TOTAL_STEPS - 1) {
-          setCurrentStep(prev => prev + 1)
-        }
-      },
-
-      prevStep: () => {
-        if (currentStep > 0) {
-          setCurrentStep(prev => prev - 1)
-        }
-      },
-
-      onSubmit: async data => {
-        try {
-          // Handle role change if necessary
-          if (data.role !== originalRole) {
-            if (data.role === 'ADMIN') {
-              const result = await assignAdminRole(userData.email)
-
-              if (!result.success) {
-                handleError(result.error || 'Error al asignar rol de administrador')
-
-                return
-              }
-            } else {
-              const result = await revokeAdminRole(userData.email)
-
-              if (!result.success) {
-                handleError(result.error || 'Error al revocar rol de administrador')
-
-                return
-              }
-            }
-          }
-
-          // Preparar datos para actualizar usuario
-          const updateData = {
-            id: userData.id,
-            ...data,
-            email: userData.email // Mantener el email original
-          }
-
-          const result = await updateUserAdmin(userData.email, updateData)
-
-          if (result.success) {
-            handleSuccess('Usuario actualizado exitosamente')
-            onSuccess?.()
-            onClose()
-          } else {
-            handleError(result.error || 'Error al actualizar usuario')
-          }
-        } catch (error) {
-          handleError(error)
+          backendData = response?.data ?? response?.result ?? response
         }
       }
-    }),
-    [
-      currentStep,
-      formMethods,
-      userData,
-      originalRole,
-      assignAdminRole,
-      revokeAdminRole,
-      updateUserAdmin,
-      handleSuccess,
-      handleError,
-      onSuccess,
-      onClose
-    ]
-  )
 
-  // Renderizado del contenido del paso
-  const renderStepContent = useMemo(() => {
-    const baseProps = {
-      errors,
-      ...formMethods
+      if (backendData) {
+        const mapped = mapBackendUserToFrontend(backendData)
+
+        applyUserData(mapped)
+      }
+    } catch (error) {
+      handleError(error)
+    } finally {
+      setLoadingUser(false)
+    }
+  }, [applyUserData, getUserByEmail, getUserProfileById, handleError, isOpen, resolveUserEmail, resolveUserId, user])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUserData()
+    } else {
+      cleanupState()
+    }
+  }, [cleanupState, isOpen, loadUserData])
+
+  const isBusy = submitting || stepSubmitting || loadingUser
+  const hasUserLoaded = !!editingUser && !loadingUser
+
+  const handleRoleChange = useCallback(async () => {
+    if (!editingUser?.id) return
+
+    const isValid = await roleForm.trigger('role')
+
+    if (!isValid) return
+
+    const newRole = roleForm.getValues('role')
+
+    if (!newRole || newRole === originalRole) {
+      handleSuccess('No hay cambios en el rol del usuario.')
+
+      return
     }
 
-    switch (currentStep) {
-      case 0:
-        return <StepBasicEdit {...baseProps} userData={userData} />
-      case 1:
-        return <StepBasicInfo {...baseProps} locationData={hookData.location} user={userData} />
-      case 2:
-        return <StepCharacteristics {...baseProps} userAttributes={hookData.userAttributes} userTags={hookData.userTags} />
-      case 3:
-        return (
-          <StepPreferences
-            {...baseProps}
-            attributesLoading={hookData.userAttributes.loading}
-            categoriesError={hookData.userInterests.error}
-            categoriesLoading={hookData.userInterests.loading}
-            categoryOptions={hookData.userInterests.interestOptions}
-            relationshipTypeOptions={hookData.userAttributes.relationshipTypeOptions}
-            religionOptions={hookData.userAttributes.religionOptions}
-            sexualRoleOptions={hookData.userAttributes.sexualRoleOptions}
-          />
-        )
-      case 4:
-        return <StepConfiguration {...baseProps} categoryOptions={hookData.userInterests.interestOptions} />
-      default:
-        return null
+    setStepSubmitting(true)
+
+    try {
+      const operation = newRole === 'ADMIN' ? assignAdminRole : revokeAdminRole
+      const result = await operation(editingUser.id, false)
+
+      if (result?.success === false) {
+        throw new Error(result?.message || 'No se pudo actualizar el rol')
+      }
+
+      setOriginalRole(newRole)
+      handleSuccess(`Rol actualizado a ${newRole === 'ADMIN' ? 'Administrador' : 'Cliente'}`)
+      onClose?.()
+    } catch (error) {
+      handleError(error)
+      roleForm.setValue('role', originalRole, { shouldDirty: false, shouldValidate: true })
+    } finally {
+      setStepSubmitting(false)
     }
-  }, [currentStep, hookData, errors, formMethods, userData])
+  }, [assignAdminRole, editingUser?.id, handleError, handleSuccess, onClose, originalRole, revokeAdminRole, roleForm])
 
-  // Handler para submit final
-  const handleFinalSubmit = useCallback(() => {
-    handleSubmit(stepActions.onSubmit)()
-  }, [handleSubmit, stepActions.onSubmit])
+  const renderPlaceholderContent = tabKey => {
+    const section = PLACEHOLDER_SECTIONS.find(item => item.key === tabKey)
+    const SectionIcon = section?.icon || Lock
+    const sectionTitle = section?.title || 'Funcionalidad en desarrollo'
+    const sectionDescription = section?.description || 'Esta sección estará disponible en una próxima versión del panel administrativo.'
 
-  const handleClose = () => {
-    setCurrentStep(0)
-    reset()
-    onClose()
-  }
-
-  // Estados de carga
-  const isLoading =
-    hookData.location.loading || hookData.userAttributes.loading || hookData.userTags.loading || hookData.userInterests.loading
-
-  if (isLoading) {
     return (
-      <Modal
-        classNames={{
-          backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
-          base: 'border-[#292f46] bg-white dark:bg-gray-800'
-        }}
-        isOpen={isOpen}
-        size='2xl'
-        onClose={handleClose}>
-        <ModalContent>
-          <ModalBody>
-            <div className='flex items-center justify-center p-8'>
-              <div className='text-center'>
-                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4' />
-                <p className='text-gray-400'>Cargando datos necesarios...</p>
-              </div>
+      <div className='relative min-h-[320px]'>
+        <div className='absolute inset-0 z-10 flex items-center justify-center px-4'>
+          <div className='bg-gray-900/95 backdrop-blur-md border border-primary/40 rounded-2xl p-8 shadow-2xl max-w-lg text-center space-y-4'>
+            <div className='mx-auto w-14 h-14 bg-primary/15 rounded-full flex items-center justify-center'>
+              <SectionIcon className='w-7 h-7 text-primary' />
             </div>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+            <div className='space-y-2'>
+              <h4 className='text-xl font-semibold text-gray-100'>{sectionTitle}</h4>
+              <p className='text-sm text-gray-400'>{sectionDescription}</p>
+            </div>
+            <Chip color='primary' size='lg' variant='flat'>
+              Próximamente
+            </Chip>
+          </div>
+        </div>
+
+        <div className='blur-sm pointer-events-none select-none space-y-4'>
+          <Card className='bg-gray-800/40 border border-gray-700/50'>
+            <CardBody className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+              {PLACEHOLDER_SECTIONS.map(sectionItem => (
+                <div key={sectionItem.key} className='p-4 bg-gray-900/40 rounded-lg border border-gray-700/40 space-y-2'>
+                  <div className='w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center'>
+                    <sectionItem.icon className='w-5 h-5 text-primary/70' />
+                  </div>
+                  <p className='text-sm font-semibold text-gray-200'>{sectionItem.title}</p>
+                  <p className='text-xs text-gray-400'>{sectionItem.description}</p>
+                  <Chip color='primary' size='sm' variant='flat'>
+                    En desarrollo
+                  </Chip>
+                </div>
+              ))}
+            </CardBody>
+          </Card>
+        </div>
+      </div>
     )
   }
 
+  const tabItems = useMemo(
+    () => [
+      { key: TAB_KEYS.ACCESS, title: 'Acceso', available: true },
+      { key: TAB_KEYS.PROFILE, title: 'Perfil', available: false },
+      { key: TAB_KEYS.PREFERENCES, title: 'Preferencias', available: false },
+      { key: TAB_KEYS.SETTINGS, title: 'Configuraciones', available: false }
+    ],
+    []
+  )
+
+  const { fullName, email, roleLabel } = useMemo(() => {
+    const resolvedFullName =
+      editingUser?.fullName ||
+      `${editingUser?.user?.name || ''} ${editingUser?.user?.lastName || ''}`.trim() ||
+      editingUser?.email ||
+      editingUser?.user?.email ||
+      'Usuario sin nombre'
+
+    const resolvedEmail = editingUser?.email || editingUser?.user?.email || 'Correo no disponible'
+    const resolvedRole = editingUser?.status?.role || editingUser?.role || 'CLIENT'
+
+    return {
+      fullName: resolvedFullName,
+      email: resolvedEmail,
+      roleLabel: resolvedRole
+    }
+  }, [editingUser])
+
+  const activeTabIsAccess = activeTab === TAB_KEYS.ACCESS
+
   return (
     <Modal
+      aria-label='Modal de edición de usuario'
       classNames={{
         backdrop: 'bg-[#292f46]/50 backdrop-opacity-40',
-        base: 'border-[#292f46] bg-white dark:bg-gray-800'
+        base: 'border-[#292f46] bg-white dark:bg-gray-900'
       }}
       isOpen={isOpen}
-      scrollBehavior='inside'
       size='4xl'
-      onClose={handleClose}>
+      onClose={handleModalClose}>
       <ModalContent>
-        <ModalHeader className='flex flex-col gap-1'>
-          <div className='flex items-center justify-between w-full'>
+        <ModalHeader className='flex flex-col gap-3'>
+          <div className='flex flex-col md:flex-row md:items-start md:justify-between gap-3 w-full'>
             <div>
-              <h3 className='text-lg font-semibold'>Editar Usuario</h3>
-              <p className='text-sm text-gray-400'>
-                Paso {stepInfo.current} de {stepInfo.total}
-              </p>
+              <h3 className='text-lg font-semibold text-gray-100'>Editar Usuario</h3>
+              <p className='text-sm text-gray-400'>{loadingUser ? 'Cargando información...' : fullName}</p>
             </div>
-            <div className='text-sm text-gray-400'>{stepInfo.progress}%</div>
+            <div className='text-right space-y-1'>
+              <p className='text-sm text-gray-300'>{email}</p>
+              <p className='text-xs text-gray-500 uppercase tracking-wide'>Rol actual: {roleLabel}</p>
+            </div>
           </div>
 
-          {/* Barra de progreso */}
-          <div className='w-full bg-gray-700 rounded-full h-2 overflow-hidden mt-2'>
-            <div
-              className='bg-gradient-to-r from-primary-400 to-primary-600 h-full rounded-full transition-all duration-500'
-              style={{ width: `${stepInfo.progress}%` }}
-            />
-          </div>
+          <Tabs
+            aria-label='Secciones de edición de usuario'
+            selectedKey={activeTab}
+            variant='underlined'
+            onSelectionChange={key => setActiveTab(key.toString())}>
+            {tabItems.map(tab => (
+              <Tab
+                key={tab.key}
+                title={
+                  <div className='flex items-center gap-2'>
+                    <span>{tab.title}</span>
+                    {!tab.available && (
+                      <Chip className='text-[10px]' color='primary' size='sm' variant='flat'>
+                        Próximamente
+                      </Chip>
+                    )}
+                  </div>
+                }
+              />
+            ))}
+          </Tabs>
         </ModalHeader>
 
         <ModalBody>
-          <div className='min-h-[400px] py-4'>{renderStepContent}</div>
+          <div className='min-h-[320px] py-2'>
+            {loadingUser ? (
+              <div className='flex items-center justify-center py-12'>
+                <Spinner color='primary' size='lg' />
+              </div>
+            ) : activeTabIsAccess ? (
+              editingUser ? (
+                <StepBasicEdit control={roleForm.control} errors={roleForm.formState.errors} userData={editingUser} />
+              ) : (
+                <div className='p-6 text-center text-gray-400'>No se pudo cargar la información del usuario seleccionado.</div>
+              )
+            ) : (
+              renderPlaceholderContent(activeTab)
+            )}
+          </div>
         </ModalBody>
 
         <ModalFooter>
           <div className='flex justify-between items-center w-full'>
-            <Button
-              isDisabled={stepInfo.isFirst || submitting}
-              startContent={<ArrowLeft size={16} />}
-              variant='bordered'
-              onPress={stepActions.prevStep}>
-              Anterior
+            <Button color='danger' variant='light' onPress={handleModalClose}>
+              Cancelar
             </Button>
 
-            {/* Indicador de pasos */}
-            <div className='flex gap-2'>
-              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-                <div
-                  key={i}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    i === currentStep ? 'bg-primary-500 scale-125' : i < currentStep ? 'bg-primary-400' : 'bg-gray-600'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className='flex gap-2'>
-              <Button color='danger' isDisabled={submitting} variant='light' onPress={handleClose}>
-                Cancelar
-              </Button>
-
-              {stepInfo.isLast ? (
-                <Button
-                  color='primary'
-                  endContent={!submitting && <Check size={16} />}
-                  isDisabled={submitting}
-                  isLoading={submitting}
-                  onPress={handleFinalSubmit}>
-                  {submitting ? 'Actualizando...' : 'Guardar Cambios'}
-                </Button>
-              ) : (
-                <Button color='primary' endContent={<ArrowRight size={16} />} isDisabled={submitting} onPress={stepActions.nextStep}>
-                  Siguiente
-                </Button>
-              )}
-            </div>
+            <Button
+              color='primary'
+              endContent={!isBusy ? <Sparkles className='w-4 h-4' /> : null}
+              isDisabled={isBusy || !hasUserLoaded}
+              isLoading={activeTabIsAccess && stepSubmitting}
+              onPress={activeTabIsAccess ? handleRoleChange : handleModalClose}>
+              {activeTabIsAccess ? 'Guardar cambios' : 'Entendido'}
+            </Button>
           </div>
         </ModalFooter>
       </ModalContent>
     </Modal>
   )
-}
+})
 
 EditUserForm.displayName = 'EditUserForm'
 

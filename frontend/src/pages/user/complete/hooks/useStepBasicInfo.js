@@ -1,4 +1,4 @@
-import { useRef, useCallback, useMemo, useEffect } from 'react'
+import { useRef, useCallback, useMemo, useEffect, useState } from 'react'
 import { useForm, useController } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { CalendarDate } from '@internationalized/date'
@@ -11,12 +11,14 @@ import { usePersistentImages } from './usePersistentImages'
 
 const normalizeValue = value => (typeof value === 'string' ? value.trim() : value)
 
-export const useStepBasicInfo = ({ onStepComplete } = {}) => {
+export const useStepBasicInfo = ({ onStepComplete, overrideUser = null, saveOptions = {} } = {}) => {
   const imageManagerRef = useRef(null)
-  const { user } = useAuth()
+  const { user: authUser } = useAuth()
+  const activeUser = overrideUser || authUser
+  const [isSaving, setIsSaving] = useState(false)
 
   const defaultValues = useMemo(() => {
-    const stepValues = getDefaultValuesForStep(1, user)
+    const stepValues = getDefaultValuesForStep(1, activeUser)
 
     if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
       stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
@@ -34,15 +36,15 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
       ...stepValues,
       locality: stepValues.locality ?? ''
     }
-  }, [user])
+  }, [activeUser])
 
   const locationConfig = useMemo(
     () => ({
-      defaultCountry: getUserCountry(user) || 'Colombia',
-      defaultCity: getUserCity(user) || 'Bogotá',
+      defaultCountry: getUserCountry(activeUser) || 'Colombia',
+      defaultCity: getUserCity(activeUser) || 'Bogotá',
       loadAll: true
     }),
-    [user]
+    [activeUser]
   )
 
   const location = useLocation(locationConfig)
@@ -56,12 +58,15 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
   const { control, watch, setValue, setError, clearErrors, formState } = form
   const formErrors = formState.errors
 
-  const { saveStepData } = useStepSave(user)
+  const { saveStepData } = useStepSave(activeUser, {
+    overrideUser,
+    overrideSaveFn: saveOptions?.overrideSaveFn
+  })
 
   useEffect(() => {
-    if (!user) return
+    if (!activeUser) return
 
-    const stepValues = getDefaultValuesForStep(1, user)
+    const stepValues = getDefaultValuesForStep(1, activeUser)
 
     if (stepValues.dateOfBirth && isTimestampArray(stepValues.dateOfBirth)) {
       stepValues.dateOfBirth = convertTimestamp(stepValues.dateOfBirth)
@@ -82,7 +87,7 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
       },
       { keepDefaultValues: false }
     )
-  }, [user, form])
+  }, [activeUser, form])
 
   const { field: imagesField } = useController({
     name: 'images',
@@ -94,11 +99,11 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
 
   // Obtener imágenes iniciales del usuario
   const initialImages = useMemo(() => {
-    if (!user) return []
-    const directUserImages = user.user?.images ?? user.images ?? []
+    if (!activeUser) return []
+    const directUserImages = activeUser.user?.images ?? activeUser.images ?? []
 
     return Array.isArray(directUserImages) && directUserImages.length > 0 ? directUserImages : []
-  }, [user])
+  }, [activeUser])
 
   const { formattedCountries = [], formattedCities = [], formattedLocalities = [], loadCitiesByCountry, loadLocalitiesByCity } = location
 
@@ -164,9 +169,9 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
       shouldShowLocalities: city && formattedLocalities.length > 0,
       phoneCountryData: countryLookup.byPhone.get(phoneCode) || { image: '🌍', name: 'Sin país', phone: '' },
       locationCountryData: countryLookup.byName.get(country) || { image: '🌍', name: 'Sin país' },
-      email: getUserEmail(user) || ''
+      email: getUserEmail(activeUser) || ''
     }),
-    [city, formattedLocalities, countryLookup, phoneCode, country, user]
+    [city, formattedLocalities, countryLookup, phoneCode, country, activeUser]
   )
 
   const locationHandlers = useMemo(
@@ -245,20 +250,27 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
 
   const onSubmit = useCallback(
     async data => {
-      const prepared = Object.entries(data).reduce((acc, [key, value]) => {
-        acc[key] = normalizeValue(value)
+      setIsSaving(true)
 
-        return acc
-      }, {})
+      try {
+        const prepared = Object.entries(data).reduce((acc, [key, value]) => {
+          acc[key] = normalizeValue(value)
 
-      const result = await saveStepData({
-        stepNumber: 1,
-        formData: prepared,
-        images: prepared.images
-      })
+          return acc
+        }, {})
 
-      // Siempre llamar onStepComplete con el resultado
-      onStepComplete?.(result)
+        const result = await saveStepData({
+          stepNumber: 1,
+          formData: prepared,
+          images: prepared.images
+        })
+
+        onStepComplete?.(result)
+
+        return result
+      } finally {
+        setIsSaving(false)
+      }
     },
     [saveStepData, onStepComplete]
   )
@@ -283,6 +295,7 @@ export const useStepBasicInfo = ({ onStepComplete } = {}) => {
     phoneCode,
     formValuesPhone: formValues?.phone ?? '',
     country: formValues?.country ?? '',
-    city: formValues?.city ?? ''
+    city: formValues?.city ?? '',
+    isSaving
   }
 }

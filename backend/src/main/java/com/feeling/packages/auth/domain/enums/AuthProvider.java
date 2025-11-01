@@ -30,7 +30,13 @@ public enum AuthProvider {
     /**
      * Autenticación mediante Apple (para implementación futura)
      */
-    APPLE("Apple");
+    APPLE("Apple"),
+
+    /**
+     * Usuarios creados automáticamente a través de reservas de eventos.
+     * No poseen credenciales locales hasta que completen su registro.
+     */
+    GUEST("Eventos");
 
     private final String displayName;
 
@@ -49,6 +55,6 @@ public enum AuthProvider {
      * Verifica si el proveedor es OAuth externo
      */
     public boolean isExternalOAuth() {
-        return this != LOCAL;
+        return this != LOCAL && this != GUEST;
     }
 }

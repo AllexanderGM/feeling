@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Card, CardBody, Button, Divider, Input, Checkbox, Spinner } from '@heroui/react'
+import { Card, CardBody, Button, Divider, Checkbox, Spinner } from '@heroui/react'
 import { ShoppingCart, ArrowLeft, CreditCard, Shield, AlertCircle, Package, Check } from 'lucide-react'
 import { useAuth, useMatchPlans } from '@hooks'
 import { APP_PATHS } from '@constants/paths'
-import { getUserEmail, getUserName, getUserLastName } from '@schemas'
+import { getUserEmail, getUserName, getUserLastName, getUserPhone, getUserPhoneCode, getUserDocument } from '@schemas'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 
@@ -39,6 +39,9 @@ const Checkout = () => {
   const userEmail = useMemo(() => getUserEmail(user), [user])
   const userName = useMemo(() => getUserName(user), [user])
   const userLastName = useMemo(() => getUserLastName(user), [user])
+  const userPhone = useMemo(() => getUserPhone(user), [user])
+  const userPhoneCode = useMemo(() => getUserPhoneCode(user), [user])
+  const userDocument = useMemo(() => getUserDocument(user), [user])
 
   // Load plans if we have a planId but no plans loaded yet
   useEffect(() => {
@@ -76,11 +79,8 @@ const Checkout = () => {
     })
   }
 
-  // Tax calculations
-  const subtotal = plan?.price || 0
-  const taxRate = 0.19 // 19% IVA Colombia
-  const tax = subtotal * taxRate
-  const total = subtotal + tax
+  // Price calculation - el precio del plan ya incluye IVA
+  const total = plan?.price || 0
 
   // Show loading while fetching plans
   if (planIdFromUrl && plansLoading) {
@@ -105,9 +105,9 @@ const Checkout = () => {
         <meta content='Revisa y confirma tu compra de plan de match' name='description' />
       </Helmet>
 
-      <LiteContainer ariaLabel='Página de checkout' className='gap-6 max-w-4xl'>
+      <LiteContainer ariaLabel='Página de checkout' className='gap-6 max-w-4xl !pt-0 !min-h-0 py-8'>
         {/* Header */}
-        <div className='space-y-4'>
+        <div className='space-y-4 w-full'>
           <Button
             className='text-gray-400 hover:text-gray-200'
             size='sm'
@@ -185,44 +185,38 @@ const Checkout = () => {
             </Card>
 
             {/* Billing Information */}
-            <Card className='bg-gray-800/40 border-gray-700/50'>
-              <CardBody className='p-6'>
-                <div className='flex items-start gap-3 mb-4'>
-                  <div className='w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center'>
+            <Card className='bg-blue-500/5 border-blue-500/20'>
+              <CardBody className='p-4'>
+                <div className='flex items-start gap-3'>
+                  <div className='w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
                     <CreditCard className='w-5 h-5 text-blue-400' />
                   </div>
-                  <div>
-                    <h2 className='text-lg font-semibold text-gray-100'>Información de Facturación</h2>
-                    <p className='text-sm text-gray-400'>Se usará para procesar el pago</p>
+                  <div className='flex-1'>
+                    <h3 className='text-sm font-semibold text-blue-400 mb-2'>Información de Facturación</h3>
+                    <p className='text-xs text-gray-400 mb-3'>Los datos de tu perfil se usarán para procesar el pago:</p>
+                    <div className='space-y-1.5'>
+                      <div className='flex items-center gap-2'>
+                        <span className='text-xs text-gray-500'>Nombre:</span>
+                        <span className='text-sm text-gray-300 font-medium'>
+                          {userName} {userLastName}
+                        </span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <span className='text-xs text-gray-500'>Email:</span>
+                        <span className='text-sm text-gray-300 font-medium'>{userEmail || 'No especificado'}</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <span className='text-xs text-gray-500'>Teléfono:</span>
+                        <span className='text-sm text-gray-300 font-medium'>
+                          {userPhoneCode && userPhone ? `+${userPhoneCode} ${userPhone}` : 'No especificado'}
+                        </span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <span className='text-xs text-gray-500'>Documento:</span>
+                        <span className='text-sm text-gray-300 font-medium'>{userDocument || 'No especificado'}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className='space-y-4'>
-                  <Input
-                    isReadOnly
-                    classNames={{
-                      input: 'text-gray-200',
-                      inputWrapper: 'bg-gray-700/30 border-gray-600 hover:bg-gray-700/50'
-                    }}
-                    label='Nombre completo'
-                    labelPlacement='outside'
-                    placeholder='Nombre'
-                    value={`${userName} ${userLastName}`}
-                    variant='bordered'
-                  />
-                  <Input
-                    isReadOnly
-                    classNames={{
-                      input: 'text-gray-200',
-                      inputWrapper: 'bg-gray-700/30 border-gray-600 hover:bg-gray-700/50'
-                    }}
-                    label='Correo electrónico'
-                    labelPlacement='outside'
-                    placeholder='correo@ejemplo.com'
-                    type='email'
-                    value={userEmail}
-                    variant='bordered'
-                  />
                 </div>
               </CardBody>
             </Card>
@@ -261,35 +255,23 @@ const Checkout = () => {
               <CardBody className='p-6'>
                 <h2 className='text-lg font-semibold text-gray-100 mb-4'>Resumen del Pedido</h2>
 
-                <div className='space-y-3 mb-4'>
-                  <div className='flex items-center justify-between text-sm'>
-                    <span className='text-gray-400'>Subtotal:</span>
-                    <span className='text-gray-200 font-medium'>
-                      {subtotal.toLocaleString('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                      })}
-                    </span>
-                  </div>
-
-                  <div className='flex items-center justify-between text-sm'>
-                    <span className='text-gray-400'>IVA (19%):</span>
-                    <span className='text-gray-200 font-medium'>
-                      {tax.toLocaleString('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0
-                      })}
-                    </span>
+                <div className='space-y-4 mb-4'>
+                  <div className='bg-gray-700/30 rounded-lg p-4'>
+                    <div className='flex items-center justify-between mb-2'>
+                      <span className='text-sm text-gray-400'>{plan?.name}</span>
+                      <span className='text-sm text-gray-300 font-medium'>
+                        {plan?.attempts} {plan?.attempts === 1 ? 'intento' : 'intentos'}
+                      </span>
+                    </div>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-xs text-gray-500'>Precio final (IVA incluido)</span>
+                    </div>
                   </div>
 
                   <Divider className='bg-gray-600' />
 
                   <div className='flex items-center justify-between'>
-                    <span className='text-base font-semibold text-gray-200'>Total:</span>
+                    <span className='text-base font-semibold text-gray-200'>Total a pagar:</span>
                     <span className='text-2xl font-bold text-green-400'>
                       {total.toLocaleString('es-CO', {
                         style: 'currency',

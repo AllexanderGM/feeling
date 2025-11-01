@@ -11,7 +11,8 @@ import {
   Button,
   useDisclosure,
   Textarea,
-  Slider
+  Slider,
+  Spinner
 } from '@heroui/react'
 import AttributeDetailRenderer from '@components/ui/attributes/AttributeDetailRenderer.jsx'
 import { Church, Building } from 'lucide-react'
@@ -516,7 +517,7 @@ const StepPreferencesContent = ({
   )
 }
 
-const StepPreferences = forwardRef(({ onStepComplete }, ref) => {
+const StepPreferences = forwardRef(({ onStepComplete, overrideUser = null, saveOptions = {} }, ref) => {
   const {
     control,
     errors,
@@ -528,8 +529,9 @@ const StepPreferences = forwardRef(({ onStepComplete }, ref) => {
     religionOptions: resolvedReligionOptions,
     churchOptions: resolvedChurchOptions,
     sexualRoleOptions: resolvedSexualRoleOptions,
-    relationshipTypeOptions: resolvedRelationshipTypeOptions
-  } = useStepPreferences({ onStepComplete })
+    relationshipTypeOptions: resolvedRelationshipTypeOptions,
+    isSaving
+  } = useStepPreferences({ onStepComplete, overrideUser, saveOptions })
 
   // Exponer método submit al componente padre
   useImperativeHandle(ref, () => ({
@@ -537,19 +539,27 @@ const StepPreferences = forwardRef(({ onStepComplete }, ref) => {
   }))
 
   return (
-    <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
-      <StepPreferencesContent
-        categoryOptions={resolvedCategoryOptions}
-        churchOptions={resolvedChurchOptions}
-        clearErrors={clearErrors}
-        control={control}
-        errors={errors}
-        relationshipTypeOptions={resolvedRelationshipTypeOptions}
-        religionOptions={resolvedReligionOptions}
-        setValue={setValue}
-        sexualRoleOptions={resolvedSexualRoleOptions}
-        watch={watch}
-      />
+    <div className='relative'>
+      {isSaving && (
+        <div className='absolute inset-0 z-50 flex items-center justify-center rounded-2xl bg-gray-900/70 backdrop-blur-sm'>
+          <Spinner color='primary' size='lg' />
+        </div>
+      )}
+
+      <div className='space-y-8 md:space-y-10 px-2 md:px-0'>
+        <StepPreferencesContent
+          categoryOptions={resolvedCategoryOptions}
+          churchOptions={resolvedChurchOptions}
+          clearErrors={clearErrors}
+          control={control}
+          errors={errors}
+          relationshipTypeOptions={resolvedRelationshipTypeOptions}
+          religionOptions={resolvedReligionOptions}
+          setValue={setValue}
+          sexualRoleOptions={resolvedSexualRoleOptions}
+          watch={watch}
+        />
+      </div>
     </div>
   )
 })

@@ -1,16 +1,14 @@
 import { useState } from 'react'
 import { Card, CardBody, CardHeader, Divider, Button, Chip } from '@heroui/react'
-import { BarChart3, Users, Heart, Calendar, MessageSquare, Activity, Tags, RefreshCw } from 'lucide-react'
+import { BarChart3, Users, Heart, Calendar, MessageSquare, RefreshCw } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 import { Logger } from '@utils/logger.js'
 
 // Componentes de analytics
-import GeneralAnalytics from './components/GeneralAnalytics.jsx'
 import UserAnalytics from './components/UserAnalytics.jsx'
 import MatchAnalytics from './components/MatchAnalytics.jsx'
 import EventAnalytics from './components/EventAnalytics.jsx'
 import PQRAnalytics from './components/PQRAnalytics.jsx'
-import TagAnalytics from './components/TagAnalytics.jsx'
 
 const AdminDashboard = () => {
   const [refreshing, setRefreshing] = useState(false)
@@ -63,23 +61,6 @@ const AdminDashboard = () => {
           </Button>
         </div>
       </div>
-
-      {/* Estadísticas Generales del Sistema */}
-      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-        <CardHeader className='flex gap-3 pb-3'>
-          <div className='w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center'>
-            <Activity className='w-5 h-5 text-green-400' />
-          </div>
-          <div className='flex flex-col'>
-            <h2 className='text-lg font-semibold text-foreground'>Estado General del Sistema</h2>
-            <p className='text-sm text-default-500'>Monitoreo en tiempo real y estadísticas de API</p>
-          </div>
-        </CardHeader>
-        <Divider className='bg-gray-700/30' />
-        <CardBody className='p-6'>
-          <GeneralAnalytics />
-        </CardBody>
-      </Card>
 
       {/* Estadísticas de Usuarios */}
       <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
@@ -146,23 +127,6 @@ const AdminDashboard = () => {
         <Divider className='bg-gray-700/30' />
         <CardBody className='p-6'>
           <PQRAnalytics />
-        </CardBody>
-      </Card>
-
-      {/* Estadísticas de Tags (dentro del módulo de usuarios) */}
-      <Card className='w-full bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-        <CardHeader className='flex gap-3 pb-3'>
-          <div className='w-8 h-8 bg-cyan-500/20 rounded-full flex items-center justify-center'>
-            <Tags className='w-5 h-5 text-cyan-400' />
-          </div>
-          <div className='flex flex-col'>
-            <h2 className='text-lg font-semibold text-foreground'>Estadísticas de Tags de Usuario</h2>
-            <p className='text-sm text-default-500'>Análisis de etiquetas de usuarios e intereses populares</p>
-          </div>
-        </CardHeader>
-        <Divider className='bg-gray-700/30' />
-        <CardBody className='p-6'>
-          <TagAnalytics />
         </CardBody>
       </Card>
     </div>

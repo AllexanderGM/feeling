@@ -184,6 +184,53 @@ class EventService extends ServiceREST {
     }
   }
 
+  async uploadEventMainImage(eventId, imageFile) {
+    const context = 'subir imagen principal del evento'
+
+    try {
+      const formData = new FormData()
+
+      formData.append('image', imageFile)
+
+      const result = await ServiceREST.post(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/images/main`, formData)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  async updateEventMainImage(eventId, imageFile) {
+    const context = 'actualizar imagen principal del evento'
+
+    try {
+      const formData = new FormData()
+
+      formData.append('image', imageFile)
+
+      const result = await ServiceREST.put(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/images/main`, formData)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  async deleteEventMainImage(eventId) {
+    const context = 'eliminar imagen principal del evento'
+
+    try {
+      const result = await ServiceREST.delete(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/images/main`)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
   // ========================================
   // EVENTOS POR ESTADO
   // ========================================

@@ -13,26 +13,10 @@ import {
   Select,
   SelectItem
 } from '@heroui/react'
-import {
-  User,
-  Mail,
-  MapPin,
-  Calendar,
-  Shield,
-  Star,
-  CheckCircle,
-  AlertTriangle,
-  X,
-  UserX,
-  MessageCircle,
-  Lock,
-  UserIcon,
-  Clock,
-  Check
-} from 'lucide-react'
+import { User, Mail, Shield, CheckCircle, AlertTriangle, X, UserX, Lock, UserIcon, Clock, Check } from 'lucide-react'
 import { Logger } from '@utils/logger'
-import { USER_INTEREST_COLORS, USER_ROLE_COLORS } from '@constants/tableConstants.js'
-import { formatJavaDateForDisplay, daysSinceJavaDate, calculateAgeFromJavaDate } from '@utils/dateUtils.js'
+import { calculateAgeFromJavaDate } from '@utils/dateUtils.js'
+
 import UserDetailModal from './UserDetailModal.jsx'
 
 // Helper function to calculate age

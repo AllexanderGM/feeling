@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { User, Users, FileText, MessageSquare, Settings, BarChart3, Package } from 'lucide-react'
-import { Button, Badge } from '@heroui/react'
+import { Button, Badge, Tooltip } from '@heroui/react'
 import { APP_PATHS } from '@constants/paths.js'
 
 import UserProfileMenu from './UserProfileMenu.jsx'
@@ -88,28 +88,32 @@ const NavAdmin = ({ user }) => {
         isInvisible={!active}
         placement='top-right'
         shape='circle'>
-        {isProfileButton ? (
-          <UserProfileMenu
-            isActive={active}
-            isAdmin={true}
-            isOpen={isPopoverOpen}
-            placement='top'
-            user={user}
-            onOpenChange={setIsPopoverOpen}
-          />
-        ) : (
-          <Button
-            isIconOnly
-            aria-label={item.description}
-            className={`${styles.button} ${active ? styles.activeButton : styles.inactiveButton}`}
-            color={active ? 'primary' : 'default'}
-            radius='lg'
-            size='md'
-            variant={active ? 'solid' : 'light'}
-            onPress={() => navigate(item.path)}>
-            <IconComponent size={20} />
-          </Button>
-        )}
+        <Tooltip showArrow content={item.description} delay={200} placement='top'>
+          {isProfileButton ? (
+            <div>
+              <UserProfileMenu
+                isActive={active}
+                isAdmin={true}
+                isOpen={isPopoverOpen}
+                placement='top'
+                user={user}
+                onOpenChange={setIsPopoverOpen}
+              />
+            </div>
+          ) : (
+            <Button
+              isIconOnly
+              aria-label={item.description}
+              className={`${styles.button} ${active ? styles.activeButton : styles.inactiveButton}`}
+              color={active ? 'primary' : 'default'}
+              radius='lg'
+              size='md'
+              variant={active ? 'solid' : 'light'}
+              onPress={() => navigate(item.path)}>
+              <IconComponent size={20} />
+            </Button>
+          )}
+        </Tooltip>
       </Badge>
     )
   }

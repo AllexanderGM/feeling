@@ -221,7 +221,8 @@ class UserService extends ServiceREST {
    */
   async getUserByEmail(email) {
     try {
-      const url = API_ENDPOINTS.USER.BY_EMAIL.replace('{email}', email)
+      const encodedEmail = encodeURIComponent(email)
+      const url = API_ENDPOINTS.USER.BY_EMAIL.replace('{email}', encodedEmail)
       const result = await ServiceREST.get(url)
 
       return ServiceREST.handleServiceResponse(result, 'obtener usuario por email')

@@ -267,9 +267,9 @@ const Payment = () => {
         <meta content='Completa tu pago de forma segura con Wompi' name='description' />
       </Helmet>
 
-      <LiteContainer ariaLabel='Página de procesamiento de pago' className='gap-6 max-w-3xl'>
+      <LiteContainer ariaLabel='Página de procesamiento de pago' className='gap-6 max-w-3xl !pt-0'>
         {loading ? (
-          <Card className='bg-gray-800/40 border-gray-700/50'>
+          <Card className='bg-gray-800/40 border-gray-700/50 w-full'>
             <CardBody className='p-12 text-center'>
               <div className='flex flex-col items-center gap-4'>
                 <div className='w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center'>
@@ -285,7 +285,7 @@ const Payment = () => {
           </Card>
         ) : (
           <>
-            <div className='text-center space-y-3'>
+            <div className='text-center space-y-3 w-full'>
               <div className='w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mx-auto'>
                 <CreditCard className='w-8 h-8 text-blue-400' />
               </div>
@@ -293,7 +293,7 @@ const Payment = () => {
               <p className='text-gray-400 max-w-xl mx-auto'>Completa tu pago de forma segura mediante nuestra pasarela de pagos Wompi</p>
             </div>
 
-            <Card className='bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 border-blue-500/30'>
+            <Card className='bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 border-blue-500/30 w-full'>
               <CardBody className='p-6'>
                 <div className='text-center space-y-3'>
                   <h3 className='text-lg font-semibold text-gray-100'>Resumen de tu compra</h3>
@@ -319,7 +319,7 @@ const Payment = () => {
               </CardBody>
             </Card>
 
-            <Card className='bg-gray-800/40 border-gray-700/50'>
+            <Card className='bg-gray-800/40 border-gray-700/50 w-full'>
               <CardBody className='p-8 space-y-6'>
                 <div className='text-center'>
                   <h2 className='text-xl font-semibold text-gray-100 mb-2'>Selecciona tu método de pago</h2>
@@ -350,7 +350,7 @@ const Payment = () => {
               </CardBody>
             </Card>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4 w-full'>
               <Card className='bg-green-500/5 border-green-500/20'>
                 <CardBody className='p-4'>
                   <div className='flex items-start gap-3'>
@@ -382,10 +382,10 @@ const Payment = () => {
               </Card>
             </div>
 
-            <div className='text-center'>
+            <div className='text-center w-full'>
               <p className='text-xs text-gray-500 mb-2'>Procesado de forma segura por</p>
               <div className='inline-flex items-center gap-2 px-4 py-2 bg-gray-700/30 rounded-lg'>
-                <img alt='Wompi Logo' className='h-6' src='https://wompi.co/assets/images/logo-wompi.svg' />
+                <img alt='Wompi Logo' className='h-6' src='https://public-assets.wompi.com/brand_wompi/icons/favicon.ico' />
                 <span className='text-xs text-gray-400'>Pasarela de pagos certificada</span>
               </div>
             </div>

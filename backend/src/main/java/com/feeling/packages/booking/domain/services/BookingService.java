@@ -6,6 +6,7 @@ import com.feeling.exception.UnauthorizedException;
 import com.feeling.packages.booking.domain.dto.BookingRequestDTO;
 import com.feeling.packages.booking.domain.dto.BookingResponseDTO;
 import com.feeling.packages.booking.domain.dto.BookingStatisticsDTO;
+import com.feeling.packages.booking.domain.dto.GuestBookingRequestDTO;
 import com.feeling.packages.booking.infrastructure.entities.Booking;
 import com.feeling.packages.booking.infrastructure.entities.PaymentMethod;
 import com.feeling.packages.booking.infrastructure.repositories.IBookingRepository;
@@ -17,6 +18,7 @@ import com.feeling.packages.event.infrastructure.entities.Event;
 import com.feeling.packages.event.infrastructure.repositories.IEventRepository;
 import com.feeling.packages.user.infrastructure.entities.User;
 import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
+import com.feeling.packages.user.domain.services.GuestUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +49,7 @@ public class BookingService {
     private final IBookingRepository bookingRepository;
     private final IEventRepository eventRepository;
     private final IUserRepository userRepository;
+    private final GuestUserService guestUserService;
     private final IPaymentMethodRepository paymentMethodRepository;
     private final PaymentGateway paymentGateway;
 
@@ -93,50 +96,13 @@ public class BookingService {
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO bookingRequest, String userEmail) {
         User user = loadUser(userEmail);
-        Event event = loadEvent(bookingRequest.getEventId());
-        validateBookingRequest(event, bookingRequest);
+        return createBookingInternal(user, bookingRequest);
+    }
 
-        Booking booking = Booking.builder()
-            .user(user)
-            .event(event)
-            .bookingDate(bookingRequest.getBookingDate())
-            .attendees(bookingRequest.getAttendees())
-            .totalPrice(calculateTotalPrice(event, bookingRequest.getAttendees()))
-            .currency(defaultCurrency)
-            .specialRequests(bookingRequest.getSpecialRequests())
-            .status(Booking.BookingStatus.PENDING)
-            .build();
-
-        PaymentIntentResponse paymentResponse = null;
-        if (bookingRequest.getPaymentMethodId() != null) {
-            PaymentMethod paymentMethod = paymentMethodRepository.findById(bookingRequest.getPaymentMethodId())
-                .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
-
-            PaymentIntentCommand command = new PaymentIntentCommand(
-                booking.getTotalPrice(),
-                booking.getCurrency(),
-                "Reserva de evento: " + event.getTitle(),
-                Map.of(
-                    "eventId", String.valueOf(event.getId()),
-                    "userId", String.valueOf(user.getId())
-                ),
-                String.valueOf(paymentMethod.getId())
-            );
-
-            paymentResponse = paymentGateway.createPaymentIntent(command);
-            booking.setPaymentIntentId(paymentResponse.paymentIntentId());
-            booking.setPaymentStatus(paymentResponse.status());
-        } else {
-            booking.setStatus(Booking.BookingStatus.CONFIRMED);
-            booking.setPaymentStatus("not_required");
-        }
-
-        booking = bookingRepository.save(booking);
-        BookingResponseDTO response = mapToResponse(booking);
-        if (paymentResponse != null) {
-            response.setPaymentClientSecret(paymentResponse.clientSecret());
-        }
-        return response;
+    @Transactional
+    public BookingResponseDTO createGuestBooking(GuestBookingRequestDTO bookingRequest) {
+        User user = guestUserService.resolveGuestUser(bookingRequest);
+        return createBookingInternal(user, bookingRequest);
     }
 
     @Transactional
@@ -298,5 +264,60 @@ public class BookingService {
     private int getBookedAttendeesForEvent(Long eventId) {
         Integer total = bookingRepository.sumAttendeesByEventId(eventId);
         return total == null ? 0 : total;
+    }
+
+    private BookingResponseDTO createBookingInternal(User user, BookingRequestDTO bookingRequest) {
+        Event event = loadEvent(bookingRequest.getEventId());
+        validateBookingRequest(event, bookingRequest);
+
+        Booking booking = Booking.builder()
+            .user(user)
+            .event(event)
+            .bookingDate(bookingRequest.getBookingDate())
+            .attendees(bookingRequest.getAttendees())
+            .totalPrice(calculateTotalPrice(event, bookingRequest.getAttendees()))
+            .currency(defaultCurrency)
+            .specialRequests(bookingRequest.getSpecialRequests())
+            .status(Booking.BookingStatus.PENDING)
+            .build();
+
+        PaymentIntentResponse paymentResponse = null;
+        if (bookingRequest.getPaymentMethodId() != null) {
+            PaymentMethod paymentMethod = paymentMethodRepository.findById(bookingRequest.getPaymentMethodId())
+                .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
+
+            PaymentIntentCommand command = new PaymentIntentCommand(
+                booking.getTotalPrice(),
+                booking.getCurrency(),
+                "Reserva de evento: " + event.getTitle(),
+                buildPaymentMetadata(user, event),
+                String.valueOf(paymentMethod.getId())
+            );
+
+            paymentResponse = paymentGateway.createPaymentIntent(command);
+            booking.setPaymentIntentId(paymentResponse.paymentIntentId());
+            booking.setPaymentStatus(paymentResponse.status());
+        } else {
+            booking.setStatus(Booking.BookingStatus.CONFIRMED);
+            booking.setPaymentStatus("not_required");
+        }
+
+        booking = bookingRepository.save(booking);
+        BookingResponseDTO response = mapToResponse(booking);
+        if (paymentResponse != null) {
+            response.setPaymentClientSecret(paymentResponse.clientSecret());
+            response.setPaymentMetadata(paymentResponse.metadata());
+        }
+        return response;
+    }
+
+    private Map<String, String> buildPaymentMetadata(User user, Event event) {
+        return Map.ofEntries(
+            Map.entry("eventId", String.valueOf(event.getId())),
+            Map.entry("eventTitle", event.getTitle()),
+            Map.entry("userId", String.valueOf(user.getId())),
+            Map.entry("userEmail", user.getEmail()),
+            Map.entry("accountType", user.getAccountType().name())
+        );
     }
 }

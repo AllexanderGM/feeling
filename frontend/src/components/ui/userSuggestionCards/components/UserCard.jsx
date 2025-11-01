@@ -162,7 +162,7 @@ const UserCard = ({
     <Card className='w-full mx-auto bg-gray-900 border-none overflow-hidden shadow-2xl rounded-2xl'>
       <CardBody className='p-0'>
         {/* Galería de imágenes */}
-        <div className='relative h-[calc(100vh-280px)] max-h-[620px] min-h-[400px] group overflow-hidden shadow-2xl rounded-2xl'>
+        <div className='relative h-[calc(100vh-210px)] max-h-[620px] group overflow-hidden shadow-2xl rounded-2xl'>
           <img
             alt={`${name} - Foto ${currentPhotoIndex + 1}`}
             className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}

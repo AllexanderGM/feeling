@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback } from 'react'
+import { useMemo, useEffect, useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useUser, useUserAttributes, useCategoryInterests } from '@hooks'
@@ -7,10 +7,12 @@ import { Logger } from '@utils/logger.js'
 
 import { useStepSave } from './useStepSave'
 
-const useStepPreferences = ({ onStepComplete } = {}) => {
-  const { user } = useUser()
+const useStepPreferences = ({ onStepComplete, overrideUser = null, saveOptions = {} } = {}) => {
+  const { user: contextUser } = useUser()
+  const activeUser = overrideUser || contextUser
   const userAttributes = useUserAttributes()
   const categoryInterests = useCategoryInterests()
+  const [isSaving, setIsSaving] = useState(false)
 
   const categoryOptions = categoryInterests.categoryOptions ?? []
   const religionOptions = userAttributes.religionOptions ?? []
@@ -19,10 +21,22 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
   const relationshipTypeOptions = userAttributes.relationshipTypeOptions ?? []
 
   const defaultValues = useMemo(() => {
-    const values = getDefaultValuesForStep(3, user) || {}
+    const values = getDefaultValuesForStep(3, activeUser) || {}
+    const normalizeCategory = category => {
+      if (!category) return category
+      if (typeof category === 'string') return category.toUpperCase()
+      if (typeof category === 'object') {
+        return category.code || category.value || category.label?.toUpperCase() || category.name?.toUpperCase() || undefined
+      }
 
-    return values
-  }, [user])
+      return category
+    }
+
+    return {
+      ...values,
+      categoryInterest: normalizeCategory(values.categoryInterest)
+    }
+  }, [activeUser])
 
   const form = useForm({
     resolver: yupResolver(stepPreferencesSchema),
@@ -34,7 +48,7 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
   const errors = formState.errors
 
   useEffect(() => {
-    if (!user) return
+    if (!activeUser) return
 
     // Wait for options to load before mapping
     const hasReligionOptions = religionOptions && religionOptions.length > 0
@@ -44,21 +58,27 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
     const hasCategoryOptions = categoryOptions && categoryOptions.length > 0
 
     // If user has preferences but options aren't loaded yet, wait
-    if (user.categoryInterest && !hasCategoryOptions) return
-    if ((user.religion || user.church) && !hasReligionOptions && !hasChurchOptions) return
-    if ((user.sexualRole || user.relationshipType) && !hasSexualRoleOptions && !hasRelationshipOptions) return
+    if (activeUser?.categoryInterest && !hasCategoryOptions) return
+    if ((activeUser?.religion || activeUser?.church) && !hasReligionOptions && !hasChurchOptions) return
+    if ((activeUser?.sexualRole || activeUser?.relationshipType) && !hasSexualRoleOptions && !hasRelationshipOptions) return
 
-    const values = getDefaultValuesForStep(3, user) || {}
+    const values = getDefaultValuesForStep(3, activeUser) || {}
 
     // Map attribute names to IDs by finding them in the options arrays
     const findIdByName = (options, name) => {
       if (!name || !Array.isArray(options)) return undefined
-      const found = options.find(opt => opt.label === name || opt.name === name)
+      const normalizedName = String(name).toLowerCase()
+      const found = options.find(opt => {
+        const candidates = [opt.label, opt.name, opt.value, opt.code]
+
+        return candidates.some(candidate => String(candidate || '').toLowerCase() === normalizedName)
+      })
 
       if (!found) return undefined
-      const id = found.id ?? found.value
+      const rawId = found.id ?? (found.key !== undefined ? found.key : undefined)
+      const numericId = rawId !== undefined ? parseInt(rawId, 10) : undefined
 
-      return id ? parseInt(id, 10) : undefined
+      return Number.isNaN(numericId) ? undefined : numericId
     }
 
     const mappedValues = {
@@ -66,36 +86,37 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
     }
 
     // Map categoryInterest name/enum to key
-    if (user.categoryInterest && !values.categoryInterest) {
+    if (activeUser?.categoryInterest && !values.categoryInterest) {
       // CategoryInterest can come as enum or name
-      const categoryKey = typeof user.categoryInterest === 'string' ? user.categoryInterest.toUpperCase() : user.categoryInterest
+      const categoryKey =
+        typeof activeUser.categoryInterest === 'string' ? activeUser.categoryInterest.toUpperCase() : activeUser.categoryInterest
 
       mappedValues.categoryInterest = categoryKey
     }
 
     // Map religion name to ID
-    if (user.religion && !values.religionId && hasReligionOptions) {
-      mappedValues.religionId = findIdByName(religionOptions, user.religion)
+    if (activeUser?.religion && !values.religionId && hasReligionOptions) {
+      mappedValues.religionId = findIdByName(religionOptions, activeUser.religion)
     }
 
     // Map church name to ID
-    if (user.church && !values.churchId && hasChurchOptions) {
-      mappedValues.churchId = findIdByName(churchOptions, user.church)
+    if (activeUser?.church && !values.churchId && hasChurchOptions) {
+      mappedValues.churchId = findIdByName(churchOptions, activeUser.church)
     }
 
     // Map sexualRole name to ID
-    if (user.sexualRole && !values.sexualRoleId && hasSexualRoleOptions) {
-      mappedValues.sexualRoleId = findIdByName(sexualRoleOptions, user.sexualRole)
+    if (activeUser?.sexualRole && !values.sexualRoleId && hasSexualRoleOptions) {
+      mappedValues.sexualRoleId = findIdByName(sexualRoleOptions, activeUser.sexualRole)
     }
 
     // Map relationshipType name to ID
-    if (user.relationshipType && !values.relationshipId && hasRelationshipOptions) {
-      mappedValues.relationshipId = findIdByName(relationshipTypeOptions, user.relationshipType)
+    if (activeUser?.relationshipType && !values.relationshipId && hasRelationshipOptions) {
+      mappedValues.relationshipId = findIdByName(relationshipTypeOptions, activeUser.relationshipType)
     }
 
     reset(mappedValues, { keepDefaultValues: false })
   }, [
-    user?.id,
+    activeUser,
     religionOptions?.length,
     churchOptions?.length,
     sexualRoleOptions?.length,
@@ -104,7 +125,10 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
     reset
   ])
 
-  const { saveStepData } = useStepSave(user)
+  const { saveStepData } = useStepSave(activeUser, {
+    overrideUser,
+    overrideSaveFn: saveOptions?.overrideSaveFn
+  })
 
   const onSubmit = useCallback(
     async data => {
@@ -120,15 +144,20 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
         }
       })
 
-      const result = await saveStepData({
-        stepNumber: 3,
-        formData: data
-      })
+      setIsSaving(true)
 
-      // Siempre llamar onStepComplete con el resultado
-      onStepComplete?.(result)
+      try {
+        const result = await saveStepData({
+          stepNumber: 3,
+          formData: data
+        })
 
-      return result
+        onStepComplete?.(result)
+
+        return result
+      } finally {
+        setIsSaving(false)
+      }
     },
     [saveStepData, onStepComplete]
   )
@@ -146,7 +175,8 @@ const useStepPreferences = ({ onStepComplete } = {}) => {
     watch,
     setValue,
     clearErrors,
-    handleFormSubmit
+    handleFormSubmit,
+    isSaving
   }
 }
 

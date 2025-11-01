@@ -89,12 +89,12 @@ const UserProfileMenu = ({ user, isAdmin, isOpen, onOpenChange, onMenuAction, pl
       })
     }
 
-    // Agregar Ayuda
+    // Agregar Ayuda/Soporte
     baseItems.push({
       key: 'help',
       icon: HelpCircle,
-      label: 'Ayuda',
-      action: () => navigate(isAdmin ? APP_PATHS.ADMIN.HELP : APP_PATHS.GENERAL.HELP)
+      label: isAdmin ? 'Gestión PQR' : 'Soporte',
+      action: () => navigate(isAdmin ? APP_PATHS.ADMIN.HELP : APP_PATHS.USER.SUPPORT)
     })
 
     // Agregar logout al final
