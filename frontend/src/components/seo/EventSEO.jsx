@@ -16,19 +16,38 @@ const EventSEO = ({ event }) => {
   const eventDate = parseJavaDate(event.eventDate)
   const eventDateISO = eventDate ? eventDate.toISOString() : null
 
-  // Crear descripción SEO limpia (sin HTML)
-  const cleanDescription = event.description
-    ? event.description
-        .replace(/<[^>]*>/g, '') // Quitar HTML tags
-        .replace(/\s+/g, ' ') // Normalizar espacios
-        .trim()
-        .substring(0, 160) // Límite de 160 caracteres para SEO
-    : `Descubre ${event.title} en Feeling. Eventos diseñados para crear conexiones significativas.`
+  const sanitizeText = value =>
+    value
+      ? value
+          .replace(/<[^>]*>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+      : ''
 
-  const title = `${event.title} - Eventos Feeling`
+  const truncate = (value, maxLength) => {
+    if (!value) return ''
+    if (value.length <= maxLength) return value
 
-  // Imagen del evento (siempre usar la imagen del evento, nunca genérica)
-  const eventImage = event.mainImage || event.images?.[0]
+    return `${value.slice(0, maxLength).trim()}`
+  }
+
+  const fallbackDescription =
+    sanitizeText(event.description) || `Descubre ${event.title} en Feeling. Eventos diseñados para crear conexiones significativas.`
+  const configuredDescription = sanitizeText(event.seoDescription)
+  const structuredDescription = configuredDescription || fallbackDescription
+  const metaDescription = truncate(structuredDescription, 320)
+
+  const fallbackTitle = `${event.title} - Eventos Feeling`
+  const metaTitle = event.seoTitle && event.seoTitle.trim().length ? event.seoTitle.trim() : fallbackTitle
+
+  const normalizeImage = value => {
+    if (!value) return null
+    const trimmed = value.trim()
+
+    return trimmed.length ? trimmed : null
+  }
+
+  const eventImage = normalizeImage(event.seoImage) || event.mainImage || event.images?.[0]
 
   // Precio formateado
   const priceText =
@@ -37,7 +56,7 @@ const EventSEO = ({ event }) => {
       : 'Gratis'
 
   // Keywords dinámicos basados en el evento
-  const keywords = [
+  const defaultKeywords = [
     event.title,
     event.categoryDisplayName,
     event.location,
@@ -46,16 +65,23 @@ const EventSEO = ({ event }) => {
     'comunidad feeling',
     'eventos colombia',
     'networking social'
-  ]
-    .filter(Boolean)
-    .join(', ')
+  ].filter(Boolean)
+
+  const configuredKeywords = event.seoKeywords
+    ? event.seoKeywords
+        .split(',')
+        .map(keyword => keyword.trim())
+        .filter(Boolean)
+    : null
+
+  const metaKeywords = (configuredKeywords?.length ? configuredKeywords : defaultKeywords).join(', ')
 
   // Structured Data para Google (Schema.org Event)
   const eventStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: event.title,
-    description: cleanDescription,
+    description: structuredDescription,
     startDate: eventDateISO,
     eventStatus: event.isActive ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventCancelled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
@@ -118,18 +144,18 @@ const EventSEO = ({ event }) => {
   return (
     <Helmet>
       {/* Primary Meta Tags */}
-      <title>{title}</title>
-      <meta content={title} name='title' />
-      <meta content={cleanDescription} name='description' />
-      <meta content={keywords} name='keywords' />
+      <title>{metaTitle}</title>
+      <meta content={metaTitle} name='title' />
+      <meta content={metaDescription} name='description' />
+      <meta content={metaKeywords} name='keywords' />
       <link href={eventUrl} rel='canonical' />
 
       {/* Open Graph / Facebook */}
       <meta content='event' property='og:type' />
       <meta content={eventUrl} property='og:url' />
       <meta content='Feeling' property='og:site_name' />
-      <meta content={event.title} property='og:title' />
-      <meta content={cleanDescription} property='og:description' />
+      <meta content={metaTitle} property='og:title' />
+      <meta content={metaDescription} property='og:description' />
       {eventImage && (
         <>
           <meta content={eventImage} property='og:image' />
@@ -147,8 +173,8 @@ const EventSEO = ({ event }) => {
       {/* Twitter Card */}
       <meta content='summary_large_image' name='twitter:card' />
       <meta content={eventUrl} name='twitter:url' />
-      <meta content={event.title} name='twitter:title' />
-      <meta content={cleanDescription} name='twitter:description' />
+      <meta content={metaTitle} name='twitter:title' />
+      <meta content={metaDescription} name='twitter:description' />
       {eventImage && (
         <>
           <meta content={eventImage} name='twitter:image' />
@@ -181,7 +207,11 @@ EventSEO.propTypes = {
     isActive: PropTypes.bool,
     categoryDisplayName: PropTypes.string,
     mainImage: PropTypes.string,
-    images: PropTypes.arrayOf(PropTypes.string)
+    images: PropTypes.arrayOf(PropTypes.string),
+    seoTitle: PropTypes.string,
+    seoDescription: PropTypes.string,
+    seoKeywords: PropTypes.string,
+    seoImage: PropTypes.string
   })
 }
 

@@ -92,6 +92,23 @@ const buildPaginationFromResponse = (mappedResponse, fallbackPage = 0, fallbackS
 const useEvents = () => {
   const { handleApiResponse, handleError, loading, submitting, withLoading, withSubmitting } = useEventOperations()
 
+  const unwrapServiceResponse = useCallback(response => {
+    if (!response) return null
+
+    if (typeof response === 'object' && response !== null && 'success' in response) {
+      if (!response.success) {
+        const error = new Error(response.message || 'Error al procesar la respuesta del servicio.')
+
+        error.response = response
+        throw error
+      }
+
+      return response.data
+    }
+
+    return response
+  }, [])
+
   // Estado para eventos activos
   const [activeEvents, setActiveEvents] = useState([])
   const [activeEventsPagination, setActiveEventsPagination] = useState(createPaginationState())
@@ -118,24 +135,115 @@ const useEvents = () => {
   // ========================================
   // HELPERS INTERNOS
   // ========================================
-
-  const unwrapServiceResponse = useCallback(response => {
-    if (!response) return null
-
-    if (typeof response === 'object' && response !== null && 'success' in response) {
-      if (!response.success) {
-        const error = new Error(response.message || 'Error al procesar la respuesta del servicio.')
-
-        error.response = response
-        throw error
+  // Sincroniza imágenes del evento (principal + galería) manteniendo un máximo de 5 imágenes
+  const syncEventMedia = useCallback(
+    async ({ eventId, orderedImages, mode = 'update', baseEvent = null }) => {
+      if (!eventId || !Array.isArray(orderedImages)) {
+        return baseEvent
       }
 
-      return response.data
-    }
+      const sanitizedItems = orderedImages
+        .map(item => {
+          if (item instanceof File) return item
+          if (typeof item === 'string') {
+            const trimmed = item.trim()
+            return trimmed.length > 0 ? trimmed : null
+          }
+          return null
+        })
+        .filter(Boolean)
 
-    return response
-  }, [])
+      if (sanitizedItems.length === 0) {
+        return baseEvent
+      }
 
+      const previousEvent = baseEvent || {}
+      let currentEvent = previousEvent
+
+      try {
+        Logger.info(Logger.CATEGORIES.SERVICE, 'event_media', `Sincronizando imágenes para el evento ${eventId}`, {
+          mode,
+          items: sanitizedItems.length
+        })
+
+        const [mainItem, ...galleryItems] = sanitizedItems
+        let mainImageUrl = previousEvent?.mainImage || null
+
+        if (mainItem instanceof File) {
+          const uploadResponse = mode === 'create'
+            ? await eventService.uploadEventMainImage(eventId, mainItem)
+            : await eventService.updateEventMainImage(eventId, mainItem)
+          const uploadData = unwrapServiceResponse(uploadResponse)
+          mainImageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData || null
+        } else if (typeof mainItem === 'string') {
+          mainImageUrl = mainItem
+        }
+
+        const galleryFiles = []
+        const galleryPositions = []
+        const finalGalleryEntries = galleryItems.map((item, index) => {
+          if (item instanceof File) {
+            galleryFiles.push(item)
+            galleryPositions.push(index)
+            return null
+          }
+          return typeof item === 'string' ? item : null
+        })
+
+        let appendedUrls = []
+        if (galleryFiles.length > 0) {
+          const uploadResponse = await eventService.uploadEventGalleryImages(eventId, galleryFiles)
+          const uploadData = unwrapServiceResponse(uploadResponse)
+          const updatedGallery = Array.isArray(uploadData?.imageUrls)
+            ? uploadData.imageUrls
+            : Array.isArray(uploadData)
+              ? uploadData
+              : []
+
+          const appendedCount = Math.min(galleryFiles.length, updatedGallery.length)
+          appendedUrls = updatedGallery.slice(updatedGallery.length - appendedCount)
+        }
+
+        galleryPositions.forEach((position, index) => {
+          finalGalleryEntries[position] = appendedUrls[index] || null
+        })
+
+        const normalizedGallery = finalGalleryEntries
+          .filter(item => typeof item === 'string' && item.length > 0 && item !== mainImageUrl)
+          .slice(0, 4)
+
+        const updatePayload = {
+          images: normalizedGallery
+        }
+
+        if (mainImageUrl !== undefined) {
+          updatePayload.mainImage = mainImageUrl || null
+        }
+
+        const updateResponse = await eventService.updateEvent(eventId, updatePayload)
+        currentEvent = unwrapServiceResponse(updateResponse)
+
+        Logger.info(Logger.CATEGORIES.SERVICE, 'event_media', `Galería sincronizada para el evento ${eventId}`, {
+          gallerySize: normalizedGallery.length
+        })
+
+        return currentEvent
+      } catch (error) {
+        Logger.error(Logger.CATEGORIES.SERVICE, 'event_media', 'Error sincronizando imágenes del evento', {
+          error,
+          eventId,
+          mode
+        })
+        handleError(error, {
+          showToast: true,
+          customMessage: 'El evento se guardó, pero ocurrió un error al procesar las imágenes.'
+        })
+
+        return currentEvent
+      }
+    },
+    [handleError, unwrapServiceResponse]
+  )
   const mapBackendEventsPaginatedResponse = useCallback(
     (rawResponse, fallbackPage = 0, fallbackSize = DEFAULT_ROWS_PER_PAGE) => {
       const data = unwrapServiceResponse(rawResponse)
@@ -317,11 +425,26 @@ const useEvents = () => {
   )
 
   const createEvent = useCallback(
-    async (eventData, { mainImageFile = null, showNotifications = true } = {}) => {
+    async (eventData, { media = {}, showNotifications = true } = {}) => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', `Creando evento: ${eventData?.title || eventData?.name || 'sin_titulo'}`)
         const response = await eventService.createEvent(eventData)
         const newEvent = unwrapServiceResponse(response)
+
+        Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', 'Evento creado exitosamente', { context: { eventId: newEvent.id } })
+
+        return newEvent
+      }, 'crear evento')
+
+      if (result?.success && result.data?.id) {
+        const syncedEvent = await syncEventMedia({
+          eventId: result.data.id,
+          orderedImages: media?.orderedImages,
+          mode: 'create',
+          baseEvent: result.data
+        })
+
+        const finalEvent = syncedEvent || result.data
 
         addEventToCollectionsState(
           {
@@ -331,43 +454,10 @@ const useEvents = () => {
             setEventsByCategory,
             setEventsByStatus
           },
-          newEvent
+          finalEvent
         )
 
-        Logger.info(Logger.CATEGORIES.SERVICE, 'crear evento', 'Evento creado exitosamente', { context: { eventId: newEvent.id } })
-
-        return newEvent
-      }, 'crear evento')
-
-      if (result?.success && result.data?.id && mainImageFile) {
-        try {
-          const uploadResponse = await eventService.uploadEventMainImage(result.data.id, mainImageFile)
-          const uploadData = unwrapServiceResponse(uploadResponse)
-          const imageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData
-
-          if (imageUrl) {
-            const updatedEvent = { ...result.data, mainImage: imageUrl }
-
-            updateEventCollectionsState(
-              {
-                setActiveEvents,
-                setAllEvents,
-                setUpcomingEvents,
-                setEventsByCategory,
-                setEventsByStatus
-              },
-              updatedEvent
-            )
-
-            result.data = updatedEvent
-          }
-        } catch (error) {
-          Logger.error('Error uploading event main image after creation', error, { category: Logger.CATEGORIES.SERVICE })
-          handleError(error, {
-            showToast: true,
-            customMessage: 'El evento se creó correctamente, pero ocurrió un error al subir la imagen.'
-          })
-        }
+        result.data = finalEvent
       }
 
       return handleApiResponse(result, 'Evento creado exitosamente.', { showNotifications })
@@ -376,7 +466,7 @@ const useEvents = () => {
       withSubmitting,
       handleApiResponse,
       unwrapServiceResponse,
-      handleError,
+      syncEventMedia,
       setActiveEvents,
       setAllEvents,
       setUpcomingEvents,
@@ -386,11 +476,26 @@ const useEvents = () => {
   )
 
   const updateEvent = useCallback(
-    async (eventId, eventData, { mainImageFile = null, removeMainImage = false, showNotifications = true } = {}) => {
+    async (eventId, eventData, { media = {}, showNotifications = true } = {}) => {
       const result = await withSubmitting(async () => {
         Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', `Actualizando evento: ${eventId} (${eventData?.title || 'sin_titulo'})`)
         const response = await eventService.updateEvent(eventId, eventData)
         const updatedEvent = unwrapServiceResponse(response)
+
+        Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', 'Evento actualizado exitosamente', { context: { eventId } })
+
+        return updatedEvent
+      }, 'actualizar evento')
+
+      if (result?.success && result.data?.id) {
+        const syncedEvent = await syncEventMedia({
+          eventId,
+          orderedImages: media?.orderedImages,
+          mode: 'update',
+          baseEvent: result.data
+        })
+
+        const finalEvent = syncedEvent || result.data
 
         updateEventCollectionsState(
           {
@@ -400,61 +505,10 @@ const useEvents = () => {
             setEventsByCategory,
             setEventsByStatus
           },
-          updatedEvent
+          finalEvent
         )
 
-        Logger.info(Logger.CATEGORIES.SERVICE, 'actualizar evento', 'Evento actualizado exitosamente', { context: { eventId } })
-
-        return updatedEvent
-      }, 'actualizar evento')
-
-      if (result?.success && result.data?.id) {
-        let currentEvent = result.data
-
-        if (removeMainImage) {
-          try {
-            await eventService.deleteEventMainImage(eventId)
-            currentEvent = { ...currentEvent, mainImage: null }
-          } catch (error) {
-            Logger.error('Error deleting event main image', error, { category: Logger.CATEGORIES.SERVICE })
-            handleError(error, {
-              showToast: true,
-              customMessage: 'El evento se actualizó, pero ocurrió un error al eliminar la imagen.'
-            })
-          }
-        }
-
-        if (mainImageFile) {
-          try {
-            const uploadResponse = await eventService.updateEventMainImage(eventId, mainImageFile)
-            const uploadData = unwrapServiceResponse(uploadResponse)
-            const imageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData
-
-            if (imageUrl) {
-              currentEvent = { ...currentEvent, mainImage: imageUrl }
-            }
-          } catch (error) {
-            Logger.error('Error updating event main image', error, { category: Logger.CATEGORIES.SERVICE })
-            handleError(error, {
-              showToast: true,
-              customMessage: 'El evento se actualizó, pero ocurrió un error al cargar la nueva imagen.'
-            })
-          }
-        }
-
-        if (currentEvent !== result.data) {
-          updateEventCollectionsState(
-            {
-              setActiveEvents,
-              setAllEvents,
-              setUpcomingEvents,
-              setEventsByCategory,
-              setEventsByStatus
-            },
-            currentEvent
-          )
-          result.data = currentEvent
-        }
+        result.data = finalEvent
       }
 
       return handleApiResponse(result, 'Evento actualizado exitosamente.', { showNotifications })
@@ -463,12 +517,12 @@ const useEvents = () => {
       withSubmitting,
       handleApiResponse,
       unwrapServiceResponse,
+      syncEventMedia,
       setActiveEvents,
       setAllEvents,
       setUpcomingEvents,
       setEventsByCategory,
-      setEventsByStatus,
-      handleError
+      setEventsByStatus
     ]
   )
 

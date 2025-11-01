@@ -29,10 +29,10 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.category = :category AND e.isActive = true ORDER BY e.eventDate ASC")
     Page<Event> findByCategoryAndIsActiveTrueOrderByEventDateAsc(@Param("category") EventCategory category, Pageable pageable);
 
-    @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.eventDate >= :fromDate ORDER BY e.eventDate ASC")
+    @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.status = com.feeling.packages.event.infrastructure.entities.EventStatus.PUBLICADO AND e.eventDate >= :fromDate ORDER BY e.eventDate ASC")
     List<Event> findUpcomingEvents(@Param("fromDate") LocalDateTime fromDate);
 
-    @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.eventDate >= :fromDate ORDER BY e.eventDate ASC")
+    @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.status = com.feeling.packages.event.infrastructure.entities.EventStatus.PUBLICADO AND e.eventDate >= :fromDate ORDER BY e.eventDate ASC")
     Page<Event> findUpcomingEvents(@Param("fromDate") LocalDateTime fromDate, Pageable pageable);
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND " +
@@ -78,6 +78,9 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.status = :status AND LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%'))")
     Page<Event> findByStatusAndTitleContainingIgnoreCase(@Param("status") EventStatus status, @Param("title") String title, Pageable pageable);
+
+    @Query("SELECT e FROM Event e WHERE e.eventDate < :cutoff AND e.status NOT IN :finalStatuses")
+    List<Event> findEventsToFinalize(@Param("cutoff") LocalDateTime cutoff, @Param("finalStatuses") List<EventStatus> finalStatuses);
 
     // Event registrations queries
     @Query("SELECT DISTINCT e FROM Event e JOIN FETCH e.createdBy JOIN e.registrations r WHERE r.user.id = :userId ORDER BY e.eventDate ASC")

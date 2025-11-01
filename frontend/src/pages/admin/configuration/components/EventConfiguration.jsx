@@ -18,8 +18,8 @@ const EventConfiguration = ({ config, loading }) => {
     enableEventComments: true,
     requireEventApproval: true,
     enablePayments: true,
-    defaultEventCurrency: 'USD',
-    maxEventPrice: 1000,
+    defaultEventCurrency: 'COP',
+    maxEventPrice: 1000000,
     enableEventReminders: true,
     reminderHours: [24, 2],
     enableWaitingList: true,
@@ -45,8 +45,8 @@ const EventConfiguration = ({ config, loading }) => {
         enableEventComments: config.enableEventComments !== false,
         requireEventApproval: config.requireEventApproval !== false,
         enablePayments: config.enablePayments !== false,
-        defaultEventCurrency: config.defaultEventCurrency || 'USD',
-        maxEventPrice: config.maxEventPrice || 1000,
+        defaultEventCurrency: config.defaultEventCurrency || 'COP',
+        maxEventPrice: config.maxEventPrice || 1000000,
         enableEventReminders: config.enableEventReminders !== false,
         reminderHours: config.reminderHours || [24, 2],
         enableWaitingList: config.enableWaitingList !== false,
@@ -192,14 +192,14 @@ const EventConfiguration = ({ config, loading }) => {
               label='Moneda por Defecto'
               selectedKeys={formData.defaultEventCurrency ? [formData.defaultEventCurrency] : []}
               onSelectionChange={keys => handleInputChange('defaultEventCurrency', Array.from(keys)[0] || '')}>
+              <SelectItem key='COP' value='COP'>
+                COP - Peso Colombiano
+              </SelectItem>
               <SelectItem key='USD' value='USD'>
                 USD - Dólar
               </SelectItem>
               <SelectItem key='EUR' value='EUR'>
                 EUR - Euro
-              </SelectItem>
-              <SelectItem key='COP' value='COP'>
-                COP - Peso Colombiano
               </SelectItem>
             </Select>
 
@@ -209,7 +209,7 @@ const EventConfiguration = ({ config, loading }) => {
                 inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
               }}
               isDisabled={!formData.enablePayments}
-              label='Precio Máximo'
+              label='Precio Máximo (COP)'
               startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
               type='number'
               value={formData.maxEventPrice.toString()}

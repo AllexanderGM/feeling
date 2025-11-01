@@ -75,6 +75,18 @@ public class Event {
     @Column(name = "main_image")
     private String mainImage;
 
+    @Column(name = "seo_title", length = 160)
+    private String seoTitle;
+
+    @Column(name = "seo_description", length = 320)
+    private String seoDescription;
+
+    @Column(name = "seo_keywords", length = 500)
+    private String seoKeywords;
+
+    @Column(name = "seo_image", length = 500)
+    private String seoImage;
+
     @Column(name = "images")
     @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default

@@ -27,11 +27,21 @@ public class ComplaintDTOMapper {
             return null;
         }
 
+        final var user = complaint.getUser();
+        final Long userId = user != null ? user.getId() : null;
+        final String userEmail = user != null ? user.getEmail() : null;
+        final String userFullName = user != null
+            ? String.join(" ",
+                (user.getName() != null ? user.getName().trim() : ""),
+                (user.getLastName() != null ? user.getLastName().trim() : ""))
+                .trim()
+            : null;
+
         return new ComplaintResponseDTO(
             complaint.getId(),
-            complaint.getUser().getId(),
-            complaint.getUser().getEmail(),
-            complaint.getUser().getName() + " " + complaint.getUser().getLastName(),
+            userId,
+            userEmail,
+            userFullName,
             complaint.getSubject(),
             complaint.getMessage(),
             complaint.getComplaintType(),

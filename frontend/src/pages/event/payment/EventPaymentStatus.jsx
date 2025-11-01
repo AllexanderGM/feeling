@@ -38,7 +38,7 @@ const EventPaymentStatus = () => {
   const params = useMemo(() => WompiAdapter.extractAllParams(searchParams), [searchParams])
   const { transactionId, reference: referenceFromQuery, status: statusFromQuery, environment: environmentFromQuery } = params
 
-  const [isLoading, setIsLoading] = useState(Boolean(transactionId))
+  const [isLoading, setIsLoading] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [errorState, setErrorState] = useState(null)
 
@@ -257,7 +257,7 @@ const EventPaymentStatus = () => {
         <meta content='Consulta el estado del pago de tu inscripción al evento' name='description' />
       </Helmet>
 
-      <LiteContainer ariaLabel='Estado del pago de evento' className='max-w-3xl gap-6'>
+      <LiteContainer ariaLabel='Estado del pago de evento' className='gap-6 max-w-4xl !pt-0 !min-h-0 py-8'>
         {/* Card principal de estado usando componente compartido */}
         <PaymentStatusCard
           badge={<PaymentStatusBadge config={statusConfig} status={statusKey} />}

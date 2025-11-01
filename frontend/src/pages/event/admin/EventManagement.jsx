@@ -399,9 +399,9 @@ const EventManagement = memo(() => {
   }, [tableStates, getEventsData, fetchEventStats])
 
   const handleCreateEvent = useCallback(
-    async ({ eventData, mainImageFile }) => {
+    async ({ eventData, media }) => {
       try {
-        const result = await createEvent(eventData, { mainImageFile, showNotifications: false })
+        const result = await createEvent(eventData, { media, showNotifications: false })
 
         if (result?.success === false) {
           handleError(result.message || 'Error al crear el evento')
@@ -420,13 +420,9 @@ const EventManagement = memo(() => {
   )
 
   const handleUpdateEvent = useCallback(
-    async ({ eventId, eventData, mainImageFile, removeMainImage }) => {
+    async ({ eventId, eventData, media }) => {
       try {
-        const result = await updateEvent(eventId, eventData, {
-          mainImageFile,
-          removeMainImage,
-          showNotifications: false
-        })
+        const result = await updateEvent(eventId, eventData, { media, showNotifications: false })
 
         if (result?.success === false) {
           handleError(result.message || 'Error al actualizar el evento')

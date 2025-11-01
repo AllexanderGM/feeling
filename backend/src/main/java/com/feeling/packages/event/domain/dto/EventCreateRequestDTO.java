@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record EventCreateRequestDTO(
         @NotBlank(message = "El título es obligatorio")
@@ -34,6 +35,20 @@ public record EventCreateRequestDTO(
         @NotNull(message = "La categoría es obligatoria")
         EventCategory category,
 
-        String mainImage
+        String mainImage,
+
+        List<String> images,
+
+        @Size(max = 160, message = "El título SEO no puede exceder 160 caracteres")
+        String seoTitle,
+
+        @Size(max = 320, message = "La descripción SEO no puede exceder 320 caracteres")
+        String seoDescription,
+
+        @Size(max = 500, message = "Las palabras clave SEO no pueden exceder 500 caracteres")
+        String seoKeywords,
+
+        @Size(max = 500, message = "La URL de la imagen SEO no puede exceder 500 caracteres")
+        String seoImage
 ) {
 }

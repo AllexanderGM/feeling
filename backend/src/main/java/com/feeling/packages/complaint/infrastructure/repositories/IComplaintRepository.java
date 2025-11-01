@@ -7,6 +7,7 @@ import com.feeling.packages.complaint.infrastructure.entities.Complaint;
 import com.feeling.packages.user.infrastructure.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,6 +51,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @param pageable          Configuración de paginación
      * @return Página de quejas con los estados especificados
      */
+    @EntityGraph(attributePaths = "user")
     Page<Complaint> findByComplaintStatusIn(List<ComplaintStatus> complaintStatuses, Pageable pageable);
 
     /**
@@ -73,6 +75,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @param pageable      Configuración de paginación
      * @return Página de quejas del tipo especificado
      */
+    @EntityGraph(attributePaths = "user")
     Page<Complaint> findByComplaintType(ComplaintType complaintType, Pageable pageable);
 
     /**
@@ -82,6 +85,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @param pageable          Configuración de paginación
      * @return Página de quejas con la prioridad especificada
      */
+    @EntityGraph(attributePaths = "user")
     Page<Complaint> findByComplaintPriority(ComplaintPriority complaintPriority, Pageable pageable);
 
     /**
@@ -119,6 +123,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @return Página de quejas en el rango especificado ordenadas por fecha (más recientes primero)
      */
     @Query("SELECT c FROM Complaint c WHERE c.createdAt BETWEEN :start AND :end ORDER BY c.createdAt DESC")
+    @EntityGraph(attributePaths = "user")
     Page<Complaint> findComplaintsBetweenDates(
         @Param("start") LocalDateTime start,
         @Param("end") LocalDateTime end,
@@ -152,6 +157,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @return Página de quejas resueltas por el admin ordenadas por fecha de resolución (más recientes primero)
      */
     @Query("SELECT c FROM Complaint c WHERE c.resolvedBy = :adminEmail ORDER BY c.resolvedAt DESC")
+    @EntityGraph(attributePaths = "user")
     Page<Complaint> findComplaintsResolvedBy(@Param("adminEmail") String adminEmail, Pageable pageable);
 
     /**
@@ -163,6 +169,7 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
      * @param pageable   Configuración de paginación
      * @return Página de quejas que coinciden con el término de búsqueda
      */
+    @EntityGraph(attributePaths = "user")
     @Query("SELECT c FROM Complaint c WHERE " +
         "LOWER(c.subject) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
         "LOWER(c.message) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
@@ -190,6 +197,10 @@ public interface IComplaintRepository extends JpaRepository<Complaint, Long> {
         @Param("eventId") Long eventId,
         @Param("bookingId") Long bookingId,
         Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = "user")
+    Page<Complaint> findAll(Pageable pageable);
 
     /**
      * Obtiene una queja con su usuario asociado validando pertenencia.

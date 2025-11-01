@@ -56,7 +56,7 @@ public class BookingService {
     @Value("${feeling.bookings.max-future-days:365}")
     private int maxFutureDays;
 
-    @Value("${feeling.payments.currency:USD}")
+    @Value("${feeling.payments.currency:COP}")
     private String defaultCurrency;
 
     // ========================================
@@ -281,23 +281,33 @@ public class BookingService {
             .status(Booking.BookingStatus.PENDING)
             .build();
 
+        // Verificar si el evento requiere pago
+        boolean requiresPayment = booking.getTotalPrice().compareTo(BigDecimal.ZERO) > 0;
+
         PaymentIntentResponse paymentResponse = null;
-        if (bookingRequest.getPaymentMethodId() != null) {
-            PaymentMethod paymentMethod = paymentMethodRepository.findById(bookingRequest.getPaymentMethodId())
-                .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
+        if (requiresPayment) {
+            // Crear payment intent para eventos pagos (independiente de paymentMethodId)
+            String paymentMethodIdStr = null;
+            if (bookingRequest.getPaymentMethodId() != null) {
+                PaymentMethod paymentMethod = paymentMethodRepository.findById(bookingRequest.getPaymentMethodId())
+                    .orElseThrow(() -> new NotFoundException("Método de pago no encontrado"));
+                paymentMethodIdStr = String.valueOf(paymentMethod.getId());
+            }
 
             PaymentIntentCommand command = new PaymentIntentCommand(
                 booking.getTotalPrice(),
                 booking.getCurrency(),
                 "Reserva de evento: " + event.getTitle(),
                 buildPaymentMetadata(user, event),
-                String.valueOf(paymentMethod.getId())
+                paymentMethodIdStr
             );
 
             paymentResponse = paymentGateway.createPaymentIntent(command);
             booking.setPaymentIntentId(paymentResponse.paymentIntentId());
             booking.setPaymentStatus(paymentResponse.status());
+            booking.setStatus(Booking.BookingStatus.PENDING);
         } else {
+            // Solo para eventos gratuitos
             booking.setStatus(Booking.BookingStatus.CONFIRMED);
             booking.setPaymentStatus("not_required");
         }
@@ -317,7 +327,8 @@ public class BookingService {
             Map.entry("eventTitle", event.getTitle()),
             Map.entry("userId", String.valueOf(user.getId())),
             Map.entry("userEmail", user.getEmail()),
-            Map.entry("accountType", user.getAccountType().name())
+            Map.entry("accountType", user.getAccountType().name()),
+            Map.entry("entityType", "EVENT")
         );
     }
 }

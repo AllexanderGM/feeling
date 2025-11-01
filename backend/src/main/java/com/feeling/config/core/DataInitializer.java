@@ -1085,9 +1085,8 @@ public class DataInitializer implements CommandLineRunner {
         // Asignar atributos según la categoría
         // Asignar categoría de interés para TODOS los usuarios (necesario para perfil completo)
         // Distribución estratégica: más usuarios SPIRIT activos
+        UserCategoryInterest selectedCategory = null;
         if (!categories.isEmpty()) {
-            UserCategoryInterest selectedCategory;
-
             // Distribución equilibrada de categorías para todos los usuarios
             // 33% ESSENCE, 33% ROUSE, 33% SPIRIT para maximizar matches dentro de cada categoría
             double random_category = random.nextDouble();
@@ -1116,7 +1115,24 @@ public class DataInitializer implements CommandLineRunner {
 
         // Asignar atributos físicos básicos para TODOS los usuarios
         if (!genders.isEmpty()) {
-            user.setGender(genders.get(random.nextInt(genders.size())));
+            List<UserAttribute> availableGenders = new ArrayList<>(genders);
+
+            if (selectedCategory != null && selectedCategory.isEssence()) {
+                List<UserAttribute> binaryGenders = availableGenders.stream()
+                    .filter(attr -> {
+                        String code = attr.getCode();
+                        return code != null && ("MALE".equalsIgnoreCase(code) || "FEMALE".equalsIgnoreCase(code));
+                    })
+                    .toList();
+
+                if (!binaryGenders.isEmpty()) {
+                    availableGenders = new ArrayList<>(binaryGenders);
+                }
+            }
+
+            if (!availableGenders.isEmpty()) {
+                user.setGender(availableGenders.get(random.nextInt(availableGenders.size())));
+            }
         }
 
         // Para usuarios con perfil más completo, agregar más atributos

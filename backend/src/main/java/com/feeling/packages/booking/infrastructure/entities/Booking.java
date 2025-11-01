@@ -48,7 +48,7 @@ public class Booking {
 
     @Column(name = "currency", nullable = false, length = 10)
     @Builder.Default
-    private String currency = "USD";
+    private String currency = "COP";
 
     @Enumerated(EnumType.STRING)
     @Column(name = "complaintStatus", nullable = false)

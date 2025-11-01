@@ -50,6 +50,8 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class MatchDiscoveryService {
 
+    private static final double ESSENCE_OPPOSITE_PRIORITY_RATIO = 0.7;
+
     private static final StructuredLoggerFactory.StructuredLogger logger =
         StructuredLoggerFactory.create(MatchDiscoveryService.class);
 
@@ -129,12 +131,14 @@ public class MatchDiscoveryService {
         Set<Long> likedUserIds = new HashSet<>(matchRepository.findPendingInitiatedUserIds(currentUserId));
         Set<Long> matchedUserIds = new HashSet<>(matchRepository.findAcceptedUserIds(currentUserId));
 
+        List<User> prioritizedCandidates = prioritizeEssenceCandidates(currentUser, suggestedUsers.getContent());
+
         List<User> freshUsers = new ArrayList<>();
         List<User> dismissedUsers = new ArrayList<>();
         List<User> likedOrFavoriteUsers = new ArrayList<>();
         List<User> matchedUsers = new ArrayList<>();
 
-        for (User candidate : suggestedUsers.getContent()) {
+        for (User candidate : prioritizedCandidates) {
             Long candidateId = candidate.getId();
             if (candidateId == null) {
                 freshUsers.add(candidate);
@@ -216,6 +220,97 @@ public class MatchDiscoveryService {
             .toList();
 
         return new PageImpl<>(dtoContent, pageable, suggestedUsers.getTotalElements());
+    }
+
+    private List<User> prioritizeEssenceCandidates(User currentUser, List<User> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        if (!isEssenceCategoryUser(currentUser)) {
+            return new ArrayList<>(candidates);
+        }
+
+        String requesterGender = extractGenderCode(currentUser);
+        String oppositeGender = resolveOppositeGender(requesterGender);
+
+        if (oppositeGender == null) {
+            return new ArrayList<>(candidates);
+        }
+
+        List<User> oppositeGenderCandidates = new ArrayList<>();
+        List<User> otherGenderCandidates = new ArrayList<>();
+
+        for (User candidate : candidates) {
+            String candidateGender = extractGenderCode(candidate);
+
+            if (oppositeGender.equals(candidateGender)) {
+                oppositeGenderCandidates.add(candidate);
+            } else if (requesterGender != null && requesterGender.equals(candidateGender)) {
+                // Ignora candidatos con el mismo género para ESSENCE
+                continue;
+            } else {
+                otherGenderCandidates.add(candidate);
+            }
+        }
+
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Collections.shuffle(oppositeGenderCandidates, random);
+        Collections.shuffle(otherGenderCandidates, random);
+
+        if (oppositeGenderCandidates.isEmpty()) {
+            return new ArrayList<>(otherGenderCandidates);
+        }
+
+        List<User> weightedResult = new ArrayList<>(oppositeGenderCandidates.size() + otherGenderCandidates.size());
+        int oppositeIndex = 0;
+        int otherIndex = 0;
+        int oppositeAdded = 0;
+
+        while (oppositeIndex < oppositeGenderCandidates.size() || otherIndex < otherGenderCandidates.size()) {
+            double currentRatio = weightedResult.isEmpty()
+                ? 0
+                : (double) oppositeAdded / weightedResult.size();
+
+            boolean shouldPickOpposite = oppositeIndex < oppositeGenderCandidates.size()
+                && (otherIndex >= otherGenderCandidates.size()
+                || currentRatio < ESSENCE_OPPOSITE_PRIORITY_RATIO);
+
+            if (shouldPickOpposite) {
+                weightedResult.add(oppositeGenderCandidates.get(oppositeIndex++));
+                oppositeAdded++;
+            } else if (otherIndex < otherGenderCandidates.size()) {
+                weightedResult.add(otherGenderCandidates.get(otherIndex++));
+            } else if (oppositeIndex < oppositeGenderCandidates.size()) {
+                weightedResult.add(oppositeGenderCandidates.get(oppositeIndex++));
+                oppositeAdded++;
+            }
+        }
+
+        return weightedResult;
+    }
+
+    private boolean isEssenceCategoryUser(User user) {
+        return user != null
+            && user.getCategoryInterest() != null
+            && user.getCategoryInterest().isEssence();
+    }
+
+    private String extractGenderCode(User user) {
+        if (user == null || user.getGender() == null || user.getGender().getCode() == null) {
+            return null;
+        }
+        return user.getGender().getCode().toUpperCase(Locale.ROOT);
+    }
+
+    private String resolveOppositeGender(String genderCode) {
+        if ("MALE".equals(genderCode)) {
+            return "FEMALE";
+        }
+        if ("FEMALE".equals(genderCode)) {
+            return "MALE";
+        }
+        return null;
     }
 
     // ========================================

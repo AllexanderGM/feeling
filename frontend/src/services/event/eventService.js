@@ -74,9 +74,35 @@ class EventService extends ServiceREST {
         params.append('q', searchTerm.trim())
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.UPCOMING}?${params.toString()}`)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_STATUS}/PUBLICADO?${params.toString()}`)
+      const response = ServiceREST.handleServiceResponse(result, context)
 
-      return ServiceREST.handleServiceResponse(result, context)
+      const filterFutureEvents = events => {
+        if (!Array.isArray(events)) return events
+
+        const now = Date.now()
+
+        return events.filter(event => {
+          if (!event?.eventDate) return false
+
+          const eventTime = new Date(event.eventDate).getTime()
+
+          return Number.isFinite(eventTime) && eventTime >= now
+        })
+      }
+
+      if (Array.isArray(response)) {
+        return filterFutureEvents(response)
+      }
+
+      if (response && Array.isArray(response.content)) {
+        return {
+          ...response,
+          content: filterFutureEvents(response.content)
+        }
+      }
+
+      return response
     } catch (error) {
       this.logError(context, error)
       throw error
@@ -193,6 +219,31 @@ class EventService extends ServiceREST {
       formData.append('image', imageFile)
 
       const result = await ServiceREST.post(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/images/main`, formData)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  async uploadEventGalleryImages(eventId, imageFiles = []) {
+    const context = 'subir imágenes de galería del evento'
+
+    if (!Array.isArray(imageFiles) || imageFiles.length === 0) {
+      return ServiceREST.handleServiceResponse({ success: true, data: [] }, context)
+    }
+
+    try {
+      const formData = new FormData()
+
+      imageFiles.forEach(file => {
+        if (file) {
+          formData.append('images', file)
+        }
+      })
+
+      const result = await ServiceREST.post(`${API_ENDPOINTS.EVENTS.BASE}/${encodeURIComponent(eventId)}/images/gallery`, formData)
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {

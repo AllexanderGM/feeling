@@ -8,7 +8,6 @@ import {
   CardHeader,
   Chip,
   Divider,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
@@ -16,7 +15,6 @@ import {
   ModalHeader,
   Skeleton,
   Spinner,
-  Textarea,
   Tooltip
 } from '@heroui/react'
 import { ArrowLeft, CalendarDays, Clock, MapPin, Ticket, Users, AlertTriangle, Check, Sparkles, ShieldCheck, XCircle } from 'lucide-react'
@@ -32,19 +30,7 @@ import { EventSEO } from '@components/seo'
 import Breadcrumbs from '@components/ui/Breadcrumbs.jsx'
 
 import ImageGallery from './components/ImageGallery.jsx'
-
-const GUEST_FORM_DEFAULT = {
-  name: '',
-  lastName: '',
-  email: '',
-  phoneCode: '+57',
-  phone: '',
-  document: '',
-  city: '',
-  country: '',
-  attendees: 1,
-  notes: ''
-}
+import UserDataModal from './components/UserDataModal.jsx'
 
 const priceFormatter = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -83,8 +69,6 @@ const EventDetail = () => {
   const [isReserveModalOpen, setIsReserveModalOpen] = useState(false)
   const [isProcessingPayment, setIsProcessingPayment] = useState(false)
   const [paymentError, setPaymentError] = useState('')
-  const [guestForm, setGuestForm] = useState(GUEST_FORM_DEFAULT)
-  const [guestFormErrors, setGuestFormErrors] = useState({})
   const [guestBooking, setGuestBooking] = useState(null)
   const [guestContactEmail, setGuestContactEmail] = useState('')
 
@@ -225,16 +209,12 @@ const EventDetail = () => {
   useEffect(() => {
     setGuestBooking(null)
     setGuestContactEmail('')
-    setGuestForm({ ...GUEST_FORM_DEFAULT })
-    setGuestFormErrors({})
   }, [numericEventId])
 
   useEffect(() => {
     if (isAuthenticated) {
       setGuestBooking(null)
       setGuestContactEmail('')
-      setGuestForm({ ...GUEST_FORM_DEFAULT })
-      setGuestFormErrors({})
     }
   }, [isAuthenticated])
 
@@ -320,6 +300,7 @@ const EventDetail = () => {
 
     if (eventData?.price > 0) {
       const status = guestBooking.paymentStatus?.toUpperCase() || ''
+
       return status !== 'CONFIRMED' && status !== 'COMPLETED'
     }
 
@@ -334,6 +315,7 @@ const EventDetail = () => {
     if (!isAuthenticated) {
       if (guestBooking) {
         const status = guestBooking.paymentStatus?.toUpperCase() || ''
+
         if (status === 'PENDING') {
           return {
             text: 'Estamos validando tu pago. Te enviaremos un correo con la confirmación en los próximos minutos.',
@@ -352,6 +334,7 @@ const EventDetail = () => {
             tone: 'success'
           }
         }
+
         return {
           text: 'Hemos recibido tus datos. Revisa tu correo para confirmar los detalles del evento.',
           tone: 'info'
@@ -359,7 +342,7 @@ const EventDetail = () => {
       }
 
       return {
-        text: 'Completa tus datos básicos para reservar tu lugar. No necesitas crear una contraseña.',
+        text: 'Completa tus datos básicos para reservar tu lugar.',
         tone: 'info'
       }
     }
@@ -537,6 +520,7 @@ const EventDetail = () => {
         }
 
         const data = paymentSource.data ?? paymentSource.metadata ?? paymentSource
+
         return {
           ...data,
           signature: data.signature || paymentSource.clientSecret,
@@ -652,11 +636,11 @@ const EventDetail = () => {
             }
 
             if (transactionStatus === 'PENDING') {
-            handleWarning('El pago quedó en estado pendiente. Te notificaremos cuando se actualice su estado.')
-            resolve(result)
+              handleWarning('El pago quedó en estado pendiente. Te notificaremos cuando se actualice su estado.')
+              resolve(result)
 
-            return
-          }
+              return
+            }
 
             handleWarning('No completaste el proceso de pago. Puedes intentarlo nuevamente cuando lo desees.')
             resolve(result)
@@ -682,102 +666,52 @@ const EventDetail = () => {
     ]
   )
 
-  const handleGuestFieldChange = useCallback((field, value) => {
-    setGuestForm(prev => ({
-      ...prev,
-      [field]: field === 'attendees' ? value.replace(/[^0-9]/g, '') : value
-    }))
-    setGuestFormErrors(prev => ({
-      ...prev,
-      [field]: undefined
-    }))
-  }, [])
+  const handleGuestSubmit = useCallback(
+    async formData => {
+      if (!Number.isFinite(numericEventId)) return
 
-  const validateGuestForm = useCallback(
-    form => {
-      const errors = {}
-      const trimmed = {
-        name: form.name.trim(),
-        lastName: form.lastName.trim(),
-        email: form.email.trim(),
-        document: form.document.trim(),
-        phoneCode: form.phoneCode.trim(),
-        phone: form.phone.trim(),
-        city: form.city ? form.city.trim() : '',
-        country: form.country ? form.country.trim() : '',
-        attendees: form.attendees
-      }
+      setActionLoading(true)
+      setPaymentError('')
 
-      if (!trimmed.name) errors.name = 'Nombre requerido'
-      if (!trimmed.lastName) errors.lastName = 'Apellido requerido'
-      if (!trimmed.email || !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(trimmed.email)) errors.email = 'Correo válido requerido'
-      if (!trimmed.document) errors.document = 'Documento requerido'
-      if (!trimmed.phoneCode) errors.phoneCode = 'Indicativo requerido'
-      if (!trimmed.phone) errors.phone = 'Teléfono requerido'
+      try {
+        const eventPrice = Number(eventData?.price ?? 0)
 
-      const attendeesValue = Number.parseInt(trimmed.attendees ?? 1, 10)
-      if (!Number.isFinite(attendeesValue) || attendeesValue <= 0) {
-        errors.attendees = 'Cantidad de asistentes inválida'
-      }
-
-      setGuestFormErrors(errors)
-      return Object.keys(errors).length === 0
-    },
-    [setGuestFormErrors]
-  )
-
-  const handleRegister = useCallback(async () => {
-    if (!Number.isFinite(numericEventId)) return
-
-    if (!isAuthenticated) {
-      const isValid = validateGuestForm(guestForm)
-      if (!isValid) {
-        return
-      }
-    }
-
-    setActionLoading(true)
-    setPaymentError('')
-
-    try {
-      const eventPrice = Number(eventData?.price ?? 0)
-
-      if (!isAuthenticated) {
         const payload = {
           eventId: numericEventId,
-          attendees: guestForm.attendees,
+          attendees: formData.attendees, // Siempre 1 para invitados
           bookingDate: eventData?.eventDate,
-          specialRequests: guestForm.notes,
-          name: guestForm.name,
-          lastName: guestForm.lastName,
-          email: guestForm.email,
-          document: guestForm.document,
-          phone: guestForm.phone,
-          phoneCode: guestForm.phoneCode,
-          city: guestForm.city,
-          country: guestForm.country
+          name: formData.name,
+          lastName: formData.lastName,
+          email: formData.email,
+          document: formData.document,
+          phone: formData.phone,
+          phoneCode: formData.phoneCode
         }
 
         setIsReserveModalOpen(false)
 
         try {
-        const response = await bookingService.registerGuestToEvent(payload)
-        const bookingCreated = unwrapResponse(response)
+          const response = await bookingService.registerGuestToEvent(payload)
+          const bookingCreated = unwrapResponse(response)
 
-        setGuestBooking(bookingCreated)
-        setGuestContactEmail(guestForm.email.trim())
-        if (eventPrice <= 0) {
-          handleSuccess('Hemos recibido tu reserva. Te enviaremos un correo con todos los detalles.')
-        }
+          setGuestBooking(bookingCreated)
+          setGuestContactEmail(formData.email.trim())
+          if (eventPrice <= 0) {
+            handleSuccess('Hemos recibido tu reserva. Te enviaremos un correo con todos los detalles.')
+          }
 
           if (eventPrice > 0 && bookingCreated?.paymentMetadata?.integration === 'WOMPI') {
             setIsProcessingPayment(true)
+            setIsReserveModalOpen(false)
             try {
+              // Lanzar checkout de Wompi - ahora funciona igual que para usuarios registrados
               await launchWompiCheckout(bookingCreated, {
-                customerName: `${guestForm.name} ${guestForm.lastName}`.trim(),
-                customerEmail: guestForm.email,
-                skipBackendConfirmation: true
+                customerName: `${formData.name} ${formData.lastName}`.trim(),
+                customerEmail: formData.email
               })
+
+              // Si llegamos aquí, el pago se completó exitosamente
+              await loadEvent()
             } catch (error) {
               setPaymentError(error?.message || 'No fue posible iniciar el pago con Wompi.')
               handleError(error, {
@@ -792,52 +726,42 @@ const EventDetail = () => {
           }
 
           await loadEvent()
-
-          setGuestForm({ ...GUEST_FORM_DEFAULT })
-          setGuestFormErrors({})
         } catch (error) {
           handleError(error, {
             customMessage: 'No pudimos completar tu reserva. Por favor intenta de nuevo.',
             showToast: true
           })
         }
-
-        return
+      } catch (error) {
+        handleError(error, {
+          customMessage: 'No pudimos completar tu reserva. Por favor intenta de nuevo.',
+          showToast: true
+        })
+      } finally {
+        setActionLoading(false)
       }
+    },
+    [eventData?.eventDate, eventData?.price, handleError, handleSuccess, launchWompiCheckout, loadEvent, numericEventId, unwrapResponse]
+  )
+
+  const handleRegister = useCallback(async () => {
+    if (!Number.isFinite(numericEventId)) return
+
+    setActionLoading(true)
+    setPaymentError('')
+
+    try {
+      const eventPrice = Number(eventData?.price ?? 0)
 
       if (eventPrice > 0) {
+        // Para eventos pagos, redirigir a página de checkout
         setIsReserveModalOpen(false)
-        setIsProcessingPayment(true)
-
-        try {
-          const paymentSetupResponse = await bookingService.createEventPaymentIntent(numericEventId)
-          const paymentSetup = unwrapResponse(paymentSetupResponse)
-
-          await launchWompiCheckout(paymentSetup)
-        } catch (error) {
-          try {
-            await bookingService.releasePendingRegistration(numericEventId)
-          } catch (cleanupError) {
-            // eslint-disable-next-line no-console
-            console.error('[Wompi] no se pudo liberar la inscripción pendiente', cleanupError)
-          }
-          // eslint-disable-next-line no-console
-          console.error('[Wompi] error al iniciar checkout', error)
-          const message = error?.message || 'No fue posible iniciar el pago con Wompi.'
-
-          setPaymentError(message)
-          handleError(error, {
-            customMessage: message,
-            showToast: true
-          })
-        } finally {
-          setIsProcessingPayment(false)
-          await loadRegistrationState()
-        }
+        navigate(APP_PATHS.USER.EVENT_CHECKOUT.replace(':eventId', numericEventId))
 
         return
       }
 
+      // Para eventos gratuitos, registrar directamente
       const response = await bookingService.registerToEvent({ eventId: numericEventId })
       const registrationCreated = unwrapResponse(response)
 
@@ -857,18 +781,14 @@ const EventDetail = () => {
       setActionLoading(false)
     }
   }, [
-    eventData?.eventDate,
     eventData?.price,
-    guestForm,
     handleError,
     handleSuccess,
-    isAuthenticated,
-    launchWompiCheckout,
     loadEvent,
     loadRegistrationState,
+    navigate,
     numericEventId,
-    unwrapResponse,
-    validateGuestForm
+    unwrapResponse
   ])
 
   const handleOpenReserveModal = useCallback(() => {
@@ -876,6 +796,7 @@ const EventDetail = () => {
     if (!canAttemptReservation) return
     if (!isAuthenticated) {
       setIsReserveModalOpen(true)
+
       return
     }
     if (!(eventData?.price > 0)) {
@@ -885,10 +806,6 @@ const EventDetail = () => {
     }
     setIsReserveModalOpen(true)
   }, [actionLoading, canAttemptReservation, eventData?.price, handleRegister, isAuthenticated, isProcessingPayment])
-
-  const handleConfirmReserve = useCallback(async () => {
-    await handleRegister()
-  }, [handleRegister])
 
   const handleReleasePendingReservation = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) return
@@ -983,8 +900,7 @@ const EventDetail = () => {
                 </Chip>
               ) : null}
             </div>
-            <h1 className='text-xl sm:text-2xl font-bold text-gray-200 mb-2'>{eventData.title}</h1>
-            <RichTextViewer className='text-sm' content={eventData.description} />
+            <h1 className='text-xl sm:text-2xl font-bold text-gray-200'>{eventData.title}</h1>
           </CardBody>
         </Card>
       </div>
@@ -1005,7 +921,7 @@ const EventDetail = () => {
     if (!eventData) return null
 
     return (
-      <div className='grid gap-4 lg:grid-cols-[2fr_1fr] lg:gap-6'>
+      <div className='grid gap-4 lg:grid-cols-[2fr_1fr] lg:gap-4'>
         <div className='flex flex-col gap-4'>
           {/* Card de información básica - Fecha y Hora separados */}
           <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
@@ -1065,79 +981,49 @@ const EventDetail = () => {
             </CardBody>
           </Card>
 
-          {/* Card Premium - Valor de la entrada */}
-          <Card className='w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30'>
+          {/* Card Premium - Valor de la entrada - Solo móvil */}
+          <Card className='w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30 lg:hidden'>
             <CardBody className='p-4 sm:p-6'>
-              {/* Layout móvil */}
-              <div className='flex flex-col items-center gap-3 sm:hidden'>
-                <div className='flex items-center gap-3 w-full justify-center'>
+              <div className='flex flex-col items-center gap-3 sm:flex-row sm:justify-between'>
+                <div className='flex items-center gap-3'>
                   <div className='relative'>
-                    <div className='w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0'>
-                      <Ticket className='w-5 h-5 text-white' />
+                    <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0'>
+                      <Ticket className='w-5 h-5 sm:w-6 sm:h-6 text-white' />
                     </div>
-                    <div className='absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center'>
-                      <Sparkles className='w-2 h-2 text-white' />
+                    <div className='absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center'>
+                      <Sparkles className='w-2 h-2 sm:w-3 sm:h-3 text-white' />
                     </div>
                   </div>
-                  <div className='text-center'>
-                    <h3 className='text-sm font-bold text-gray-100'>Valor de la Entrada</h3>
+                  <div className='text-center sm:text-left'>
+                    <h3 className='text-sm sm:text-base font-bold text-gray-100 mb-1'>Valor de la Entrada</h3>
                   </div>
                 </div>
 
-                <div className='text-center'>
+                <div className='text-center sm:text-left'>
                   <div className='text-2xl font-bold text-primary-400'>{formattedPrice}</div>
                   {eventData.price === 0 ? <div className='text-xs text-gray-400 mt-1'>Evento gratuito</div> : null}
                 </div>
               </div>
-
-              {/* Layout desktop */}
-              <div className='hidden sm:flex flex-row items-center justify-between gap-4'>
-                <div className='flex items-center gap-3'>
-                  <div className='relative'>
-                    <div className='w-12 h-12 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0'>
-                      <Ticket className='w-6 h-6 text-white' />
-                    </div>
-                    <div className='absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center'>
-                      <Sparkles className='w-3 h-3 text-white' />
-                    </div>
-                  </div>
-                  <div className='text-left'>
-                    <h3 className='text-base font-bold text-gray-100 mb-1'>Valor de la Entrada</h3>
-                    <div className='flex items-center gap-3'>
-                      <div className='text-left'>
-                        <div className='text-2xl font-bold text-primary-400'>{formattedPrice}</div>
-                        {eventData.price === 0 ? <div className='text-xs text-gray-400'>Evento gratuito</div> : null}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </CardBody>
           </Card>
 
-          {/* ¿Qué puedes esperar? */}
-          <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
-            <CardHeader className='p-4 sm:p-6 pb-3'>
-              <div className='flex items-center gap-2'>
-                <div className='w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
-                  <Clock className='w-5 h-5 text-orange-400' />
+          {/* Descripción del evento */}
+          {eventData.description ? (
+            <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
+              <CardHeader className='p-4 sm:p-6 pb-3'>
+                <div className='flex items-center gap-2'>
+                  <div className='w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
+                    <Clock className='w-5 h-5 text-orange-400' />
+                  </div>
+                  <span className='text-sm font-semibold text-gray-200'>¿Qué puedes esperar?</span>
                 </div>
-                <span className='text-sm font-semibold text-gray-200'>¿Qué puedes esperar?</span>
-              </div>
-            </CardHeader>
-            <Divider className='border-gray-700/50' />
-            <CardBody className='p-4 sm:p-6 pt-4 space-y-3 text-sm text-gray-400'>
-              <p>
-                Vive una experiencia diseñada para conocer gente nueva y crear conexiones genuinas. Nuestro equipo se encarga de cada
-                detalle para que disfrutes al máximo.
-              </p>
-              <ul className='list-disc space-y-2 pl-5'>
-                <li>Ambiente relajado y divertido para conocer personas con intereses similares.</li>
-                <li>Equipo de Feeling presente en el evento para garantizar una experiencia segura.</li>
-                <li>Recibirás recordatorios y detalles importantes antes del evento.</li>
-              </ul>
-            </CardBody>
-          </Card>
+              </CardHeader>
+              <Divider className='border-gray-700/50' />
+              <CardBody className='p-4 sm:p-6 pt-4'>
+                <RichTextViewer className='text-sm text-gray-300' content={eventData.description} />
+              </CardBody>
+            </Card>
+          ) : null}
 
           {/* Fechas de publicación */}
           {createdAt || updatedAt ? (
@@ -1169,6 +1055,27 @@ const EventDetail = () => {
 
         {/* Sidebar - Cards con mejor espaciado */}
         <aside className='flex flex-col gap-4'>
+          {/* Card Premium - Valor de la entrada - Solo desktop */}
+          <Card className='hidden lg:block w-full bg-gradient-to-br from-primary-900/20 via-primary-800/10 to-purple-900/20 border-primary-500/30'>
+            <CardBody className='p-5'>
+              <div className='flex items-center gap-4'>
+                <div className='relative'>
+                  <div className='w-14 h-14 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0'>
+                    <Ticket className='w-7 h-7 text-white' />
+                  </div>
+                  <div className='absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center'>
+                    <Sparkles className='w-3 h-3 text-white' />
+                  </div>
+                </div>
+                <div className='flex-1'>
+                  <h3 className='text-xs font-semibold text-gray-400 mb-1'>Valor de la Entrada</h3>
+                  <div className='text-2xl font-bold text-primary-400'>{formattedPrice}</div>
+                  {eventData.price === 0 ? <div className='text-xs text-gray-400 mt-0.5'>Evento gratuito</div> : null}
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
           {/* Loading de inscripción */}
           {registrationLoading ? (
             <Card className='bg-gray-800/40 backdrop-blur-sm border-gray-700/50'>
@@ -1182,25 +1089,35 @@ const EventDetail = () => {
           {!isRegistered && !registrationLoading ? (
             <Card className='bg-blue-500/15 backdrop-blur-sm border-blue-500/30'>
               <CardHeader className='p-5 sm:p-6 pb-4'>
-                <div className='flex items-center justify-between gap-3 w-full'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-11 h-11 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
-                      <ShieldCheck className='w-6 h-6 text-blue-400' />
-                    </div>
-                    <span className='text-sm font-semibold text-gray-200'>Reserva tu lugar</span>
+                <div className='flex items-center gap-3'>
+                  <div className='w-11 h-11 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
+                    <ShieldCheck className='w-6 h-6 text-blue-400' />
                   </div>
+                  <span className='text-sm font-semibold text-gray-200'>Asegura tu lugar</span>
                 </div>
-                <Chip className='bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs' size='sm' variant='flat'>
-                  {formattedPrice}
-                </Chip>
               </CardHeader>
               <Divider className='border-blue-500/20' />
               <CardBody className='p-5 sm:p-6 space-y-4'>
-                <div className='flex items-start gap-3 rounded-lg border border-blue-500/30 bg-black/20 p-3.5 text-sm'>
-                  <Check className='mt-0.5 shrink-0 text-blue-400' size={20} />
-                  <div>
-                    <p className='font-medium text-gray-200'>Reserva tu lugar para recibir toda la información del evento.</p>
-                    <p className='text-xs text-gray-400 mt-1'>Solo tomará unos segundos asegurar tu cupo.</p>
+                {/* Información persuasiva */}
+                <div className='space-y-2.5 text-sm'>
+                  {/* Urgencia de cupos */}
+                  {eventData.availableSpots > 0 && eventData.maxCapacity && (
+                    <div className='flex items-start gap-2.5 text-gray-200'>
+                      <span className='text-base'>⚡</span>
+                      <span>
+                        Solo quedan{' '}
+                        <strong className='text-primary-400'>
+                          {eventData.availableSpots} de {eventData.maxCapacity}
+                        </strong>{' '}
+                        cupos disponibles
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Beneficios del proceso */}
+                  <div className='flex items-start gap-2.5 text-gray-300'>
+                    <span className='text-base'>✨</span>
+                    <span>Confirma ahora</span>
                   </div>
                 </div>
 
@@ -1208,7 +1125,7 @@ const EventDetail = () => {
                   color='default'
                   content={
                     canAttemptReservation
-                      ? 'Reserva tu lugar para asistir al evento.'
+                      ? 'Completa el proceso en menos de 2 minutos'
                       : hasConfirmedRegistration
                         ? 'Ya tienes una reserva confirmada para este evento.'
                         : 'Este evento no admite más reservas en este momento.'
@@ -1219,16 +1136,16 @@ const EventDetail = () => {
                       color='primary'
                       isDisabled={!canAttemptReservation || actionLoading || isProcessingPayment}
                       isLoading={actionLoading || isProcessingPayment}
-                      size='md'
+                      size='lg'
                       variant='shadow'
                       onPress={handleOpenReserveModal}>
-                      Reservar mi cupo
+                      {eventData.price > 0 ? 'Reservar y pagar' : 'Reservar ahora'}
                     </Button>
                   </div>
                 </Tooltip>
 
                 <p
-                  className={`text-xs ${
+                  className={`text-xs text-center ${
                     registrationNote.tone === 'danger'
                       ? 'text-red-300'
                       : registrationNote.tone === 'warning'
@@ -1240,9 +1157,9 @@ const EventDetail = () => {
                   {registrationNote.text}
                 </p>
                 {isProcessingPayment ? (
-                  <p className='text-xs text-primary-100 animate-pulse'>Redirigiéndote a la pasarela de pago…</p>
+                  <p className='text-xs text-primary-100 animate-pulse text-center'>Redirigiéndote a la pasarela de pago…</p>
                 ) : null}
-                {paymentError ? <p className='text-xs text-red-300'>{paymentError}</p> : null}
+                {paymentError ? <p className='text-xs text-red-300 text-center'>{paymentError}</p> : null}
               </CardBody>
             </Card>
           ) : null}
@@ -1321,10 +1238,20 @@ const EventDetail = () => {
                   </Button>
                 ) : null}
               </CardBody>
-              <CardFooter className='p-5 sm:p-6 pt-3 flex-col items-start gap-2 text-xs text-gray-200/80'>
-                <span>{registrationCardConfig?.footnote || 'Recibirás recordatorios por correo antes del evento.'}</span>
-                <span>Para ajustes o reembolsos, contáctanos directamente.</span>
-              </CardFooter>
+              {!isRegistrationFailed && !isRegistrationPending && (
+                <CardFooter className='p-5 sm:p-6 pt-3 flex-col items-start gap-2 text-xs text-gray-200/80'>
+                  <div className='flex items-start gap-2'>
+                    <Check className='w-4 h-4 text-green-400 mt-0.5 flex-shrink-0' />
+                    <span>{registrationCardConfig?.footnote || 'Te enviaremos recordatorios y detalles importantes por correo.'}</span>
+                  </div>
+                  {eventData.price > 0 && (
+                    <div className='flex items-start gap-2'>
+                      <ShieldCheck className='w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0' />
+                      <span>Tu pago está protegido. Para ajustes o reembolsos, contáctanos.</span>
+                    </div>
+                  )}
+                </CardFooter>
+              )}
             </Card>
           ) : null}
 
@@ -1371,142 +1298,68 @@ const EventDetail = () => {
                     </Chip>
                   </div>
                 ) : null}
-                <p className='text-xs text-gray-400'>Guarda este correo como referencia: {guestContactEmail || guestBooking.userEmail || 'revisa tu bandeja'}.</p>
+                <p className='text-xs text-gray-400'>
+                  Guarda este correo como referencia: {guestContactEmail || guestBooking.userEmail || 'revisa tu bandeja'}.
+                </p>
               </CardBody>
             </Card>
           ) : null}
 
-          {/* Modal de confirmación / formulario para invitados */}
-          <Modal
-            isDismissable={!actionLoading && !isProcessingPayment}
-            isKeyboardDismissDisabled={actionLoading || isProcessingPayment}
-            isOpen={isReserveModalOpen}
-            onOpenChange={setIsReserveModalOpen}>
-            <ModalContent>
-              {onClose => (
-                <>
-                  <ModalHeader className='flex flex-col gap-1 text-left'>
-                    {isAuthenticated ? 'Confirmar reserva' : 'Reserva tu lugar'}
-                  </ModalHeader>
-                  <ModalBody className='space-y-4 text-sm text-gray-300'>
-                    {isAuthenticated ? (
-                      <>
-                        <p>Estás a punto de reservar tu lugar en este evento.</p>
-                        <p>
-                          Ten en cuenta que las reservas no tienen reembolso automático. Si necesitas cancelar y solicitar un reembolso, deberás
-                          comunicarte con el equipo de Feeling.
-                        </p>
-                        {eventData?.price > 0 ? (
-                          <div className='bg-primary-500/10 border border-primary-500/40 rounded-lg p-3 text-xs text-primary-100'>
-                            <p className='font-semibold text-sm'>Este evento requiere pago seguro en línea.</p>
-                            <p>Serás redirigido a la pasarela de pagos de Wompi para completar la transacción.</p>
-                          </div>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        <p className='text-sm text-gray-200'>Completa tus datos básicos. No necesitas crear una contraseña.</p>
-                        <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-                          <Input
-                            isRequired
-                            label='Nombre'
-                            value={guestForm.name}
-                            errorMessage={guestFormErrors.name}
-                            onValueChange={value => handleGuestFieldChange('name', value)}
-                          />
-                          <Input
-                            isRequired
-                            label='Apellido'
-                            value={guestForm.lastName}
-                            errorMessage={guestFormErrors.lastName}
-                            onValueChange={value => handleGuestFieldChange('lastName', value)}
-                          />
-                          <Input
-                            isRequired
-                            label='Correo electrónico'
-                            type='email'
-                            value={guestForm.email}
-                            errorMessage={guestFormErrors.email}
-                            onValueChange={value => handleGuestFieldChange('email', value)}
-                          />
-                          <Input
-                            isRequired
-                            label='Documento de identidad'
-                            value={guestForm.document}
-                            errorMessage={guestFormErrors.document}
-                            onValueChange={value => handleGuestFieldChange('document', value)}
-                          />
-                          <div className='grid grid-cols-[90px_1fr] gap-2 sm:col-span-2'>
-                            <Input
-                              isRequired
-                              label='Indicativo'
-                              value={guestForm.phoneCode}
-                              errorMessage={guestFormErrors.phoneCode}
-                              onValueChange={value => handleGuestFieldChange('phoneCode', value)}
-                            />
-                            <Input
-                              isRequired
-                              label='Teléfono'
-                              value={guestForm.phone}
-                              errorMessage={guestFormErrors.phone}
-                              onValueChange={value => handleGuestFieldChange('phone', value)}
-                            />
-                          </div>
-                          <Input
-                            label='Ciudad'
-                            value={guestForm.city}
-                            onValueChange={value => handleGuestFieldChange('city', value)}
-                          />
-                          <Input
-                            label='País'
-                            value={guestForm.country}
-                            onValueChange={value => handleGuestFieldChange('country', value)}
-                          />
-                          <Input
-                            label='Número de asistentes'
-                            type='number'
-                            value={String(guestForm.attendees)}
-                            errorMessage={guestFormErrors.attendees}
-                            onValueChange={value => handleGuestFieldChange('attendees', value)}
-                          />
+          {/* Modal de datos de usuario para invitados */}
+          {!isAuthenticated && (
+            <UserDataModal
+              eventPrice={eventData?.price || 0}
+              isLoading={actionLoading || isProcessingPayment}
+              isOpen={isReserveModalOpen}
+              onClose={() => setIsReserveModalOpen(false)}
+              onSubmit={handleGuestSubmit}
+            />
+          )}
+
+          {/* Modal de confirmación para usuarios autenticados */}
+          {isAuthenticated && (
+            <Modal
+              isDismissable={!actionLoading && !isProcessingPayment}
+              isKeyboardDismissDisabled={actionLoading || isProcessingPayment}
+              isOpen={isReserveModalOpen}
+              onOpenChange={setIsReserveModalOpen}>
+              <ModalContent>
+                {onClose => (
+                  <>
+                    <ModalHeader className='flex flex-col gap-1 text-left'>Confirmar reserva</ModalHeader>
+                    <ModalBody className='space-y-4 text-sm text-gray-300'>
+                      <p>Estás a punto de reservar tu lugar en este evento.</p>
+                      <p>
+                        Ten en cuenta que las reservas no tienen reembolso automático. Si necesitas cancelar y solicitar un reembolso,
+                        deberás comunicarte con el equipo de Feeling.
+                      </p>
+                      {eventData?.price > 0 ? (
+                        <div className='bg-primary-500/10 border border-primary-500/40 rounded-lg p-3 text-xs text-primary-100'>
+                          <p className='font-semibold text-sm'>Este evento requiere pago seguro en línea.</p>
+                          <p>Serás redirigido a la pasarela de pagos de Wompi para completar la transacción.</p>
                         </div>
-                        <Textarea
-                          label='Notas adicionales (opcional)'
-                          minRows={3}
-                          value={guestForm.notes}
-                          onValueChange={value => handleGuestFieldChange('notes', value)}
-                        />
-                        {eventData?.price > 0 ? (
-                          <div className='bg-primary-500/10 border border-primary-500/40 rounded-lg p-3 text-xs text-primary-100'>
-                            <p className='font-semibold text-sm'>Este evento requiere pago seguro en línea.</p>
-                            <p>Después de enviar tus datos te redirigiremos a la pasarela de pagos de Wompi.</p>
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                  </ModalBody>
-                  <ModalFooter>
-                    <Button
-                      variant='flat'
-                      onPress={() => {
-                        if (!actionLoading && !isProcessingPayment) {
-                          setIsReserveModalOpen(false)
-                          onClose()
-                        }
-                      }}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      color='primary'
-                      isLoading={actionLoading || isProcessingPayment}
-                      onPress={handleConfirmReserve}>
-                      {isAuthenticated ? 'Confirmar reserva' : 'Reservar lugar'}
-                    </Button>
-                  </ModalFooter>
-                </>
-              )}
-            </ModalContent>
-          </Modal>
+                      ) : null}
+                    </ModalBody>
+                    <ModalFooter>
+                      <Button
+                        variant='flat'
+                        onPress={() => {
+                          if (!actionLoading && !isProcessingPayment) {
+                            setIsReserveModalOpen(false)
+                            onClose()
+                          }
+                        }}>
+                        Cancelar
+                      </Button>
+                      <Button color='primary' isLoading={actionLoading || isProcessingPayment} onPress={handleRegister}>
+                        Confirmar reserva
+                      </Button>
+                    </ModalFooter>
+                  </>
+                )}
+              </ModalContent>
+            </Modal>
+          )}
         </aside>
       </div>
     )
@@ -1525,10 +1378,7 @@ const EventDetail = () => {
       <EventSEO event={eventData} />
 
       <LiteContainer ariaLabel='Detalle del evento' className='gap-4 !pt-0'>
-        {/* Breadcrumbs para navegación */}
-        <Breadcrumbs className='mb-2' items={breadcrumbItems} />
-
-        <div className='flex justify-start w-full'>
+        <div className='flex align-items-center justify-between w-full'>
           <Button
             className='text-gray-400 hover:text-gray-200 backdrop-blur-sm'
             size='sm'
@@ -1537,6 +1387,9 @@ const EventDetail = () => {
             onPress={handleGoBack}>
             Volver
           </Button>
+
+          {/* Breadcrumbs para navegación */}
+          <Breadcrumbs items={breadcrumbItems} />
         </div>
 
         {renderHeaderSection()}

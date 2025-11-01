@@ -27,6 +27,10 @@ import Search from '@pages/user/search/Search.jsx'
 import UserDetail from '@pages/user/detail/Detail.jsx'
 import EventsPage from '@pages/event/Event.jsx'
 import EventDetail from '@pages/event/detail/EventDetail.jsx'
+import EventCheckout from '@pages/event/payment/EventCheckout.jsx'
+import EventPayment from '@pages/event/payment/EventPayment.jsx'
+import EventPaymentSuccess from '@pages/event/payment/EventPaymentSuccess.jsx'
+import EventPaymentError from '@pages/event/payment/EventPaymentError.jsx'
 import EventPaymentStatus from '@pages/event/payment/EventPaymentStatus.jsx'
 // Páginas de compra de planes
 import PurchasePlans from '@pages/matches/purchase/PurchasePlans.jsx'
@@ -105,6 +109,30 @@ const router = createBrowserRouter([
           {
             path: APP_PATHS.USER.EVENT_DETAIL.slice(1),
             element: <EventDetail />
+          },
+          {
+            path: APP_PATHS.USER.EVENT_CHECKOUT.slice(1),
+            element: (
+              <RequireAuthOnly>
+                <EventCheckout />
+              </RequireAuthOnly>
+            )
+          },
+          {
+            path: APP_PATHS.USER.EVENT_PAYMENT.slice(1),
+            element: (
+              <RequireAuthOnly>
+                <EventPayment />
+              </RequireAuthOnly>
+            )
+          },
+          {
+            path: APP_PATHS.USER.EVENT_PAYMENT_SUCCESS.slice(1),
+            element: <EventPaymentSuccess />
+          },
+          {
+            path: APP_PATHS.USER.EVENT_PAYMENT_ERROR.slice(1),
+            element: <EventPaymentError />
           },
           {
             path: APP_PATHS.USER.EVENT_PAYMENT_STATUS.slice(1),

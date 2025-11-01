@@ -9,6 +9,9 @@ import com.feeling.packages.common.domain.dto.payment.PaymentWebhookNotification
 import com.feeling.packages.common.domain.services.payment.PaymentGateway;
 import com.feeling.packages.event.domain.dto.PaymentRequestDTO;
 import com.feeling.packages.event.domain.dto.PaymentResponseDTO;
+import com.feeling.packages.booking.domain.services.BookingService;
+import com.feeling.packages.booking.infrastructure.entities.Booking;
+import com.feeling.packages.booking.infrastructure.repositories.IBookingRepository;
 import com.feeling.packages.event.infrastructure.entities.Event;
 import com.feeling.packages.event.infrastructure.entities.EventRegistration;
 import com.feeling.packages.event.infrastructure.entities.PaymentStatus;
@@ -19,6 +22,7 @@ import com.feeling.packages.user.infrastructure.repositories.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,11 +44,13 @@ public class EventPaymentService {
 
     private final IEventRepository eventRepository;
     private final IEventRegistrationRepository registrationRepository;
+    private final IBookingRepository bookingRepository;
     private final IUserRepository userRepository;
     private final EventRegistrationService registrationService;
+    private final BookingService bookingService;
     private final PaymentGateway paymentGateway;
 
-    @Value("${feeling.payments.currency:USD}")
+    @Value("${feeling.payments.currency:COP}")
     private String defaultCurrency;
     @Value("${feeling.payments.redirect-url:}")
     private String defaultRedirectUrl;
@@ -99,29 +105,51 @@ public class EventPaymentService {
             throw new BadRequestException("No se pudo determinar la referencia del pago");
         }
 
-        EventRegistration registration = registrationRepository.findByStripePaymentIntentId(paymentReference)
-            .orElseGet(() -> extractRegistrationId(paymentReference)
-                .flatMap(registrationRepository::findById)
-                .orElseThrow(() -> new NotFoundException("Registro no encontrado para esta referencia de pago")));
-
         if (!isSuccessfulStatus(response.status())) {
-            registrationService.markPaymentFailed(registration.getId());
             throw new BadRequestException("No fue posible confirmar el pago: " + response.message());
         }
 
         String transactionIdentifier = Optional.ofNullable(response.metadata().get("transactionId"))
             .orElse(paymentIntentId);
 
-        registrationService.confirmPayment(registration.getId(), registration.getEvent().getPrice(), transactionIdentifier);
-        log.info("Pago confirmado para el registro {}", registration.getId());
+        // Intentar buscar primero en EventRegistration (sistema antiguo)
+        Optional<EventRegistration> registrationOpt = registrationRepository.findByStripePaymentIntentId(paymentReference)
+            .or(() -> extractRegistrationId(paymentReference).flatMap(registrationRepository::findById));
 
-        return new PaymentResponseDTO(
-            paymentReference,
-            registration.getId(),
-            response.status(),
-            response.message(),
-            response.metadata()
-        );
+        if (registrationOpt.isPresent()) {
+            EventRegistration registration = registrationOpt.get();
+            registrationService.confirmPayment(registration.getId(), registration.getEvent().getPrice(), transactionIdentifier);
+            log.info("Pago confirmado para EventRegistration {}", registration.getId());
+
+            return new PaymentResponseDTO(
+                paymentReference,
+                registration.getId(),
+                response.status(),
+                response.message(),
+                response.metadata()
+            );
+        }
+
+        // Si no se encuentra en EventRegistration, buscar en Booking (sistema nuevo)
+        Optional<Booking> bookingOpt = bookingRepository.findByPaymentIntentId(paymentReference);
+
+        if (bookingOpt.isPresent()) {
+            Booking booking = bookingOpt.get();
+            booking.setStatus(Booking.BookingStatus.CONFIRMED);
+            booking.setPaymentStatus("APPROVED");
+            bookingRepository.save(booking);
+            log.info("Pago confirmado para Booking {}", booking.getId());
+
+            return new PaymentResponseDTO(
+                paymentReference,
+                booking.getId(),
+                response.status(),
+                response.message(),
+                response.metadata()
+            );
+        }
+
+        throw new NotFoundException("No se encontró ninguna reserva asociada a esta referencia de pago: " + paymentReference);
     }
 
     @Transactional
@@ -155,23 +183,30 @@ public class EventPaymentService {
         }
 
         EventRegistration registration = registrationRepository.findByUserIdAndEventId(user.getId(), event.getId())
-            .orElse(null);
+            .orElseGet(() -> createPendingRegistration(user, event));
 
-        if (registration != null && registration.isPaid()) {
+        if (registration.isPaid()) {
             throw new BadRequestException("Ya has pagado por este evento");
         }
 
-        if (registration == null) {
-            registration = EventRegistration.builder()
-                .user(user)
-                .event(event)
-                .paymentStatus(PaymentStatus.PENDING)
-                .isConfirmed(false)
-                .build();
-            registration = registrationRepository.save(registration);
-        }
-
         return registration;
+    }
+
+    private EventRegistration createPendingRegistration(User user, Event event) {
+        try {
+            return registrationRepository.save(
+                EventRegistration.builder()
+                    .user(user)
+                    .event(event)
+                    .paymentStatus(PaymentStatus.PENDING)
+                    .isConfirmed(false)
+                    .build()
+            );
+        } catch (DataIntegrityViolationException exception) {
+            log.debug("Concurrent registration detected for user {} and event {}", user.getId(), event.getId());
+            return registrationRepository.findByUserIdAndEventId(user.getId(), event.getId())
+                .orElseThrow(() -> exception);
+        }
     }
 
     private boolean isSuccessfulStatus(String status) {

@@ -368,6 +368,7 @@ class EventRegistrationService extends ServiceREST {
     const payload = this.normalizeBookingPayload(data)
 
     const requiredFields = ['name', 'lastName', 'email', 'document', 'phone', 'phoneCode']
+
     requiredFields.forEach(field => {
       if (!data[field]) {
         throw new Error(`El campo ${field} es obligatorio`)

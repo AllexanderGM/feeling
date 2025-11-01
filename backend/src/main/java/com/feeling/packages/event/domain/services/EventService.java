@@ -22,9 +22,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,22 +39,22 @@ public class EventService {
     private final ModelMapper modelMapper;
     private final EventImageService eventImageService;
 
-    @Cacheable(value = "events", key = "'active'")
     public List<EventResponseDTO> getAllActiveEvents() {
+        finalizeExpiredEvents();
         List<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc();
         return events.stream()
             .map(this::convertToResponseDTO)
             .toList();
     }
 
-    @Cacheable(value = "events", key = "'active_paginated_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<EventResponseDTO> getAllActiveEvents(Pageable pageable) {
+        finalizeExpiredEvents();
         Page<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc(pageable);
         return events.map(this::convertToResponseDTO);
     }
 
-    @Cacheable(value = "events", key = "'upcoming'")
     public List<EventResponseDTO> getUpcomingEvents() {
+        finalizeExpiredEvents();
         List<Event> events = eventRepository.findUpcomingEvents(LocalDateTime.now());
         return events.stream()
             .map(this::convertToResponseDTO)
@@ -59,12 +62,13 @@ public class EventService {
     }
 
     public Page<EventResponseDTO> getUpcomingEvents(Pageable pageable) {
+        finalizeExpiredEvents();
         Page<Event> events = eventRepository.findUpcomingEvents(LocalDateTime.now(), pageable);
         return events.map(this::convertToResponseDTO);
     }
 
-    @Cacheable(value = "events", key = "'category_' + #category.name()")
-    public List<EventResponseDTO> getEventsByCategory(EventCategory category) {
+        public List<EventResponseDTO> getEventsByCategory(EventCategory category) {
+        finalizeExpiredEvents();
         List<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category);
         return events.stream()
             .map(this::convertToResponseDTO)
@@ -72,6 +76,7 @@ public class EventService {
     }
 
     public Page<EventResponseDTO> getEventsByCategory(EventCategory category, Pageable pageable) {
+        finalizeExpiredEvents();
         Page<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category, pageable);
         return events.map(this::convertToResponseDTO);
     }
@@ -137,14 +142,22 @@ public class EventService {
         User creator = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
 
+        List<String> galleryImages = normalizeGalleryImages(request.images());
+
         Event event = Event.builder()
             .title(request.title())
             .description(request.description())
+            .location(request.location())
             .eventDate(request.eventDate())
             .price(request.price())
             .maxCapacity(request.maxCapacity())
             .category(request.category())
             .mainImage(request.mainImage())
+            .images(galleryImages)
+            .seoTitle(normalizeSeoText(request.seoTitle()))
+            .seoDescription(normalizeSeoText(request.seoDescription()))
+            .seoKeywords(normalizeSeoKeywords(request.seoKeywords()))
+            .seoImage(normalizeSeoText(request.seoImage()))
             .createdBy(creator)
             .currentAttendees(0)
             .isActive(true)
@@ -176,6 +189,9 @@ public class EventService {
         if (request.description() != null) {
             event.setDescription(request.description());
         }
+        if (request.location() != null) {
+            event.setLocation(request.location());
+        }
         if (request.eventDate() != null) {
             if (request.eventDate().isBefore(LocalDateTime.now())) {
                 throw new BadRequestException("La fecha del evento debe ser en el futuro");
@@ -199,6 +215,21 @@ public class EventService {
         }
         if (request.isActive() != null) {
             event.setIsActive(request.isActive());
+        }
+        if (request.images() != null) {
+            event.setImages(normalizeGalleryImages(request.images()));
+        }
+        if (request.seoTitle() != null) {
+            event.setSeoTitle(normalizeSeoText(request.seoTitle()));
+        }
+        if (request.seoDescription() != null) {
+            event.setSeoDescription(normalizeSeoText(request.seoDescription()));
+        }
+        if (request.seoKeywords() != null) {
+            event.setSeoKeywords(normalizeSeoKeywords(request.seoKeywords()));
+        }
+        if (request.seoImage() != null) {
+            event.setSeoImage(normalizeSeoText(request.seoImage()));
         }
 
         Event updatedEvent = eventRepository.save(event);
@@ -391,6 +422,7 @@ public class EventService {
     // ==============================
 
     public List<EventResponseDTO> getEventsByStatus(EventStatus status) {
+        finalizeExpiredEvents();
         List<Event> events = eventRepository.findByStatus(status);
         return events.stream()
             .map(this::convertToResponseDTO)
@@ -398,11 +430,13 @@ public class EventService {
     }
 
     public Page<EventResponseDTO> getEventsByStatus(EventStatus status, Pageable pageable) {
+        finalizeExpiredEvents();
         Page<Event> events = eventRepository.findByStatus(status, pageable);
         return events.map(this::convertToResponseDTO);
     }
 
     public List<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm) {
+        finalizeExpiredEvents();
         List<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm);
         return events.stream()
             .map(this::convertToResponseDTO)
@@ -410,6 +444,7 @@ public class EventService {
     }
 
     public Page<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm, Pageable pageable) {
+        finalizeExpiredEvents();
         Page<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm, pageable);
         return events.map(this::convertToResponseDTO);
     }
@@ -451,6 +486,10 @@ public class EventService {
             event.getStatus() != null ? event.getStatus().getDisplayName() : null,
             event.getMainImage(),
             event.getImages(),
+            event.getSeoTitle(),
+            event.getSeoDescription(),
+            event.getSeoKeywords(),
+            event.getSeoImage(),
             event.getCreatedAt(),
             event.getUpdatedAt(),
             event.getIsActive(),
@@ -461,5 +500,52 @@ public class EventService {
             event.getCreatedBy() != null ? event.getCreatedBy().getName() + " " + event.getCreatedBy().getLastName() : null,
             event.getCreatedBy() != null ? event.getCreatedBy().getId() : null
         );
+    }
+
+    private void finalizeExpiredEvents() {
+        List<Event> expiredEvents = eventRepository.findEventsToFinalize(
+            LocalDateTime.now(),
+            List.of(EventStatus.CANCELADO, EventStatus.TERMINADO)
+        );
+
+        if (expiredEvents.isEmpty()) {
+            return;
+        }
+
+        expiredEvents.forEach(Event::finish);
+        eventRepository.saveAll(expiredEvents);
+    }
+
+    private List<String> normalizeGalleryImages(List<String> images) {
+        if (images == null) {
+            return new ArrayList<>();
+        }
+
+        return images.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(image -> !image.isEmpty())
+            .distinct()
+            .limit(5)
+            .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private String normalizeSeoText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeSeoKeywords(String value) {
+        String normalized = normalizeSeoText(value);
+        if (normalized == null) {
+            return null;
+        }
+        return Arrays.stream(normalized.split(","))
+            .map(String::trim)
+            .filter(keyword -> !keyword.isEmpty())
+            .collect(Collectors.joining(", "));
     }
 }

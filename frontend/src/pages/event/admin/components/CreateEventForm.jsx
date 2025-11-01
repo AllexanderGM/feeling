@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import {
   Modal,
   ModalContent,
@@ -7,14 +7,16 @@ import {
   ModalFooter,
   Button,
   Input,
+  Textarea,
   Select,
   SelectItem,
   Card,
   CardBody,
   Chip
 } from '@heroui/react'
-import { Calendar, MapPin, DollarSign, Users, FileText, Tag, ImageIcon, Upload, X } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Users, FileText, Tag, Search, Images } from 'lucide-react'
 import { RichTextEditor } from '@components/ui/richtext'
+import ImageManager from '@components/ui/imageManager/ImageManager.jsx'
 
 const EVENT_CATEGORIES = [
   { key: 'CULTURAL', label: 'Cultural' },
@@ -32,21 +34,18 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     price: '',
     maxCapacity: '',
     category: '',
-    mainImage: ''
+    seoTitle: '',
+    seoDescription: '',
+    seoKeywords: '',
+    seoImage: ''
   })
 
   const [errors, setErrors] = useState({})
-  const [mainImageFile, setMainImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState('')
-  const fileInputRef = useRef(null)
+  const imageManagerRef = useRef(null)
+  const [eventImages, setEventImages] = useState([])
+  const [imageValidationState, setImageValidationState] = useState({ hasErrors: false, imageCount: 0, errors: {} })
+  const [imageManagerKey, setImageManagerKey] = useState(0)
 
-  useEffect(() => {
-    return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview)
-      }
-    }
-  }, [imagePreview])
 
   const validateForm = () => {
     const newErrors = {}
@@ -90,6 +89,33 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       newErrors.category = 'La categoría es requerida'
     }
 
+    if (formData.seoTitle && formData.seoTitle.trim().length > 160) {
+      newErrors.seoTitle = 'El título SEO no puede exceder 160 caracteres'
+    }
+
+    if (formData.seoDescription && formData.seoDescription.trim().length > 320) {
+      newErrors.seoDescription = 'La descripción SEO no puede exceder 320 caracteres'
+    }
+
+    if (formData.seoKeywords && formData.seoKeywords.trim().length > 500) {
+      newErrors.seoKeywords = 'Las palabras clave SEO no pueden exceder 500 caracteres'
+    }
+
+    if (formData.seoImage && formData.seoImage.trim().length > 500) {
+      newErrors.seoImage = 'La URL de la imagen SEO no puede exceder 500 caracteres'
+    }
+
+    const currentImageCount = imageManagerRef.current?.getImageCount?.() ?? eventImages.filter(image => !!image).length
+
+    if (currentImageCount === 0) {
+      newErrors.images = 'Debes subir al menos una imagen del evento'
+    } else if (imageValidationState.hasErrors) {
+      const firstError = imageValidationState.errors && Object.values(imageValidationState.errors).find(Boolean)
+      if (firstError) {
+        newErrors.images = firstError
+      }
+    }
+
     setErrors(newErrors)
 
     return Object.keys(newErrors).length === 0
@@ -99,6 +125,14 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     if (loading) return
     if (!validateForm()) return
 
+    const currentImages = imageManagerRef.current?.getImages?.() ?? eventImages
+    const orderedImages = Array.isArray(currentImages) ? currentImages.filter(Boolean) : []
+
+    if (orderedImages.length === 0) {
+      setErrors(prev => ({ ...prev, images: 'Debes subir al menos una imagen del evento' }))
+      return
+    }
+
     const eventData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
@@ -107,10 +141,13 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       price: parseFloat(formData.price),
       maxCapacity: parseInt(formData.maxCapacity),
       category: formData.category,
-      mainImage: mainImageFile ? null : formData.mainImage.trim() || null
+      seoTitle: formData.seoTitle.trim() || null,
+      seoDescription: formData.seoDescription.trim() || null,
+      seoKeywords: formData.seoKeywords.trim() || null,
+      seoImage: formData.seoImage.trim() || null
     }
 
-    onSubmit({ eventData, mainImageFile })
+    onSubmit({ eventData, media: { orderedImages } })
   }
 
   const handleClose = () => {
@@ -122,14 +159,16 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       price: '',
       maxCapacity: '',
       category: '',
-      mainImage: ''
+      seoTitle: '',
+      seoDescription: '',
+      seoKeywords: '',
+      seoImage: ''
     })
     setErrors({})
-    setMainImageFile(null)
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
-      setImagePreview('')
-    }
+    setEventImages([])
+    setImageValidationState({ hasErrors: false, imageCount: 0, errors: {} })
+    imageManagerRef.current?.removeAllImages?.()
+    setImageManagerKey(prev => prev + 1)
     onClose()
   }
 
@@ -138,13 +177,32 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
 
-    if (field === 'mainImage' && value) {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview)
-        setImagePreview('')
+
+  const handleEventImagesChange = images => {
+    const normalized = Array.isArray(images) ? [...images] : []
+    setEventImages(normalized)
+    if (normalized.filter(Boolean).length > 0) {
+      setErrors(prev => ({ ...prev, images: '' }))
+    }
+  }
+
+  const handleEventImageValidation = ({ hasErrors, imageCount, errors: validationErrors }) => {
+    setImageValidationState({ hasErrors, imageCount, errors: validationErrors || {} })
+
+    if (hasErrors && validationErrors) {
+      const firstError = Object.values(validationErrors).find(Boolean)
+      if (firstError) {
+        setErrors(prev => ({ ...prev, images: firstError }))
+        return
       }
-      setMainImageFile(null)
+    }
+
+    if (!hasErrors && imageCount > 0) {
+      setErrors(prev => ({ ...prev, images: '' }))
+    } else if (imageCount === 0) {
+      setErrors(prev => ({ ...prev, images: 'Debes subir al menos una imagen del evento' }))
     }
   }
 
@@ -158,28 +216,6 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
   }
 
   const selectedCategory = EVENT_CATEGORIES.find(cat => cat.key === formData.category)
-
-  const handleImageSelection = event => {
-    const file = event.target.files?.[0]
-
-    if (!file) return
-
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
-    }
-
-    setMainImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
-    setFormData(prev => ({ ...prev, mainImage: '' }))
-  }
-
-  const handleRemoveImage = () => {
-    setMainImageFile(null)
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
-      setImagePreview('')
-    }
-  }
 
   return (
     <Modal
@@ -207,6 +243,43 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
 
         <ModalBody className='gap-6'>
           <div className='space-y-6'>
+            {/* Imágenes del evento */}
+            <Card className='bg-gray-700/30 border-gray-600/50'>
+              <CardBody className='gap-4'>
+                <h3 className='text-lg font-medium text-gray-200 flex items-center gap-2'>
+                  <Images className='w-5 h-5 text-blue-400' />
+                  Imágenes del evento
+                </h3>
+
+                <ImageManager
+                  key={imageManagerKey}
+                  ref={imageManagerRef}
+                  cropAspectRatio={16 / 9}
+                  enableCrop
+                  enableReorder
+                  images={eventImages}
+                  maxImages={5}
+                  showEmptySlots
+                  title='Selecciona hasta 5 imágenes horizontales'
+                  description='La primera imagen se mostrará como principal. Usa fotos en formato 16:9 de máximo 5 MB cada una.'
+                  imageGridProps={{
+                    headerTitle: 'Galería del evento',
+                    headerSubtitle: 'Fotos horizontales recomendadas • Máximo 5MB • Resolución mínima 1280x720px',
+                    headerHelperText: 'Arrastra para reordenar las imágenes.',
+                    imageAspectClass: 'aspect-[16/9]'
+                  }}
+                  onImagesChange={handleEventImagesChange}
+                  onValidationChange={handleEventImageValidation}
+                />
+
+                {errors.images && (
+                  <p className='text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2'>
+                    {errors.images}
+                  </p>
+                )}
+              </CardBody>
+            </Card>
+
             {/* Información básica */}
             <Card className='bg-gray-700/30 border-gray-600/50'>
               <CardBody className='gap-4'>
@@ -256,59 +329,9 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                   maxLength={300}
                   placeholder='Ej: Teatro Nacional, Bogotá'
                   startContent={<MapPin className='w-4 h-4 text-gray-400' />}
-                  value={formData.location}
-                  onChange={e => handleInputChange('location', e.target.value)}
+                    value={formData.location}
+                    onChange={e => handleInputChange('location', e.target.value)}
                 />
-
-                <Input
-                  classNames={{
-                    input: 'text-gray-200',
-                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-                  }}
-                  label='URL de Imagen Principal (Opcional)'
-                  placeholder='https://ejemplo.com/imagen.jpg'
-                  startContent={<ImageIcon className='w-4 h-4 text-gray-400' />}
-                  value={formData.mainImage}
-                  onChange={e => handleInputChange('mainImage', e.target.value)}
-                />
-
-                <div className='space-y-3'>
-                  <div className='flex items-center justify-between'>
-                    <p className='text-sm font-medium text-gray-200'>Imagen Principal</p>
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        color='primary'
-                        size='sm'
-                        startContent={<Upload className='w-4 h-4' />}
-                        variant='flat'
-                        onPress={() => fileInputRef.current?.click()}>
-                        Subir imagen
-                      </Button>
-                      {mainImageFile && (
-                        <Button
-                          color='danger'
-                          size='sm'
-                          startContent={<X className='w-4 h-4' />}
-                          variant='light'
-                          onPress={handleRemoveImage}>
-                          Quitar
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <input ref={fileInputRef} accept='image/*' className='hidden' type='file' onChange={handleImageSelection} />
-
-                  {(imagePreview || (!mainImageFile && formData.mainImage)) && (
-                    <div className='relative h-40 rounded-xl overflow-hidden border border-dashed border-gray-600 bg-gray-900/40 flex items-center justify-center'>
-                      <img alt='Previsualización' className='object-cover w-full h-full' src={imagePreview || formData.mainImage} />
-                    </div>
-                  )}
-                  {!imagePreview && !formData.mainImage && (
-                    <Chip className='self-start' color='default' size='sm' variant='flat'>
-                      Puedes subir una imagen o indicar una URL externa
-                    </Chip>
-                  )}
-                </div>
               </CardBody>
             </Card>
 
@@ -364,13 +387,13 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                     }}
                     errorMessage={errors.price}
                     isInvalid={!!errors.price}
-                    label='Precio (USD)'
-                    min='0'
-                    placeholder='0.00, 25.00, 150.00...'
-                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
-                    step='0.01'
-                    type='number'
-                    value={formData.price}
+                  label='Precio (COP)'
+                  min='0'
+                  placeholder='0, 250000, 500000...'
+                  startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
+                  step='0.01'
+                  type='number'
+                  value={formData.price}
                     onChange={e => handleInputChange('price', e.target.value)}
                   />
 
@@ -393,6 +416,77 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
               </CardBody>
             </Card>
 
+            {/* Configuración SEO */}
+            <Card className='bg-gray-700/30 border-gray-600/50'>
+              <CardBody className='gap-4'>
+                <h3 className='text-lg font-medium text-gray-200 flex items-center gap-2'>
+                  <Search className='w-5 h-5 text-purple-400' />
+                  Configuración SEO
+                </h3>
+
+                <Input
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
+                  description='Máximo 160 caracteres. Si se deja vacío usaremos el título del evento.'
+                  errorMessage={errors.seoTitle}
+                  isInvalid={!!errors.seoTitle}
+                  label='Título SEO (opcional)'
+                  maxLength={160}
+                  placeholder='Ej: Concierto íntimo de jazz en Bogotá | Feeling'
+                  value={formData.seoTitle}
+                  onChange={e => handleInputChange('seoTitle', e.target.value)}
+                />
+
+                <Textarea
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 focus-within:border-primary-500'
+                  }}
+                  description='Máximo 320 caracteres. Usa una frase atractiva para buscadores.'
+                  errorMessage={errors.seoDescription}
+                  isInvalid={!!errors.seoDescription}
+                  label='Descripción SEO (opcional)'
+                  maxLength={320}
+                  minRows={3}
+                  placeholder='Resume la experiencia del evento para que Google y redes sociales lo destaquen.'
+                  value={formData.seoDescription}
+                  onValueChange={value => handleInputChange('seoDescription', value)}
+                />
+
+                <Input
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
+                  description='Separa las palabras o frases con comas. Máximo 500 caracteres.'
+                  errorMessage={errors.seoKeywords}
+                  isInvalid={!!errors.seoKeywords}
+                  label='Palabras clave SEO (opcional)'
+                  maxLength={500}
+                  placeholder='evento, bienestar emocional, networking, feeling'
+                  value={formData.seoKeywords}
+                  onChange={e => handleInputChange('seoKeywords', e.target.value)}
+                />
+
+                <Input
+                  classNames={{
+                    input: 'text-gray-200',
+                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
+                  }}
+                  description='Si no se indica, usaremos la imagen principal del evento.'
+                  errorMessage={errors.seoImage}
+                  isInvalid={!!errors.seoImage}
+                  label='URL de imagen para compartir (opcional)'
+                  maxLength={500}
+                  placeholder='https://cdn.feeling.com/eventos/mi-evento.jpg'
+                  value={formData.seoImage}
+                  onChange={e => handleInputChange('seoImage', e.target.value)}
+                />
+              </CardBody>
+            </Card>
+
             {/* Preview */}
             {(formData.title || formData.price || formData.maxCapacity || formData.category) && (
               <Card className='bg-gradient-to-br from-blue-900/20 via-blue-800/10 to-purple-900/20 border-blue-700/50'>
@@ -411,8 +505,14 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                       </div>
                       {formData.price && (
                         <div className='text-right ml-4'>
-                          <p className='text-2xl font-bold text-green-400'>${parseFloat(formData.price || 0).toFixed(2)}</p>
-                          <p className='text-xs text-gray-400'>USD</p>
+                          <p className='text-2xl font-bold text-green-400'>
+                            {new Intl.NumberFormat('es-CO', {
+                              style: 'currency',
+                              currency: 'COP',
+                              maximumFractionDigits: 0
+                            }).format(Number.parseFloat(formData.price || 0))}
+                          </p>
+                          <p className='text-xs text-gray-400'>COP</p>
                         </div>
                       )}
                     </div>
@@ -456,12 +556,14 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                         </div>
                       )}
 
-                      {formData.mainImage && (
+                      {eventImages.filter(Boolean).length > 0 && (
                         <div className='flex items-center gap-2'>
-                          <ImageIcon className='w-4 h-4 text-orange-400' />
+                          <Images className='w-4 h-4 text-orange-400' />
                           <div>
-                            <p className='text-xs text-gray-400'>Imagen</p>
-                            <p className='text-sm text-gray-200'>Configurada</p>
+                            <p className='text-xs text-gray-400'>Galería</p>
+                            <p className='text-sm text-gray-200'>
+                              {eventImages.filter(Boolean).length} imagen{eventImages.filter(Boolean).length === 1 ? '' : 'es'} seleccionada{eventImages.filter(Boolean).length === 1 ? '' : 's'}
+                            </p>
                           </div>
                         </div>
                       )}

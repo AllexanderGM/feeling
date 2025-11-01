@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record EventUpdateRequestDTO(
         @Size(max = 200, message = "El título no puede exceder 200 caracteres")
@@ -32,6 +33,21 @@ public record EventUpdateRequestDTO(
 
         String mainImage,
 
-        Boolean isActive
+        Boolean isActive,
+
+        @Size(max = 5, message = "No se pueden registrar más de 5 imágenes para la galería")
+        List<String> images,
+
+        @Size(max = 160, message = "El título SEO no puede exceder 160 caracteres")
+        String seoTitle,
+
+        @Size(max = 320, message = "La descripción SEO no puede exceder 320 caracteres")
+        String seoDescription,
+
+        @Size(max = 500, message = "Las palabras clave SEO no pueden exceder 500 caracteres")
+        String seoKeywords,
+
+        @Size(max = 500, message = "La URL de la imagen SEO no puede exceder 500 caracteres")
+        String seoImage
 ) {
 }

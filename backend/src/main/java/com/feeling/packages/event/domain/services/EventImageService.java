@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -82,8 +83,14 @@ public class EventImageService {
         }
     }
 
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
     public List<String> uploadGalleryImages(Long eventId, List<MultipartFile> imageFiles, String userEmail) throws IOException {
         Event event = validateEventAndPermissions(eventId, userEmail);
+
+        if (imageFiles == null || imageFiles.isEmpty()) {
+            return event.getImages() != null ? new ArrayList<>(event.getImages()) : new ArrayList<>();
+        }
 
         if (imageFiles.size() > 5) {
             throw new BadRequestException("No se pueden subir más de 5 imágenes a la vez");
@@ -94,7 +101,23 @@ public class EventImageService {
             validateImageFile(file);
         }
 
-        return storageService.uploadImages(imageFiles, EVENTS_FOLDER);
+        List<String> currentImages = event.getImages() != null ? new ArrayList<>(event.getImages()) : new ArrayList<>();
+
+        if (currentImages.size() + imageFiles.size() > 5) {
+            throw new BadRequestException("El evento solo permite un máximo de 5 imágenes en la galería");
+        }
+
+        List<String> uploadedUrls = storageService.uploadImages(imageFiles, EVENTS_FOLDER);
+        for (String url : uploadedUrls) {
+            if (!currentImages.contains(url)) {
+                currentImages.add(url);
+            }
+        }
+
+        event.setImages(currentImages);
+        eventRepository.save(event);
+
+        return currentImages;
     }
 
     public String getMainImageUrl(Long eventId) {

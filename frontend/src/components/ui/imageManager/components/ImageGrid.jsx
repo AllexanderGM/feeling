@@ -29,7 +29,12 @@ const ImageGrid = memo(
     canAddMore = true,
     layout = 'dynamic',
     size = 'default',
-    className = ''
+    className = '',
+    headerTitle = 'Fotos de perfil',
+    headerSubtitle = 'Sube fotos verticales • Máximo 5MB • Mínimo 400x400px',
+    headerHelperText = 'Arrastra para reordenar • Formatos: JPG, PNG, WebP',
+    imageAspectClass = 'aspect-[3/4]',
+    cardVariant = 'portrait'
   }) => {
     // Filtrar solo imágenes existentes
     const existingImages = useMemo(() => {
@@ -83,9 +88,9 @@ const ImageGrid = memo(
         <div className={`space-y-6 ${className}`}>
           {/* Título simplificado */}
           <div className='text-center'>
-            <h3 className='text-gray-300 font-medium mb-1'>Fotos de perfil</h3>
-            <p className='text-gray-500 text-xs'>Sube fotos verticales • Máximo 5MB • Mínimo 400x400px</p>
-            <p className='text-gray-500 text-xs mt-1'>Arrastra para reordenar • Formatos: JPG, PNG, WebP</p>
+            <h3 className='text-gray-300 font-medium mb-1'>{headerTitle}</h3>
+            {headerSubtitle && <p className='text-gray-500 text-xs'>{headerSubtitle}</p>}
+            {headerHelperText && <p className='text-gray-500 text-xs mt-1'>{headerHelperText}</p>}
           </div>
 
           {/* Grid dinámico de imágenes */}
@@ -103,7 +108,7 @@ const ImageGrid = memo(
                     <div key={item.id} className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                       <ImageCard
                         canAddMore={canAddMore}
-                        className='w-full aspect-[3/4]'
+                        className={`w-full ${imageAspectClass}`}
                         dropzoneProps={dropzoneProps}
                         enableCrop={enableCrop}
                         enableReorder={enableReorder}
@@ -114,7 +119,7 @@ const ImageGrid = memo(
                         isMain={item.index === 0} // Primera imagen es principal
                         previewUrl={item.url}
                         size={size}
-                        variant='portrait'
+                        variant={cardVariant}
                         onOpenCrop={onOpenCrop}
                         onPreview={onPreview}
                         onRemove={onRemove}
@@ -130,7 +135,7 @@ const ImageGrid = memo(
                 <div className='w-[100px] sm:w-[110px] md:w-[120px] flex-shrink-0'>
                   <ImageCard
                     canAddMore={canAddMore}
-                    className='w-full aspect-[3/4]'
+                    className={`w-full ${imageAspectClass}`}
                     dropzoneProps={dropzoneProps}
                     enableCrop={enableCrop}
                     enableReorder={false}
@@ -141,7 +146,7 @@ const ImageGrid = memo(
                     isMain={imageCount === 0}
                     previewUrl={null}
                     size={size}
-                    variant='portrait'
+                    variant={cardVariant}
                     onOpenCrop={onOpenCrop}
                     onPreview={onPreview}
                     onRemove={onRemove}
@@ -165,8 +170,9 @@ const ImageGrid = memo(
       <div className={`space-y-4 ${className}`}>
         {/* Título */}
         <div className='text-center'>
-          <h3 className='text-gray-300 font-medium mb-1'>Fotos de perfil</h3>
-          <p className='text-gray-500 text-xs'>Sube hasta {maxImages} fotos verticales</p>
+          <h3 className='text-gray-300 font-medium mb-1'>{headerTitle}</h3>
+          {headerSubtitle && <p className='text-gray-500 text-xs'>{headerSubtitle}</p>}
+          {headerHelperText && <p className='text-gray-500 text-xs mt-1'>{headerHelperText}</p>}
         </div>
 
         {/* Grid tradicional responsive */}
@@ -178,7 +184,7 @@ const ImageGrid = memo(
               <div key={`slot-${index}`} className='w-full'>
                 <ImageCard
                   canAddMore={canAddMore}
-                  className='w-full aspect-[3/4]'
+                  className={`w-full ${imageAspectClass}`}
                   dropzoneProps={dropzoneProps}
                   enableCrop={enableCrop}
                   enableReorder={enableReorder}
@@ -189,7 +195,7 @@ const ImageGrid = memo(
                   isMain={index === 0}
                   previewUrl={item?.url || null}
                   size={size}
-                  variant='portrait'
+                  variant={cardVariant}
                   onOpenCrop={onOpenCrop}
                   onPreview={onPreview}
                   onRemove={onRemove}
