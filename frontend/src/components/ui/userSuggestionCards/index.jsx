@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useDisclosure } from '@heroui/react'
 import { useMatchInteractions, useMatchFavorites, useDiscoveryCards } from '@hooks'
 import { useMatch } from '@contexts/MatchContext'
@@ -9,7 +9,19 @@ import FavoriteSuccessModal from '@components/ui/userSuggestionCards/components/
 import EmptyState from '@pages/home/components/EmptyState.jsx'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Logger } from '@utils/logger.js'
-// No necesitamos imports de @schemas aquí porque trabajamos con estructura de sugerencias específica
+
+const extractSuggestionUser = suggestion => suggestion?.user?.user ?? suggestion?.user ?? null
+
+const getSuggestionUserId = suggestion => extractSuggestionUser(suggestion)?.id ?? null
+
+const getSuggestionUserName = suggestion => extractSuggestionUser(suggestion)?.name ?? 'Usuario'
+
+const getSuggestionUserImage = suggestion => {
+  const user = extractSuggestionUser(suggestion)
+  const images = user?.images ?? []
+
+  return images.find(Boolean) ?? null
+}
 
 /**
  * UserSuggestionCards - Contenedor principal que maneja el stack de cards y el estado vacío
@@ -20,31 +32,27 @@ import { Logger } from '@utils/logger.js'
  * @param {Function} fetchUserSuggestions - Función para cargar más sugerencias
  */
 const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUserSuggestions }) => {
-  // Hook de navegación y gestión de cards
   const { availableCards, currentCard, removedCards, nextCard, resetStack } = useDiscoveryCards(
     suggestions,
     suggestionsPagination,
     fetchUserSuggestions
   )
 
-  // Estados
+  const actionTimeoutRef = useRef(null)
+
   const [exitDirection, setExitDirection] = useState(null)
   const [pendingAction, setPendingAction] = useState(null)
   const [favoriteUserData, setFavoriteUserData] = useState(null) // { name, image }
-  // Estado local para favoritos (optimistic UI)
   const [localFavorites, setLocalFavorites] = useState(new Map())
 
-  // Hook del contexto de match para manejar modal premium
   const { showPremiumModal } = useMatch()
 
-  // Callback personalizado cuando no hay intentos disponibles
   const handleNoAttemptsAvailable = useCallback(() => {
     if (pendingAction) {
       showPremiumModal(pendingAction.userName, pendingAction.userImage)
     }
   }, [pendingAction, showPremiumModal])
 
-  // Hooks para interacciones con matches y favoritos
   const {
     sendMatch,
     dismissSuggestion,
@@ -54,7 +62,6 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
   })
   const { toggleFavorite } = useMatchFavorites()
 
-  // Modales de confirmación
   const { isOpen: isMatchModalOpen, onOpen: onMatchModalOpen, onOpenChange: onMatchModalOpenChange } = useDisclosure()
   const { isOpen: isDismissModalOpen, onOpen: onDismissModalOpen, onOpenChange: onDismissModalOpenChange } = useDisclosure()
   const {
@@ -63,90 +70,98 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
     onOpenChange: onFavoriteSuccessModalOpenChange
   } = useDisclosure()
 
-  // Obtener las primeras 3 cards para el efecto de apilamiento
-  const visibleCards = availableCards.slice(0, 3)
-
-  // Manejar las acciones con animación
-  const handleAction = (action, callback) => {
-    if (!callback) return
-
-    setExitDirection(action)
-    setTimeout(() => {
-      callback()
-      setExitDirection(null)
-    }, 300)
-  }
-
-  // Función auxiliar para obtener el ID del usuario de la estructura de sugerencias
-  const getSuggestionUserId = cardData => {
-    // Estructura de sugerencias: cardData.user.user.id
-    return cardData?.user?.user?.id || null
-  }
-
-  // Función auxiliar para obtener el nombre del usuario de la estructura de sugerencias
-  const getSuggestionUserName = cardData => {
-    // Estructura de sugerencias: cardData.user.user.name
-    return cardData?.user?.user?.name || 'Usuario'
-  }
-
-  // Función auxiliar para obtener la imagen principal del usuario de la estructura de sugerencias
-  const getSuggestionUserImage = cardData => {
-    // Estructura de sugerencias: cardData.user.user.images
-    const images = cardData?.user?.user?.images || []
-
-    return images[0] || null
-  }
-
-  // Handler para dismiss - abre modal de confirmación
-  // Si isContinue = true, solo avanza sin rechazar
-  const handleDismiss = (cardData, isContinue = false) => {
-    if (!currentCard) return
-
-    // Si es "continuar" (match pendiente/aceptado), solo avanzar sin rechazar
-    if (isContinue) {
-      handleAction('skip', nextCard)
-
-      return
+  useEffect(() => {
+    return () => {
+      if (actionTimeoutRef.current) {
+        clearTimeout(actionTimeoutRef.current)
+        actionTimeoutRef.current = null
+      }
     }
+  }, [])
+
+  const visibleCards = useMemo(() => availableCards.slice(0, 3), [availableCards])
+
+  const currentCardMeta = useMemo(() => {
+    if (!currentCard) return null
 
     const userId = getSuggestionUserId(currentCard)
     const userName = getSuggestionUserName(currentCard)
     const userImage = getSuggestionUserImage(currentCard)
+    const serverFavorite = currentCard?.favorite ?? false
+    const optimisticFavorite = userId ? localFavorites.get(userId) : undefined
 
-    if (!userId) {
-      Logger.warn(Logger.CATEGORIES.UI, 'descartar sugerencia', 'No se pudo obtener el ID del usuario')
+    return {
+      userId,
+      userName,
+      userImage,
+      favorite: serverFavorite,
+      optimisticFavorite,
+      finalFavorite: optimisticFavorite ?? serverFavorite
+    }
+  }, [currentCard, localFavorites])
 
-      return
+  const handleAction = useCallback((action, callback) => {
+    if (!callback) return
+
+    if (actionTimeoutRef.current) {
+      clearTimeout(actionTimeoutRef.current)
     }
 
-    setPendingAction({ type: 'dismiss', userId, userName, userImage })
-    onDismissModalOpen()
-  }
+    setExitDirection(action)
+    actionTimeoutRef.current = setTimeout(() => {
+      callback()
+      setExitDirection(null)
+      actionTimeoutRef.current = null
+    }, 300)
+  }, [])
+
+  // Handler para dismiss - abre modal de confirmación
+  // Si isContinue = true, solo avanza sin rechazar
+  const handleDismiss = useCallback(
+    (_unused, isContinue = false) => {
+      if (!currentCardMeta) return
+
+      // Si es "continuar" (match pendiente/aceptado), solo avanzar sin rechazar
+      if (isContinue) {
+        handleAction('skip', nextCard)
+
+        return
+      }
+
+      const { userId, userName, userImage } = currentCardMeta
+
+      if (!userId) {
+        Logger.warn(Logger.CATEGORIES.UI, 'descartar sugerencia', 'No se pudo obtener el ID del usuario')
+
+        return
+      }
+
+      setPendingAction({ type: 'dismiss', userId, userName, userImage })
+      onDismissModalOpen()
+    },
+    [currentCardMeta, handleAction, nextCard, onDismissModalOpen]
+  )
 
   // Confirmar dismiss
-  const confirmDismiss = async () => {
+  const confirmDismiss = useCallback(() => {
     if (!pendingAction || pendingAction.type !== 'dismiss') return
 
     handleAction('dismiss', () => {
-      // Avanzar a la siguiente card inmediatamente
       nextCard()
 
-      // Enviar dismiss al backend (sin bloquear UI)
       dismissSuggestion(pendingAction.userId).catch(error => {
         Logger.error(Logger.CATEGORIES.UI, 'descartar sugerencia', error, { context: { targetUserId: pendingAction.userId } })
       })
     })
 
     setPendingAction(null)
-  }
+  }, [dismissSuggestion, handleAction, nextCard, pendingAction])
 
   // Handler para match - abre modal de confirmación
-  const handleMatch = () => {
-    if (!currentCard || matchLoading) return
+  const handleMatch = useCallback(() => {
+    if (!currentCardMeta || matchLoading) return
 
-    const userId = getSuggestionUserId(currentCard)
-    const userName = getSuggestionUserName(currentCard)
-    const userImage = getSuggestionUserImage(currentCard)
+    const { userId, userName, userImage } = currentCardMeta
 
     if (!userId) {
       Logger.warn(Logger.CATEGORIES.UI, 'enviar match', 'No se pudo obtener el ID del usuario')
@@ -156,18 +171,15 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
 
     setPendingAction({ type: 'match', userId, userName, userImage })
     onMatchModalOpen()
-  }
+  }, [currentCardMeta, matchLoading, onMatchModalOpen])
 
   // Confirmar match
-  const confirmMatch = async () => {
+  const confirmMatch = useCallback(() => {
     if (!pendingAction || pendingAction.type !== 'match') return
 
     handleAction('match', async () => {
       try {
-        // Enviar match al backend
         await sendMatch(pendingAction.userId)
-
-        // Avanzar a la siguiente card después del match exitoso
         nextCard()
       } catch (error) {
         Logger.error(Logger.CATEGORIES.UI, 'enviar match', error)
@@ -175,15 +187,13 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
     })
 
     setPendingAction(null)
-  }
+  }, [handleAction, nextCard, pendingAction, sendMatch])
 
   // Handler para favorito con optimistic UI y modal de éxito
-  const handleFavorite = async () => {
-    if (!currentCard) return
+  const handleFavorite = useCallback(async () => {
+    if (!currentCardMeta) return
 
-    const userId = getSuggestionUserId(currentCard)
-    const userName = getSuggestionUserName(currentCard)
-    const userImage = getSuggestionUserImage(currentCard)
+    const { userId, userName, userImage, finalFavorite } = currentCardMeta
 
     if (!userId) {
       Logger.warn(Logger.CATEGORIES.UI, 'toggle favorito', 'No se pudo obtener el ID del usuario')
@@ -191,31 +201,36 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
       return
     }
 
-    // Actualizar estado local inmediatamente (optimistic UI)
-    const currentStatus = localFavorites.get(userId) ?? currentCard.favorite ?? false
-    const newStatus = !currentStatus
+    const newStatus = !finalFavorite
 
-    setLocalFavorites(prev => new Map(prev).set(userId, newStatus))
+    setLocalFavorites(prev => {
+      const next = new Map(prev)
+
+      return next.set(userId, newStatus)
+    })
 
     try {
-      await toggleFavorite(userId)
+      await toggleFavorite(userId, { isFavorite: finalFavorite })
 
-      // Solo mostrar modal si se AGREGÓ a favoritos (newStatus = true)
       if (newStatus) {
         setFavoriteUserData({ name: userName, image: userImage })
         onFavoriteSuccessModalOpen()
       }
     } catch (error) {
-      // Si falla, revertir el estado local
-      setLocalFavorites(prev => new Map(prev).set(userId, currentStatus))
+      setLocalFavorites(prev => {
+        const next = new Map(prev)
+
+        return next.set(userId, finalFavorite)
+      })
+
       Logger.error(Logger.CATEGORIES.UI, 'Error al toggle favorito', error)
     }
-  }
+  }, [currentCardMeta, toggleFavorite, onFavoriteSuccessModalOpen])
 
   // Handler para continuar explorando después de agregar favorito
-  const handleContinueAfterFavorite = () => {
+  const handleContinueAfterFavorite = useCallback(() => {
     handleAction('skip', nextCard)
-  }
+  }, [handleAction, nextCard])
 
   // Variantes de animación para la card principal
   const cardVariants = {
@@ -236,12 +251,13 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
 
   return (
     <>
-      <div className='relative w-full max-w-md mx-auto h-[calc(100vh-180px)] max-h-[650px]'>
+      <div className='relative w-full max-w-md mx-auto h-[calc(100vh-180px)] h-[calc(100dvh-180px)] max-h-[650px]'>
         <AnimatePresence initial={false}>
           {visibleCards.map((cardData, index) => {
             const cardUserId = getSuggestionUserId(cardData)
-            // Usar estado local primero, luego el valor del servidor (nueva estructura)
-            const isFavorite = localFavorites.get(cardUserId) ?? cardData.favorite ?? false
+            const cardKey = cardUserId ?? `card-${index}`
+            const optimisticFavorite = cardUserId ? localFavorites.get(cardUserId) : undefined
+            const isFavorite = optimisticFavorite ?? cardData.favorite ?? false
 
             const isTopCard = index === 0
             const zIndex = visibleCards.length - index
@@ -251,7 +267,7 @@ const UserSuggestionCards = ({ suggestions = [], suggestionsPagination, fetchUse
 
             return (
               <motion.div
-                key={cardUserId}
+                key={cardKey}
                 animate={
                   isTopCard
                     ? 'animate'

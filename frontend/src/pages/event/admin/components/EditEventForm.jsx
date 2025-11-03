@@ -14,9 +14,10 @@ import {
   CardBody,
   Chip
 } from '@heroui/react'
-import { Calendar, MapPin, DollarSign, Users, FileText, Tag, Edit, Search, Images } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Users, FileText, Tag, Edit, Search, Images, CheckCircle, Save, Undo2 } from 'lucide-react'
 import { RichTextEditor } from '@components/ui/richtext'
 import ImageManager from '@components/ui/imageManager/ImageManager.jsx'
+import { EVENT_STATUS_DISPLAY } from '@constants/tableConstants.js'
 
 const EVENT_CATEGORIES = [
   { key: 'CULTURAL', label: 'Cultural' },
@@ -62,14 +63,16 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
         seoImage: eventData.seoImage || ''
       })
       setErrors({})
-      const initialGallery = [eventData.mainImage || eventData.mainImageUrl || null, ...(Array.isArray(eventData.images) ? eventData.images : [])]
-        .filter(Boolean)
+      const initialGallery = [
+        eventData.mainImage || eventData.mainImageUrl || null,
+        ...(Array.isArray(eventData.images) ? eventData.images : [])
+      ].filter(Boolean)
+
       setEventImages(initialGallery)
       setImageValidationState({ hasErrors: false, imageCount: initialGallery.length, errors: {} })
       setImageManagerKey(prev => prev + 1)
     }
   }, [eventData, isOpen])
-
 
   const formatDateForInput = value => {
     if (!value) return ''
@@ -141,6 +144,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
       newErrors.images = 'Debes mantener al menos una imagen del evento'
     } else if (imageValidationState.hasErrors) {
       const firstError = imageValidationState.errors && Object.values(imageValidationState.errors).find(Boolean)
+
       if (firstError) {
         newErrors.images = firstError
       }
@@ -151,7 +155,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = (action = 'save') => {
     if (loading) return
     if (!validateForm() || !eventData?.id) return
 
@@ -160,6 +164,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
     if (orderedImages.length === 0) {
       setErrors(prev => ({ ...prev, images: 'Debes mantener al menos una imagen del evento' }))
+
       return
     }
 
@@ -178,6 +183,8 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
     }
 
     onSubmit({
+      action,
+      currentStatus: eventData.status,
       eventId: eventData.id,
       eventData: updatedEventData,
       media: { orderedImages }
@@ -215,6 +222,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
   const handleEventImagesChange = images => {
     const normalized = Array.isArray(images) ? [...images] : []
+
     setEventImages(normalized)
     if (normalized.filter(Boolean).length > 0) {
       setErrors(prev => ({ ...prev, images: '' }))
@@ -226,8 +234,10 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
 
     if (hasErrors && validationErrors) {
       const firstError = Object.values(validationErrors).find(Boolean)
+
       if (firstError) {
         setErrors(prev => ({ ...prev, images: firstError }))
+
         return
       }
     }
@@ -240,6 +250,7 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
   }
 
   const selectedCategory = EVENT_CATEGORIES.find(cat => cat.key === formData.category)
+  const statusInfo = eventData?.status ? EVENT_STATUS_DISPLAY[eventData.status] || { label: eventData.status, color: 'default' } : null
 
   return (
     <Modal
@@ -261,6 +272,13 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
             <div>
               <h2 className='text-xl font-bold'>Editar Evento</h2>
               <p className='text-sm text-gray-400 font-normal'>Modifica la información del evento</p>
+              {statusInfo && (
+                <div className='mt-2'>
+                  <Chip color={statusInfo.color || 'default'} size='sm' variant='flat'>
+                    {statusInfo.label}
+                  </Chip>
+                </div>
+              )}
             </div>
           </div>
         </ModalHeader>
@@ -278,13 +296,10 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                 <ImageManager
                   key={imageManagerKey}
                   ref={imageManagerRef}
-                  cropAspectRatio={16 / 9}
                   enableCrop
                   enableReorder
-                  images={eventImages}
-                  maxImages={5}
                   showEmptySlots
-                  title='Gestiona la galería del evento'
+                  cropAspectRatio={16 / 9}
                   description='La primera imagen se mostrará como principal. Mantén un máximo de 5 imágenes horizontales (16:9).'
                   imageGridProps={{
                     headerTitle: 'Galería del evento',
@@ -292,14 +307,15 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                     headerHelperText: 'Arrastra para reordenar las imágenes de la galería.',
                     imageAspectClass: 'aspect-[16/9]'
                   }}
+                  images={eventImages}
+                  maxImages={5}
+                  title='Gestiona la galería del evento'
                   onImagesChange={handleEventImagesChange}
                   onValidationChange={handleEventImageValidation}
                 />
 
                 {errors.images && (
-                  <p className='text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2'>
-                    {errors.images}
-                  </p>
+                  <p className='text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2'>{errors.images}</p>
                 )}
               </CardBody>
             </Card>
@@ -348,19 +364,6 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
                   }}
                   errorMessage={errors.location}
                   isInvalid={!!errors.location}
-                  label='Ubicación del Evento'
-                  maxLength={300}
-                  placeholder='Ej: Auditorio Principal, Medellín'
-                  startContent={<MapPin className='w-4 h-4 text-gray-400' />}
-                  value={formData.location}
-                  onChange={e => handleInputChange('location', e.target.value)}
-                />
-
-                <Input
-                  classNames={{
-                    input: 'text-gray-200',
-                    inputWrapper: 'bg-gray-800/50 border-gray-600 data-[hover=true]:border-gray-500'
-                  }}
                   label='Ubicación del Evento'
                   maxLength={300}
                   placeholder='Ej: Auditorio Principal, Medellín'
@@ -533,13 +536,38 @@ const EditEventForm = ({ isOpen, onClose, onSubmit, loading, eventData }) => {
           </div>
         </ModalBody>
 
-        <ModalFooter>
+        <ModalFooter className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3'>
           <Button disabled={loading} variant='light' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='primary' isDisabled={loading} isLoading={loading} onPress={handleSubmit}>
-            Guardar cambios
-          </Button>
+          <div className='flex flex-col sm:flex-row gap-2'>
+            <Button
+              className='bg-warning-500/10 text-warning-400 border border-warning-500/20'
+              isDisabled={loading}
+              isLoading={loading}
+              startContent={!loading && <Undo2 className='w-4 h-4' />}
+              variant='flat'
+              onPress={() => handleSubmit('draft')}>
+              Guardar como borrador
+            </Button>
+            <Button
+              className='border border-gray-600/60'
+              isDisabled={loading}
+              isLoading={loading}
+              startContent={!loading && <Save className='w-4 h-4' />}
+              variant='bordered'
+              onPress={() => handleSubmit('save')}>
+              Guardar cambios
+            </Button>
+            <Button
+              color='primary'
+              isDisabled={loading}
+              isLoading={loading}
+              startContent={!loading && <CheckCircle className='w-4 h-4' />}
+              onPress={() => handleSubmit('publish')}>
+              Guardar y publicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

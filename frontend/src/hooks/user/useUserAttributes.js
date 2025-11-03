@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { getUserAttributes, getUserAttributesByType, createUserAttribute } from '@services'
+import { getUserAttributes, getUserAttributesByType, createUserAttribute } from '@services/user/userAttributesService.js'
 import { Logger } from '@utils/logger.js'
 import { useAsyncOperation } from '@hooks'
 

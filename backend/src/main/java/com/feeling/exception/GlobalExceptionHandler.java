@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.naming.AuthenticationNotSupportedException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -91,6 +92,26 @@ public class GlobalExceptionHandler {
         logger.warn("Usuario no aprobado: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ErrorResponseDTO("USER_NOT_APPROVED", ex.getMessage(), "403"));
+    }
+
+    @ExceptionHandler(GuestAccountException.class)
+    public ResponseEntity<ErrorResponseDTO> handleGuestAccountException(GuestAccountException ex) {
+        logger.warn("Cuenta tipo invitado detectada. Requiere activación manual: {}", ex.getEmail());
+
+        Map<String, String> details = ex.getEmail() != null
+            ? Map.of("email", ex.getEmail())
+            : null;
+
+        String errorCode = ex.getErrorCode() != null ? ex.getErrorCode() : "ACCOUNT_REQUIRES_PASSWORD";
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponseDTO(
+                errorCode,
+                ex.getMessage(),
+                errorCode,
+                details,
+                LocalDateTime.now()
+            ));
     }
 
     @ExceptionHandler(TooManyRequestsException.class)

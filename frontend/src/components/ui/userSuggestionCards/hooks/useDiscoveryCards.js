@@ -9,10 +9,14 @@ export const useDiscoveryCards = (suggestions, suggestionsPagination, fetchUserS
 
   // Filtrar sugerencias removidas localmente
   const availableCards = useMemo(() => {
-    return suggestions.filter(suggestion => {
-      const userId = suggestion.user?.user?.id || suggestion.user?.id
+    if (!Array.isArray(suggestions) || suggestions.length === 0) {
+      return []
+    }
 
-      return !removedCards.has(userId)
+    return suggestions.filter(suggestion => {
+      const userId = suggestion?.user?.user?.id ?? suggestion?.user?.id
+
+      return !userId || !removedCards.has(userId) ? true : false
     })
   }, [suggestions, removedCards])
 
@@ -24,7 +28,15 @@ export const useDiscoveryCards = (suggestions, suggestionsPagination, fetchUserS
     if (currentCard) {
       const userId = currentCard.user?.user?.id || currentCard.user?.id
 
-      setRemovedCards(prev => new Set([...prev, userId]))
+      setRemovedCards(prev => {
+        const next = new Set(prev)
+
+        if (userId) {
+          next.add(userId)
+        }
+
+        return next
+      })
 
       // Si quedan pocas cartas, cargar más sugerencias
       if (availableCards.length <= 5 && suggestionsPagination.hasNext) {

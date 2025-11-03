@@ -1,6 +1,6 @@
-import { memo, useMemo } from 'prop-types'
+import { memo, useMemo } from 'react'
 import { Button, Tooltip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@heroui/react'
-import { Eye, Edit, Trash2, Play, Pause, X, CheckCircle, RotateCcw, MoreVertical } from 'lucide-react'
+import { Eye, Edit, Trash2, Pause, X, CheckCircle, RotateCcw, MoreVertical, Undo2 } from 'lucide-react'
 import PropTypes from 'prop-types'
 
 /**
@@ -8,7 +8,7 @@ import PropTypes from 'prop-types'
  * Cada estado tiene acciones específicas permitidas
  */
 const EventActions = memo(
-  ({ event, onView, onEdit, onDelete, onPublish, onPause, onCancel, onActivate, loading = false }) => {
+  ({ event, onView, onEdit, onDelete, onPublish, onPause, onCancel, onActivate, onBackToEdition, loading = false }) => {
     /**
      * Determina qué acciones están disponibles según el estado del evento
      */
@@ -19,7 +19,7 @@ const EventActions = memo(
         case 'EN_EDICION':
           return ['view', 'edit', 'publish', 'cancel', 'delete']
         case 'PAUSADO':
-          return ['view', 'edit', 'publish', 'cancel', 'delete']
+          return ['view', 'edit', 'publish', 'backToEdition', 'cancel', 'delete']
         case 'CANCELADO':
           return ['view', 'activate', 'delete']
         case 'TERMINADO':
@@ -40,49 +40,56 @@ const EventActions = memo(
         label: 'Ver detalles',
         color: 'blue',
         handler: onView,
-        isDisabled: false
+        isDisabled: typeof onView !== 'function'
       },
       edit: {
         icon: <Edit className='w-4 h-4' />,
         label: 'Editar evento',
         color: 'gray',
         handler: onEdit,
-        isDisabled: false
+        isDisabled: typeof onEdit !== 'function'
       },
       publish: {
         icon: <CheckCircle className='w-4 h-4' />,
         label: event.status === 'PAUSADO' ? 'Reanudar evento' : 'Publicar evento',
         color: 'green',
         handler: onPublish,
-        isDisabled: false
+        isDisabled: typeof onPublish !== 'function'
       },
       pause: {
         icon: <Pause className='w-4 h-4' />,
         label: 'Pausar evento',
         color: 'orange',
         handler: onPause,
-        isDisabled: false
+        isDisabled: typeof onPause !== 'function'
       },
       cancel: {
         icon: <X className='w-4 h-4' />,
         label: 'Cancelar evento',
         color: 'red',
         handler: onCancel,
-        isDisabled: false
+        isDisabled: typeof onCancel !== 'function'
       },
       activate: {
         icon: <RotateCcw className='w-4 h-4' />,
         label: 'Activar evento',
         color: 'green',
         handler: onActivate,
-        isDisabled: false
+        isDisabled: typeof onActivate !== 'function'
+      },
+      backToEdition: {
+        icon: <Undo2 className='w-4 h-4' />,
+        label: 'Volver a edición',
+        color: 'orange',
+        handler: onBackToEdition,
+        isDisabled: typeof onBackToEdition !== 'function'
       },
       delete: {
         icon: <Trash2 className='w-4 h-4' />,
         label: 'Eliminar evento',
         color: 'red',
         handler: onDelete,
-        isDisabled: false
+        isDisabled: typeof onDelete !== 'function'
       }
     }
 
@@ -91,6 +98,7 @@ const EventActions = memo(
      */
     const renderActionButton = action => {
       const config = actionConfig[action]
+
       if (!config) return null
 
       const colorClasses = {
@@ -142,6 +150,7 @@ const EventActions = memo(
             <DropdownMenu aria-label='Más acciones'>
               {secondaryActions.map(action => {
                 const config = actionConfig[action]
+
                 if (!config) return null
 
                 return (
@@ -176,6 +185,7 @@ EventActions.propTypes = {
   onPause: PropTypes.func,
   onCancel: PropTypes.func,
   onActivate: PropTypes.func,
+  onBackToEdition: PropTypes.func,
   loading: PropTypes.bool
 }
 

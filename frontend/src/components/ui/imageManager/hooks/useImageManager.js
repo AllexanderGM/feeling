@@ -38,9 +38,12 @@ const useImageManager = ({
     imageSrc: null,
     originalFile: null
   })
+  const [pendingCropQueue, setPendingCropQueue] = useState([])
 
   // Estados de reordenamiento
   const [animatingPositions, setAnimatingPositions] = useState(new Set())
+
+  const imageCount = useMemo(() => images.filter(Boolean).length, [images])
 
   // Normalizar imágenes para tener siempre el array completo
   const normalizedImages = useMemo(() => {
@@ -61,6 +64,14 @@ const useImageManager = ({
       return createPreviewUrl(image)
     })
   }, [normalizedImages])
+
+  useEffect(() => {
+    const blobUrls = previewUrls.filter(url => typeof url === 'string' && url.startsWith('blob:'))
+
+    return () => {
+      cleanupPreviewUrls(blobUrls)
+    }
+  }, [previewUrls])
 
   // Validar imagen individual
   const validateSingleImage = useCallback(async (file, index) => {
@@ -108,6 +119,12 @@ const useImageManager = ({
 
       if (validFiles.length === 0) return
 
+      if (imageCount >= maxImages) {
+        showError('Ya alcanzaste el número máximo de imágenes permitidas.', 'Límite de imágenes')
+
+        return
+      }
+
       setIsValidating(true)
 
       try {
@@ -151,7 +168,7 @@ const useImageManager = ({
         const currentImages = [...normalizedImages]
         const availablePositions = []
 
-        for (let i = 0; i < maxImages && availablePositions.length < validFilesOnly.length; i++) {
+        for (let i = 0; i < maxImages; i++) {
           if (!currentImages[i]) {
             availablePositions.push(i)
           }
@@ -162,36 +179,43 @@ const useImageManager = ({
             currentCount: images.length,
             maxImages
           })
+          showError('No hay espacio disponible para agregar más imágenes.', 'Límite alcanzado')
 
           return
         }
 
-        // Para crop obligatorio: solo agregar la primera imagen y abrir crop modal
-        if (validFilesOnly.length > 0 && enableCrop) {
-          const firstFile = validFilesOnly[0]
-          const firstPosition = availablePositions[0]
+        const positionsToUse = availablePositions.slice(0, validFilesOnly.length)
+        const filesToProcess = validFilesOnly.slice(0, positionsToUse.length)
 
-          // Crear URL temporal para el crop
-          const tempUrl = createPreviewUrl(firstFile)
+        if (positionsToUse.length === 0 || filesToProcess.length === 0) {
+          showError('No hay espacio disponible para agregar más imágenes.', 'Límite alcanzado')
 
-          // Abrir modal de crop inmediatamente
-          setCropModal({
-            isOpen: true,
-            imageIndex: firstPosition,
-            imageSrc: tempUrl,
-            originalFile: firstFile
-          })
+          return
+        }
 
-          // No agregar la imagen aún - se agregará después del crop
+        if (filesToProcess.length < validFilesOnly.length) {
+          showError('Se alcanzó el límite de imágenes. Solo se agregarán las primeras disponibles.', 'Límite de imágenes')
+        }
+
+        if (enableCrop) {
+          const queueItems = filesToProcess.map((file, idx) => ({
+            file,
+            position: positionsToUse[idx]
+          }))
+
+          setPendingCropQueue(prev => [...prev, ...queueItems])
+
           return
         }
 
         // Si crop está deshabilitado, agregar normalmente
         const newImages = [...currentImages]
 
-        validFilesOnly.forEach((file, index) => {
-          if (availablePositions[index] !== undefined) {
-            newImages[availablePositions[index]] = file
+        filesToProcess.forEach((file, index) => {
+          const position = positionsToUse[index]
+
+          if (position !== undefined) {
+            newImages[position] = file
           }
         })
 
@@ -205,12 +229,15 @@ const useImageManager = ({
           onImagesChange(filteredImages)
         }
       } catch (error) {
-        Logger.error('Error agregando imágenes', Logger.CATEGORIES.UI, { error: error.message, filesCount: acceptedFiles.length })
+        Logger.error('Error agregando imágenes', Logger.CATEGORIES.UI, {
+          error: error.message,
+          filesCount: validFiles.length
+        })
       } finally {
         setIsValidating(false)
       }
     },
-    [normalizedImages, maxImages, onImagesChange, validateSingleImage]
+    [normalizedImages, maxImages, onImagesChange, validateSingleImage, enableCrop, showError, imageCount]
   )
 
   // Remover imagen
@@ -363,18 +390,18 @@ const useImageManager = ({
       accept: {
         'image/*': ['.jpeg', '.jpg', '.png', '.webp']
       },
-      maxFiles: maxImages - images.length,
+      maxFiles: Math.max(maxImages - imageCount, 1),
       multiple: true,
-      disabled: images.length >= maxImages
+      disabled: imageCount >= maxImages
     }),
-    [addImages, maxImages, images.length]
+    [addImages, maxImages, imageCount]
   )
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone(dropzoneConfig)
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone(dropzoneConfig)
 
   // Validación general
   const hasErrors = Object.keys(imageErrors).length > 0
-  const isRequired = required && images.length === 0
+  const isRequired = required && imageCount === 0
   const isValid = !hasErrors && !isRequired
 
   // Limpiar URLs al desmontar
@@ -383,6 +410,32 @@ const useImageManager = ({
       cleanupPreviewUrls(previewUrls.filter(url => url))
     }
   }, [])
+
+  useEffect(() => {
+    if (!enableCrop) return
+    if (cropModal.isOpen) return
+    if (pendingCropQueue.length === 0) return
+
+    const [{ file, position }, ...rest] = pendingCropQueue
+    const tempUrl = createPreviewUrl(file)
+
+    setCropModal({
+      isOpen: true,
+      imageIndex: position,
+      imageSrc: tempUrl,
+      originalFile: file
+    })
+
+    setPendingCropQueue(rest)
+  }, [enableCrop, cropModal.isOpen, pendingCropQueue])
+
+  const clearAllImages = useCallback(() => {
+    cleanupPreviewUrls(previewUrls.filter(url => url))
+    setPendingCropQueue([])
+    closeCropModal()
+    setImages([])
+    setImageErrors({})
+  }, [previewUrls, closeCropModal])
 
   // API pública del hook
   return {
@@ -417,7 +470,8 @@ const useImageManager = ({
     dropzoneProps: {
       getRootProps,
       getInputProps,
-      isDragActive
+      isDragActive,
+      open
     },
 
     // Configuración
@@ -427,9 +481,12 @@ const useImageManager = ({
     aspectRatio: cropAspectRatio || aspectRatio,
 
     // Utilidades
-    canAddMore: images.filter(img => img).length < maxImages,
-    imageCount: images.filter(img => img).length,
-    mainImage: images[0] || null
+    canAddMore: imageCount < maxImages,
+    imageCount,
+    mainImage: images[0] || null,
+
+    // Reset
+    clearAllImages
   }
 }
 

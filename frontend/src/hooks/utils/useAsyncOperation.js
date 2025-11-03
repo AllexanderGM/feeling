@@ -35,7 +35,8 @@ export const useAsyncOperation = (options = {}) => {
         loadingType = 'loading',
         handleErrors = true,
         showErrorNotifications = showNotifications,
-        successMessage = null
+        successMessage = null,
+        autoHandleAuthOverride = autoHandleAuth
       } = config
 
       // Determinar qué setter de loading usar
@@ -62,7 +63,7 @@ export const useAsyncOperation = (options = {}) => {
         if (handleErrors) {
           const errorResult = handleError(error, {
             showToast: showErrorNotifications,
-            autoRedirectAuth: autoHandleAuth,
+            autoRedirectAuth: autoHandleAuthOverride,
             logError: true
           })
 
@@ -73,12 +74,20 @@ export const useAsyncOperation = (options = {}) => {
             errors: errorResult.fieldErrors,
             errorType: errorResult.type,
             status: errorResult.status,
+            code: errorResult.code,
+            details: errorResult.details || null,
+            email: errorResult.email || null,
             operation
           }
         }
 
         // Si no se maneja automáticamente, solo formatear el error
         const errorMessage = extractErrorMessage(error)
+        const responseData = error?.response?.data || {}
+        const errorCode = responseData.code || responseData.error || error?.code || null
+        const details = responseData.details || null
+        const email = responseData.email || details?.email || null
+        const status = error?.response?.status || error?.status || null
 
         return {
           success: false,
@@ -86,6 +95,10 @@ export const useAsyncOperation = (options = {}) => {
           message: errorMessage,
           errors: null,
           error,
+          status,
+          details,
+          email,
+          code: errorCode,
           operation
         }
       } finally {

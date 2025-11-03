@@ -1,17 +1,32 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Card, CardBody } from '@heroui/react'
 import { Phone, Mail, Copy, MessageCircle, ExternalLink } from 'lucide-react'
+import { useNotification } from '@hooks'
 import { Logger } from '@utils/logger.js'
 
 const ContactInfoModal = ({ isOpen, onClose, contact }) => {
+  const { showSuccess, showError } = useNotification()
+
   if (!contact) return null
 
-  const handleCopyToClipboard = (text, label) => {
-    navigator.clipboard.writeText(text)
-    // TODO: Show toast notification
-    Logger.info(Logger.CATEGORIES.UI, 'copy_contact_info', `${label} copiado al portapapeles`, {
-      label,
-      contactId: contact?.id
-    })
+  const handleCopyToClipboard = async (text, label) => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API not available')
+      }
+
+      await navigator.clipboard.writeText(text)
+      showSuccess(`${label} copiado al portapapeles`, 'Copiado')
+      Logger.info(Logger.CATEGORIES.UI, 'copy_contact_info', `${label} copiado al portapapeles`, {
+        label,
+        contactId: contact?.id
+      })
+    } catch (error) {
+      showError('No pudimos copiar la información. Intenta nuevamente.', 'Error al copiar')
+      Logger.error(Logger.CATEGORIES.UI, 'copy_contact_info_failed', error, {
+        label,
+        contactId: contact?.id
+      })
+    }
   }
 
   const handleOpenWhatsApp = () => {

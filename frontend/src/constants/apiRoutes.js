@@ -334,7 +334,14 @@ export const API_ENDPOINTS = {
     CATEGORY_STATS: '/events/stats/category',
     TOGGLE_STATUS: '/events/{id}/admin-toggle-status',
     FORCE_DELETE: '/events/{id}/force-delete',
-    REGISTRATION: '/events/registration'
+    REGISTRATION: '/events/registration',
+    // Gestión de estados
+    PUBLISH: '/events/{id}/publish',
+    PAUSE: '/events/{id}/pause',
+    CANCEL: '/events/{id}/cancel',
+    ACTIVATE: '/events/{id}/activate',
+    FINISH: '/events/{id}/finish',
+    BACK_TO_EDITION: '/events/{id}/back-to-edition'
   },
 
   PAYMENTS: {

@@ -63,6 +63,7 @@
     "@eslint/eslintrc": "3.3.1",
     "@eslint/js": "9.37.0",
     "@next/eslint-plugin-next": "^15.5.4",
+    "@rollup/rollup-linux-x64-gnu": "^4.52.5",
     "@types/node": "^20.5.7",
     "@types/prop-types": "^15.7.15",
     "@types/react": "^18.3.3",

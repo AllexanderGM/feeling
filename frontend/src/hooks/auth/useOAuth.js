@@ -4,7 +4,7 @@ import { oauthService } from '@services'
 import useAuthOperations from './useAuthOperations.js'
 
 export const useOAuth = () => {
-  const { authContext, handleApiResponse, loading, withLoading } = useAuthOperations()
+  const { authContext, handleApiResponse, loading, withLoading, executeOperation } = useAuthOperations()
 
   if (!authContext) throw new Error('useOAuth debe ser utilizado dentro de AuthProvider')
 
@@ -23,20 +23,29 @@ export const useOAuth = () => {
 
   const registerWithGoogle = useCallback(
     async (accessTokenGoogle, tokenType = 'Bearer', scope = '', showNotifications = true) => {
-      const result = await withLoading(async () => {
-        const data = await oauthService.registerWithGoogle(accessTokenGoogle, tokenType, scope)
+      const result = await executeOperation(
+        async () => {
+          const data = await oauthService.registerWithGoogle(accessTokenGoogle, tokenType, scope)
 
-        // Actualizar tokens
-        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
+          // Actualizar tokens
+          updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
 
-        // Extraer datos del usuario sin los tokens
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tokens, ...userDataWithoutTokens } = data
+          // Extraer datos del usuario sin los tokens
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tokens, ...userDataWithoutTokens } = data
 
-        updateUser(userDataWithoutTokens)
+          updateUser(userDataWithoutTokens)
 
-        return data
-      }, 'Registro con Google')
+          return data
+        },
+        {
+          operation: 'Registro con Google',
+          loadingType: 'loading',
+          handleErrors: false,
+          autoHandleAuthOverride: false,
+          showErrorNotifications: false
+        }
+      )
 
       if (result?.status === 409) return result
       if (result?.status === 422) return result
@@ -45,29 +54,38 @@ export const useOAuth = () => {
         showNotifications
       })
     },
-    [withLoading, handleApiResponse, updateTokens, updateUser]
+    [executeOperation, handleApiResponse, updateTokens, updateUser]
   )
 
   const loginWithGoogle = useCallback(
     async (accessTokenGoogle, tokenType = 'Bearer', scope = '', showNotifications = true) => {
-      const result = await withLoading(async () => {
-        const data = await oauthService.loginWithGoogle(accessTokenGoogle, tokenType, scope)
+      const result = await executeOperation(
+        async () => {
+          const data = await oauthService.loginWithGoogle(accessTokenGoogle, tokenType, scope)
 
-        // Actualizar tokens
-        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
+          // Actualizar tokens
+          updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
 
-        // Extraer datos del usuario sin los tokens para guardar en localStorage
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tokens, ...userDataWithoutTokens } = data
+          // Extraer datos del usuario sin los tokens para guardar en localStorage
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tokens, ...userDataWithoutTokens } = data
 
-        updateUser(userDataWithoutTokens)
+          updateUser(userDataWithoutTokens)
 
-        return data
-      }, 'Inicio de sesión con Google')
+          return data
+        },
+        {
+          operation: 'Inicio de sesión con Google',
+          loadingType: 'loading',
+          handleErrors: false,
+          autoHandleAuthOverride: false,
+          showErrorNotifications: false
+        }
+      )
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso con Google!', { showNotifications })
     },
-    [withLoading, handleApiResponse, updateTokens, updateUser]
+    [executeOperation, handleApiResponse, updateTokens, updateUser]
   )
 
   // ========================================

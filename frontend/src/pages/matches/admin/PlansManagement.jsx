@@ -27,7 +27,7 @@ const PlansManagement = memo(() => {
   const [debouncedFilter, setDebouncedFilter] = useState('')
   const [selectedKeys, setSelectedKeys] = useState(new Set([]))
   const [visibleColumns, setVisibleColumns] = useState(new Set(MATCH_PLAN_COLUMNS.filter(col => col.uid !== 'id').map(col => col.uid)))
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const rowsPerPage = 10
   const [sortDescriptor, setSortDescriptor] = useState({
     column: 'name',
     direction: 'ascending'

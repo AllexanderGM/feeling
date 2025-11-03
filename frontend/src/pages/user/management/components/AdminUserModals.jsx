@@ -15,19 +15,8 @@ import {
 } from '@heroui/react'
 import { User, Mail, Shield, CheckCircle, AlertTriangle, X, UserX, Lock, UserIcon, Clock, Check } from 'lucide-react'
 import { Logger } from '@utils/logger'
-import { calculateAgeFromJavaDate } from '@utils/dateUtils.js'
 
 import UserDetailModal from './UserDetailModal.jsx'
-
-// Helper function to calculate age
-const calculateAge = birthDate => {
-  if (!birthDate) return 'N/A'
-  try {
-    return calculateAgeFromJavaDate(birthDate)
-  } catch {
-    return 'N/A'
-  }
-}
 
 const AdminUserModals = memo(
   ({

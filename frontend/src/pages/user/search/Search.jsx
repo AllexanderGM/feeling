@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
   Card,
   CardBody,
@@ -53,7 +53,7 @@ const Search = () => {
   const [selectedCategories, setSelectedCategories] = useState(['all'])
   const [onlineOnly, setOnlineOnly] = useState(false)
   const [viewMode, setViewMode] = useState('discovery') // 'discovery' o 'search'
-  const [favorites, setFavorites] = useState(new Set())
+  const { toggleFavorite, favoriteIds } = useMatchFavorites()
   const [selectedProfile, setSelectedProfile] = useState(null)
   const [isAnimating, setIsAnimating] = useState(false)
 
@@ -244,16 +244,16 @@ const Search = () => {
     }, 300)
   }
 
-  const toggleFavorite = profileId => {
-    const newFavorites = new Set(favorites)
-
-    if (newFavorites.has(profileId)) {
-      newFavorites.delete(profileId)
-    } else {
-      newFavorites.add(profileId)
-    }
-    setFavorites(newFavorites)
-  }
+  const handleToggleFavorite = useCallback(
+    async profileId => {
+      try {
+        await toggleFavorite(profileId, { isFavorite: favoriteIds.has(String(profileId)) })
+      } catch (error) {
+        Logger.error(Logger.CATEGORIES.UI, 'toggle_favorite_search', 'Error al cambiar favorito', { error, profileId })
+      }
+    },
+    [favoriteIds, toggleFavorite]
+  )
 
   const nextProfile = () => {
     if (currentProfileIndex < filteredProfiles.length - 1) {
@@ -408,12 +408,12 @@ const Search = () => {
                 <div className='max-w-md mx-auto'>
                   <div className={`transition-all duration-300 ${isAnimating ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}`}>
                     <UserCard
-                      isFavorite={favorites.has(currentProfile.id)}
+                      isFavorite={favoriteIds.has(String(currentProfile.id))}
                       showCompatibility={true}
                       showDistance={true}
                       user={currentProfile}
                       onMessage={handleSendMessage}
-                      onToggleFavorite={toggleFavorite}
+                      onToggleFavorite={handleToggleFavorite}
                       onViewProfile={handleViewProfile}
                     />
                   </div>
@@ -475,12 +475,12 @@ const Search = () => {
                   {filteredProfiles.map(profile => (
                     <UserCard
                       key={profile.id}
-                      isFavorite={favorites.has(profile.id)}
+                      isFavorite={favoriteIds.has(String(profile.id))}
                       showCompatibility={true}
                       showDistance={true}
                       user={profile}
                       onMessage={handleSendMessage}
-                      onToggleFavorite={toggleFavorite}
+                      onToggleFavorite={handleToggleFavorite}
                       onViewProfile={handleViewProfile}
                     />
                   ))}

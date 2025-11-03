@@ -16,7 +16,7 @@ import useAuthOperations from './useAuthOperations.js'
  * - useOAuth() → Autenticación con Google, Facebook, Apple
  */
 export const useAuth = () => {
-  const { authContext, handleApiResponse, handleAuthError, loading, withLoading } = useAuthOperations()
+  const { authContext, handleApiResponse, handleAuthError, loading, withLoading, executeOperation } = useAuthOperations()
   const navigate = useNavigate()
 
   if (!authContext) throw new Error('useAuth debe ser utilizado dentro de AuthProvider')
@@ -74,48 +74,61 @@ export const useAuth = () => {
 
   const login = useCallback(
     async (email, password, showNotifications = true) => {
-      const result = await withLoading(async () => {
-        const data = await authService.login(email, password)
+      const result = await executeOperation(
+        async () => {
+          const data = await authService.login(email, password)
 
-        // Validar que la respuesta del login tenga la estructura correcta
-        if (!isValidLoginResponse(data)) {
-          Logger.error(Logger.CATEGORIES.AUTH, 'login', 'Respuesta de login con estructura inválida', { data })
-          throw new Error('Respuesta del servidor inválida')
+          // Validar que la respuesta del login tenga la estructura correcta
+          if (!isValidLoginResponse(data)) {
+            Logger.error(Logger.CATEGORIES.AUTH, 'login', 'Respuesta de login con estructura inválida', { data })
+            throw new Error('Respuesta del servidor inválida')
+          }
+
+          if (data.status?.accountDeactivated) {
+            const error = new Error(
+              'Tu cuenta fue desactivada por el equipo de Feeling. Si crees que se trata de un error, contáctanos para revisar tu caso.'
+            )
+
+            error.code = 'ACCOUNT_DEACTIVATED'
+            clearAllAuth()
+            throw error
+          }
+
+          if (data.status?.approvalStatus === 'REJECTED') {
+            const error = new Error('Tu cuenta fue rechazada. Si necesitas más información, contáctanos.')
+
+            error.code = 'ACCOUNT_REJECTED'
+            clearAllAuth()
+            throw error
+          }
+
+          // Actualizar tokens
+          updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
+
+          // Extraer datos del usuario sin los tokens para guardar en localStorage
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { tokens, ...userDataWithoutTokens } = data
+
+          updateUser(userDataWithoutTokens)
+
+          return data
+        },
+        {
+          operation: 'Inicio de sesión',
+          loadingType: 'loading',
+          handleErrors: false,
+          showErrorNotifications: false,
+          autoHandleAuthOverride: false
         }
+      )
 
-        if (data.status?.accountDeactivated) {
-          const error = new Error(
-            'Tu cuenta fue desactivada por el equipo de Feeling. Si crees que se trata de un error, contáctanos para revisar tu caso.'
-          )
-
-          error.code = 'ACCOUNT_DEACTIVATED'
-          clearAllAuth()
-          throw error
-        }
-
-        if (data.status?.approvalStatus === 'REJECTED') {
-          const error = new Error('Tu cuenta fue rechazada. Si necesitas más información, contáctanos.')
-
-          error.code = 'ACCOUNT_REJECTED'
-          clearAllAuth()
-          throw error
-        }
-
-        // Actualizar tokens
-        updateTokens(data.tokens.accessToken, data.tokens.refreshToken)
-
-        // Extraer datos del usuario sin los tokens para guardar en localStorage
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tokens, ...userDataWithoutTokens } = data
-
-        updateUser(userDataWithoutTokens)
-
-        return data
-      }, 'Inicio de sesión')
+      if (!result?.success) {
+        return result
+      }
 
       return handleApiResponse(result, '¡Inicio de sesión exitoso!', { showNotifications })
     },
-    [withLoading, handleApiResponse, updateTokens, updateUser, clearAllAuth]
+    [executeOperation, handleApiResponse, updateTokens, updateUser, clearAllAuth]
   )
 
   // ========================================

@@ -18,14 +18,14 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Tooltip,
   User
 } from '@heroui/react'
-import { Eye, Edit, Trash2, ToggleLeft, ToggleRight, Calendar, MapPin, Users, DollarSign } from 'lucide-react'
-import { useError } from '@hooks'
-import { EVENT_CATEGORY_COLORS } from '@constants/tableConstants.js'
+import { Calendar, MapPin, Users, DollarSign } from 'lucide-react'
+import { EVENT_CATEGORY_COLORS, EVENT_STATUS_DISPLAY } from '@constants/tableConstants.js'
 import { formatJavaDateForDisplay, daysSinceJavaDate } from '@utils/dateUtils.js'
 import { RichTextViewer } from '@components/ui/richtext'
+
+import EventActions from './EventActions.jsx'
 
 const UnifiedEventTable = memo(
   ({
@@ -35,17 +35,19 @@ const UnifiedEventTable = memo(
     // Props para operaciones
     onEdit,
     onDelete,
-    onToggleStatus,
+    onPublish,
+    onPause,
+    onCancel,
+    onActivate,
+    onBackToEdition,
     sortDescriptor,
     setSortDescriptor,
     topContent,
     bottomContent,
     headerColumns
   }) => {
-    const { handleError, handleSuccess } = useError()
     const { isOpen, onOpen, onClose } = useDisclosure()
     const [selectedEvent, setSelectedEvent] = useState(null)
-    const [actionLoading, setActionLoading] = useState(false)
 
     const handleViewDetails = useCallback(
       event => {
@@ -55,52 +57,43 @@ const UnifiedEventTable = memo(
       [onOpen]
     )
 
-    const handleToggleStatus = useCallback(
-      async event => {
-        setActionLoading(true)
-        try {
-          await onToggleStatus?.(event.id)
-          handleSuccess(`Estado del evento "${event.title}" cambiado correctamente`)
-        } catch {
-          handleError('Error al cambiar el estado del evento')
-        } finally {
-          setActionLoading(false)
-        }
-      },
-      [onToggleStatus, handleSuccess, handleError]
-    )
-
     const renderCell = useCallback(
       (event, columnKey) => {
         const cellValue = event[columnKey]
 
         switch (columnKey) {
-          case 'event':
-            const hasImage = event.mainImageUrl || event.imageUrl || (event.images && event.images[0])
+          case 'event': {
+            const imageSrc =
+              event.mainImage || event.mainImageUrl || event.imageUrl || (Array.isArray(event.images) ? event.images[0] : null)
+            const eventName = event.title || event.name || 'Sin título'
+            const eventLocation =
+              event.location ||
+              event.destination?.city ||
+              event.city ||
+              event.destination?.name ||
+              event.destination ||
+              'Ubicación no disponible'
+            const plainDescription = typeof event.description === 'string' ? event.description.replace(/<[^>]*>/g, '') : ''
+            const shortDescription = plainDescription.length > 60 ? `${plainDescription.substring(0, 60)}...` : plainDescription
 
             return (
-              <div className='flex items-center gap-3'>
-                {hasImage ? (
-                  <Avatar
-                    alt={`${event.title || 'Evento'}`}
-                    className='w-12 h-12'
-                    radius='lg'
-                    src={hasImage}
-                    onError={() => {
-                      // Imagen de placeholder fallará silenciosamente
-                    }}
-                  />
-                ) : (
-                  <Avatar className='w-12 h-12 bg-default-100' icon={<Calendar className='w-6 h-6 text-default-500' />} radius='lg' />
-                )}
-                <div className='flex flex-col'>
-                  <p className='text-sm font-semibold text-foreground'>{event.title || event.name || 'Sin título'}</p>
-                  <p className='text-xs text-default-500 line-clamp-1'>
-                    {event.description ? event.description.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : 'Sin descripción'}
-                  </p>
-                </div>
-              </div>
+              <User
+                avatarProps={{
+                  radius: 'lg',
+                  className: 'w-12 h-12',
+                  src: imageSrc || undefined,
+                  icon: <Calendar className='w-5 h-5 text-default-500' />
+                }}
+                classNames={{
+                  name: 'text-sm font-semibold text-foreground',
+                  description: 'text-xs text-default-500'
+                }}
+                description={eventLocation}
+                name={eventName}>
+                {shortDescription && <p className='text-[11px] text-default-400 line-clamp-1'>{shortDescription}</p>}
+              </User>
             )
+          }
 
           case 'creator':
             return (
@@ -120,16 +113,22 @@ const UnifiedEventTable = memo(
               </div>
             )
 
-          case 'destination':
+          case 'destination': {
+            const city = event.destination?.city || event.city || null
+            const country = event.destination?.country || event.country || null
+            const locationLabel = event.location || city || 'No especificado'
+            const secondaryLabel = country && !event.location ? country : null
+
             return (
               <div className='flex flex-col'>
                 <div className='flex items-center gap-1 mb-1'>
                   <MapPin className='w-3 h-3 text-primary-400' />
-                  <p className='text-sm font-semibold text-foreground'>{event.destination?.city || event.city || 'No especificado'}</p>
+                  <p className='text-sm font-semibold text-foreground'>{locationLabel}</p>
                 </div>
-                <p className='text-xs text-default-500'>{event.destination?.country || event.country || ''}</p>
+                {secondaryLabel && <p className='text-xs text-default-500'>{secondaryLabel}</p>}
               </div>
             )
+          }
 
           case 'category':
             return (
@@ -152,33 +151,54 @@ const UnifiedEventTable = memo(
               </div>
             )
 
-          case 'registrations':
-            const totalRegistrations = event.totalRegistrations || 0
-            const completedRegistrations = event.completedRegistrations || 0
-            const maxCapacity = event.maxCapacity || event.capacity || 100
+          case 'registrations': {
+            const completedRegistrations =
+              event.completedRegistrations ??
+              event.currentAttendees ??
+              (Array.isArray(event.registrations) ? event.registrations.length : 0)
+
+            let maxCapacity = event.maxCapacity || event.capacity || 0
+
+            if (!maxCapacity) {
+              if (typeof event.availableSpots === 'number') {
+                maxCapacity = event.availableSpots + (event.currentAttendees || completedRegistrations || 0)
+              }
+            }
+            const totalRegistrations = event.totalRegistrations ?? completedRegistrations
+            const progressPct = maxCapacity > 0 ? Math.min((completedRegistrations / maxCapacity) * 100, 100) : 0
+            const availableSlots =
+              maxCapacity > 0 ? Math.max(maxCapacity - completedRegistrations, event.availableSpots ?? 0) : (event.availableSpots ?? 0)
 
             return (
-              <div className='flex flex-col items-center'>
-                <div className='flex items-center gap-2 mb-1'>
-                  <Users className='w-3 h-3 text-blue-400' />
-                  <span className='text-sm font-semibold text-foreground'>
-                    {completedRegistrations}/{maxCapacity}
-                  </span>
+              <div className='flex flex-col gap-1'>
+                <div className='flex items-center justify-between gap-2'>
+                  <div className='flex items-center gap-2'>
+                    <Users className='w-3 h-3 text-blue-400' />
+                    <span className='text-sm font-semibold text-foreground'>
+                      {completedRegistrations}/{maxCapacity || '∞'}
+                    </span>
+                  </div>
+                  <span className='text-xs text-default-400'>{availableSlots > 0 ? `${availableSlots} libres` : 'Completo'}</span>
                 </div>
                 <div className='w-full bg-default-200 rounded-full h-1.5'>
-                  <div
-                    className='bg-blue-500 h-1.5 rounded-full transition-all duration-300'
-                    style={{ width: `${Math.min((completedRegistrations / maxCapacity) * 100, 100)}%` }}
-                  />
+                  <div className='bg-blue-500 h-1.5 rounded-full transition-all duration-300' style={{ width: `${progressPct}%` }} />
                 </div>
-                <p className='text-xs text-default-500 mt-1'>{totalRegistrations} total</p>
+                <p className='text-xs text-default-500'>
+                  {totalRegistrations} {totalRegistrations === 1 ? 'registro' : 'registros'}
+                </p>
               </div>
             )
+          }
 
-          case 'isActive':
+          case 'status':
+            const statusMeta = EVENT_STATUS_DISPLAY[event.status] || {
+              label: event.status || 'Sin estado',
+              color: 'default'
+            }
+
             return (
-              <Chip className='capitalize' color={event.isActive ? 'success' : 'danger'} size='sm' variant='flat'>
-                {event.isActive ? 'Activo' : 'Inactivo'}
+              <Chip className='uppercase tracking-wide' color={statusMeta.color || 'default'} size='sm' variant='flat'>
+                {statusMeta.label || event.status || 'Sin estado'}
               </Chip>
             )
 
@@ -228,70 +248,25 @@ const UnifiedEventTable = memo(
 
           case 'actions':
             return (
-              <div className='flex items-center justify-center gap-2'>
-                {/* Ver detalles */}
-                <Tooltip content='Ver detalles'>
-                  <Button
-                    isIconOnly
-                    className='bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20'
-                    isDisabled={loading || actionLoading}
-                    size='sm'
-                    title='Ver detalles'
-                    variant='flat'
-                    onPress={() => handleViewDetails(event)}>
-                    <Eye className='w-4 h-4' />
-                  </Button>
-                </Tooltip>
-
-                {/* Editar evento */}
-                <Tooltip content='Editar evento'>
-                  <Button
-                    isIconOnly
-                    className='bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 border border-gray-500/20'
-                    isDisabled={loading || actionLoading}
-                    size='sm'
-                    title='Editar evento'
-                    variant='flat'
-                    onPress={() => onEdit?.(event)}>
-                    <Edit className='w-4 h-4' />
-                  </Button>
-                </Tooltip>
-
-                {/* Cambiar estado */}
-                <Tooltip content={event.isActive ? 'Desactivar evento' : 'Activar evento'}>
-                  <Button
-                    isIconOnly
-                    className={`${event.isActive ? 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20'}`}
-                    isDisabled={loading || actionLoading}
-                    size='sm'
-                    title={event.isActive ? 'Desactivar evento' : 'Activar evento'}
-                    variant='flat'
-                    onPress={() => handleToggleStatus(event)}>
-                    {event.isActive ? <ToggleLeft className='w-4 h-4' /> : <ToggleRight className='w-4 h-4' />}
-                  </Button>
-                </Tooltip>
-
-                {/* Eliminar evento */}
-                <Tooltip color='danger' content='Eliminar evento'>
-                  <Button
-                    isIconOnly
-                    className='bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                    isDisabled={loading || actionLoading}
-                    size='sm'
-                    title='Eliminar evento'
-                    variant='flat'
-                    onPress={() => onDelete?.(event)}>
-                    <Trash2 className='w-4 h-4' />
-                  </Button>
-                </Tooltip>
-              </div>
+              <EventActions
+                event={event}
+                loading={loading}
+                onActivate={onActivate}
+                onBackToEdition={onBackToEdition}
+                onCancel={onCancel}
+                onDelete={onDelete}
+                onEdit={onEdit}
+                onPause={onPause}
+                onPublish={onPublish}
+                onView={handleViewDetails}
+              />
             )
 
           default:
             return cellValue || 'N/A'
         }
       },
-      [handleViewDetails, handleToggleStatus, loading, actionLoading, onEdit, onDelete]
+      [handleViewDetails, loading, onEdit, onDelete, onPublish, onPause, onCancel, onActivate, onBackToEdition]
     )
 
     const displayColumns = headerColumns || []
@@ -387,7 +362,12 @@ const UnifiedEventTable = memo(
                         <Avatar
                           className='w-20 h-20'
                           icon={<Calendar className='w-10 h-10 text-default-500' />}
-                          src={selectedEvent.mainImageUrl || selectedEvent.imageUrl}
+                          src={
+                            selectedEvent.mainImage ||
+                            selectedEvent.mainImageUrl ||
+                            selectedEvent.imageUrl ||
+                            (Array.isArray(selectedEvent.images) ? selectedEvent.images[0] : undefined)
+                          }
                         />
                         <Chip color={selectedEvent.isActive ? 'success' : 'danger'} size='sm' variant='flat'>
                           {selectedEvent.isActive ? 'Activo' : 'Inactivo'}
@@ -397,10 +377,16 @@ const UnifiedEventTable = memo(
                         <h4 className='text-xl font-semibold text-white mb-2'>{selectedEvent.title || selectedEvent.name}</h4>
                         <div className='grid grid-cols-2 gap-4'>
                           <div>
-                            <p className='text-xs font-medium text-gray-400 uppercase'>Destino</p>
+                            <p className='text-xs font-medium text-gray-400 uppercase'>Ubicación</p>
                             <p className='text-sm text-gray-200'>
-                              {selectedEvent.destination?.city || selectedEvent.city},{' '}
-                              {selectedEvent.destination?.country || selectedEvent.country}
+                              {selectedEvent.location ||
+                                [
+                                  selectedEvent.destination?.city || selectedEvent.city,
+                                  selectedEvent.destination?.country || selectedEvent.country
+                                ]
+                                  .filter(Boolean)
+                                  .join(', ') ||
+                                'No especificada'}
                             </p>
                           </div>
                           <div>

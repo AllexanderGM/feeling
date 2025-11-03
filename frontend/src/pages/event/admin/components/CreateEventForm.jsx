@@ -14,7 +14,7 @@ import {
   CardBody,
   Chip
 } from '@heroui/react'
-import { Calendar, MapPin, DollarSign, Users, FileText, Tag, Search, Images } from 'lucide-react'
+import { Calendar, MapPin, DollarSign, Users, FileText, Tag, Search, Images, CheckCircle, Save } from 'lucide-react'
 import { RichTextEditor } from '@components/ui/richtext'
 import ImageManager from '@components/ui/imageManager/ImageManager.jsx'
 
@@ -45,7 +45,6 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
   const [eventImages, setEventImages] = useState([])
   const [imageValidationState, setImageValidationState] = useState({ hasErrors: false, imageCount: 0, errors: {} })
   const [imageManagerKey, setImageManagerKey] = useState(0)
-
 
   const validateForm = () => {
     const newErrors = {}
@@ -111,6 +110,7 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       newErrors.images = 'Debes subir al menos una imagen del evento'
     } else if (imageValidationState.hasErrors) {
       const firstError = imageValidationState.errors && Object.values(imageValidationState.errors).find(Boolean)
+
       if (firstError) {
         newErrors.images = firstError
       }
@@ -121,7 +121,7 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = (action = 'draft') => {
     if (loading) return
     if (!validateForm()) return
 
@@ -130,6 +130,7 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
 
     if (orderedImages.length === 0) {
       setErrors(prev => ({ ...prev, images: 'Debes subir al menos una imagen del evento' }))
+
       return
     }
 
@@ -147,7 +148,11 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
       seoImage: formData.seoImage.trim() || null
     }
 
-    onSubmit({ eventData, media: { orderedImages } })
+    onSubmit({
+      action,
+      eventData,
+      media: { orderedImages }
+    })
   }
 
   const handleClose = () => {
@@ -179,10 +184,11 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
     }
   }
 
-
   const handleEventImagesChange = images => {
     const normalized = Array.isArray(images) ? [...images] : []
+
     setEventImages(normalized)
+    setImageManagerKey(prev => prev + 1)
     if (normalized.filter(Boolean).length > 0) {
       setErrors(prev => ({ ...prev, images: '' }))
     }
@@ -193,8 +199,10 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
 
     if (hasErrors && validationErrors) {
       const firstError = Object.values(validationErrors).find(Boolean)
+
       if (firstError) {
         setErrors(prev => ({ ...prev, images: firstError }))
+
         return
       }
     }
@@ -254,13 +262,10 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                 <ImageManager
                   key={imageManagerKey}
                   ref={imageManagerRef}
-                  cropAspectRatio={16 / 9}
                   enableCrop
                   enableReorder
-                  images={eventImages}
-                  maxImages={5}
                   showEmptySlots
-                  title='Selecciona hasta 5 imágenes horizontales'
+                  cropAspectRatio={16 / 9}
                   description='La primera imagen se mostrará como principal. Usa fotos en formato 16:9 de máximo 5 MB cada una.'
                   imageGridProps={{
                     headerTitle: 'Galería del evento',
@@ -268,14 +273,15 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                     headerHelperText: 'Arrastra para reordenar las imágenes.',
                     imageAspectClass: 'aspect-[16/9]'
                   }}
+                  images={eventImages}
+                  maxImages={5}
+                  title='Selecciona hasta 5 imágenes horizontales'
                   onImagesChange={handleEventImagesChange}
                   onValidationChange={handleEventImageValidation}
                 />
 
                 {errors.images && (
-                  <p className='text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2'>
-                    {errors.images}
-                  </p>
+                  <p className='text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2'>{errors.images}</p>
                 )}
               </CardBody>
             </Card>
@@ -329,8 +335,8 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                   maxLength={300}
                   placeholder='Ej: Teatro Nacional, Bogotá'
                   startContent={<MapPin className='w-4 h-4 text-gray-400' />}
-                    value={formData.location}
-                    onChange={e => handleInputChange('location', e.target.value)}
+                  value={formData.location}
+                  onChange={e => handleInputChange('location', e.target.value)}
                 />
               </CardBody>
             </Card>
@@ -387,13 +393,13 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                     }}
                     errorMessage={errors.price}
                     isInvalid={!!errors.price}
-                  label='Precio (COP)'
-                  min='0'
-                  placeholder='0, 250000, 500000...'
-                  startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
-                  step='0.01'
-                  type='number'
-                  value={formData.price}
+                    label='Precio (COP)'
+                    min='0'
+                    placeholder='0, 250000, 500000...'
+                    startContent={<DollarSign className='w-4 h-4 text-gray-400' />}
+                    step='0.01'
+                    type='number'
+                    value={formData.price}
                     onChange={e => handleInputChange('price', e.target.value)}
                   />
 
@@ -562,7 +568,8 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
                           <div>
                             <p className='text-xs text-gray-400'>Galería</p>
                             <p className='text-sm text-gray-200'>
-                              {eventImages.filter(Boolean).length} imagen{eventImages.filter(Boolean).length === 1 ? '' : 'es'} seleccionada{eventImages.filter(Boolean).length === 1 ? '' : 's'}
+                              {eventImages.filter(Boolean).length} imagen{eventImages.filter(Boolean).length === 1 ? '' : 'es'} seleccionada
+                              {eventImages.filter(Boolean).length === 1 ? '' : 's'}
                             </p>
                           </div>
                         </div>
@@ -575,13 +582,27 @@ const CreateEventForm = ({ isOpen, onClose, onSubmit, loading }) => {
           </div>
         </ModalBody>
 
-        <ModalFooter>
+        <ModalFooter className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3'>
           <Button className='border-gray-600 text-gray-300' disabled={loading} variant='bordered' onPress={handleClose}>
             Cancelar
           </Button>
-          <Button color='primary' isLoading={loading} startContent={!loading && <Calendar className='w-4 h-4' />} onPress={handleSubmit}>
-            Crear Evento
-          </Button>
+          <div className='flex flex-col sm:flex-row gap-2'>
+            <Button
+              className='bg-warning-500/10 text-warning-400 border border-warning-500/20'
+              isDisabled={loading}
+              startContent={!loading && <Save className='w-4 h-4' />}
+              variant='flat'
+              onPress={() => handleSubmit('draft')}>
+              Guardar como borrador
+            </Button>
+            <Button
+              color='primary'
+              isLoading={loading}
+              startContent={!loading && <CheckCircle className='w-4 h-4' />}
+              onPress={() => handleSubmit('publish')}>
+              Crear y publicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

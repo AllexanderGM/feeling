@@ -1,55 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Input, Button, Spinner, Card, CardBody, Chip } from '@heroui/react'
+import { Input, Button, Spinner, Card, CardBody, Chip, Pagination } from '@heroui/react'
 import { Search, RefreshCw, CalendarDays, Sparkles } from 'lucide-react'
 import { useEvents } from '@hooks'
 import CardEvent from '@components/ui/cards/CardEvent.jsx'
-import { parseJavaDate } from '@utils/dateUtils.js'
 import { APP_PATHS } from '@constants/paths.js'
 import LiteContainer from '@components/layout/LiteContainer.jsx'
 import LoadData from '@components/layout/LoadData.jsx'
 import LoadDataError from '@components/layout/LoadDataError.jsx'
 
-const applySearchFilter = (events, searchTerm) => {
-  if (!Array.isArray(events) || !events.length) return []
-
-  const normalized = searchTerm.trim().toLowerCase()
-
-  if (!normalized) return events
-
-  return events.filter(event => {
-    const haystackParts = [
-      event.title,
-      event.description,
-      event.location,
-      event.categoryDisplayName,
-      event.statusDisplayName,
-      event.createdByName
-    ].filter(Boolean)
-
-    const parsedDate = parseJavaDate(event.eventDate)
-
-    if (parsedDate) {
-      haystackParts.push(parsedDate.toLocaleDateString('es-ES'))
-      haystackParts.push(
-        parsedDate.toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        })
-      )
-    }
-
-    const haystack = haystackParts.join(' ').toLowerCase()
-
-    return haystack.includes(normalized)
-  })
-}
-
 const EventsPage = () => {
   const { loading, upcomingEvents, fetchUpcomingEvents, upcomingEventsPagination } = useEvents()
+  const rowsPerPage = 6
+  const [page, setPage] = useState(1)
+  const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [refreshToken, setRefreshToken] = useState(0)
   const [initialLoading, setInitialLoading] = useState(true)
   const [initialError, setInitialError] = useState('')
   const [initialized, setInitialized] = useState(false)
@@ -58,56 +25,78 @@ const EventsPage = () => {
   useEffect(() => {
     let isMounted = true
 
-    const loadInitialEvents = async () => {
-      setInitialLoading(true)
-      setInitialError('')
-
-      const result = await fetchUpcomingEvents(0, 12, '')
-
-      if (!isMounted) {
-        return
-      }
-
-      if (result?.success) {
-        setInitialized(true)
+    const loadEvents = async () => {
+      if (!initialized) {
+        setInitialLoading(true)
         setInitialError('')
-      } else {
-        setInitialError(result?.message || 'No pudimos cargar los eventos. Intenta nuevamente.')
       }
 
-      setInitialLoading(false)
+      try {
+        await fetchUpcomingEvents(page - 1, rowsPerPage, searchTerm)
+
+        if (isMounted) {
+          setInitialized(true)
+          setInitialError('')
+        }
+      } catch (error) {
+        if (isMounted) {
+          setInitialError(error?.message || 'No pudimos cargar los eventos. Intenta nuevamente.')
+        }
+      } finally {
+        if (isMounted) {
+          setInitialLoading(false)
+        }
+      }
     }
 
-    loadInitialEvents()
+    loadEvents()
 
     return () => {
       isMounted = false
     }
-  }, [fetchUpcomingEvents])
+  }, [fetchUpcomingEvents, page, rowsPerPage, searchTerm, refreshToken, initialized])
+
+  useEffect(() => {
+    const totalPages = Math.max(1, upcomingEventsPagination.totalPages ?? 1)
+
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [upcomingEventsPagination.totalPages, page])
 
   const handleRefresh = useCallback(() => {
-    fetchUpcomingEvents(0, upcomingEventsPagination?.size || 12, searchTerm)
-  }, [fetchUpcomingEvents, upcomingEventsPagination?.size, searchTerm])
+    setPage(1)
+    setSearchTerm(searchInput.trim())
+    setRefreshToken(prev => prev + 1)
+    setInitialError('')
+  }, [searchInput])
 
-  const handleInitialRetry = useCallback(async () => {
+  const handleInitialRetry = useCallback(() => {
+    setSearchInput('')
+    setSearchTerm('')
+    setPage(1)
+    setRefreshToken(prev => prev + 1)
     setInitialLoading(true)
     setInitialError('')
-    const result = await fetchUpcomingEvents(0, 12, '')
-
-    if (result?.success) {
-      setInitialized(true)
-      setInitialError('')
-    } else {
-      setInitialError(result?.message || 'No pudimos cargar los eventos. Intenta nuevamente.')
-    }
-    setInitialLoading(false)
-  }, [fetchUpcomingEvents])
-
-  const handleSearchChange = useCallback(event => {
-    setSearchTerm(event.target.value)
   }, [])
 
-  const filteredEvents = useMemo(() => applySearchFilter(upcomingEvents, searchTerm), [upcomingEvents, searchTerm])
+  const handleSearchChange = useCallback(event => {
+    setSearchInput(event.target.value)
+  }, [])
+
+  const handleSearchKeyDown = useCallback(
+    event => {
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        handleRefresh()
+      }
+    },
+    [handleRefresh]
+  )
+
+  const handlePageChange = useCallback(newPage => {
+    setPage(newPage)
+  }, [])
 
   const handleSelectEvent = useCallback(
     eventId => {
@@ -118,7 +107,9 @@ const EventsPage = () => {
     [navigate]
   )
 
-  const hasResults = filteredEvents.length > 0
+  const totalAvailable = upcomingEventsPagination.totalElements ?? upcomingEvents.length
+  const hasResults = upcomingEvents.length > 0
+  const totalPages = Math.max(1, upcomingEventsPagination.totalPages ?? 1)
 
   if (!initialized && initialLoading) {
     return <LoadData>Cargando próximos eventos...</LoadData>
@@ -228,8 +219,9 @@ const EventsPage = () => {
                 className='flex-1'
                 placeholder='Buscar por nombre, ubicación o categoría'
                 startContent={<Search className='text-gray-500' size={18} />}
-                value={searchTerm}
+                value={searchInput}
                 onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
               />
 
               <Button
@@ -253,7 +245,7 @@ const EventsPage = () => {
                 <h2 className='text-sm font-semibold text-gray-200'>Eventos disponibles</h2>
               </div>
               <Chip className='bg-primary/15 text-primary-100' radius='sm' size='sm' variant='flat'>
-                {filteredEvents.length}
+                {totalAvailable}
               </Chip>
             </div>
 
@@ -262,11 +254,26 @@ const EventsPage = () => {
                 <Spinner color='primary' label='Cargando eventos...' size='lg' />
               </div>
             ) : hasResults ? (
-              <div className='grid gap-4 grid-cols-1 sm:grid-cols-2'>
-                {filteredEvents.map(event => (
-                  <CardEvent key={event.id} event={event} onSelect={() => handleSelectEvent(event.id)} />
-                ))}
-              </div>
+              <>
+                <div className='grid gap-4 grid-cols-1 sm:grid-cols-2'>
+                  {upcomingEvents.map(event => (
+                    <CardEvent key={event.id} event={event} onSelect={() => handleSelectEvent(event.id)} />
+                  ))}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className='flex justify-end mt-6'>
+                    <Pagination
+                      showControls
+                      color='primary'
+                      isDisabled={loading}
+                      page={page}
+                      total={totalPages}
+                      onChange={handlePageChange}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <Card className='bg-gray-800/30 backdrop-blur-sm border-gray-700/50'>
                 <CardBody className='flex flex-col items-center gap-3 py-12 text-center'>

@@ -131,7 +131,7 @@ const Detail = () => {
   // Hooks
   const { getUserProfileById } = useUser()
   const { sendMatch, dismissSuggestion, loading: matchLoading } = useMatchInteractions()
-  const { toggleFavorite, checkIfFavorite, loading: favoriteLoading } = useMatchFavorites()
+  const { toggleFavorite, checkIfFavorite, favoriteIds, loading: favoritesLoading } = useMatchFavorites()
   const { handleError, handleSuccess } = useError()
   const [isFavorite, setIsFavorite] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -154,15 +154,22 @@ const Detail = () => {
 
         if (result?.success && result?.data) {
           setUserData(result.data)
-          const favoriteStatus = await checkIfFavorite(userId)
 
-          setIsFavorite(favoriteStatus)
+          const normalizedId = String(userId)
+
+          if (favoriteIds.has(normalizedId)) {
+            setIsFavorite(true)
+          } else {
+            const favoriteStatus = await checkIfFavorite(userId)
+
+            setIsFavorite(favoriteStatus)
+          }
         }
       } finally {
         if (withLoader) setLoading(false)
       }
     },
-    [userId, getUserProfileById, checkIfFavorite]
+    [userId, getUserProfileById, checkIfFavorite, favoriteIds]
   )
 
   useEffect(() => {
@@ -201,11 +208,21 @@ const Detail = () => {
     handleBack()
   }, [handleBack])
 
+  useEffect(() => {
+    if (!userId) return
+
+    const normalizedId = String(userId)
+
+    setIsFavorite(favoriteIds.has(normalizedId))
+  }, [favoriteIds, userId])
+
   const handleToggleFavorite = useCallback(async () => {
-    const newFavoriteStatus = await toggleFavorite(userId)
+    if (!userId) return
+
+    const newFavoriteStatus = await toggleFavorite(userId, { isFavorite })
 
     setIsFavorite(newFavoriteStatus)
-  }, [userId, toggleFavorite])
+  }, [userId, toggleFavorite, isFavorite])
 
   // Handler para reportar usuario
   const handleReportUser = useCallback(async () => {
@@ -711,7 +728,8 @@ const Detail = () => {
                         ? 'bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/40 border-2 border-blue-300/40'
                         : 'bg-white/10 border-2 border-white/20 hover:border-blue-500/60 hover:bg-blue-500/20'
                     } text-blue-300 hover:text-blue-200 active:scale-95 transition-all duration-200`}
-                    isDisabled={favoriteLoading}
+                    isDisabled={favoritesLoading}
+                    isLoading={favoritesLoading}
                     radius='full'
                     size='lg'
                     variant='flat'

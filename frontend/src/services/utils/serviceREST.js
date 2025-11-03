@@ -360,9 +360,10 @@ export class ServiceREST {
     error.fieldErrors = result.error.fieldErrors
     error.code = result.error.code || result.originalError?.response?.data?.code
     error.operation = operation
+    const requestConfig = result.originalError?.config
 
     // Emitir evento de auth si es necesario
-    if (result.error.type === ErrorManager.ERROR_TYPES.AUTH && !error._handledByInterceptor) {
+    if (result.error.type === ErrorManager.ERROR_TYPES.AUTH && !error._handledByInterceptor && !requestConfig?.skipAuthRedirect) {
       this.emitAuthError(error)
     }
 

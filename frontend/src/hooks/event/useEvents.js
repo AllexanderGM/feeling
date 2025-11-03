@@ -51,6 +51,24 @@ const syncEventByStatusCollections = (collections, updatedEvent) => {
   return nextCollections
 }
 
+const findEventByIdInCollections = (eventId, collections = []) => {
+  if (!eventId) return null
+
+  const targetId = String(eventId)
+
+  for (const collection of collections) {
+    if (!Array.isArray(collection)) continue
+
+    const found = collection.find(item => item?.id !== undefined && String(item.id) === targetId)
+
+    if (found) {
+      return found
+    }
+  }
+
+  return null
+}
+
 const addEventToCollectionsState = (setters, event) => {
   if (!event?.id) return
 
@@ -62,13 +80,24 @@ const addEventToCollectionsState = (setters, event) => {
 }
 
 const updateEventCollectionsState = (setters, event) => {
-  if (!event?.id) return
+  if (!event?.id) return null
 
   setters.setActiveEvents(prev => updateEventInCollection(prev, event.id, event))
   setters.setAllEvents(prev => updateEventInCollection(prev, event.id, event))
   setters.setUpcomingEvents(prev => updateEventInCollection(prev, event.id, event))
   setters.setEventsByCategory(prev => updateEventInCollection(prev, event.id, event))
-  setters.setEventsByStatus(prev => syncEventByStatusCollections(prev, event))
+
+  let updatedStatusCollections = null
+
+  if (typeof setters.setEventsByStatus === 'function') {
+    setters.setEventsByStatus(prev => {
+      updatedStatusCollections = syncEventByStatusCollections(prev, event)
+
+      return updatedStatusCollections
+    })
+  }
+
+  return updatedStatusCollections
 }
 
 const buildPaginationFromResponse = (mappedResponse, fallbackPage = 0, fallbackSize = DEFAULT_ROWS_PER_PAGE, itemsLength = 0) => {
@@ -147,8 +176,10 @@ const useEvents = () => {
           if (item instanceof File) return item
           if (typeof item === 'string') {
             const trimmed = item.trim()
+
             return trimmed.length > 0 ? trimmed : null
           }
+
           return null
         })
         .filter(Boolean)
@@ -170,10 +201,12 @@ const useEvents = () => {
         let mainImageUrl = previousEvent?.mainImage || null
 
         if (mainItem instanceof File) {
-          const uploadResponse = mode === 'create'
-            ? await eventService.uploadEventMainImage(eventId, mainItem)
-            : await eventService.updateEventMainImage(eventId, mainItem)
+          const uploadResponse =
+            mode === 'create'
+              ? await eventService.uploadEventMainImage(eventId, mainItem)
+              : await eventService.updateEventMainImage(eventId, mainItem)
           const uploadData = unwrapServiceResponse(uploadResponse)
+
           mainImageUrl = uploadData?.imageUrl || uploadData?.mainImageUrl || uploadData || null
         } else if (typeof mainItem === 'string') {
           mainImageUrl = mainItem
@@ -185,22 +218,22 @@ const useEvents = () => {
           if (item instanceof File) {
             galleryFiles.push(item)
             galleryPositions.push(index)
+
             return null
           }
+
           return typeof item === 'string' ? item : null
         })
 
         let appendedUrls = []
+
         if (galleryFiles.length > 0) {
           const uploadResponse = await eventService.uploadEventGalleryImages(eventId, galleryFiles)
           const uploadData = unwrapServiceResponse(uploadResponse)
-          const updatedGallery = Array.isArray(uploadData?.imageUrls)
-            ? uploadData.imageUrls
-            : Array.isArray(uploadData)
-              ? uploadData
-              : []
+          const updatedGallery = Array.isArray(uploadData?.imageUrls) ? uploadData.imageUrls : Array.isArray(uploadData) ? uploadData : []
 
           const appendedCount = Math.min(galleryFiles.length, updatedGallery.length)
+
           appendedUrls = updatedGallery.slice(updatedGallery.length - appendedCount)
         }
 
@@ -221,6 +254,7 @@ const useEvents = () => {
         }
 
         const updateResponse = await eventService.updateEvent(eventId, updatePayload)
+
         currentEvent = unwrapServiceResponse(updateResponse)
 
         Logger.info(Logger.CATEGORIES.SERVICE, 'event_media', `Galería sincronizada para el evento ${eventId}`, {
@@ -244,6 +278,30 @@ const useEvents = () => {
     },
     [handleError, unwrapServiceResponse]
   )
+
+  const resolveEventReference = useCallback(
+    eventOrId => {
+      if (eventOrId && typeof eventOrId === 'object' && eventOrId.id !== undefined && eventOrId.id !== null) {
+        return eventOrId
+      }
+
+      if (eventOrId === undefined || eventOrId === null) {
+        return null
+      }
+
+      const collectionsToSearch = [allEvents, activeEvents, upcomingEvents, eventsByCategory, ...Object.values(eventsByStatus || {})]
+
+      const cachedEvent = findEventByIdInCollections(eventOrId, collectionsToSearch)
+
+      if (cachedEvent) {
+        return cachedEvent
+      }
+
+      return { id: eventOrId }
+    },
+    [allEvents, activeEvents, upcomingEvents, eventsByCategory, eventsByStatus]
+  )
+
   const mapBackendEventsPaginatedResponse = useCallback(
     (rawResponse, fallbackPage = 0, fallbackSize = DEFAULT_ROWS_PER_PAGE) => {
       const data = unwrapServiceResponse(rawResponse)
@@ -296,6 +354,102 @@ const useEvents = () => {
       }
     },
     [unwrapServiceResponse]
+  )
+
+  const performEventStateTransition = useCallback(
+    async ({ event, action, serviceCall, successMessage, showNotifications = true, onSuccess }) => {
+      const targetEvent = resolveEventReference(event)
+
+      if (!targetEvent?.id) {
+        handleError(new Error(`No se pudo identificar el evento para la acción ${action}.`), {
+          showToast: showNotifications,
+          customMessage: 'No se pudo identificar el evento. Intenta nuevamente.'
+        })
+
+        return {
+          success: false,
+          data: null,
+          message: 'Evento no encontrado.'
+        }
+      }
+
+      const eventId = targetEvent.id
+      const previousStatus = targetEvent.status
+
+      const result = await withSubmitting(async () => {
+        Logger.info(Logger.CATEGORIES.SERVICE, `event_${action}`, 'Iniciando transición de estado', {
+          context: { eventId, previousStatus }
+        })
+
+        const response = await serviceCall(eventId)
+        const updatedEvent = unwrapServiceResponse(response)
+
+        const updatedStatusCollections = updateEventCollectionsState(
+          {
+            setActiveEvents,
+            setAllEvents,
+            setUpcomingEvents,
+            setEventsByCategory,
+            setEventsByStatus
+          },
+          updatedEvent
+        )
+
+        if (updatedStatusCollections) {
+          const statusesToUpdate = new Set([previousStatus, updatedEvent?.status].filter(Boolean))
+
+          setEventsByStatusPagination(prev => {
+            if (!prev) return prev
+
+            const next = { ...prev }
+
+            statusesToUpdate.forEach(statusKey => {
+              const list = updatedStatusCollections[statusKey] || []
+
+              if (next[statusKey]) {
+                next[statusKey] = {
+                  ...next[statusKey],
+                  totalElements: list.length
+                }
+              }
+            })
+
+            return next
+          })
+        }
+
+        Logger.info(Logger.CATEGORIES.SERVICE, `event_${action}`, 'Transición de estado completada', {
+          context: {
+            eventId,
+            previousStatus,
+            newStatus: updatedEvent?.status
+          }
+        })
+
+        return updatedEvent
+      }, `gestión estado evento (${action})`)
+
+      const handledResult = handleApiResponse(result, successMessage, { showNotifications })
+
+      if (handledResult?.success && typeof onSuccess === 'function') {
+        onSuccess(handledResult.data)
+      }
+
+      return handledResult
+    },
+    [
+      resolveEventReference,
+      handleError,
+      withSubmitting,
+      handleApiResponse,
+      unwrapServiceResponse,
+      setActiveEvents,
+      setAllEvents,
+      setUpcomingEvents,
+      setEventsByCategory,
+      setEventsByStatus,
+      setEventsByStatusPagination
+    ]
   )
 
   // ========================================
@@ -591,6 +745,90 @@ const useEvents = () => {
     [withSubmitting, handleApiResponse, unwrapServiceResponse]
   )
 
+  const publishEvent = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'publish',
+        serviceCall: eventId => eventService.publishEvent(eventId),
+        successMessage: options.successMessage || 'Evento publicado exitosamente.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
+  const pauseEvent = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'pause',
+        serviceCall: eventId => eventService.pauseEvent(eventId),
+        successMessage: options.successMessage || 'Evento pausado exitosamente.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
+  const cancelEvent = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'cancel',
+        serviceCall: eventId => eventService.cancelEvent(eventId),
+        successMessage: options.successMessage || 'Evento cancelado exitosamente.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
+  const activateEvent = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'activate',
+        serviceCall: eventId => eventService.activateEvent(eventId),
+        successMessage: options.successMessage || 'Evento activado exitosamente.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
+  const finishEvent = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'finish',
+        serviceCall: eventId => eventService.finishEvent(eventId),
+        successMessage: options.successMessage || 'Evento marcado como terminado.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
+  const backToEdition = useCallback(
+    async (event, options = {}) => {
+      return performEventStateTransition({
+        event,
+        action: 'back_to_edition',
+        serviceCall: eventId => eventService.backToEdition(eventId),
+        successMessage: options.successMessage || 'Evento devuelto a edición.',
+        showNotifications: options.showNotifications ?? true,
+        onSuccess: options.onSuccess
+      })
+    },
+    [performEventStateTransition]
+  )
+
   const forceDeleteEvent = useCallback(
     async (eventId, showNotifications = true) => {
       const result = await withSubmitting(async () => {
@@ -768,6 +1006,12 @@ const useEvents = () => {
     updateEvent,
     deleteEvent,
     toggleEventStatus,
+    publishEvent,
+    pauseEvent,
+    cancelEvent,
+    activateEvent,
+    finishEvent,
+    backToEdition,
     forceDeleteEvent,
 
     // Estadísticas

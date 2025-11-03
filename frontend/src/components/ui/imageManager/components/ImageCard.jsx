@@ -260,9 +260,11 @@ const EmptyImageSlot = memo(({ variant, isMain, canAddMore, dropzoneProps, class
     )
   }
 
+  const rootProps = dropzoneProps?.getRootProps ? dropzoneProps.getRootProps() : {}
+
   return (
     <div
-      {...(dropzoneProps?.getRootProps ? dropzoneProps.getRootProps() : {})}
+      {...rootProps}
       aria-label={`Agregar ${isMain ? 'imagen principal' : `imagen ${index + 1}`}`}
       className={getEmptyClasses()}
       role='button'

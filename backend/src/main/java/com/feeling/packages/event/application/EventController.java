@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,106 +42,57 @@ public class EventController {
 
     @GetMapping
     @Operation(summary = "Get all active events", description = "Retrieve all active events with optional pagination")
-    public ResponseEntity<List<EventResponseDTO>> getAllEvents(
-        @RequestParam(required = false) boolean paginated,
+    public ResponseEntity<Page<EventResponseDTO>> getAllEvents(
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getAllActiveEvents();
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/upcoming")
     @Operation(summary = "Get upcoming events", description = "Retrieve events that haven't started yet")
-    public ResponseEntity<List<EventResponseDTO>> getUpcomingEvents(
-        @RequestParam(required = false) boolean paginated,
+    public ResponseEntity<Page<EventResponseDTO>> getUpcomingEvents(
+        @RequestParam(required = false) String q,
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getUpcomingEvents(pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getUpcomingEvents();
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getUpcomingEvents(q, pageable);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/category/{category}")
     @Operation(summary = "Get events by category", description = "Retrieve events filtered by category")
-    public ResponseEntity<List<EventResponseDTO>> getEventsByCategory(
+    public ResponseEntity<Page<EventResponseDTO>> getEventsByCategory(
         @Parameter(description = "Event category") @PathVariable EventCategory category,
-        @RequestParam(required = false) boolean paginated,
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getEventsByCategory(category, pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getEventsByCategory(category);
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getEventsByCategory(category, pageable);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/search")
     @Operation(summary = "Search events", description = "Search events by title or description")
-    public ResponseEntity<List<EventResponseDTO>> searchEvents(
+    public ResponseEntity<Page<EventResponseDTO>> searchEvents(
         @Parameter(description = "Search term") @RequestParam String q,
-        @RequestParam(required = false) boolean paginated,
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.searchEvents(q, pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.searchEvents(q);
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.searchEvents(q, pageable);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/status/{status}")
     @Operation(summary = "Get events by complaintStatus", description = "Retrieve events filtered by complaintStatus")
-    public ResponseEntity<List<EventResponseDTO>> getEventsByStatus(
+    public ResponseEntity<Page<EventResponseDTO>> getEventsByStatus(
         @Parameter(description = "Event complaintStatus") @PathVariable EventStatus status,
-        @RequestParam(required = false) boolean paginated,
         @RequestParam(required = false) String q,
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events;
-            if (q != null && !q.trim().isEmpty()) {
-                events = eventService.getEventsByStatusWithSearch(status, q.trim(), pageable);
-            } else {
-                events = eventService.getEventsByStatus(status, pageable);
-            }
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
+        Page<EventResponseDTO> events;
+        if (StringUtils.hasText(q)) {
+            events = eventService.getEventsByStatusWithSearch(status, q.trim(), pageable);
         } else {
-            List<EventResponseDTO> events;
-            if (q != null && !q.trim().isEmpty()) {
-                events = eventService.getEventsByStatusWithSearch(status, q.trim());
-            } else {
-                events = eventService.getEventsByStatus(status);
-            }
-            return ResponseEntity.ok(events);
+            events = eventService.getEventsByStatus(status, pageable);
         }
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/{id}")
@@ -154,25 +106,13 @@ public class EventController {
 
     @GetMapping("/my-events")
     @Operation(summary = "Get my created events", description = "Retrieve events created by the authenticated user")
-    public ResponseEntity<List<EventResponseDTO>> getMyEvents(
-        @RequestParam(required = false) boolean paginated,
+    public ResponseEntity<Page<EventResponseDTO>> getMyEvents(
         @PageableDefault(size = 10) Pageable pageable,
         Authentication authentication) {
 
         String userEmail = authentication.getName();
-
-        // Get user ID from the authentication service or user service
-        // For now, we'll modify the service to accept email directly
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getEventsByCreatorEmail(userEmail, pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getEventsByCreatorEmail(userEmail);
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getEventsByCreatorEmail(userEmail, pageable);
+        return ResponseEntity.ok(events);
     }
 
     @PostMapping
@@ -278,42 +218,24 @@ public class EventController {
     @GetMapping("/all-admin")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all events (admin)", description = "Get all events including inactive ones (admin only)")
-    public ResponseEntity<List<EventResponseDTO>> getAllEventsAdmin(
-        @RequestParam(required = false) boolean paginated,
+    public ResponseEntity<Page<EventResponseDTO>> getAllEventsAdmin(
         @RequestParam(required = false) Boolean isActive,
         @RequestParam(required = false) EventCategory category,
         @PageableDefault(size = 20) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getAllActiveEvents();
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getAllActiveEvents(pageable);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get events by user", description = "Get all events created by a specific user")
-    public ResponseEntity<List<EventResponseDTO>> getEventsByUser(
+    public ResponseEntity<Page<EventResponseDTO>> getEventsByUser(
         @Parameter(description = "User ID") @PathVariable Long userId,
-        @RequestParam(required = false) boolean paginated,
         @PageableDefault(size = 10) Pageable pageable) {
 
-        if (paginated) {
-            Page<EventResponseDTO> events = eventService.getEventsByCreator(userId, pageable);
-            return ResponseEntity.ok()
-                .header("X-Total-Elements", String.valueOf(events.getTotalElements()))
-                .header("X-Total-Pages", String.valueOf(events.getTotalPages()))
-                .body(events.getContent());
-        } else {
-            List<EventResponseDTO> events = eventService.getEventsByCreator(userId);
-            return ResponseEntity.ok(events);
-        }
+        Page<EventResponseDTO> events = eventService.getEventsByCreator(userId, pageable);
+        return ResponseEntity.ok(events);
     }
 
     @PatchMapping("/{id}/admin-toggle-status")
@@ -415,6 +337,17 @@ public class EventController {
         return ResponseEntity.ok(updatedEvent);
     }
 
+    @PatchMapping("/{id}/activate")
+    @Operation(summary = "Activate cancelled event", description = "Activate a cancelled event (moves to EN_EDICION)")
+    public ResponseEntity<EventResponseDTO> activateEvent(
+        @Parameter(description = "Event ID") @PathVariable Long id,
+        Authentication authentication) {
+
+        String userEmail = authentication.getName();
+        EventResponseDTO updatedEvent = eventService.activateEvent(id, userEmail);
+        return ResponseEntity.ok(updatedEvent);
+    }
+
 
     // ==============================
     // EVENT REGISTRATIONS MANAGEMENT
@@ -433,11 +366,12 @@ public class EventController {
 
     @GetMapping("/my-registrations")
     @Operation(summary = "Get my registrations", description = "Get events where the current user is registered")
-    public ResponseEntity<List<EventResponseDTO>> getMyRegistrations(
-        Authentication authentication) {
+    public ResponseEntity<Page<EventResponseDTO>> getMyRegistrations(
+        Authentication authentication,
+        @PageableDefault(size = 10) Pageable pageable) {
 
         String userEmail = authentication.getName();
-        List<EventResponseDTO> events = eventService.getUserRegisteredEvents(userEmail);
+        Page<EventResponseDTO> events = eventService.getUserRegisteredEvents(userEmail, pageable);
         return ResponseEntity.ok(events);
     }
 

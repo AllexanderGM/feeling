@@ -54,12 +54,18 @@ export class ErrorManager {
    * @returns {Object} Error formateado
    */
   static formatError(error, message = null) {
+    const data = error.response?.data || {}
+    const details = data.details || null
+    const email = data.email || details?.email || null
+
     return {
       success: false,
       type: this.getErrorType(error),
       message: message || this.getErrorMessage(error) || 'Error desconocido',
       status: error.code || error.status || error.response?.status || 500,
-      code: error.response?.data?.code || error.code || null,
+      code: data.code || data.error || error.code || null,
+      details,
+      email,
       fieldErrors: this.getFieldErrors(error),
       operation: error.operation || 'operación'
     }

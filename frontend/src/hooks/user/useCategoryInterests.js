@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getUserInterests } from '@services'
+import { getUserInterests } from '@services/user/userInterestsService.js'
 import { Logger } from '@utils/logger.js'
 
 /**

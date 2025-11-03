@@ -20,11 +20,17 @@ class OAuthService extends ServiceREST {
     const context = 'Registro con Google'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.OAUTH.GOOGLE_REGISTER, {
-        accessToken,
-        tokenType,
-        scope
-      })
+      const result = await ServiceREST.post(
+        API_ENDPOINTS.OAUTH.GOOGLE_REGISTER,
+        {
+          accessToken,
+          tokenType,
+          scope
+        },
+        {
+          skipAuthRedirect: true
+        }
+      )
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
@@ -37,11 +43,17 @@ class OAuthService extends ServiceREST {
     const context = 'Login con Google'
 
     try {
-      const result = await ServiceREST.post(API_ENDPOINTS.OAUTH.GOOGLE_LOGIN, {
-        accessToken,
-        tokenType,
-        scope
-      })
+      const result = await ServiceREST.post(
+        API_ENDPOINTS.OAUTH.GOOGLE_LOGIN,
+        {
+          accessToken,
+          tokenType,
+          scope
+        },
+        {
+          skipAuthRedirect: true
+        }
+      )
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {

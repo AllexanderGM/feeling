@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { matchInteractionService, matchSuggestionService } from '@services'
 import { useError, useConfetti } from '@hooks'
 import { useMatch } from '@contexts/MatchContext'
@@ -15,13 +15,40 @@ import { Logger } from '@utils/logger.js'
 export const useMatchInteractions = (options = {}) => {
   const [loading, setLoading] = useState(false)
   const { handleError } = useError()
-  const { onNoAttemptsAvailable } = options
+  const mergedOptions = useMemo(() => ({ onNoAttemptsAvailable: null, ...options }), [options])
 
   // Obtener funciones del contexto global de matches
   const { showPremiumModal } = useMatch()
 
   // Hook de confeti para efectos visuales
   const { fireHeartsConfetti } = useConfetti()
+
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  const setLoadingSafe = useCallback(value => {
+    if (isMountedRef.current) {
+      setLoading(value)
+    }
+  }, [])
+
+  const withLoading = useCallback(
+    async operation => {
+      setLoadingSafe(true)
+
+      try {
+        return await operation()
+      } finally {
+        setLoadingSafe(false)
+      }
+    },
+    [setLoadingSafe]
+  )
 
   // ===============================
   // UTILIDADES
@@ -72,36 +99,28 @@ export const useMatchInteractions = (options = {}) => {
   const sendMatch = useCallback(
     async targetUserId => {
       try {
-        setLoading(true)
-        const response = await matchInteractionService.sendMatch(targetUserId)
+        const response = await withLoading(async () => await matchInteractionService.sendMatch(targetUserId))
 
-        // 💕 Disparar efecto de corazones cuando se envía el match exitosamente
         fireHeartsConfetti()
 
         return response
       } catch (error) {
-        // Detectar error de intentos agotados
         if (isNoAttemptsError(error)) {
           Logger.warn(Logger.CATEGORIES.UI, 'enviar match', 'Intentos de match agotados')
 
-          // Llamar callback personalizado si existe, sino abrir modal premium del contexto
-          if (onNoAttemptsAvailable) {
-            onNoAttemptsAvailable(error)
+          if (mergedOptions.onNoAttemptsAvailable) {
+            mergedOptions.onNoAttemptsAvailable(error)
           } else {
-            // Mostrar modal premium global
             showPremiumModal()
           }
         } else {
-          // Error general
           handleError(error, { customMessage: 'Error al enviar match' })
         }
 
         throw error
-      } finally {
-        setLoading(false)
       }
     },
-    [handleError, isNoAttemptsError, onNoAttemptsAvailable, showPremiumModal, fireHeartsConfetti]
+    [handleError, isNoAttemptsError, mergedOptions, showPremiumModal, fireHeartsConfetti, withLoading]
   )
 
   /**
@@ -110,21 +129,17 @@ export const useMatchInteractions = (options = {}) => {
   const acceptMatch = useCallback(
     async matchId => {
       try {
-        setLoading(true)
-        const response = await matchInteractionService.acceptMatch(matchId)
+        const response = await withLoading(async () => await matchInteractionService.acceptMatch(matchId))
 
-        // 💕 Disparar efecto de corazones cuando se acepta un match
         fireHeartsConfetti()
 
         return response
       } catch (error) {
         handleError(error, { customMessage: 'Error al aceptar match' })
         throw error
-      } finally {
-        setLoading(false)
       }
     },
-    [handleError, fireHeartsConfetti]
+    [handleError, fireHeartsConfetti, withLoading]
   )
 
   /**
@@ -133,18 +148,13 @@ export const useMatchInteractions = (options = {}) => {
   const rejectMatch = useCallback(
     async matchId => {
       try {
-        setLoading(true)
-        const response = await matchInteractionService.rejectMatch(matchId)
-
-        return response
+        return await withLoading(async () => await matchInteractionService.rejectMatch(matchId))
       } catch (error) {
         handleError(error, { customMessage: 'Error al rechazar match' })
         throw error
-      } finally {
-        setLoading(false)
       }
     },
-    [handleError]
+    [handleError, withLoading]
   )
 
   /**
@@ -153,18 +163,13 @@ export const useMatchInteractions = (options = {}) => {
   const withdrawMatch = useCallback(
     async matchId => {
       try {
-        setLoading(true)
-        const response = await matchInteractionService.withdrawMatch(matchId)
-
-        return response
+        return await withLoading(async () => await matchInteractionService.withdrawMatch(matchId))
       } catch (error) {
         handleError(error, { customMessage: 'Error al retirar el match' })
         throw error
-      } finally {
-        setLoading(false)
       }
     },
-    [handleError]
+    [handleError, withLoading]
   )
 
   /**
@@ -173,18 +178,13 @@ export const useMatchInteractions = (options = {}) => {
   const dismissSuggestion = useCallback(
     async targetUserId => {
       try {
-        setLoading(true)
-        const response = await matchSuggestionService.dismissSuggestion(targetUserId)
-
-        return response
+        return await withLoading(async () => await matchSuggestionService.dismissSuggestion(targetUserId))
       } catch (error) {
         handleError(error, { customMessage: 'Error al descartar sugerencia' })
         throw error
-      } finally {
-        setLoading(false)
       }
     },
-    [handleError]
+    [handleError, withLoading]
   )
 
   // ===============================

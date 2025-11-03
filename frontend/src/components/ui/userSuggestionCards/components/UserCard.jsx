@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react'
 import { Heart, MapPin, Eye, ChevronLeft, ChevronRight, X, Bookmark, Clock, CheckCircle2, Mail, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -17,6 +17,17 @@ import {
   getUserGender,
   getUserStatus
 } from '@schemas'
+
+const FALLBACK_IMAGE = '/user.png'
+
+const LAST_ACTIVE_COLORS = {
+  green: 'bg-green-500/70 border border-green-400/50 text-green-100',
+  blue: 'bg-blue-500/70 border border-blue-400/50 text-blue-100',
+  yellow: 'bg-yellow-500/70 border border-yellow-400/50 text-yellow-100',
+  orange: 'bg-orange-500/70 border border-orange-400/50 text-orange-100',
+  red: 'bg-red-500/70 border border-red-400/50 text-red-100',
+  gray: 'bg-gray-500/70 border border-gray-400/50 text-gray-100'
+}
 
 const formatLastActive = lastActiveDate => {
   if (!lastActiveDate) return { text: null, color: 'gray' }
@@ -94,64 +105,61 @@ const UserCard = ({
   // Datos de compatibilidad (pasados como props desde el componente padre)
   const compatibilityPercentage = compatibility?.totalPercentage
 
-  const nextPhoto = () => {
-    if (images && images.length > 1) {
-      setImageLoading(true)
-      setCurrentPhotoIndex(prev => (prev + 1) % images.length)
+  const processedImages = useMemo(() => {
+    if (!Array.isArray(images) || images.length === 0) {
+      return [FALLBACK_IMAGE]
     }
-  }
 
-  const prevPhoto = () => {
-    if (images && images.length > 1) {
-      setImageLoading(true)
-      setCurrentPhotoIndex(prev => (prev - 1 + images.length) % images.length)
-    }
-  }
+    const sanitized = images.filter(Boolean)
 
-  const handleImageLoad = () => {
+    return sanitized.length > 0 ? sanitized : [FALLBACK_IMAGE]
+  }, [images])
+
+  const hasMultipleImages = processedImages.length > 1
+  const boundedIndex = Math.min(currentPhotoIndex, processedImages.length - 1)
+  const currentImage = processedImages[boundedIndex] ?? FALLBACK_IMAGE
+
+  useEffect(() => {
+    setCurrentPhotoIndex(0)
     setImageLoading(false)
-  }
+  }, [userId])
+
+  const nextPhoto = useCallback(() => {
+    if (!hasMultipleImages) return
+
+    setImageLoading(true)
+    setCurrentPhotoIndex(prev => (prev + 1) % processedImages.length)
+  }, [hasMultipleImages, processedImages.length])
+
+  const prevPhoto = useCallback(() => {
+    if (!hasMultipleImages) return
+
+    setImageLoading(true)
+    setCurrentPhotoIndex(prev => (prev - 1 + processedImages.length) % processedImages.length)
+  }, [hasMultipleImages, processedImages.length])
+
+  const handleImageLoad = useCallback(() => {
+    setImageLoading(false)
+  }, [])
 
   // Handlers para acciones de match
-  const handleLike = () => {
-    // No permitir enviar match si ya hay uno pendiente o aceptado
-    if (hasPendingMatch || hasAcceptedMatch) {
-      return
-    }
+  const handleLike = useCallback(() => {
+    if (hasPendingMatch || hasAcceptedMatch) return
+    onLike?.(user)
+  }, [hasAcceptedMatch, hasPendingMatch, onLike, user])
 
-    if (onLike) {
-      onLike(user)
-    }
-  }
+  const handlePass = useCallback(() => {
+    onPass?.(user)
+  }, [onPass, user])
 
-  const handlePass = () => {
-    if (onPass) {
-      onPass(user)
-    }
-  }
+  const handleContinue = useCallback(() => {
+    onPass?.(user, true)
+  }, [onPass, user])
 
-  const handleContinue = () => {
-    // Solo avanzar a la siguiente card sin rechazar al usuario
-    if (onPass) {
-      onPass(user, true) // El segundo parámetro indica que es "continuar" sin rechazar
-    }
-  }
+  const handleToggleFavorite = useCallback(() => {
+    onToggleFavorite?.(userId)
+  }, [onToggleFavorite, userId])
 
-  const handleToggleFavorite = () => {
-    if (onToggleFavorite) {
-      onToggleFavorite(userId)
-    }
-  }
-
-  const hasMultipleimages = images.length > 1
-  const colorClasses = {
-    green: 'bg-green-500/70 border border-green-400/50 text-green-100',
-    blue: 'bg-blue-500/70 border border-blue-400/50 text-blue-100',
-    yellow: 'bg-yellow-500/70 border border-yellow-400/50 text-yellow-100',
-    orange: 'bg-orange-500/70 border border-orange-400/50 text-orange-100',
-    red: 'bg-red-500/70 border border-red-400/50 text-red-100',
-    gray: 'bg-gray-500/70 border border-gray-400/50 text-gray-100'
-  }
   const { text: lastActiveText, color } = formatLastActive(lastActive)
 
   const fullLocation = formatLocation(city, department, locality)
@@ -162,11 +170,12 @@ const UserCard = ({
     <Card className='w-full mx-auto bg-gray-900 border-none overflow-hidden shadow-2xl rounded-2xl'>
       <CardBody className='p-0'>
         {/* Galería de imágenes */}
-        <div className='relative h-[calc(100vh-210px)] max-h-[620px] group overflow-hidden shadow-2xl rounded-2xl'>
+        <div className='relative h-[calc(100vh-210px)] h-[calc(100dvh-210px)] max-h-[620px] group overflow-hidden shadow-2xl rounded-2xl'>
           <img
             alt={`${name} - Foto ${currentPhotoIndex + 1}`}
             className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
-            src={images[currentPhotoIndex]}
+            loading='lazy'
+            src={currentImage}
             onLoad={handleImageLoad}
           />
 
@@ -178,9 +187,9 @@ const UserCard = ({
           )}
 
           {/* Indicadores de fotos */}
-          {hasMultipleimages && (
+          {hasMultipleImages && (
             <div className='absolute top-2 left-3 right-3 flex gap-1.5 z-10'>
-              {images.map((_, index) => (
+              {processedImages.map((_, index) => (
                 <div
                   key={index}
                   className={`flex-1 h-0.5 rounded-full transition-all ${index === currentPhotoIndex ? 'bg-white' : 'bg-white/30'}`}
@@ -190,7 +199,7 @@ const UserCard = ({
           )}
 
           {/* Controles de navegación */}
-          {hasMultipleimages && (
+          {hasMultipleImages && (
             <>
               <button
                 className='absolute left-2 top-1/2 transform -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity'
@@ -212,7 +221,7 @@ const UserCard = ({
               {/* Última actividad */}
               {lastActiveText && (
                 <Chip
-                  className={`relative max-w-fit min-w-min inline-flex items-center justify-between box-border whitespace-nowrap px-1 rounded-full backdrop-blur-md text-[11px] h-6 font-medium ${colorClasses[color]}`}
+                  className={`relative max-w-fit min-w-min inline-flex items-center justify-between box-border whitespace-nowrap px-1 rounded-full backdrop-blur-md text-[11px] h-6 font-medium ${LAST_ACTIVE_COLORS[color]}`}
                   size='sm'
                   startContent={<Clock className='w-3 h-3' />}>
                   {lastActiveText || 'Sin actividad reciente'}
@@ -383,4 +392,6 @@ const UserCard = ({
   )
 }
 
-export default React.memo(UserCard)
+UserCard.displayName = 'UserCard'
+
+export default memo(UserCard)

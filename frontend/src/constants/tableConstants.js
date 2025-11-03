@@ -131,6 +131,53 @@ export const EVENT_CATEGORY_COLORS = {
   ECOTOURISM: 'secondary'
 }
 
+export const EVENT_LIFECYCLE_STATUS = {
+  EN_EDICION: 'EN_EDICION',
+  PUBLICADO: 'PUBLICADO',
+  PAUSADO: 'PAUSADO',
+  CANCELADO: 'CANCELADO',
+  TERMINADO: 'TERMINADO'
+}
+
+export const EVENT_LIFECYCLE_STATUS_LABELS = {
+  EN_EDICION: 'En edición',
+  PUBLICADO: 'Publicado',
+  PAUSADO: 'Pausado',
+  CANCELADO: 'Cancelado',
+  TERMINADO: 'Terminado'
+}
+
+export const EVENT_LIFECYCLE_STATUS_COLORS = {
+  EN_EDICION: 'warning',
+  PUBLICADO: 'success',
+  PAUSADO: 'secondary',
+  CANCELADO: 'danger',
+  TERMINADO: 'default'
+}
+
+export const EVENT_STATUS_DISPLAY = {
+  EN_EDICION: {
+    label: EVENT_LIFECYCLE_STATUS_LABELS.EN_EDICION,
+    color: EVENT_LIFECYCLE_STATUS_COLORS.EN_EDICION
+  },
+  PUBLICADO: {
+    label: EVENT_LIFECYCLE_STATUS_LABELS.PUBLICADO,
+    color: EVENT_LIFECYCLE_STATUS_COLORS.PUBLICADO
+  },
+  PAUSADO: {
+    label: EVENT_LIFECYCLE_STATUS_LABELS.PAUSADO,
+    color: EVENT_LIFECYCLE_STATUS_COLORS.PAUSADO
+  },
+  CANCELADO: {
+    label: EVENT_LIFECYCLE_STATUS_LABELS.CANCELADO,
+    color: EVENT_LIFECYCLE_STATUS_COLORS.CANCELADO
+  },
+  TERMINADO: {
+    label: EVENT_LIFECYCLE_STATUS_LABELS.TERMINADO,
+    color: EVENT_LIFECYCLE_STATUS_COLORS.TERMINADO
+  }
+}
+
 export const EVENT_COLUMNS = [
   { name: 'ID', uid: 'id' },
   { name: 'NOMBRE', uid: 'name' },
@@ -154,7 +201,7 @@ export const ACTIVE_EVENT_COLUMNS = [
   { name: 'CATEGORÍA', uid: 'category', sortable: true },
   { name: 'PRECIO', uid: 'price', sortable: true },
   { name: 'REGISTRADOS', uid: 'registrations', sortable: true },
-  { name: 'ESTADO', uid: 'isActive', sortable: true },
+  { name: 'ESTADO', uid: 'status', sortable: true },
   { name: 'FECHA INICIO', uid: 'startDate', sortable: true },
   { name: 'ACCIONES', uid: 'actions' }
 ]
@@ -166,7 +213,7 @@ export const UPCOMING_EVENT_COLUMNS = [
   { name: 'CATEGORÍA', uid: 'category', sortable: true },
   { name: 'PRECIO', uid: 'price', sortable: true },
   { name: 'REGISTRADOS', uid: 'registrations', sortable: true },
-  { name: 'ESTADO', uid: 'isActive', sortable: true },
+  { name: 'ESTADO', uid: 'status', sortable: true },
   { name: 'FECHA INICIO', uid: 'startDate', sortable: true },
   { name: 'ACCIONES', uid: 'actions' }
 ]
@@ -179,7 +226,16 @@ export const ALL_EVENT_COLUMNS = [
   { name: 'CATEGORÍA', uid: 'category', sortable: true },
   { name: 'PRECIO', uid: 'price', sortable: true },
   { name: 'REGISTRADOS', uid: 'registrations', sortable: true },
-  { name: 'ESTADO', uid: 'isActive', sortable: true },
+  { name: 'ESTADO', uid: 'status', sortable: true },
+  { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
+  { name: 'ACCIONES', uid: 'actions' }
+]
+
+export const PUBLISHED_EVENT_COLUMNS = [
+  { name: 'EVENTO', uid: 'event', sortable: true },
+  { name: 'CATEGORÍA', uid: 'category', sortable: true },
+  { name: 'PRECIO', uid: 'price', sortable: true },
+  { name: 'REGISTRADOS', uid: 'registrations', sortable: true },
   { name: 'FECHA CREACIÓN', uid: 'createdAt', sortable: true },
   { name: 'ACCIONES', uid: 'actions' }
 ]
@@ -189,11 +245,11 @@ export const EVENT_TYPE_COLUMNS = {
   active: ACTIVE_EVENT_COLUMNS,
   upcoming: UPCOMING_EVENT_COLUMNS,
   all: ALL_EVENT_COLUMNS,
-  PUBLICADO: ALL_EVENT_COLUMNS,
-  EN_EDICION: ALL_EVENT_COLUMNS,
-  PAUSADO: ALL_EVENT_COLUMNS,
-  CANCELADO: ALL_EVENT_COLUMNS,
-  TERMINADO: ALL_EVENT_COLUMNS
+  PUBLICADO: PUBLISHED_EVENT_COLUMNS,
+  EN_EDICION: PUBLISHED_EVENT_COLUMNS,
+  PAUSADO: PUBLISHED_EVENT_COLUMNS,
+  CANCELADO: PUBLISHED_EVENT_COLUMNS,
+  TERMINADO: PUBLISHED_EVENT_COLUMNS
 }
 
 // ========================================

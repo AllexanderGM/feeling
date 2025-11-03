@@ -35,6 +35,9 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.status = com.feeling.packages.event.infrastructure.entities.EventStatus.PUBLICADO AND e.eventDate >= :fromDate ORDER BY e.eventDate ASC")
     Page<Event> findUpcomingEvents(@Param("fromDate") LocalDateTime fromDate, Pageable pageable);
 
+    @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND e.status = com.feeling.packages.event.infrastructure.entities.EventStatus.PUBLICADO AND e.eventDate >= :fromDate AND (LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR LOWER(e.location) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) ORDER BY e.eventDate ASC")
+    Page<Event> findUpcomingEventsWithSearch(@Param("fromDate") LocalDateTime fromDate, @Param("searchTerm") String searchTerm, Pageable pageable);
+
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.isActive = true AND " +
         "(LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
         "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) " +
@@ -83,8 +86,11 @@ public interface IEventRepository extends JpaRepository<Event, Long> {
     List<Event> findEventsToFinalize(@Param("cutoff") LocalDateTime cutoff, @Param("finalStatuses") List<EventStatus> finalStatuses);
 
     // Event registrations queries
-    @Query("SELECT DISTINCT e FROM Event e JOIN FETCH e.createdBy JOIN e.registrations r WHERE r.user.id = :userId ORDER BY e.eventDate ASC")
-    List<Event> findEventsByUserRegistrations(@Param("userId") Long userId);
+    @Query(
+        value = "SELECT DISTINCT e FROM Event e JOIN FETCH e.createdBy JOIN e.registrations r WHERE r.user.id = :userId ORDER BY e.eventDate ASC",
+        countQuery = "SELECT COUNT(DISTINCT e.id) FROM Event e JOIN e.registrations r WHERE r.user.id = :userId"
+    )
+    Page<Event> findEventsByUserRegistrations(@Param("userId") Long userId, Pageable pageable);
 
     // Find event by ID with user fetch join
     @Query("SELECT e FROM Event e JOIN FETCH e.createdBy WHERE e.id = :id")

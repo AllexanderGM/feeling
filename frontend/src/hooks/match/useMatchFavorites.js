@@ -1,51 +1,111 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { matchFavoriteService } from '@services'
 import { useError } from '@hooks'
 
-/**
- * Hook para manejar favoritos de matches
- * Corresponde a: MatchFavoriteController
- * - Añadir/remover favoritos
- * - Listar favoritos
- * - Verificar si un usuario es favorito
- */
+const normalizeId = value => {
+  if (value == null) return null
+
+  return String(value)
+}
+
+const extractFavoriteId = favorite => {
+  if (!favorite) return null
+
+  return (
+    normalizeId(favorite.userId) ||
+    normalizeId(favorite.favoriteUserId) ||
+    normalizeId(favorite.targetUserId) ||
+    normalizeId(favorite.user?.id) ||
+    normalizeId(favorite.user?.user?.id) ||
+    normalizeId(favorite.id)
+  )
+}
+
 export const useMatchFavorites = () => {
   const [loading, setLoading] = useState(false)
   const [favorites, setFavorites] = useState([])
+  const [favoriteIds, setFavoriteIds] = useState(() => new Set())
   const { handleError } = useError()
 
-  // ===============================
-  // FETCH OPERATIONS
-  // ===============================
+  const addFavoriteId = useCallback(id => {
+    const normalizedId = normalizeId(id)
 
-  /**
-   * Get user's favorites list
-   */
+    if (!normalizedId) return
+
+    setFavoriteIds(prev => {
+      const next = new Set(prev)
+
+      next.add(normalizedId)
+
+      return next
+    })
+  }, [])
+
+  const removeFavoriteId = useCallback(id => {
+    const normalizedId = normalizeId(id)
+
+    if (!normalizedId) return
+
+    setFavoriteIds(prev => {
+      const next = new Set(prev)
+
+      next.delete(normalizedId)
+
+      return next
+    })
+  }, [])
+
+  const updateFavoritesState = useCallback(list => {
+    const safeList = Array.isArray(list) ? list : []
+    const ids = new Set()
+
+    safeList.forEach(item => {
+      const id = extractFavoriteId(item)
+
+      if (id) {
+        ids.add(id)
+      }
+    })
+
+    setFavorites(safeList)
+    setFavoriteIds(ids)
+  }, [])
+
+  const isFavoriteLocally = useCallback(
+    userId => {
+      if (!userId) return false
+
+      return favoriteIds.has(normalizeId(userId))
+    },
+    [favoriteIds]
+  )
+
   const fetchFavorites = useCallback(
     async (page = 0, size = 10) => {
       try {
         setLoading(true)
         const response = await matchFavoriteService.getFavorites(page, size)
+        const items = response?.content ?? response ?? []
 
-        setFavorites(response.content || response)
+        updateFavoritesState(items)
 
         return response
       } catch (error) {
         handleError(error, { customMessage: 'Error al cargar favoritos' })
+        updateFavoritesState([])
 
         return { content: [], totalElements: 0 }
       } finally {
         setLoading(false)
       }
     },
-    [handleError]
+    [handleError, updateFavoritesState]
   )
 
-  /**
-   * Check if a user is in favorites
-   */
   const checkIfFavorite = useCallback(
     async userId => {
+      if (isFavoriteLocally(userId)) return true
+
       try {
         const response = await matchFavoriteService.checkIfFavorite(userId)
 
@@ -56,24 +116,16 @@ export const useMatchFavorites = () => {
         return false
       }
     },
-    [handleError]
+    [handleError, isFavoriteLocally]
   )
 
-  // ===============================
-  // ACTIONS
-  // ===============================
-
-  /**
-   * Add user to favorites
-   */
   const addToFavorites = useCallback(
     async userId => {
       try {
         setLoading(true)
         const response = await matchFavoriteService.addFavorite(userId)
 
-        // Refresh favorites
-        await fetchFavorites()
+        addFavoriteId(userId)
 
         return response
       } catch (error) {
@@ -83,20 +135,18 @@ export const useMatchFavorites = () => {
         setLoading(false)
       }
     },
-    [handleError, fetchFavorites]
+    [addFavoriteId, handleError]
   )
 
-  /**
-   * Remove user from favorites
-   */
   const removeFromFavorites = useCallback(
     async userId => {
       try {
         setLoading(true)
         const response = await matchFavoriteService.removeFavorite(userId)
+        const normalizedId = normalizeId(userId)
 
-        // Refresh favorites
-        await fetchFavorites()
+        removeFavoriteId(normalizedId)
+        setFavorites(prev => prev.filter(item => extractFavoriteId(item) !== normalizedId))
 
         return response
       } catch (error) {
@@ -106,47 +156,87 @@ export const useMatchFavorites = () => {
         setLoading(false)
       }
     },
-    [handleError, fetchFavorites]
+    [handleError, removeFavoriteId]
   )
 
-  /**
-   * Toggle favorite status (without refetching the full list)
-   */
   const toggleFavorite = useCallback(
-    async userId => {
+    async (userId, options = {}) => {
+      const normalizedId = normalizeId(userId)
+      const currentlyFavorite = options.isFavorite ?? favoriteIds.has(normalizedId)
+
+      if (currentlyFavorite) {
+        removeFavoriteId(normalizedId)
+      } else {
+        addFavoriteId(normalizedId)
+      }
+
       try {
         setLoading(true)
-        const isFavorite = await checkIfFavorite(userId)
 
-        if (isFavorite) {
+        if (currentlyFavorite) {
           await matchFavoriteService.removeFavorite(userId)
+          setFavorites(prev => prev.filter(item => extractFavoriteId(item) !== normalizedId))
 
           return false
-        } else {
-          await matchFavoriteService.addFavorite(userId)
-
-          return true
         }
+
+        const response = await matchFavoriteService.addFavorite(userId)
+
+        if (response) {
+          const appended = response?.content ?? response
+
+          if (Array.isArray(appended) && appended.length > 0) {
+            updateFavoritesState(appended)
+          }
+        }
+
+        return true
       } catch (error) {
+        const message = error?.response?.data?.message || error?.message || ''
+        const status = error?.response?.status
+
+        const handled = (() => {
+          if (!currentlyFavorite && status === 400 && message.toLowerCase().includes('ya está en tus favoritos')) {
+            addFavoriteId(normalizedId)
+
+            return true
+          }
+
+          if (currentlyFavorite && status === 404) {
+            removeFavoriteId(normalizedId)
+            setFavorites(prev => prev.filter(item => extractFavoriteId(item) !== normalizedId))
+
+            return true
+          }
+
+          return false
+        })()
+
+        if (handled) {
+          return !currentlyFavorite
+        }
+
+        if (currentlyFavorite) {
+          addFavoriteId(normalizedId)
+        } else {
+          removeFavoriteId(normalizedId)
+        }
+
         handleError(error, { customMessage: 'Error al cambiar estado de favorito' })
         throw error
       } finally {
         setLoading(false)
       }
     },
-    [checkIfFavorite, handleError]
+    [addFavoriteId, favoriteIds, handleError, removeFavoriteId, updateFavoritesState]
   )
 
   return {
-    // State
     favorites,
+    favoriteIds: useMemo(() => new Set(favoriteIds), [favoriteIds]),
     loading,
-
-    // Fetch
     fetchFavorites,
     checkIfFavorite,
-
-    // Actions
     addToFavorites,
     removeFromFavorites,
     toggleFavorite

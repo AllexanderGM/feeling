@@ -16,7 +16,7 @@ import {
   Star,
   Clock
 } from 'lucide-react'
-import { userAnalyticsService } from '@services'
+import userAnalyticsService from '@services/user/userAnalyticsService.js'
 import { Logger } from '@utils/logger.js'
 
 /**

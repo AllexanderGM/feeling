@@ -92,6 +92,7 @@ const StepCharacteristicsContent = ({
     type: null,
     isLoading: false,
     error: null,
+    isLocked: false,
     data: { name: '', detail: '#000000' }
   })
 
@@ -203,6 +204,7 @@ const StepCharacteristicsContent = ({
           type,
           isLoading: false,
           error: null,
+          isLocked: type === 'eye' || type === 'hair',
           data: { name: '', detail: type === 'eye' || type === 'hair' ? '#000000' : '' }
         })
       },
@@ -213,6 +215,7 @@ const StepCharacteristicsContent = ({
           type: null,
           isLoading: false,
           error: null,
+          isLocked: false,
           data: { name: '', detail: '#000000' }
         })
       },
@@ -225,7 +228,11 @@ const StepCharacteristicsContent = ({
       },
 
       submitAttribute: async () => {
-        const { type, data } = addAttributeModal
+        const { type, data, isLocked } = addAttributeModal
+
+        if (isLocked) {
+          return
+        }
 
         setAddAttributeModal(prev => ({ ...prev, error: null }))
 
@@ -800,81 +807,93 @@ const StepCharacteristicsContent = ({
                   </div>
                 </ModalHeader>
                 <ModalBody>
-                  <div className='bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4'>
-                    <div className='flex gap-2'>
-                      <span className='text-amber-400'>⏳</span>
-                      <p className='text-amber-300 text-sm'>
-                        Los nuevos atributos requieren aprobación. Aparecerán temporalmente en tu perfil hasta ser revisados.
-                      </p>
-                    </div>
-                  </div>
-
-                  {addAttributeModal.error && (
-                    <div className='bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4'>
+                  <div className='relative space-y-4'>
+                    <div className='bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4'>
                       <div className='flex gap-2'>
-                        <span className='text-red-400'>❌</span>
-                        <p className='text-red-300 text-sm'>{addAttributeModal.error}</p>
+                        <span className='text-amber-400'>⏳</span>
+                        <p className='text-amber-300 text-sm'>
+                          Los nuevos atributos requieren aprobación. Aparecerán temporalmente en tu perfil hasta ser revisados.
+                        </p>
                       </div>
                     </div>
-                  )}
 
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg'>
-                      <div
-                        className={`w-12 h-12 border-2 border-gray-600 shadow-lg ${
-                          addAttributeModal.type === 'eye' ? 'rounded-full' : 'rounded-lg'
-                        }`}
-                        style={{ backgroundColor: addAttributeModal.data.detail }}
+                    {addAttributeModal.error && (
+                      <div className='bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4'>
+                        <div className='flex gap-2'>
+                          <span className='text-red-400'>❌</span>
+                          <p className='text-red-300 text-sm'>{addAttributeModal.error}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className='space-y-4'>
+                      <div className='flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg'>
+                        <div
+                          className={`w-12 h-12 border-2 border-gray-600 shadow-lg ${
+                            addAttributeModal.type === 'eye' ? 'rounded-full' : 'rounded-lg'
+                          }`}
+                          style={{ backgroundColor: addAttributeModal.data.detail }}
+                        />
+                        <div className='flex-1'>
+                          <p className='text-sm text-gray-400'>Vista previa</p>
+                          <p className='text-white font-medium'>{addAttributeModal.data.name || 'Nuevo color'}</p>
+                        </div>
+                      </div>
+
+                      <Input
+                        classNames={{
+                          input: 'text-gray-200',
+                          inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
+                        }}
+                        description='Nombre descriptivo que verán los usuarios'
+                        isDisabled={addAttributeModal.isLoading}
+                        label='Nombre'
+                        placeholder={`Ej: ${addAttributeModal.type === 'eye' ? 'Verde esmeralda' : 'Castaño claro'}`}
+                        value={addAttributeModal.data.name}
+                        variant='bordered'
+                        onChange={e => modalHandlers.updateModalData('name', e.target.value)}
                       />
-                      <div className='flex-1'>
-                        <p className='text-sm text-gray-400'>Vista previa</p>
-                        <p className='text-white font-medium'>{addAttributeModal.data.name || 'Nuevo color'}</p>
+
+                      <div className='space-y-2'>
+                        <label className='text-sm text-gray-400' htmlFor='attribute-color-input'>
+                          Color
+                        </label>
+                        <div className='flex items-center gap-3'>
+                          <input
+                            className='w-12 h-12 rounded-lg border-2 border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50'
+                            disabled={addAttributeModal.isLoading}
+                            id='attribute-color-input'
+                            type='color'
+                            value={addAttributeModal.data.detail}
+                            onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
+                          />
+                          <Input
+                            className='flex-1'
+                            classNames={{
+                              input: 'text-gray-200 font-mono',
+                              inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
+                            }}
+                            isDisabled={addAttributeModal.isLoading}
+                            placeholder='#000000'
+                            startContent={<span className='text-gray-500'>#</span>}
+                            value={addAttributeModal.data.detail}
+                            variant='bordered'
+                            onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
+                          />
+                        </div>
+                        <p className='text-xs text-gray-500'>Selecciona el color usando el selector o ingresa el código hexadecimal</p>
                       </div>
                     </div>
 
-                    <Input
-                      classNames={{
-                        input: 'text-gray-200',
-                        inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
-                      }}
-                      description='Nombre descriptivo que verán los usuarios'
-                      isDisabled={addAttributeModal.isLoading}
-                      label='Nombre'
-                      placeholder={`Ej: ${addAttributeModal.type === 'eye' ? 'Verde esmeralda' : 'Castaño claro'}`}
-                      value={addAttributeModal.data.name}
-                      variant='bordered'
-                      onChange={e => modalHandlers.updateModalData('name', e.target.value)}
-                    />
-
-                    <div className='space-y-2'>
-                      <label className='text-sm text-gray-400' htmlFor='attribute-color-input'>
-                        Color
-                      </label>
-                      <div className='flex items-center gap-3'>
-                        <input
-                          className='w-12 h-12 rounded-lg border-2 border-gray-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50'
-                          disabled={addAttributeModal.isLoading}
-                          id='attribute-color-input'
-                          type='color'
-                          value={addAttributeModal.data.detail}
-                          onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
-                        />
-                        <Input
-                          className='flex-1'
-                          classNames={{
-                            input: 'text-gray-200 font-mono',
-                            inputWrapper: 'bg-gray-800/50 border-gray-700 hover:border-gray-600 data-[focus=true]:border-primary-500'
-                          }}
-                          isDisabled={addAttributeModal.isLoading}
-                          placeholder='#000000'
-                          startContent={<span className='text-gray-500'>#</span>}
-                          value={addAttributeModal.data.detail}
-                          variant='bordered'
-                          onChange={e => modalHandlers.updateModalData('detail', e.target.value)}
-                        />
+                    {addAttributeModal.isLocked && (
+                      <div className='absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-gray-900/80 backdrop-blur-sm px-6 text-center'>
+                        <span className='text-2xl'>🚧</span>
+                        <p className='text-white font-semibold text-sm md:text-base'>
+                          Esta funcionalidad estará disponible en nuevas versiones.
+                        </p>
+                        <p className='text-gray-400 text-xs md:text-sm'>Por ahora puedes elegir entre los colores disponibles.</p>
                       </div>
-                      <p className='text-xs text-gray-500'>Selecciona el color usando el selector o ingresa el código hexadecimal</p>
-                    </div>
+                    )}
                   </div>
                 </ModalBody>
                 <ModalFooter>
@@ -884,7 +903,7 @@ const StepCharacteristicsContent = ({
                   <Button
                     className='bg-gradient-to-r from-primary-600 to-primary-700'
                     color='primary'
-                    isDisabled={!addAttributeModal.data.name.trim() || !addAttributeModal.data.detail.trim()}
+                    isDisabled={addAttributeModal.isLocked || !addAttributeModal.data.name.trim() || !addAttributeModal.data.detail.trim()}
                     isLoading={addAttributeModal.isLoading}
                     onPress={modalHandlers.submitAttribute}>
                     {addAttributeModal.isLoading ? 'Creando...' : 'Crear atributo'}

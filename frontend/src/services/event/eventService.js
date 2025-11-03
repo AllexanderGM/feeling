@@ -20,8 +20,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       if (searchTerm && searchTerm.trim()) {
@@ -43,8 +42,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       if (searchTerm && searchTerm.trim()) {
@@ -66,43 +64,16 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       if (searchTerm && searchTerm.trim()) {
         params.append('q', searchTerm.trim())
       }
 
-      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_STATUS}/PUBLICADO?${params.toString()}`)
-      const response = ServiceREST.handleServiceResponse(result, context)
+      const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.UPCOMING}?${params.toString()}`)
 
-      const filterFutureEvents = events => {
-        if (!Array.isArray(events)) return events
-
-        const now = Date.now()
-
-        return events.filter(event => {
-          if (!event?.eventDate) return false
-
-          const eventTime = new Date(event.eventDate).getTime()
-
-          return Number.isFinite(eventTime) && eventTime >= now
-        })
-      }
-
-      if (Array.isArray(response)) {
-        return filterFutureEvents(response)
-      }
-
-      if (response && Array.isArray(response.content)) {
-        return {
-          ...response,
-          content: filterFutureEvents(response.content)
-        }
-      }
-
-      return response
+      return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {
       this.logError(context, error)
       throw error
@@ -115,8 +86,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       if (searchTerm && searchTerm.trim()) {
@@ -195,6 +165,65 @@ class EventService extends ServiceREST {
       this.logError(context, error)
       throw error
     }
+  }
+
+  // ========================================
+  // GESTIÓN DE ESTADOS DE EVENTOS
+  // ========================================
+
+  buildEventStateEndpoint(eventId, routeTemplate) {
+    if (!eventId) {
+      throw new Error('Se requiere un ID de evento válido para cambiar su estado.')
+    }
+
+    if (!routeTemplate || typeof routeTemplate !== 'string') {
+      throw new Error('La ruta de estado del evento no es válida.')
+    }
+
+    const encodedId = encodeURIComponent(eventId)
+
+    if (routeTemplate.includes('{id}')) {
+      return routeTemplate.replace('{id}', encodedId)
+    }
+
+    return routeTemplate.endsWith('/') ? `${routeTemplate}${encodedId}` : `${routeTemplate}/${encodedId}`
+  }
+
+  async patchEventState(eventId, routeTemplate, context) {
+    const endpoint = this.buildEventStateEndpoint(eventId, routeTemplate)
+
+    try {
+      const result = await ServiceREST.patch(endpoint)
+
+      return ServiceREST.handleServiceResponse(result, context)
+    } catch (error) {
+      this.logError(context, error)
+      throw error
+    }
+  }
+
+  async publishEvent(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.PUBLISH, 'publicar evento')
+  }
+
+  async pauseEvent(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.PAUSE, 'pausar evento')
+  }
+
+  async cancelEvent(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.CANCEL, 'cancelar evento')
+  }
+
+  async activateEvent(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.ACTIVATE, 'activar evento')
+  }
+
+  async finishEvent(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.FINISH, 'finalizar evento')
+  }
+
+  async backToEdition(eventId) {
+    return this.patchEventState(eventId, API_ENDPOINTS.EVENTS.BACK_TO_EDITION, 'volver a edición')
   }
 
   async forceDeleteEvent(eventId) {
@@ -292,8 +321,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       if (searchTerm && searchTerm.trim()) {
@@ -392,8 +420,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.BY_USER}/${encodeURIComponent(userId)}?${params.toString()}`)
@@ -411,8 +438,7 @@ class EventService extends ServiceREST {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        size: size.toString(),
-        paginated: 'true'
+        size: size.toString()
       })
 
       const result = await ServiceREST.get(`${API_ENDPOINTS.EVENTS.MY_EVENTS}?${params.toString()}`)

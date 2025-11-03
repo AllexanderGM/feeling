@@ -40,7 +40,8 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, './src/pages/'),
       '@hooks': path.resolve(__dirname, './src/hooks/'),
       '@config': path.resolve(__dirname, './src/config/'),
-      '@schemas': path.resolve(__dirname, './src/schemas/index.js')
+      '@schemas': path.resolve(__dirname, './src/schemas/index.js'),
+      'use-isomorphic-layout-effect': path.resolve(__dirname, './src/hooks/utils/useIsomorphicLayoutEffect.js')
     }
   },
   build: {

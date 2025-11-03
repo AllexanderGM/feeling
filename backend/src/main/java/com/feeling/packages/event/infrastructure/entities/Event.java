@@ -185,6 +185,13 @@ public class Event {
         }
     }
 
+    public void activate() {
+        if (status == EventStatus.CANCELADO) {
+            this.status = EventStatus.EN_EDICION;
+            this.isActive = false;
+        }
+    }
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

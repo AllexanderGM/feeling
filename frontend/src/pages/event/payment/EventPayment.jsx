@@ -23,8 +23,6 @@ const EventPayment = () => {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState(null)
-  const [paymentIntent, setPaymentIntent] = useState(null)
-
   const abortRef = useRef(false)
   const hasInitializedRef = useRef(false)
 
@@ -226,22 +224,25 @@ const EventPayment = () => {
     setLoading(true)
     setProcessing(false)
     setError(null)
-    setPaymentIntent(null)
 
     try {
-      const intentResponse = await unwrapResponse(await bookingService.createEventPaymentIntent(parseInt(eventId)))
+      const rawIntent = await unwrapResponse(await bookingService.createEventPaymentIntent(parseInt(eventId)))
 
       if (abortRef.current) return
 
-      if (!intentResponse?.publicKey || !intentResponse?.signature) {
+      const normalizedIntent = {
+        ...rawIntent,
+        ...(rawIntent?.data || {})
+      }
+
+      if (!normalizedIntent?.publicKey || !normalizedIntent?.signature) {
         throw new Error('La configuración de la pasarela de pago es inválida.')
       }
 
-      setPaymentIntent(intentResponse)
       hasInitializedRef.current = true
       setLoading(false)
 
-      await launchWompiCheckout(intentResponse)
+      await launchWompiCheckout(normalizedIntent)
     } catch (err) {
       if (abortRef.current) return
 

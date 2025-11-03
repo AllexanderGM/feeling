@@ -63,6 +63,9 @@ public class AuthService {
         StructuredLoggerFactory.create(AuthService.class);
     private static final int CODE_LENGTH = 6;
     private static final int EXPIRATION_MINUTES = 30;
+    private static final String GUEST_ACCOUNT_ERROR_CODE = "ACCOUNT_REQUIRES_PASSWORD";
+    private static final String GUEST_ACCOUNT_MESSAGE =
+        "Este correo se utilizó para reservas de eventos. Completa tu registro creando una contraseña para acceder.";
 
     private final IAuthTokenRepository tokenRepository;
     private final JwtService jwtService;
@@ -145,8 +148,25 @@ public class AuthService {
             GoogleUserInfoDTO googleUser = googleOAuthService.getUserInfo(request.accessToken());
             String email = googleUser.email().toLowerCase().trim();
 
-            // 2. Validar si ya existe un usuario con ese correo
-            validateExistingUser(googleUser.email(), AuthProvider.GOOGLE);
+            // 2. Verificar si existe un usuario previo (para conversión de invitados)
+            Optional<User> existingUserOpt = userRepository.findByEmail(email);
+            if (existingUserOpt.isPresent()) {
+                User existingUser = existingUserOpt.get();
+
+                if (isGuestAccount(existingUser)) {
+                    User upgradedUser = upgradeGuestAccountWithGoogle(existingUser, googleUser);
+                    User savedUser = userRepository.save(upgradedUser);
+
+                    logger.logAuth("google_register", email, "éxito - conversión desde invitado");
+                    return generateTokensAndCreateResponse(savedUser);
+                }
+
+                // Si no es cuenta invitada, delegar al validador estándar (lanzará la excepción correspondiente)
+                validateExistingUser(email, AuthProvider.GOOGLE);
+            } else {
+                // No existe usuario, validar políticas generales
+                validateExistingUser(email, AuthProvider.GOOGLE);
+            }
 
             // 3. Crear nuevo usuario desde Google
             User newUser = userFactory.createFromGoogleOAuth(googleUser);
@@ -190,9 +210,10 @@ public class AuthService {
 
             // 1. Obtener información del usuario de Google
             GoogleUserInfoDTO googleUser = googleOAuthService.getUserInfo(request.accessToken());
+            String normalizedEmail = googleUser.email().toLowerCase().trim();
 
             // 2. Buscar si el usuario ya existe
-            Optional<User> existingUser = userRepository.findByEmail(googleUser.email().toLowerCase().trim());
+            Optional<User> existingUser = userRepository.findByEmail(normalizedEmail);
 
             User user;
 
@@ -200,7 +221,9 @@ public class AuthService {
                 user = existingUser.get();
 
                 // Verificar el método de autenticación
-                if (user.getUserAuthProvider() == AuthProvider.LOCAL) {
+                if (isGuestAccount(user)) {
+                    user = upgradeGuestAccountWithGoogle(user, googleUser);
+                } else if (user.getUserAuthProvider() == AuthProvider.LOCAL) {
                     // Usuario registrado con email/contraseña quiere usar Google
                     logger.logAuth("google_login", googleUser.email(), "existing local user switching to google");
 
@@ -285,9 +308,7 @@ public class AuthService {
 
             // Verificar que el usuario pueda usar login tradicional
             if (user.getUserAuthProvider() == AuthProvider.GUEST) {
-                throw new UnauthorizedException(
-                    "Este correo se utilizó para reservar eventos. Completa tu registro creando una contraseña para acceder a la plataforma."
-                );
+                throw buildGuestAccountException(normalizedEmail);
             }
 
             if (user.getUserAuthProvider() != AuthProvider.LOCAL) {
@@ -786,6 +807,53 @@ public class AuthService {
     // ==============================
     // MÉTODOS DE UTILIDAD
     // ==============================
+
+    private GuestAccountException buildGuestAccountException(String email) {
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : null;
+        return new GuestAccountException(
+            normalizedEmail,
+            GUEST_ACCOUNT_ERROR_CODE,
+            GUEST_ACCOUNT_MESSAGE
+        );
+    }
+
+    private boolean isGuestAccount(User user) {
+        if (user == null) return false;
+        return user.getUserAuthProvider() == AuthProvider.GUEST
+            || user.getAccountType() == UserAccountType.EVENTS_ONLY;
+    }
+
+    private User upgradeGuestAccountWithGoogle(User guestUser, GoogleUserInfoDTO googleUser) {
+        guestUser.setName(selectIfPresent(googleUser.getFirstName(), guestUser.getName()));
+        guestUser.setLastName(selectIfPresent(googleUser.getLastName(), guestUser.getLastName()));
+        guestUser.setUserAuthProvider(AuthProvider.GOOGLE);
+        guestUser.setAccountType(UserAccountType.FULL_APP);
+        guestUser.setExternalId(googleUser.sub());
+        guestUser.setExternalAvatarUrl(googleUser.picture());
+        guestUser.setVerified(true);
+        guestUser.setConfigurationCompleted(false);
+        guestUser.setProfileComplete(false);
+        guestUser.setShowMeInSearch(true);
+        guestUser.setSearchVisibility(true);
+        guestUser.setPublicAccount(true);
+        guestUser.setAllowNotifications(true);
+        guestUser.setPassword(passwordEncoder.encode(
+            googleOAuthService.generateOAuthPassword("GOOGLE", googleUser.sub())
+        ));
+        guestUser.setLastExternalSync(LocalDateTime.now());
+        guestUser.setUpdatedAt(LocalDateTime.now());
+        return guestUser;
+    }
+
+    private String selectIfPresent(String candidate, String fallback) {
+        if (candidate != null) {
+            String trimmed = candidate.trim();
+            if (!trimmed.isEmpty()) {
+                return trimmed;
+            }
+        }
+        return fallback;
+    }
 
     /**
      * Envía email de bienvenida para usuarios Google si están aprobados.

@@ -3,7 +3,7 @@ import { useEvents, useError } from '@hooks'
 import { Tabs, Tab } from '@heroui/react'
 import { Helmet } from 'react-helmet-async'
 import { Logger } from '@utils/logger.js'
-import { Clock, TrendingUp, Edit, Pause, X, CheckCircle } from 'lucide-react'
+import { Clock, Edit, Pause, X, CheckCircle } from 'lucide-react'
 import GenericTableControls from '@components/ui/table/GenericTableControls.jsx'
 import TablePagination from '@components/ui/table/TablePagination.jsx'
 import { EVENT_TYPE_COLUMNS, DEFAULT_ROWS_PER_PAGE } from '@constants/tableConstants.js'
@@ -13,6 +13,40 @@ import UnifiedEventTable from './components/UnifiedEventTable.jsx'
 import CreateEventForm from './components/CreateEventForm.jsx'
 import EditEventForm from './components/EditEventForm.jsx'
 import DeleteEventModal from './components/DeleteEventModal.jsx'
+import ConfirmActionModal from './components/ConfirmActionModal.jsx'
+
+const STATUS_TAB_DEFINITIONS = [
+  {
+    key: 'PUBLICADO',
+    label: 'Publicados',
+    icon: CheckCircle,
+    badgeClassName: 'bg-success-100 text-success-600'
+  },
+  {
+    key: 'EN_EDICION',
+    label: 'En Edición',
+    icon: Edit,
+    badgeClassName: 'bg-warning-100 text-warning-600'
+  },
+  {
+    key: 'PAUSADO',
+    label: 'Pausados',
+    icon: Pause,
+    badgeClassName: 'bg-orange-100 text-orange-600'
+  },
+  {
+    key: 'CANCELADO',
+    label: 'Cancelados',
+    icon: X,
+    badgeClassName: 'bg-red-100 text-red-600'
+  },
+  {
+    key: 'TERMINADO',
+    label: 'Terminados',
+    icon: Clock,
+    badgeClassName: 'bg-gray-100 text-gray-600'
+  }
+]
 
 const EventManagement = memo(() => {
   const {
@@ -33,7 +67,11 @@ const EventManagement = memo(() => {
     createEvent,
     updateEvent,
     deleteEvent,
-    toggleEventStatus,
+    publishEvent,
+    pauseEvent,
+    cancelEvent,
+    activateEvent,
+    backToEdition,
     forceDeleteEvent,
 
     // Estadísticas
@@ -41,12 +79,19 @@ const EventManagement = memo(() => {
     fetchEventStats,
 
     // Estados generales
-    loading
+    loading,
+    submitting
   } = useEvents()
   const { handleError, handleSuccess } = useError()
 
+  const createVisibleColumnSet = tableType => {
+    const columns = EVENT_TYPE_COLUMNS[tableType] || EVENT_TYPE_COLUMNS.all
+
+    return new Set(columns.filter(column => column.uid !== 'id').map(column => column.uid))
+  }
+
   // Estado para las tabs
-  const [selectedTab, setSelectedTab] = useState('all')
+  const [selectedTab, setSelectedTab] = useState('PUBLICADO')
 
   // Estado para los conteos de pestañas
   const [tabCounts, setTabCounts] = useState({
@@ -58,13 +103,22 @@ const EventManagement = memo(() => {
     TERMINADO: 0
   })
 
+  const statusTabs = useMemo(
+    () =>
+      STATUS_TAB_DEFINITIONS.map(definition => ({
+        ...definition,
+        count: tabCounts[definition.key] ?? 0
+      })),
+    [tabCounts]
+  )
+
   // Estados para cada tipo de tabla
   const [tableStates, setTableStates] = useState({
     all: {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('all'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
       sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
@@ -74,9 +128,9 @@ const EventManagement = memo(() => {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('PUBLICADO'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
-      sortDescriptor: { column: 'eventDate', direction: 'ascending' },
+      sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
       loading: false
     },
@@ -84,7 +138,7 @@ const EventManagement = memo(() => {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('EN_EDICION'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
       sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
@@ -94,9 +148,9 @@ const EventManagement = memo(() => {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('PAUSADO'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
-      sortDescriptor: { column: 'updatedAt', direction: 'descending' },
+      sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
       loading: false
     },
@@ -104,9 +158,9 @@ const EventManagement = memo(() => {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('CANCELADO'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
-      sortDescriptor: { column: 'updatedAt', direction: 'descending' },
+      sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
       loading: false
     },
@@ -114,9 +168,9 @@ const EventManagement = memo(() => {
       filterValue: '',
       debouncedFilter: '',
       selectedKeys: new Set([]),
-      visibleColumns: new Set(EVENT_TYPE_COLUMNS.all.filter(col => col.uid !== 'id').map(col => col.uid)),
+      visibleColumns: createVisibleColumnSet('TERMINADO'),
       rowsPerPage: DEFAULT_ROWS_PER_PAGE,
-      sortDescriptor: { column: 'eventDate', direction: 'descending' },
+      sortDescriptor: { column: 'createdAt', direction: 'descending' },
       page: 1,
       loading: false
     }
@@ -127,6 +181,11 @@ const EventManagement = memo(() => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [confirmModalState, setConfirmModalState] = useState({
+    isOpen: false,
+    action: null,
+    eventData: null
+  })
 
   // Track last fetched params per tab to avoid refetch loops
   const lastFetchParamsRef = useRef({})
@@ -369,6 +428,32 @@ const EventManagement = memo(() => {
     [handleError]
   )
 
+  const handleOpenConfirmModal = useCallback(
+    (action, event) => {
+      if (!event || !event.id) {
+        Logger.error('Incomplete event data for lifecycle action', { action, event }, { category: Logger.CATEGORIES.UI })
+        handleError('No se pudo preparar la acción para este evento.')
+
+        return
+      }
+
+      setConfirmModalState({
+        isOpen: true,
+        action,
+        eventData: event
+      })
+    },
+    [handleError]
+  )
+
+  const handleCloseConfirmModal = useCallback(() => {
+    setConfirmModalState({
+      isOpen: false,
+      action: null,
+      eventData: null
+    })
+  }, [])
+
   const handleOperationSuccess = useCallback(() => {
     Logger.info('Operation successful, updating event lists', { category: Logger.CATEGORIES.UI })
 
@@ -395,11 +480,103 @@ const EventManagement = memo(() => {
     setIsCreateModalOpen(false)
     setIsEditModalOpen(false)
     setIsDeleteModalOpen(false)
+    setConfirmModalState({ isOpen: false, action: null, eventData: null })
     setSelectedEvent(null)
-  }, [tableStates, getEventsData, fetchEventStats])
+  }, [tableStates, getEventsData, fetchEventStats, setConfirmModalState])
+
+  const handleConfirmAction = useCallback(async () => {
+    const { action, eventData } = confirmModalState || {}
+
+    if (!action || !eventData) {
+      setConfirmModalState({
+        isOpen: false,
+        action: null,
+        eventData: null
+      })
+
+      return
+    }
+
+    const actionConfig = {
+      publish: {
+        service: publishEvent,
+        successMessage: 'Evento publicado exitosamente.',
+        errorMessage: 'Error al publicar el evento.'
+      },
+      pause: {
+        service: pauseEvent,
+        successMessage: 'Evento pausado correctamente.',
+        errorMessage: 'Error al pausar el evento.'
+      },
+      cancel: {
+        service: cancelEvent,
+        successMessage: 'Evento cancelado correctamente.',
+        errorMessage: 'Error al cancelar el evento.'
+      },
+      activate: {
+        service: activateEvent,
+        successMessage: 'Evento activado y enviado a edición.',
+        errorMessage: 'Error al activar el evento.'
+      },
+      back_to_edition: {
+        service: backToEdition,
+        successMessage: 'Evento movido a edición correctamente.',
+        errorMessage: 'Error al mover el evento a edición.'
+      }
+    }
+
+    const config = actionConfig[action]
+
+    if (!config?.service) {
+      Logger.warn('Unsupported lifecycle action requested', { action }, { category: Logger.CATEGORIES.UI })
+      handleError('Acción no soportada para este evento.')
+      setConfirmModalState({
+        isOpen: false,
+        action: null,
+        eventData: null
+      })
+
+      return
+    }
+
+    try {
+      const result = await config.service(eventData, { showNotifications: false })
+
+      if (result?.success === false) {
+        handleError(result.message || config.errorMessage)
+
+        return
+      }
+
+      handleSuccess(config.successMessage)
+      handleOperationSuccess()
+    } catch (error) {
+      Logger.error('Error executing lifecycle action', error, {
+        category: Logger.CATEGORIES.SERVICE,
+        context: { action, eventId: eventData.id }
+      })
+      handleError(config.errorMessage)
+    } finally {
+      setConfirmModalState({
+        isOpen: false,
+        action: null,
+        eventData: null
+      })
+    }
+  }, [
+    activateEvent,
+    backToEdition,
+    cancelEvent,
+    confirmModalState,
+    handleError,
+    handleOperationSuccess,
+    handleSuccess,
+    pauseEvent,
+    publishEvent
+  ])
 
   const handleCreateEvent = useCallback(
-    async ({ eventData, media }) => {
+    async ({ eventData, media, action = 'draft' }) => {
       try {
         const result = await createEvent(eventData, { media, showNotifications: false })
 
@@ -409,18 +586,35 @@ const EventManagement = memo(() => {
           return
         }
 
-        handleSuccess('Evento creado exitosamente')
+        let createdEvent = result.data
+
+        if (action === 'publish' && createdEvent) {
+          const publishResult = await publishEvent(createdEvent, { showNotifications: false })
+
+          if (publishResult?.success === false) {
+            handleError(publishResult.message || 'El evento se creó, pero no se pudo publicar.')
+            handleOperationSuccess()
+
+            return
+          }
+
+          createdEvent = publishResult.data || createdEvent
+          handleSuccess('Evento creado y publicado exitosamente')
+        } else {
+          handleSuccess('Evento creado como borrador')
+        }
+
         handleOperationSuccess()
       } catch (error) {
         Logger.error('Error creating event', error, { category: Logger.CATEGORIES.SERVICE })
         handleError('Error al crear el evento')
       }
     },
-    [createEvent, handleError, handleOperationSuccess, handleSuccess]
+    [createEvent, publishEvent, handleError, handleOperationSuccess, handleSuccess]
   )
 
   const handleUpdateEvent = useCallback(
-    async ({ eventId, eventData, media }) => {
+    async ({ eventId, eventData, media, action = 'save', currentStatus }) => {
       try {
         const result = await updateEvent(eventId, eventData, { media, showNotifications: false })
 
@@ -430,14 +624,88 @@ const EventManagement = memo(() => {
           return
         }
 
-        handleSuccess('Evento actualizado exitosamente')
+        let updatedEvent = result.data
+        let successMessage = 'Evento actualizado exitosamente'
+
+        const baseEvent = updatedEvent || { id: eventId, status: currentStatus }
+
+        if (action === 'publish' && baseEvent?.id) {
+          let lifecycleEvent = baseEvent
+          const initialStatus = lifecycleEvent.status || currentStatus
+
+          if (initialStatus === 'CANCELADO') {
+            const activateResult = await activateEvent(lifecycleEvent, { showNotifications: false })
+
+            if (activateResult?.success === false) {
+              handleError(activateResult.message || 'No se pudo reactivar el evento antes de publicarlo.')
+
+              return
+            }
+
+            lifecycleEvent = activateResult.data || lifecycleEvent
+          }
+
+          const publishResult = await publishEvent(lifecycleEvent, { showNotifications: false })
+
+          if (publishResult?.success === false) {
+            handleError(publishResult.message || 'No se pudo publicar el evento.')
+
+            return
+          }
+
+          updatedEvent = publishResult.data || lifecycleEvent
+          successMessage = 'Evento actualizado y publicado exitosamente'
+        } else if (action === 'draft' && baseEvent?.id) {
+          let lifecycleEvent = baseEvent
+          let statusForDraft = lifecycleEvent.status || currentStatus
+
+          if (statusForDraft === 'PUBLICADO') {
+            const pauseResult = await pauseEvent(lifecycleEvent, { showNotifications: false })
+
+            if (pauseResult?.success === false) {
+              handleError(pauseResult.message || 'No se pudo pausar el evento antes de enviarlo a edición.')
+
+              return
+            }
+
+            lifecycleEvent = pauseResult.data || lifecycleEvent
+            statusForDraft = lifecycleEvent.status || statusForDraft
+          }
+
+          if (statusForDraft === 'PAUSADO') {
+            const backResult = await backToEdition(lifecycleEvent, { showNotifications: false })
+
+            if (backResult?.success === false) {
+              handleError(backResult.message || 'No se pudo mover el evento a edición.')
+
+              return
+            }
+
+            lifecycleEvent = backResult.data || lifecycleEvent
+          } else if (statusForDraft === 'CANCELADO') {
+            const activateResult = await activateEvent(lifecycleEvent, { showNotifications: false })
+
+            if (activateResult?.success === false) {
+              handleError(activateResult.message || 'No se pudo reactivar el evento.')
+
+              return
+            }
+
+            lifecycleEvent = activateResult.data || lifecycleEvent
+          }
+
+          updatedEvent = lifecycleEvent
+          successMessage = 'Evento guardado como borrador'
+        }
+
+        handleSuccess(successMessage)
         handleOperationSuccess()
       } catch (error) {
         Logger.error('Error updating event', error, { category: Logger.CATEGORIES.SERVICE })
         handleError('Error al actualizar el evento')
       }
     },
-    [handleError, handleOperationSuccess, handleSuccess, updateEvent]
+    [activateEvent, backToEdition, pauseEvent, publishEvent, handleError, handleOperationSuccess, handleSuccess, updateEvent]
   )
 
   const handleDeleteEvent = useCallback(
@@ -461,36 +729,21 @@ const EventManagement = memo(() => {
     setIsCreateModalOpen(false)
     setIsEditModalOpen(false)
     setIsDeleteModalOpen(false)
+    setConfirmModalState({ isOpen: false, action: null, eventData: null })
     setSelectedEvent(null)
   }, [])
 
-  const handleToggleEventStatus = useCallback(
-    async eventId => {
-      try {
-        await toggleEventStatus(eventId)
-        handleSuccess('Estado del evento cambiado correctamente')
-
-        // Refrescar todas las listas
-        const refreshAllTables = () => {
-          Object.keys(tableStates).forEach(tableType => {
-            const state = tableStates[tableType]
-            const { fetchMethod } = getEventsData(tableType)
-
-            if (fetchMethod) {
-              fetchMethod((state.page || 1) - 1, state.rowsPerPage || DEFAULT_ROWS_PER_PAGE, state.debouncedFilter || '').catch(error => {
-                Logger.error(`Error refreshing ${tableType} events:`, error, { category: Logger.CATEGORIES.SERVICE })
-              })
-            }
-          })
-        }
-
-        refreshAllTables()
-        fetchEventStats() // Actualizar estadísticas
-      } catch {
-        handleError('Error al cambiar el estado del evento')
-      }
-    },
-    [toggleEventStatus, handleSuccess, handleError, tableStates, getEventsData, fetchEventStats]
+  const tableActionHandlers = useMemo(
+    () => ({
+      onActivate: event => handleOpenConfirmModal('activate', event),
+      onBackToEdition: event => handleOpenConfirmModal('back_to_edition', event),
+      onCancel: event => handleOpenConfirmModal('cancel', event),
+      onPause: event => handleOpenConfirmModal('pause', event),
+      onPublish: event => handleOpenConfirmModal('publish', event),
+      onDelete: handleOpenDeleteModal,
+      onEdit: handleOpenEditModal
+    }),
+    [handleOpenConfirmModal, handleOpenDeleteModal, handleOpenEditModal]
   )
 
   // ========================================
@@ -551,13 +804,6 @@ const EventManagement = memo(() => {
   const onSortChange = useCallback(
     sortDescriptor => {
       updateTableState(selectedTab, { sortDescriptor })
-    },
-    [selectedTab, updateTableState]
-  )
-
-  const onSelectionChange = useCallback(
-    selectedKeys => {
-      updateTableState(selectedTab, { selectedKeys })
     },
     [selectedTab, updateTableState]
   )
@@ -661,6 +907,19 @@ const EventManagement = memo(() => {
     [currentTableState, totalItems, pages, onPreviousPage, onNextPage, onPageChange]
   )
 
+  const sharedTableProps = useMemo(
+    () => ({
+      bottomContent,
+      headerColumns,
+      loading: currentTableState?.loading || loading || submitting,
+      setSortDescriptor: onSortChange,
+      sortDescriptor: currentTableState?.sortDescriptor,
+      topContent,
+      ...tableActionHandlers
+    }),
+    [bottomContent, headerColumns, currentTableState, loading, submitting, onSortChange, topContent, tableActionHandlers]
+  )
+
   return (
     <div className='w-full max-w-7xl mx-auto p-6 space-y-6'>
       <Helmet>
@@ -679,7 +938,7 @@ const EventManagement = memo(() => {
       {/* Estadísticas */}
       <EventStatsCards eventStats={eventStats} />
 
-      {/* Pestañas para los 3 tipos de eventos */}
+      {/* Pestañas para los tipos de eventos */}
       <div className='flex w-full flex-col'>
         <Tabs
           aria-label='Gestión de eventos'
@@ -687,207 +946,36 @@ const EventManagement = memo(() => {
           selectedKey={selectedTab}
           variant='bordered'
           onSelectionChange={setSelectedTab}>
-          {/* Todos los Eventos */}
-          <Tab
-            key='all'
-            title={
-              <div className='flex items-center space-x-2'>
-                <TrendingUp className='w-4 h-4' />
-                <span>Todos</span>
-                {tabCounts.all > 0 && (
-                  <div className='bg-primary-100 text-primary-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.all}</div>
-                )}
+          {statusTabs.map(({ key, label, icon: Icon, badgeClassName, count }) => (
+            <Tab
+              key={key}
+              title={
+                <div className='flex items-center space-x-2'>
+                  <Icon className='w-4 h-4' />
+                  <span>{label}</span>
+                  {count > 0 ? <div className={`${badgeClassName} px-2 py-1 rounded-full text-xs font-medium`}>{count}</div> : null}
+                </div>
+              }>
+              <div className='py-4'>
+                <UnifiedEventTable {...sharedTableProps} events={sortedItems} tableType={key} />
               </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='all'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
-
-          {/* Eventos Publicados */}
-          <Tab
-            key='PUBLICADO'
-            title={
-              <div className='flex items-center space-x-2'>
-                <CheckCircle className='w-4 h-4' />
-                <span>Publicados</span>
-                {tabCounts.PUBLICADO > 0 && (
-                  <div className='bg-success-100 text-success-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.PUBLICADO}</div>
-                )}
-              </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='PUBLICADO'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
-
-          {/* Eventos En Edición */}
-          <Tab
-            key='EN_EDICION'
-            title={
-              <div className='flex items-center space-x-2'>
-                <Edit className='w-4 h-4' />
-                <span>En Edición</span>
-                {tabCounts.EN_EDICION > 0 && (
-                  <div className='bg-warning-100 text-warning-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.EN_EDICION}</div>
-                )}
-              </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='EN_EDICION'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
-
-          {/* Eventos Pausados */}
-          <Tab
-            key='PAUSADO'
-            title={
-              <div className='flex items-center space-x-2'>
-                <Pause className='w-4 h-4' />
-                <span>Pausados</span>
-                {tabCounts.PAUSADO > 0 && (
-                  <div className='bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.PAUSADO}</div>
-                )}
-              </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='PAUSADO'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
-
-          {/* Eventos Cancelados */}
-          <Tab
-            key='CANCELADO'
-            title={
-              <div className='flex items-center space-x-2'>
-                <X className='w-4 h-4' />
-                <span>Cancelados</span>
-                {tabCounts.CANCELADO > 0 && (
-                  <div className='bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.CANCELADO}</div>
-                )}
-              </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='CANCELADO'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
-
-          {/* Eventos Terminados */}
-          <Tab
-            key='TERMINADO'
-            title={
-              <div className='flex items-center space-x-2'>
-                <Clock className='w-4 h-4' />
-                <span>Terminados</span>
-                {tabCounts.TERMINADO > 0 && (
-                  <div className='bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium'>{tabCounts.TERMINADO}</div>
-                )}
-              </div>
-            }>
-            <div className='py-4'>
-              <UnifiedEventTable
-                bottomContent={bottomContent}
-                events={sortedItems}
-                headerColumns={headerColumns}
-                loading={currentTableState?.loading || loading}
-                selectedKeys={currentTableState?.selectedKeys}
-                setSelectedKeys={onSelectionChange}
-                setSortDescriptor={onSortChange}
-                sortDescriptor={currentTableState?.sortDescriptor}
-                tableType='TERMINADO'
-                topContent={topContent}
-                visibleColumns={currentTableState?.visibleColumns}
-                onDelete={handleOpenDeleteModal}
-                onEdit={handleOpenEditModal}
-                onToggleStatus={handleToggleEventStatus}
-              />
-            </div>
-          </Tab>
+            </Tab>
+          ))}
         </Tabs>
       </div>
 
       {/* Modales para CRUD de eventos */}
-      <CreateEventForm isOpen={isCreateModalOpen} loading={loading} onClose={handleCloseModals} onSubmit={handleCreateEvent} />
+      <CreateEventForm
+        isOpen={isCreateModalOpen}
+        loading={loading || submitting}
+        onClose={handleCloseModals}
+        onSubmit={handleCreateEvent}
+      />
 
       <EditEventForm
         eventData={selectedEvent}
         isOpen={isEditModalOpen}
-        loading={loading}
+        loading={loading || submitting}
         onClose={handleCloseModals}
         onSubmit={handleUpdateEvent}
       />
@@ -895,9 +983,18 @@ const EventManagement = memo(() => {
       <DeleteEventModal
         eventData={selectedEvent}
         isOpen={isDeleteModalOpen}
-        loading={loading}
+        loading={loading || submitting}
         onClose={handleCloseModals}
         onConfirm={handleDeleteEvent}
+      />
+
+      <ConfirmActionModal
+        actionType={confirmModalState.action || 'publish'}
+        eventData={confirmModalState.eventData}
+        isOpen={confirmModalState.isOpen}
+        loading={submitting}
+        onClose={handleCloseConfirmModal}
+        onConfirm={handleConfirmAction}
       />
     </div>
   )

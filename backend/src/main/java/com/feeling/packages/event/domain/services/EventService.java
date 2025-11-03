@@ -20,6 +20,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,65 +40,42 @@ public class EventService {
     private final ModelMapper modelMapper;
     private final EventImageService eventImageService;
 
-    public List<EventResponseDTO> getAllActiveEvents() {
-        finalizeExpiredEvents();
-        List<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc();
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
-    }
-
     public Page<EventResponseDTO> getAllActiveEvents(Pageable pageable) {
         finalizeExpiredEvents();
-        Page<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc(pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events = eventRepository.findByIsActiveTrueOrderByEventDateAsc(effectivePageable);
         return events.map(this::convertToResponseDTO);
     }
 
-    public List<EventResponseDTO> getUpcomingEvents() {
+    public Page<EventResponseDTO> getUpcomingEvents(String searchTerm, Pageable pageable) {
         finalizeExpiredEvents();
-        List<Event> events = eventRepository.findUpcomingEvents(LocalDateTime.now());
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
-    }
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events;
 
-    public Page<EventResponseDTO> getUpcomingEvents(Pageable pageable) {
-        finalizeExpiredEvents();
-        Page<Event> events = eventRepository.findUpcomingEvents(LocalDateTime.now(), pageable);
+        if (StringUtils.hasText(searchTerm)) {
+            events = eventRepository.findUpcomingEventsWithSearch(LocalDateTime.now(), searchTerm.trim(), effectivePageable);
+        } else {
+            events = eventRepository.findUpcomingEvents(LocalDateTime.now(), effectivePageable);
+        }
+
         return events.map(this::convertToResponseDTO);
-    }
-
-        public List<EventResponseDTO> getEventsByCategory(EventCategory category) {
-        finalizeExpiredEvents();
-        List<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category);
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByCategory(EventCategory category, Pageable pageable) {
         finalizeExpiredEvents();
-        Page<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category, pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events = eventRepository.findByCategoryAndIsActiveTrueOrderByEventDateAsc(category, effectivePageable);
         return events.map(this::convertToResponseDTO);
     }
 
-    public List<EventResponseDTO> searchEvents(String searchTerm) {
-        if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            return getAllActiveEvents();
-        }
-
-        List<Event> events = eventRepository.searchEvents(searchTerm.trim());
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
-    }
-
     public Page<EventResponseDTO> searchEvents(String searchTerm, Pageable pageable) {
-        if (searchTerm == null || searchTerm.trim().isEmpty()) {
-            return getAllActiveEvents(pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+
+        if (!StringUtils.hasText(searchTerm)) {
+            return getAllActiveEvents(effectivePageable);
         }
 
-        Page<Event> events = eventRepository.searchEvents(searchTerm.trim(), pageable);
+        Page<Event> events = eventRepository.searchEvents(searchTerm.trim(), effectivePageable);
         return events.map(this::convertToResponseDTO);
     }
 
@@ -112,22 +90,10 @@ public class EventService {
         return convertToResponseDTO(event);
     }
 
-    public List<EventResponseDTO> getEventsByCreator(Long userId) {
-        List<Event> events = eventRepository.findByCreatedBy(userId);
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
-    }
-
     public Page<EventResponseDTO> getEventsByCreator(Long userId, Pageable pageable) {
-        Page<Event> events = eventRepository.findByCreatedBy(userId, pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events = eventRepository.findByCreatedBy(userId, effectivePageable);
         return events.map(this::convertToResponseDTO);
-    }
-
-    public List<EventResponseDTO> getEventsByCreatorEmail(String userEmail) {
-        User user = userRepository.findByEmail(userEmail)
-            .orElseThrow(() -> new UnauthorizedException("Usuario no encontrado"));
-        return getEventsByCreator(user.getId());
     }
 
     public Page<EventResponseDTO> getEventsByCreatorEmail(String userEmail, Pageable pageable) {
@@ -371,6 +337,20 @@ public class EventService {
         return convertToResponseDTO(updatedEvent);
     }
 
+    @Transactional
+    @CacheEvict(value = "events", allEntries = true)
+    public EventResponseDTO activateEvent(Long eventId, String userEmail) {
+        Event event = validateEventAndPermissions(eventId, userEmail);
+
+        if (event.getStatus() != EventStatus.CANCELADO) {
+            throw new BadRequestException("Solo se pueden activar eventos cancelados");
+        }
+
+        event.activate();
+        Event updatedEvent = eventRepository.save(event);
+        return convertToResponseDTO(updatedEvent);
+    }
+
 
     // ==============================
     // EVENT REGISTRATIONS MANAGEMENT
@@ -396,15 +376,13 @@ public class EventService {
             .collect(Collectors.toList());
     }
 
-    public List<EventResponseDTO> getUserRegisteredEvents(String userEmail) {
+    public Page<EventResponseDTO> getUserRegisteredEvents(String userEmail, Pageable pageable) {
         User user = userRepository.findByEmail(userEmail)
             .orElseThrow(() -> new NotFoundException("Usuario no encontrado"));
 
-        // Find all events where the user has registrations
-        List<Event> events = eventRepository.findEventsByUserRegistrations(user.getId());
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events = eventRepository.findEventsByUserRegistrations(user.getId(), effectivePageable);
+        return events.map(this::convertToResponseDTO);
     }
 
     public boolean isEventCreator(Long eventId, String userEmail) {
@@ -421,37 +399,30 @@ public class EventService {
     // EVENTOS POR ESTADO
     // ==============================
 
-    public List<EventResponseDTO> getEventsByStatus(EventStatus status) {
-        finalizeExpiredEvents();
-        List<Event> events = eventRepository.findByStatus(status);
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
-    }
-
     public Page<EventResponseDTO> getEventsByStatus(EventStatus status, Pageable pageable) {
         finalizeExpiredEvents();
-        Page<Event> events = eventRepository.findByStatus(status, pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+        Page<Event> events = eventRepository.findByStatus(status, effectivePageable);
         return events.map(this::convertToResponseDTO);
-    }
-
-    public List<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm) {
-        finalizeExpiredEvents();
-        List<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm);
-        return events.stream()
-            .map(this::convertToResponseDTO)
-            .toList();
     }
 
     public Page<EventResponseDTO> getEventsByStatusWithSearch(EventStatus status, String searchTerm, Pageable pageable) {
         finalizeExpiredEvents();
-        Page<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm, pageable);
+        Pageable effectivePageable = resolvePageable(pageable);
+        if (!StringUtils.hasText(searchTerm)) {
+            return getEventsByStatus(status, effectivePageable);
+        }
+        Page<Event> events = eventRepository.findByStatusAndTitleContainingIgnoreCase(status, searchTerm.trim(), effectivePageable);
         return events.map(this::convertToResponseDTO);
     }
 
     // ==============================
     // HELPER METHODS
     // ==============================
+
+    private Pageable resolvePageable(Pageable pageable) {
+        return pageable == null ? Pageable.unpaged() : pageable;
+    }
 
     private Event validateEventAndPermissions(Long eventId, String userEmail) {
         Event event = eventRepository.findByIdWithCreatedBy(eventId)

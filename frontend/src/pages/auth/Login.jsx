@@ -1,26 +1,32 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom'
 import { Form, Input, Button, Checkbox } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useGoogleLogin } from '@react-oauth/google'
 import { Mail, Lock } from 'lucide-react'
-import { useAuth, useOAuth } from '@hooks'
+import { useAuth, useOAuth, usePassword } from '@hooks'
 import { loginSchema } from '@schemas'
 import { Logger } from '@utils/logger.js'
 import LiteContainer from '@components/layout/LiteContainer'
+import EventAccountHelpModal from '@components/auth/EventAccountHelpModal.jsx'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
+import { parseAccountIssue } from '@utils/auth/accountIssue.js'
 
 const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { login, loading } = useAuth()
   const { loginWithGoogle, loading: oauthLoading } = useOAuth()
+  const { forgotPassword, loading: passwordLoading } = usePassword()
 
   const [rememberMe, setRememberMe] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
+  const [authError, setAuthError] = useState(null)
+  const [eventAccountInfo, setEventAccountInfo] = useState(null)
+  const [eventAccountStatus, setEventAccountStatus] = useState('idle')
 
   // Verificar si Google OAuth está disponible
   const isGoogleAvailable = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -34,6 +40,8 @@ const Login = () => {
   const {
     control,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors, isValid }
   } = useForm({
     resolver: yupResolver(loginSchema),
@@ -41,10 +49,75 @@ const Login = () => {
     mode: 'onChange'
   })
 
-  const onSubmit = async formData => {
-    const result = await login(formData.email, formData.password)
+  const watchedEmail = watch('email')
 
-    if (result.success) navigate(fromPath, { replace: true })
+  const handleSendPasswordLink = useCallback(async () => {
+    if (passwordLoading) return
+
+    const targetEmail = (eventAccountInfo?.email || watchedEmail || '').trim().toLowerCase()
+
+    if (!targetEmail) {
+      setEventAccountStatus('missing-email')
+
+      return
+    }
+
+    setEventAccountStatus('sending')
+    const response = await forgotPassword(targetEmail, true)
+
+    if (response?.success) {
+      setEventAccountStatus('sent')
+      setEventAccountInfo(prev => (prev ? { ...prev, email: targetEmail } : prev))
+    } else {
+      setEventAccountStatus('error')
+      setAuthError(response?.message || 'No pudimos enviar el enlace. Intenta nuevamente.')
+    }
+  }, [eventAccountInfo?.email, forgotPassword, passwordLoading, watchedEmail])
+
+  const closeEventAccountModal = useCallback(() => {
+    setEventAccountInfo(null)
+    setEventAccountStatus('idle')
+  }, [])
+
+  useEffect(() => {
+    if (
+      eventAccountStatus === 'missing-email' &&
+      ((eventAccountInfo?.email && eventAccountInfo.email.trim() !== '') || (watchedEmail && watchedEmail.trim() !== ''))
+    ) {
+      setEventAccountStatus('idle')
+    }
+  }, [eventAccountStatus, eventAccountInfo?.email, watchedEmail])
+
+  const onSubmit = async formData => {
+    setAuthError(null)
+    setEventAccountInfo(null)
+    setEventAccountStatus('idle')
+
+    const normalizedEmail = formData.email.trim().toLowerCase()
+
+    setValue('email', normalizedEmail)
+
+    const result = await login(normalizedEmail, formData.password, false)
+
+    if (result.success) {
+      navigate(fromPath, { replace: true })
+
+      return
+    }
+
+    const fallbackMessage =
+      result.status === 401 ? 'Correo o contraseña incorrectos. Intenta nuevamente.' : 'No pudimos iniciar sesión. Verifica tus datos.'
+
+    const accountIssue = parseAccountIssue(result, normalizedEmail)
+
+    if (accountIssue) {
+      setEventAccountInfo(accountIssue)
+      setEventAccountStatus('idle')
+
+      return
+    }
+
+    setAuthError(result.message || fallbackMessage)
   }
 
   // Siempre llamar useGoogleLogin, pero manejar el error graciosamente
@@ -52,9 +125,28 @@ const Login = () => {
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
       try {
-        const result = await loginWithGoogle(tokenResponse.access_token, tokenResponse.token_type || 'Bearer', tokenResponse.scope || '')
+        const result = await loginWithGoogle(
+          tokenResponse.access_token,
+          tokenResponse.token_type || 'Bearer',
+          tokenResponse.scope || '',
+          false
+        )
 
-        if (result.success) navigate(fromPath, { replace: true })
+        if (result.success) {
+          navigate(fromPath, { replace: true })
+        } else {
+          const issue = parseAccountIssue(result, watchedEmail?.trim().toLowerCase() || null)
+
+          if (issue) {
+            setEventAccountInfo(issue)
+            setEventAccountStatus('idle')
+          } else {
+            setAuthError(result.message || 'No pudimos iniciar sesión con Google. Intenta nuevamente.')
+          }
+        }
+      } catch (error) {
+        Logger.error(Logger.CATEGORIES.AUTH, 'google_login', error)
+        setAuthError('No pudimos iniciar sesión con Google. Intenta nuevamente.')
       } finally {
         setIsGoogleAuthenticating(false)
       }
@@ -87,6 +179,12 @@ const Login = () => {
       {successMessage && (
         <div className='bg-green-900/30 border border-green-800 text-green-300 px-4 py-3 rounded mb-4 max-w-md w-full text-center'>
           {successMessage}
+        </div>
+      )}
+
+      {authError && (
+        <div className='bg-red-500/10 border border-red-500/40 text-red-200 px-4 py-3 rounded mb-4 max-w-md w-full text-sm'>
+          {authError}
         </div>
       )}
 
@@ -198,6 +296,17 @@ const Login = () => {
           </Button>
         </div>
       </Form>
+
+      <EventAccountHelpModal
+        accountType={eventAccountInfo?.type}
+        backendMessage={eventAccountInfo?.message}
+        email={eventAccountInfo?.email || watchedEmail?.trim().toLowerCase() || null}
+        isOpen={Boolean(eventAccountInfo)}
+        isSending={passwordLoading && eventAccountStatus === 'sending'}
+        status={eventAccountStatus}
+        onClose={closeEventAccountModal}
+        onSendLink={handleSendPasswordLink}
+      />
     </LiteContainer>
   )
 }

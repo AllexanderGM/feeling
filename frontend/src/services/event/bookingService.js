@@ -66,7 +66,9 @@ class EventRegistrationService extends ServiceREST {
 
     try {
       const payload = this.normalizeGuestBookingPayload(guestBookingData)
-      const result = await ServiceREST.post(API_ENDPOINTS.BOOKINGS.GUEST, payload)
+      const result = await ServiceREST.post(API_ENDPOINTS.BOOKINGS.GUEST, payload, {
+        skipAuthRedirect: true
+      })
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {

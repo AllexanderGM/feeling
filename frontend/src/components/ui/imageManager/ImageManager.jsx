@@ -83,13 +83,7 @@ const ImageManager = forwardRef(
       () => ({
         addImages: imageManager.addImages,
         removeImage: imageManager.removeImage,
-        removeAllImages: () => {
-          for (let i = imageManager.images.length - 1; i >= 0; i--) {
-            if (imageManager.images[i]) {
-              imageManager.removeImage(i)
-            }
-          }
-        },
+        removeAllImages: imageManager.clearAllImages,
         reorderImages: imageManager.reorderImages,
         setAsMainImage: imageManager.setAsMainImage,
         openCropModal: imageManager.openCropModal,

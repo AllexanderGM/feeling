@@ -43,7 +43,7 @@ const roleSchema = yup.object({
 })
 
 const EditUserForm = memo(({ isOpen, onClose, user }) => {
-  const { getUserByEmail, getUserProfileById, updateUserProfileByAdmin, assignAdminRole, revokeAdminRole, submitting } = useUser()
+  const { getUserByEmail, getUserProfileById, assignAdminRole, revokeAdminRole, submitting } = useUser()
   const { handleError, handleSuccess } = useError()
 
   const [activeTab, setActiveTab] = useState(TAB_KEYS.ACCESS)

@@ -14,7 +14,8 @@ import {
   Textarea,
   Switch
 } from '@heroui/react'
-import { userAttributesService, userAnalyticsService } from '@services'
+import userAttributesService from '@services/user/userAttributesService.js'
+import userAnalyticsService from '@services/user/userAnalyticsService.js'
 import { Logger } from '@utils/logger.js'
 import { useTableActions } from '@hooks'
 import GenericDataTable from '@components/common/data-table/GenericDataTable.jsx'

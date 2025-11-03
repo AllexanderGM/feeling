@@ -28,7 +28,7 @@ const Favorites = () => {
   const navigate = useNavigate()
 
   // Hook de favoritos
-  const { fetchFavorites, removeFromFavorites, loading: hookLoading } = useMatchFavorites()
+  const { favorites, fetchFavorites, removeFromFavorites, loading: hookLoading } = useMatchFavorites()
 
   // Estado para manejar errores de carga
   const [loadError, setLoadError] = useState(false)
@@ -36,7 +36,6 @@ const Favorites = () => {
   // Hook del contexto de match para manejar modal premium
   const { showPremiumModal } = useMatch()
 
-  const [favoritesList, setFavoritesList] = useState([])
   const [removingFavorite, setRemovingFavorite] = useState(null)
   const [pagination, setPagination] = useState({
     page: 0,
@@ -75,9 +74,8 @@ const Favorites = () => {
         const response = await fetchFavorites(page, size)
 
         if (response) {
-          const content = response.content || response
-
-          setFavoritesList(Array.isArray(content) ? content : [content])
+          const rawContent = response?.content ?? response
+          const normalizedContent = Array.isArray(rawContent) ? rawContent : rawContent ? [rawContent] : []
 
           // Actualizar paginación - el backend retorna pageable.pageNumber
           const currentPage = response.pageable?.pageNumber ?? response.page ?? 0
@@ -90,7 +88,7 @@ const Favorites = () => {
             size: pageSize
           })
 
-          Logger.info(Logger.CATEGORIES.SERVICE, 'load_favorites', `${content?.length || 0} favoritos cargados`)
+          Logger.info(Logger.CATEGORIES.SERVICE, 'load_favorites', `${normalizedContent.length || 0} favoritos cargados`)
         }
       } catch (error) {
         Logger.error(Logger.CATEGORIES.SERVICE, 'load_favorites', 'Error al cargar favoritos', { error })
@@ -104,6 +102,51 @@ const Favorites = () => {
   useEffect(() => {
     loadFavorites()
   }, [loadFavorites])
+
+  // Asegurar que los estados asociados a imágenes mantengan solo IDs vigentes
+  useEffect(() => {
+    if (!Array.isArray(favorites) || favorites.length === 0) {
+      setCurrentPhotoIndexes({})
+      setImageLoadingStates({})
+
+      return
+    }
+
+    const validIds = new Set(
+      favorites
+        .map(item => {
+          const user = item?.favoriteUser || item
+          const userId = getUserId(user)
+
+          return userId != null ? String(userId) : null
+        })
+        .filter(Boolean)
+    )
+
+    setCurrentPhotoIndexes(prev => {
+      const next = {}
+
+      for (const id of validIds) {
+        if (Object.prototype.hasOwnProperty.call(prev, id)) {
+          next[id] = prev[id]
+        }
+      }
+
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next
+    })
+
+    setImageLoadingStates(prev => {
+      const next = {}
+
+      for (const id of validIds) {
+        if (Object.prototype.hasOwnProperty.call(prev, id)) {
+          next[id] = prev[id]
+        }
+      }
+
+      return Object.keys(next).length === Object.keys(prev).length ? prev : next
+    })
+  }, [favorites])
 
   // Early return para error de carga
   if (loadError) {
@@ -195,7 +238,7 @@ const Favorites = () => {
   const nextPhoto = userId => {
     setImageLoadingStates(prev => ({ ...prev, [userId]: true }))
     setCurrentPhotoIndexes(prev => {
-      const user = favoritesList.find(fav => getUserId(fav.favoriteUser || fav) === userId)
+      const user = favorites.find(fav => getUserId(fav.favoriteUser || fav) === userId)
       const images = getUserImages(user?.favoriteUser || user)
 
       if (!images || images.length <= 1) return prev
@@ -209,7 +252,7 @@ const Favorites = () => {
   const prevPhoto = userId => {
     setImageLoadingStates(prev => ({ ...prev, [userId]: true }))
     setCurrentPhotoIndexes(prev => {
-      const user = favoritesList.find(fav => getUserId(fav.favoriteUser || fav) === userId)
+      const user = favorites.find(fav => getUserId(fav.favoriteUser || fav) === userId)
       const images = getUserImages(user?.favoriteUser || user)
 
       if (!images || images.length <= 1) return prev
@@ -500,12 +543,12 @@ const Favorites = () => {
         </div>
 
         {/* Content */}
-        {hookLoading && favoritesList.length === 0 ? (
+        {hookLoading && favorites.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-20 w-full'>
             <Spinner color='primary' size='lg' />
             <p className='text-gray-400 mt-4'>Cargando tus favoritos...</p>
           </div>
-        ) : favoritesList.length === 0 ? (
+        ) : favorites.length === 0 ? (
           <Card className='bg-gray-800/40 border-gray-700/50 w-full'>
             <CardBody className='flex flex-col items-center justify-center py-16 gap-4'>
               <div className='w-20 h-20 bg-gray-700/30 rounded-full flex items-center justify-center'>
@@ -526,12 +569,12 @@ const Favorites = () => {
           <div className='space-y-8 w-full'>
             {/* Grid de favoritos - 2 columnas en desktop, 1 en mobile */}
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6'>
-              {favoritesList.map(favoriteData => {
+              {favorites.map(favoriteData => {
                 // Extraer usuario desde FavoriteResponseDTO para obtener el ID
                 const user = favoriteData.favoriteUser || favoriteData
                 const userId = getUserId(user)
 
-                return <div key={userId || Math.random()}>{renderFavoriteCard(favoriteData)}</div>
+                return <div key={userId != null ? String(userId) : Math.random()}>{renderFavoriteCard(favoriteData)}</div>
               })}
             </div>
 

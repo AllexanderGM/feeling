@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardBody, Button, Divider, Checkbox, Spinner } from '@heroui/react'
 import { Calendar, ArrowLeft, CreditCard, Shield, AlertCircle, MapPin, Check, Users, Clock } from 'lucide-react'
@@ -11,17 +11,34 @@ import LoadDataError from '@components/layout/LoadDataError.jsx'
 import { eventService, bookingService } from '@services'
 import { parseJavaDate } from '@utils/dateUtils.js'
 
+import ExistingReservationModal from './components/ExistingReservationModal.jsx'
+
 const EventCheckout = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { eventId } = useParams()
   const { user } = useAuth()
-  const { handleError } = useError()
+  const { handleError, handleSuccess } = useError()
 
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [eventData, setEventData] = useState(null)
   const [eventLoading, setEventLoading] = useState(true)
   const [eventError, setEventError] = useState(null)
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false)
+  const [duplicateReservationInfo, setDuplicateReservationInfo] = useState(null)
+  const guestData = location.state?.guestData || null
+  const guestEmail = location.state?.guestEmail || null
+  const guestName = location.state?.guestName || null
+  const isGuestFlow = Boolean(guestData)
+
+  const parsedEventId = useMemo(() => {
+    if (!eventId) return null
+
+    const parsed = Number.parseInt(eventId, 10)
+
+    return Number.isNaN(parsed) ? null : parsed
+  }, [eventId])
 
   // User data
   const userEmail = useMemo(() => getUserEmail(user), [user])
@@ -30,6 +47,47 @@ const EventCheckout = () => {
   const userPhone = useMemo(() => getUserPhone(user), [user])
   const userPhoneCode = useMemo(() => getUserPhoneCode(user), [user])
   const userDocument = useMemo(() => getUserDocument(user), [user])
+
+  const billingName = useMemo(() => {
+    if (isGuestFlow) {
+      if (guestName) return guestName
+      if (guestData) return `${guestData.name ?? ''} ${guestData.lastName ?? ''}`.trim()
+    }
+
+    return `${userName || ''} ${userLastName || ''}`.trim() || 'No especificado'
+  }, [guestData, guestName, isGuestFlow, userLastName, userName])
+
+  const billingEmail = useMemo(() => {
+    if (isGuestFlow) {
+      return guestEmail || guestData?.email || 'No especificado'
+    }
+
+    return userEmail || 'No especificado'
+  }, [guestData?.email, guestEmail, isGuestFlow, userEmail])
+
+  const billingPhone = useMemo(() => {
+    if (isGuestFlow) {
+      if (guestData?.phone && guestData?.phoneCode) {
+        return `+${guestData.phoneCode} ${guestData.phone}`
+      }
+
+      return 'No especificado'
+    }
+
+    if (userPhoneCode && userPhone) {
+      return `+${userPhoneCode} ${userPhone}`
+    }
+
+    return 'No especificado'
+  }, [guestData, isGuestFlow, userPhone, userPhoneCode])
+
+  const billingDocument = useMemo(() => {
+    if (isGuestFlow) {
+      return guestData?.document || 'No especificado'
+    }
+
+    return userDocument || 'No especificado'
+  }, [guestData?.document, isGuestFlow, userDocument])
 
   const unwrapResponse = useCallback(response => {
     if (!response) return null
@@ -51,9 +109,16 @@ const EventCheckout = () => {
   // Load event data
   useEffect(() => {
     const loadEvent = async () => {
-      if (!eventId) {
+      if (parsedEventId == null) {
+        setEventData(null)
         setEventError('ID de evento no válido')
         setEventLoading(false)
+
+        return
+      }
+
+      if (!user && !isGuestFlow) {
+        navigate(APP_PATHS.USER.EVENT_DETAIL.replace(':eventId', String(parsedEventId)))
 
         return
       }
@@ -62,7 +127,7 @@ const EventCheckout = () => {
       setEventError(null)
 
       try {
-        const response = await eventService.getEventById(parseInt(eventId))
+        const response = await eventService.getEventById(parsedEventId)
         const data = unwrapResponse(response)
 
         setEventData(data)
@@ -78,26 +143,122 @@ const EventCheckout = () => {
     }
 
     loadEvent()
-  }, [eventId, handleError, unwrapResponse])
+  }, [parsedEventId, handleError, unwrapResponse, user, isGuestFlow, navigate])
 
   const handleGoBack = () => {
-    navigate(APP_PATHS.USER.EVENT_DETAIL.replace(':eventId', eventId))
+    navigate(APP_PATHS.USER.EVENT_DETAIL.replace(':eventId', String(parsedEventId ?? eventId ?? '')))
   }
 
-  const handleProceedToPayment = () => {
-    if (!acceptedTerms) return
+  const redirectToDetail = useCallback(
+    state => {
+      const targetId = parsedEventId != null ? String(parsedEventId) : String(eventId ?? '')
+
+      navigate(APP_PATHS.USER.EVENT_DETAIL.replace(':eventId', targetId), {
+        replace: true,
+        state
+      })
+    },
+    [eventId, navigate, parsedEventId]
+  )
+
+  const openDuplicateModal = useCallback(info => {
+    setDuplicateReservationInfo(info || null)
+    setDuplicateModalOpen(true)
+  }, [])
+
+  const closeDuplicateModal = useCallback(() => {
+    setDuplicateReservationInfo(null)
+    setDuplicateModalOpen(false)
+  }, [])
+
+  const handleDuplicateReservation = useCallback(
+    duplicateInfo => {
+      handleSuccess('Ya tienes una reserva activa para este evento.')
+      openDuplicateModal(duplicateInfo)
+    },
+    [handleSuccess, openDuplicateModal]
+  )
+
+  const handleViewExistingReservation = useCallback(() => {
+    redirectToDetail({})
+  }, [redirectToDetail])
+
+  const submitFreeReservation = useCallback(
+    async currentEventId => {
+      const performReservation = isGuestFlow
+        ? () => bookingService.registerGuestToEvent({ ...guestData, eventId: currentEventId })
+        : () => bookingService.registerToEvent({ eventId: currentEventId })
+
+      try {
+        const response = await performReservation()
+        const reservationResult = unwrapResponse(response)
+
+        handleSuccess('Tu reserva gratuita fue registrada exitosamente.')
+
+        if (isGuestFlow) {
+          redirectToDetail({ booking: reservationResult, guestEmail, guestName })
+        } else {
+          redirectToDetail({})
+        }
+      } catch (error) {
+        const backendMessage = (error?.response?.data?.message || error?.message || '').toLowerCase()
+
+        if (backendMessage.includes('ya existe una reserva')) {
+          const duplicateData = error?.response?.data?.data || null
+
+          handleDuplicateReservation(duplicateData)
+
+          return
+        }
+
+        throw error
+      }
+    },
+    [guestData, guestEmail, guestName, handleDuplicateReservation, handleSuccess, isGuestFlow, redirectToDetail, unwrapResponse]
+  )
+
+  const handleManageReservations = useCallback(() => {
+    if (isGuestFlow) return
+
+    redirectToDetail({ section: 'reservations' })
+  }, [isGuestFlow, redirectToDetail])
+
+  const handleProceedToPayment = async () => {
+    if (!acceptedTerms || processing) return
+
+    if (parsedEventId == null) {
+      handleError(new Error('ID de evento inválido'), {
+        customMessage: 'No pudimos identificar el evento seleccionado.',
+        showToast: true
+      })
+
+      return
+    }
 
     setProcessing(true)
 
-    // Para eventos pagos, EventPayment.jsx creará automáticamente el EventRegistration
-    // al llamar a createEventPaymentIntent
-    navigate(APP_PATHS.USER.EVENT_PAYMENT.replace(':eventId', eventId), {
-      state: {
-        event: eventData,
-        userEmail,
-        userName: `${userName} ${userLastName}`
+    try {
+      if (total === 0) {
+        await submitFreeReservation(parsedEventId)
+
+        return
       }
-    })
+
+      navigate(APP_PATHS.USER.EVENT_PAYMENT.replace(':eventId', String(parsedEventId)), {
+        state: {
+          event: eventData,
+          userEmail,
+          userName: `${userName} ${userLastName}`
+        }
+      })
+    } catch (error) {
+      handleError(error, {
+        customMessage: 'No pudimos completar tu reserva. Intenta nuevamente.',
+        showToast: true
+      })
+    } finally {
+      setProcessing(false)
+    }
   }
 
   // Price calculation - el precio del evento ya incluye IVA
@@ -245,23 +406,19 @@ const EventCheckout = () => {
                     <div className='space-y-1.5'>
                       <div className='flex items-center gap-2'>
                         <span className='text-xs text-gray-500'>Nombre:</span>
-                        <span className='text-sm text-gray-300 font-medium'>
-                          {userName} {userLastName}
-                        </span>
+                        <span className='text-sm text-gray-300 font-medium'>{billingName}</span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <span className='text-xs text-gray-500'>Email:</span>
-                        <span className='text-sm text-gray-300 font-medium'>{userEmail || 'No especificado'}</span>
+                        <span className='text-sm text-gray-300 font-medium'>{billingEmail}</span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <span className='text-xs text-gray-500'>Teléfono:</span>
-                        <span className='text-sm text-gray-300 font-medium'>
-                          {userPhoneCode && userPhone ? `+${userPhoneCode} ${userPhone}` : 'No especificado'}
-                        </span>
+                        <span className='text-sm text-gray-300 font-medium'>{billingPhone}</span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <span className='text-xs text-gray-500'>Documento:</span>
-                        <span className='text-sm text-gray-300 font-medium'>{userDocument || 'No especificado'}</span>
+                        <span className='text-sm text-gray-300 font-medium'>{billingDocument}</span>
                       </div>
                     </div>
                   </div>
@@ -350,12 +507,28 @@ const EventCheckout = () => {
                   {total === 0 ? 'Confirmar Reserva Gratuita' : 'Proceder al Pago'}
                 </Button>
 
-                <p className='text-xs text-gray-500 text-center mt-3'>Al proceder, serás redirigido a nuestra pasarela de pagos segura</p>
+                <p className='text-xs text-gray-500 text-center mt-3'>
+                  {total === 0
+                    ? 'Confirmaremos tu reserva y te enviaremos los detalles por correo.'
+                    : 'Al proceder, serás redirigido a nuestra pasarela de pagos segura.'}
+                </p>
               </CardBody>
             </Card>
           </div>
         </div>
       </LiteContainer>
+
+      <ExistingReservationModal
+        attendeesInfo={duplicateReservationInfo?.attendeesInfo}
+        eventDate={formattedEventDate}
+        eventTime={formattedEventTime}
+        eventTitle={eventData?.title}
+        isGuest={isGuestFlow}
+        isOpen={duplicateModalOpen}
+        onClose={closeDuplicateModal}
+        onManageReservations={!isGuestFlow ? handleManageReservations : undefined}
+        onViewEvent={handleViewExistingReservation}
+      />
     </>
   )
 }

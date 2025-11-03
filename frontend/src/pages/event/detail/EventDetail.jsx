@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
   Card,
@@ -52,6 +52,7 @@ const WOMPI_WIDGET_URL = 'https://checkout.wompi.co/widget.js'
 
 const EventDetail = () => {
   const { eventId } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const numericEventId = Number(eventId)
   const { handleError, handleSuccess, handleWarning } = useError()
@@ -72,12 +73,40 @@ const EventDetail = () => {
   const [guestBooking, setGuestBooking] = useState(null)
   const [guestContactEmail, setGuestContactEmail] = useState('')
 
-  const registrationStatus = registration?.paymentStatus || null
+  const isFreeEvent = useMemo(() => (eventData?.price ?? 0) <= 0, [eventData?.price])
+
+  const registrationView = useMemo(() => {
+    if (!registration) return null
+
+    const statusKey = registration.paymentStatus ? registration.paymentStatus.toUpperCase() : null
+    const alreadyConfirmed =
+      Boolean(registration.isPaid || registration.isConfirmed) ||
+      ['COMPLETED', 'APPROVED', 'CONFIRMED', 'PAID', 'NOT_REQUIRED'].includes(statusKey || '')
+
+    if (!isFreeEvent || alreadyConfirmed) {
+      return registration
+    }
+
+    return {
+      ...registration,
+      paymentStatus: 'NOT_REQUIRED',
+      paymentStatusDisplayName: registration.paymentStatusDisplayName || 'Reserva confirmada',
+      isPending: false,
+      isPaid: true,
+      isConfirmed: true
+    }
+  }, [isFreeEvent, registration])
+
+  const registrationStatus = registrationView?.paymentStatus || null
   const registrationStatusKey = registrationStatus ? registrationStatus.toUpperCase() : null
-  const isRegistrationPaid = Boolean(registration?.isPaid || registrationStatusKey === 'COMPLETED')
-  const isRegistrationPending = Boolean(registration?.isPending || registrationStatusKey === 'PENDING')
+  const isRegistrationPaid = Boolean(
+    registrationView?.isPaid ||
+      registrationView?.isConfirmed ||
+      ['COMPLETED', 'APPROVED', 'CONFIRMED', 'PAID', 'NOT_REQUIRED'].includes(registrationStatusKey || '')
+  )
+  const isRegistrationPending = Boolean(registrationView?.isPending || (!isRegistrationPaid && registrationStatusKey === 'PENDING'))
   const isRegistrationFailed = registrationStatusKey === 'FAILED'
-  const hasConfirmedRegistration = Boolean(registration?.isConfirmed || isRegistrationPaid)
+  const hasConfirmedRegistration = Boolean(registrationView?.isConfirmed || isRegistrationPaid)
 
   const unwrapResponse = useCallback(response => {
     if (!response) return null
@@ -217,6 +246,16 @@ const EventDetail = () => {
       setGuestContactEmail('')
     }
   }, [isAuthenticated])
+
+  useEffect(() => {
+    if (location.state?.booking) {
+      setGuestBooking(location.state.booking)
+      setGuestContactEmail(location.state.guestEmail || '')
+      handleSuccess('Tu reserva gratuita fue registrada exitosamente.')
+
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state, location.pathname, navigate, handleSuccess])
 
   useEffect(() => {
     if (!isAuthenticated || !isRegistrationPending) {
@@ -379,11 +418,11 @@ const EventDetail = () => {
     return { text: 'Asegura tu cupo cuanto antes', tone: 'info' }
   }, [eventData, guestBooking, isAuthenticated, isRegistrationFailed, isRegistrationPaid, isRegistrationPending])
 
-  const registrationDate = useMemo(() => parseJavaDate(registration?.registrationDate), [registration?.registrationDate])
-  const paymentDate = useMemo(() => parseJavaDate(registration?.paymentDate), [registration?.paymentDate])
+  const registrationDate = useMemo(() => parseJavaDate(registrationView?.registrationDate), [registrationView?.registrationDate])
+  const paymentDate = useMemo(() => parseJavaDate(registrationView?.paymentDate), [registrationView?.paymentDate])
 
   const registrationCardConfig = useMemo(() => {
-    if (!registration) {
+    if (!registrationView) {
       return null
     }
 
@@ -445,7 +484,7 @@ const EventDetail = () => {
       icon: Check,
       footnote: 'En breve recibirás un correo con los pasos para finalizar tu pago.'
     }
-  }, [registration, isRegistrationFailed, isRegistrationPaid, isRegistrationPending, registrationStatusKey])
+  }, [registrationView, isRegistrationFailed, isRegistrationPaid, isRegistrationPending, registrationStatusKey])
 
   const ensureWompiScriptLoaded = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -690,27 +729,34 @@ const EventDetail = () => {
 
         setIsReserveModalOpen(false)
 
+        if (eventPrice <= 0) {
+          navigate(APP_PATHS.USER.EVENT_CHECKOUT.replace(':eventId', numericEventId), {
+            state: {
+              guestData: payload,
+              guestEmail: formData.email.trim(),
+              guestName: `${formData.name} ${formData.lastName}`.trim()
+            }
+          })
+
+          return
+        }
+
         try {
           const response = await bookingService.registerGuestToEvent(payload)
           const bookingCreated = unwrapResponse(response)
 
           setGuestBooking(bookingCreated)
           setGuestContactEmail(formData.email.trim())
-          if (eventPrice <= 0) {
-            handleSuccess('Hemos recibido tu reserva. Te enviaremos un correo con todos los detalles.')
-          }
 
           if (eventPrice > 0 && bookingCreated?.paymentMetadata?.integration === 'WOMPI') {
             setIsProcessingPayment(true)
             setIsReserveModalOpen(false)
             try {
-              // Lanzar checkout de Wompi - ahora funciona igual que para usuarios registrados
               await launchWompiCheckout(bookingCreated, {
                 customerName: `${formData.name} ${formData.lastName}`.trim(),
                 customerEmail: formData.email
               })
 
-              // Si llegamos aquí, el pago se completó exitosamente
               await loadEvent()
             } catch (error) {
               setPaymentError(error?.message || 'No fue posible iniciar el pago con Wompi.')
@@ -727,6 +773,25 @@ const EventDetail = () => {
 
           await loadEvent()
         } catch (error) {
+          const backendMessage = (error?.response?.data?.message || error?.message || '').toLowerCase()
+
+          if (backendMessage.includes('ya existe una reserva')) {
+            handleSuccess('Ya registraste este evento con este correo. Revisa tu bandeja para los detalles.')
+            setGuestContactEmail(formData.email.trim())
+            setGuestBooking(prev => {
+              if (prev) return prev
+
+              return {
+                eventTitle: eventData?.title,
+                attendees: payload.attendees,
+                paymentStatus: 'PENDING'
+              }
+            })
+            await loadEvent()
+
+            return
+          }
+
           handleError(error, {
             customMessage: 'No pudimos completar tu reserva. Por favor intenta de nuevo.',
             showToast: true
@@ -741,7 +806,17 @@ const EventDetail = () => {
         setActionLoading(false)
       }
     },
-    [eventData?.eventDate, eventData?.price, handleError, handleSuccess, launchWompiCheckout, loadEvent, numericEventId, unwrapResponse]
+    [
+      eventData?.eventDate,
+      eventData?.price,
+      handleError,
+      handleSuccess,
+      launchWompiCheckout,
+      loadEvent,
+      navigate,
+      numericEventId,
+      unwrapResponse
+    ]
   )
 
   const handleRegister = useCallback(async () => {
@@ -751,45 +826,12 @@ const EventDetail = () => {
     setPaymentError('')
 
     try {
-      const eventPrice = Number(eventData?.price ?? 0)
-
-      if (eventPrice > 0) {
-        // Para eventos pagos, redirigir a página de checkout
-        setIsReserveModalOpen(false)
-        navigate(APP_PATHS.USER.EVENT_CHECKOUT.replace(':eventId', numericEventId))
-
-        return
-      }
-
-      // Para eventos gratuitos, registrar directamente
-      const response = await bookingService.registerToEvent({ eventId: numericEventId })
-      const registrationCreated = unwrapResponse(response)
-
-      setRegistration(registrationCreated)
-      setIsRegistered(true)
       setIsReserveModalOpen(false)
-      handleSuccess('Tu reserva se registró correctamente.')
-      await loadEvent()
-      await loadRegistrationState()
-    } catch (error) {
-      handleError(error, {
-        customMessage: 'No pudimos completar tu reserva. Por favor intenta de nuevo.',
-        showToast: true
-      })
-      await loadRegistrationState()
+      navigate(APP_PATHS.USER.EVENT_CHECKOUT.replace(':eventId', numericEventId))
     } finally {
       setActionLoading(false)
     }
-  }, [
-    eventData?.price,
-    handleError,
-    handleSuccess,
-    loadEvent,
-    loadRegistrationState,
-    navigate,
-    numericEventId,
-    unwrapResponse
-  ])
+  }, [navigate, numericEventId])
 
   const handleOpenReserveModal = useCallback(() => {
     if (actionLoading || isProcessingPayment) return
@@ -799,13 +841,8 @@ const EventDetail = () => {
 
       return
     }
-    if (!(eventData?.price > 0)) {
-      handleRegister()
-
-      return
-    }
-    setIsReserveModalOpen(true)
-  }, [actionLoading, canAttemptReservation, eventData?.price, handleRegister, isAuthenticated, isProcessingPayment])
+    handleRegister()
+  }, [actionLoading, canAttemptReservation, handleRegister, isAuthenticated, isProcessingPayment])
 
   const handleReleasePendingReservation = useCallback(async () => {
     if (!Number.isFinite(numericEventId)) return
@@ -1165,7 +1202,7 @@ const EventDetail = () => {
           ) : null}
 
           {/* Card de confirmación NARANJA - Solo cuando SÍ está registrado */}
-          {isRegistered && registration && !registrationLoading ? (
+          {isRegistered && registrationView && !registrationLoading ? (
             <Card className={registrationCardConfig?.cardClass ?? 'bg-orange-500/15 backdrop-blur-sm border-orange-400/30'}>
               <CardHeader className='p-5 sm:p-6 pb-4'>
                 <div className='flex items-center gap-3'>
@@ -1195,7 +1232,7 @@ const EventDetail = () => {
                       return <IconComponent size={14} />
                     })()}
                     variant='flat'>
-                    {registration.paymentStatusDisplayName || registration.paymentStatus || 'Registrado'}
+                    {registrationView.paymentStatusDisplayName || registrationView.paymentStatus || 'Registrado'}
                   </Chip>
                 </div>
                 {registrationDate ? (

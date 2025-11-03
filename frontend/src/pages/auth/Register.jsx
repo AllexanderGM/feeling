@@ -1,27 +1,33 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { Form, Input, Button, Checkbox } from '@heroui/react'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import { registerSchema } from '@schemas'
 import { useGoogleLogin } from '@react-oauth/google'
-import { useAuth, useOAuth } from '@hooks'
+import { useAuth, useOAuth, usePassword } from '@hooks'
 import LiteContainer from '@components/layout/LiteContainer'
+import EventAccountHelpModal from '@components/auth/EventAccountHelpModal.jsx'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { parseAccountIssue } from '@utils/auth/accountIssue.js'
 
 const Register = () => {
   const navigate = useNavigate()
   const { register, loading } = useAuth()
   const { registerWithGoogle, loading: oauthLoading } = useOAuth()
+  const { forgotPassword, loading: passwordLoading } = usePassword()
 
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [isGoogleAuthenticating, setIsGoogleAuthenticating] = useState(false)
   const [termsError, setTermsError] = useState('')
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false)
+  const [formError, setFormError] = useState(null)
+  const [accountIssueInfo, setAccountIssueInfo] = useState(null)
+  const [accountIssueStatus, setAccountIssueStatus] = useState('idle')
 
   // Combinar estados de loading
   const isLoading = loading || oauthLoading
@@ -29,6 +35,7 @@ const Register = () => {
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors, isValid }
   } = useForm({
     resolver: yupResolver(registerSchema),
@@ -42,10 +49,49 @@ const Register = () => {
     mode: 'onChange'
   })
 
+  const watchedEmail = watch('email')
+
   const handleTermsChange = accepted => {
     setTermsAccepted(accepted)
     if (accepted && termsError) setTermsError('')
   }
+
+  const closeAccountIssueModal = useCallback(() => {
+    setAccountIssueInfo(null)
+    setAccountIssueStatus('idle')
+  }, [])
+
+  useEffect(() => {
+    if (
+      accountIssueStatus === 'missing-email' &&
+      ((accountIssueInfo?.email && accountIssueInfo.email.trim() !== '') || (watchedEmail && watchedEmail.trim() !== ''))
+    ) {
+      setAccountIssueStatus('idle')
+    }
+  }, [accountIssueStatus, accountIssueInfo?.email, watchedEmail])
+
+  const handleSendPasswordLink = useCallback(async () => {
+    if (passwordLoading) return
+
+    const targetEmail = (accountIssueInfo?.email || watchedEmail || '').trim().toLowerCase()
+
+    if (!targetEmail) {
+      setAccountIssueStatus('missing-email')
+
+      return
+    }
+
+    setAccountIssueStatus('sending')
+    const response = await forgotPassword(targetEmail, true)
+
+    if (response?.success) {
+      setAccountIssueStatus('sent')
+      setAccountIssueInfo(prev => (prev ? { ...prev, email: targetEmail } : prev))
+    } else {
+      setAccountIssueStatus('error')
+      setFormError(response?.message || 'No pudimos enviar el enlace. Intenta nuevamente.')
+    }
+  }, [accountIssueInfo?.email, forgotPassword, passwordLoading, watchedEmail])
 
   const onSubmit = async formData => {
     if (!termsAccepted) {
@@ -55,6 +101,9 @@ const Register = () => {
     }
 
     setTermsError('')
+    setFormError(null)
+    setAccountIssueInfo(null)
+    setAccountIssueStatus('idle')
 
     const result = await register(formData)
 
@@ -80,6 +129,17 @@ const Register = () => {
         },
         replace: true
       })
+    } else {
+      const issue = parseAccountIssue(result, formData.email)
+
+      if (issue) {
+        setAccountIssueInfo(issue)
+        setAccountIssueStatus('idle')
+      } else if (result.message) {
+        setFormError(result.message)
+      } else {
+        setFormError('No pudimos completar el registro. Intenta nuevamente.')
+      }
     }
   }
 
@@ -87,16 +147,41 @@ const Register = () => {
     onSuccess: async tokenResponse => {
       setIsGoogleAuthenticating(true)
       try {
-        const result = await registerWithGoogle(tokenResponse.access_token, tokenResponse.token_type || 'Bearer', tokenResponse.scope || '')
+        const result = await registerWithGoogle(
+          tokenResponse.access_token,
+          tokenResponse.token_type || 'Bearer',
+          tokenResponse.scope || '',
+          false
+        )
 
-        if (result.success) navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
+        if (result.success) {
+          navigate(APP_PATHS.USER.COMPLETE_PROFILE, { replace: true })
+        } else {
+          const issue = parseAccountIssue(result, null)
+
+          if (issue) {
+            setAccountIssueInfo(issue)
+            setAccountIssueStatus('idle')
+            setFormError(null)
+          } else if (result.message) {
+            setFormError(result.message)
+          } else {
+            setFormError('No pudimos registrar tu cuenta con Google. Intenta nuevamente.')
+          }
+        }
+      } catch {
+        setFormError('No pudimos registrar tu cuenta con Google. Intenta nuevamente.')
       } finally {
         setIsGoogleAuthenticating(false)
       }
     },
-    onError: () => setIsGoogleAuthenticating(false),
+    onError: () => {
+      setIsGoogleAuthenticating(false)
+      setFormError('No pudimos conectar con Google. Intenta nuevamente.')
+    },
     onNonOAuthError: () => {
       setIsGoogleAuthenticating(false)
+      setFormError('No pudimos conectar con Google. Intenta nuevamente.')
     },
     flow: 'implicit'
   })
@@ -114,6 +199,12 @@ const Register = () => {
       <figure className='text-center pb-8'>
         <img alt='Logo Feeling' className='w-36' src={logo} />
       </figure>
+
+      {formError && (
+        <div className='bg-red-500/10 border border-red-500/40 text-red-200 px-4 py-3 rounded mb-4 max-w-md w-full text-center text-sm'>
+          {formError}
+        </div>
+      )}
 
       <Form className='flex flex-col w-full space-y-4' validationBehavior='aria' onSubmit={handleSubmit(onSubmit)}>
         <h2 className='text-xl font-medium text-white text-center w-full'>Crear cuenta</h2>
@@ -309,6 +400,17 @@ const Register = () => {
           </div>
         </div>
       </Form>
+
+      <EventAccountHelpModal
+        accountType={accountIssueInfo?.type}
+        backendMessage={accountIssueInfo?.message}
+        email={accountIssueInfo?.email || watchedEmail?.trim().toLowerCase() || null}
+        isOpen={Boolean(accountIssueInfo)}
+        isSending={passwordLoading && accountIssueStatus === 'sending'}
+        status={accountIssueStatus}
+        onClose={closeAccountIssueModal}
+        onSendLink={handleSendPasswordLink}
+      />
     </LiteContainer>
   )
 }
