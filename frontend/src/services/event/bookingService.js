@@ -203,7 +203,9 @@ class EventRegistrationService extends ServiceREST {
         throw new Error('ID de transacción requerido')
       }
 
-      const result = await ServiceREST.post(`${API_ENDPOINTS.PAYMENTS.CONFIRM}/${transactionId}`)
+      const result = await ServiceREST.post(`${API_ENDPOINTS.PAYMENTS.CONFIRM}/${transactionId}`, null, {
+        skipAuthRedirect: true
+      })
 
       return ServiceREST.handleServiceResponse(result, context)
     } catch (error) {

@@ -57,7 +57,10 @@ export const PUBLIC_ROUTES = [
   '/system',
 
   // Eventos (solo GET es público)
-  '/events'
+  '/events',
+
+  // Pagos (para usuarios invitados)
+  '/payments/confirm'
 ]
 
 // Función para verificar si una URL es una ruta pública

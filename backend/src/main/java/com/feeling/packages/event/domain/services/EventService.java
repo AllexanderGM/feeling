@@ -3,6 +3,7 @@ package com.feeling.packages.event.domain.services;
 import com.feeling.exception.BadRequestException;
 import com.feeling.exception.NotFoundException;
 import com.feeling.exception.UnauthorizedException;
+import com.feeling.packages.booking.infrastructure.repositories.IBookingRepository;
 import com.feeling.packages.event.domain.dto.EventCreateRequestDTO;
 import com.feeling.packages.event.domain.dto.EventResponseDTO;
 import com.feeling.packages.event.domain.dto.EventUpdateRequestDTO;
@@ -39,6 +40,7 @@ public class EventService {
     private final IUserRepository userRepository;
     private final ModelMapper modelMapper;
     private final EventImageService eventImageService;
+    private final IBookingRepository bookingRepository;
 
     public Page<EventResponseDTO> getAllActiveEvents(Pageable pageable) {
         finalizeExpiredEvents();
@@ -220,6 +222,11 @@ public class EventService {
         // Check if there are any confirmed registrations
         if (event.getCurrentAttendees() > 0) {
             throw new BadRequestException("No se puede eliminar un evento con asistentes confirmados");
+        }
+
+        long linkedBookings = bookingRepository.countByEventId(eventId);
+        if (linkedBookings > 0) {
+            bookingRepository.deleteByEventId(eventId);
         }
 
         // Delete event images from storage before deleting the event

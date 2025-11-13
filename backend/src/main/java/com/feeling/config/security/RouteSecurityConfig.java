@@ -45,11 +45,22 @@ public class RouteSecurityConfig {
             "/user-tags/trending",
             "/user-tags/trending/**",
             // Eventos públicos
-            "/events/**"
+            "/events/**",
+            // PasswordController - Rutas públicas GET
+            "/auth/password/suggestions",
+            "/auth/password/policy",
+            "/auth/password/validate-reset-token/**",
+            // VerificationController - Rutas públicas GET
+            "/auth/verification/check-email/**",
+            "/auth/verification/status/**",
+            "/auth/verification/validate-code",
+            // OAuthController - Rutas públicas GET
+            "/auth/oauth/methods",
+            "/auth/oauth/providers"
         ),
 
         HttpMethod.POST, Set.of(
-            // Autenticación y registro
+            // Autenticación y registro (AuthController)
             "/auth/register",
             "/auth/login",
             "/auth/verify-email",
@@ -57,7 +68,24 @@ public class RouteSecurityConfig {
             "/auth/forgot-password",
             "/auth/reset-password",
             "/auth/refresh-token",
-            "/bookings/guest"
+            // PasswordController - Rutas públicas POST
+            "/auth/password/forgot",
+            "/auth/password/reset",
+            "/auth/password/validate",
+            "/auth/password/check-compromised",
+            // VerificationController - Rutas públicas POST
+            "/auth/verification/verify-email",
+            "/auth/verification/resend-code",
+            // OAuthController - Rutas públicas POST
+            "/auth/oauth/google/register",
+            "/auth/oauth/google/login",
+            "/auth/oauth/facebook/register",
+            "/auth/oauth/facebook/login",
+            "/auth/oauth/apple/register",
+            "/auth/oauth/apple/login",
+            // Reservas y pagos de invitados
+            "/bookings/guest",
+            "/payments/confirm/**"
         )
     );
 
@@ -76,7 +104,9 @@ public class RouteSecurityConfig {
         "/auth/login",
         "/auth/register",
         "/auth/forgot-password",
-        "/auth/reset-password"
+        "/auth/reset-password",
+        "/auth/password/forgot",
+        "/auth/password/reset"
     );
 
     // ========================================
@@ -152,22 +182,27 @@ public class RouteSecurityConfig {
      * Verifica si una ruta es pública considerando el método HTTP
      */
     public boolean isPublicRoute(String path, HttpMethod method) {
+        // Normalizar path removiendo trailing slash para comparación consistente
+        String normalizedPath = path != null && path.endsWith("/") && path.length() > 1
+            ? path.substring(0, path.length() - 1)
+            : path;
+
         // Rutas públicas generales
         if (PUBLIC_ROUTES.stream().anyMatch(route ->
-            route.endsWith("/**") ? path.startsWith(route.replace("/**", "/")) : path.equals(route))) {
+            route.endsWith("/**") ? normalizedPath.startsWith(route.replace("/**", "/")) : normalizedPath.equals(route))) {
             return true;
         }
 
         // Rutas de verificación de auth
         if (PUBLIC_AUTH_CHECK_ROUTES.stream().anyMatch(route ->
-            path.startsWith(route.replace("/**", "/")))) {
+            normalizedPath.startsWith(route.replace("/**", "/")))) {
             return true;
         }
 
         // Rutas públicas por método HTTP
         if (method != null && PUBLIC_ROUTES_BY_METHOD.containsKey(method)) {
             return PUBLIC_ROUTES_BY_METHOD.get(method).stream().anyMatch(route ->
-                route.endsWith("/**") ? path.startsWith(route.replace("/**", "/")) : path.equals(route));
+                route.endsWith("/**") ? normalizedPath.startsWith(route.replace("/**", "/")) : normalizedPath.equals(route));
         }
 
         return false;
@@ -289,18 +324,31 @@ public class RouteSecurityConfig {
             "/", "/system", "/health", "/favicon.ico", "/error",
             "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html",
 
-            // Autenticación
+            // AuthController - Autenticación principal
             "/auth/register", "/auth/login", "/auth/oauth/**",
             "/auth/verify-email", "/auth/resend-verification",
             "/auth/forgot-password", "/auth/reset-password", "/auth/refresh-token",
-            "/auth/check-email/**", "/auth/check-method/**", "/auth/complaintStatus/**",
+            "/auth/check-email/**", "/auth/check-auth-method/**", "/auth/check-method/**",
+            "/auth/complaintStatus/**", "/auth/status/**",
+
+            // PasswordController - Gestión de contraseñas
+            "/auth/password/forgot", "/auth/password/reset",
+            "/auth/password/validate-reset-token/**",
+            "/auth/password/validate", "/auth/password/suggestions",
+            "/auth/password/policy", "/auth/password/check-compromised",
+
+            // VerificationController - Verificación de emails
+            "/auth/verification/verify-email", "/auth/verification/resend-code",
+            "/auth/verification/check-email/**", "/auth/verification/status/**",
+            "/auth/verification/validate-code",
 
             // Datos públicos
             "/geographic/**", "/user-attributes/**", "/user-interests/**",
             "/user-tags/popular/**", "/user-tags/search/**", "/user-tags/trending/**",
 
-            // Reservas públicas de eventos
-            "/bookings/guest"
+            // Reservas y pagos públicos de eventos (para invitados)
+            "/bookings/guest",
+            "/payments/confirm/**"
         );
     }
 

@@ -397,10 +397,30 @@ const EventManagement = memo(() => {
   const handleOpenEditModal = useCallback(
     async event => {
       try {
-        // Get complete event data
-        const fullEventData = await getEventById(event.id)
+        console.log('🔴 EventManagement - handleOpenEditModal - Starting:', { eventId: event.id, basicEvent: event })
 
-        setSelectedEvent(fullEventData)
+        // Get complete event data
+        const response = await getEventById(event.id)
+
+        console.log('🟢 EventManagement - handleOpenEditModal - Got response from getEventById:', {
+          response,
+          type: typeof response,
+          hasData: response?.data,
+          keys: response ? Object.keys(response) : []
+        })
+
+        // Extract the actual event data from the response wrapper
+        const eventData = response?.data || response
+
+        console.log('🟣 EventManagement - handleOpenEditModal - Extracted eventData:', {
+          eventData,
+          type: typeof eventData,
+          hasTitle: !!eventData?.title,
+          hasEventDate: !!eventData?.eventDate,
+          keys: eventData ? Object.keys(eventData) : []
+        })
+
+        setSelectedEvent(eventData)
         setIsEditModalOpen(true)
       } catch (error) {
         Logger.error('Error getting complete event data:', error, { category: Logger.CATEGORIES.SERVICE })
@@ -615,8 +635,21 @@ const EventManagement = memo(() => {
 
   const handleUpdateEvent = useCallback(
     async ({ eventId, eventData, media, action = 'save', currentStatus }) => {
+      console.log('🔷 EventManagement - handleUpdateEvent called:', {
+        eventId,
+        action,
+        currentStatus,
+        eventData,
+        media
+      })
+
       try {
         const result = await updateEvent(eventId, eventData, { media, showNotifications: false })
+
+        console.log('🟢 EventManagement - updateEvent result:', {
+          result,
+          success: result?.success
+        })
 
         if (result?.success === false) {
           handleError(result.message || 'Error al actualizar el evento')
@@ -633,28 +666,48 @@ const EventManagement = memo(() => {
           let lifecycleEvent = baseEvent
           const initialStatus = lifecycleEvent.status || currentStatus
 
-          if (initialStatus === 'CANCELADO') {
-            const activateResult = await activateEvent(lifecycleEvent, { showNotifications: false })
+          console.log('🔷 EventManagement - Preparing to publish from status:', {
+            initialStatus,
+            currentStatus,
+            eventStatus: lifecycleEvent.status
+          })
 
-            if (activateResult?.success === false) {
-              handleError(activateResult.message || 'No se pudo reactivar el evento antes de publicarlo.')
+          // Si ya está PUBLICADO, solo actualizamos (no llamamos a publishEvent)
+          if (initialStatus === 'PUBLICADO') {
+            console.log('✅ EventManagement - Event already PUBLICADO, no need to publish again')
+            successMessage = 'Evento actualizado exitosamente'
+          } else {
+            // Manejar transición desde CANCELADO
+            if (initialStatus === 'CANCELADO') {
+              console.log('📍 EventManagement - Activating from CANCELADO')
+              const activateResult = await activateEvent(lifecycleEvent, { showNotifications: false })
+
+              if (activateResult?.success === false) {
+                handleError(activateResult.message || 'No se pudo reactivar el evento antes de publicarlo.')
+
+                return
+              }
+
+              lifecycleEvent = activateResult.data || lifecycleEvent
+              console.log('✅ EventManagement - Activated, new status:', lifecycleEvent.status)
+            }
+
+            // Manejar transición desde PAUSADO → solo si queremos ir a PUBLICADO directamente
+            // Backend permite: PAUSADO → PUBLICADO directamente
+            // NO necesitamos pasar por EN_EDICION
+
+            console.log('📍 EventManagement - Publishing event, current status:', lifecycleEvent.status || initialStatus)
+            const publishResult = await publishEvent(lifecycleEvent, { showNotifications: false })
+
+            if (publishResult?.success === false) {
+              handleError(publishResult.message || 'No se pudo publicar el evento.')
 
               return
             }
 
-            lifecycleEvent = activateResult.data || lifecycleEvent
+            updatedEvent = publishResult.data || lifecycleEvent
+            successMessage = 'Evento actualizado y publicado exitosamente'
           }
-
-          const publishResult = await publishEvent(lifecycleEvent, { showNotifications: false })
-
-          if (publishResult?.success === false) {
-            handleError(publishResult.message || 'No se pudo publicar el evento.')
-
-            return
-          }
-
-          updatedEvent = publishResult.data || lifecycleEvent
-          successMessage = 'Evento actualizado y publicado exitosamente'
         } else if (action === 'draft' && baseEvent?.id) {
           let lifecycleEvent = baseEvent
           let statusForDraft = lifecycleEvent.status || currentStatus

@@ -6,6 +6,7 @@ import com.feeling.packages.user.infrastructure.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -81,6 +82,10 @@ public interface IBookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.createdAt >= :since")
     long countBookingsSince(@Param("since") LocalDateTime since);
+
+    @Modifying
+    @Query("DELETE FROM Booking b WHERE b.event.id = :eventId")
+    void deleteByEventId(@Param("eventId") Long eventId);
 
     // ========================================
     // CONSULTAS DE CAPACIDAD PARA EVENTOS

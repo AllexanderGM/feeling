@@ -117,7 +117,8 @@ api.interceptors.response.use(
   async error => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // No intentar renovar token para rutas públicas
+    if (error.response?.status === 401 && !originalRequest._retry && !isPublicRoute(originalRequest.url)) {
       originalRequest._retry = true
 
       if (isRefreshing) {
@@ -235,8 +236,8 @@ api.interceptors.response.use(
       return Promise.reject(rateLimitError)
     }
 
-    // Para otros errores 401, también notificar
-    if (error.response?.status === 401) {
+    // Para otros errores 401 en rutas NO públicas, también notificar
+    if (error.response?.status === 401 && !isPublicRoute(error.config?.url)) {
       error.errorType = 'AUTHENTICATION_ERROR'
       error._handledByInterceptor = true // Marcar como manejado por interceptor
       emitAuthError(error)

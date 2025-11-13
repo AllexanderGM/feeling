@@ -568,12 +568,34 @@ const useEvents = () => {
         const response = await eventService.getEventById(eventId)
         const eventData = unwrapServiceResponse(response)
 
+        console.log('🔵 useEvents - getEventById - unwrapped eventData:', {
+          eventData,
+          type: typeof eventData,
+          keys: eventData ? Object.keys(eventData) : []
+        })
+
         Logger.info(Logger.CATEGORIES.SERVICE, 'obtener evento por ID', 'Evento obtenido exitosamente')
 
         return eventData
       }, 'obtener evento')
 
-      return handleApiResponse(result, 'Evento obtenido correctamente.', { showNotifications })
+      console.log('🟣 useEvents - getEventById - result from withLoading:', {
+        result,
+        type: typeof result,
+        hasSuccess: result?.success,
+        hasData: result?.data,
+        keys: result ? Object.keys(result) : []
+      })
+
+      const apiResponse = handleApiResponse(result, 'Evento obtenido correctamente.', { showNotifications })
+
+      console.log('🟢 useEvents - getEventById - apiResponse from handleApiResponse:', {
+        apiResponse,
+        type: typeof apiResponse,
+        keys: apiResponse ? Object.keys(apiResponse) : []
+      })
+
+      return apiResponse
     },
     [withLoading, handleApiResponse, unwrapServiceResponse]
   )

@@ -13,7 +13,7 @@ import EventAccountHelpModal from '@components/auth/EventAccountHelpModal.jsx'
 import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
-import { parseAccountIssue } from '@utils/auth/accountIssue.js'
+import { parseAccountIssue } from '@utils/accountIssue.js'
 
 const Login = () => {
   const navigate = useNavigate()

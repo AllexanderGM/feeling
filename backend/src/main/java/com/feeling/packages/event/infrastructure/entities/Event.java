@@ -42,7 +42,6 @@ public class Event {
     private String location;
 
     @NotNull(message = "La fecha del evento es obligatoria")
-    @Future(message = "La fecha del evento debe ser en el futuro")
     @Column(name = "event_date", nullable = false)
     private LocalDateTime eventDate;
 

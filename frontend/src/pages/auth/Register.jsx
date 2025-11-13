@@ -12,7 +12,7 @@ import logo from '@assets/logo/logo-grey-dark.svg'
 import googleIcon from '@assets/icon/google-icon.svg'
 import { APP_PATHS } from '@constants/paths.js'
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
-import { parseAccountIssue } from '@utils/auth/accountIssue.js'
+import { parseAccountIssue } from '@utils/accountIssue.js'
 
 const Register = () => {
   const navigate = useNavigate()

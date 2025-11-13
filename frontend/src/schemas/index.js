@@ -377,6 +377,9 @@ export {
   // Nota: formatEventPrice está en eventHelpers.js, no aquí
 } from './event/eventSchemas'
 
+// Esquema de formulario para modales
+export { eventFormSchema } from './eventFormSchema'
+
 export {
   // Esquemas de registro y pago
   eventRegistrationSchema,
